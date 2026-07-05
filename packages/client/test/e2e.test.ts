@@ -96,6 +96,91 @@ describe("indexer -> client end to end (over real HTTP)", () => {
   });
 });
 
+describe("observability hooks (client.on)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-observability-"));
+    await writeIndex(buildIndex(sources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("fires 'query' before 'result', each with the right payload", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const events: string[] = [];
+    let queryPayload: unknown;
+    let resultPayload: unknown;
+    client.on("query", (payload) => {
+      events.push("query");
+      queryPayload = payload;
+    });
+    client.on("result", (payload) => {
+      events.push("result");
+      resultPayload = payload;
+    });
+
+    const result = await client.search("widgets", { limit: 5 });
+
+    expect(events).toEqual(["query", "result"]);
+    expect(queryPayload).toEqual({ query: "widgets", options: { limit: 5 } });
+    expect(resultPayload).toEqual({
+      query: "widgets",
+      options: { limit: 5 },
+      result,
+    });
+  });
+
+  it("supports multiple independent listeners for the same event", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    let firstCalls = 0;
+    let secondCalls = 0;
+    client.on("query", () => {
+      firstCalls++;
+    });
+    client.on("query", () => {
+      secondCalls++;
+    });
+
+    await client.search("widgets");
+
+    expect(firstCalls).toBe(1);
+    expect(secondCalls).toBe(1);
+  });
+
+  it("stops firing once the unsubscribe function returned by on() is called", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    let calls = 0;
+    const unsubscribe = client.on("query", () => {
+      calls++;
+    });
+
+    await client.search("widgets");
+    unsubscribe();
+    await client.search("widgets");
+
+    expect(calls).toBe(1);
+  });
+
+  it("a listener that throws does not break the search() call it's observing", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    client.on("query", () => {
+      throw new Error("broken analytics integration");
+    });
+
+    const { hits } = await client.search("widgets");
+    expect(hits.map((h) => h.id)).toEqual([1, 2]);
+  });
+});
+
 describe("SearchClient.dispose() in main-thread mode", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

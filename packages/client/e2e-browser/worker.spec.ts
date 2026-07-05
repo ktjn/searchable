@@ -20,6 +20,15 @@ declare global {
     ) => Promise<{
       values: Array<{ value: string; count: number; selected: boolean }>;
     }>;
+    __csfRunSearchWithEvents?: (
+      query: string,
+      useWorker: boolean,
+    ) => Promise<
+      Array<{
+        type: "query" | "result";
+        payload: { query: string; options: unknown };
+      }>
+    >;
     __csfTestDisposeRejectsInFlight?: () => Promise<string | undefined>;
     __csfTestSearchAfterDispose?: () => Promise<string | undefined>;
     __csfTestWorkerFatalError?: () => Promise<string | undefined>;
@@ -160,6 +169,26 @@ test.describe("Web Worker execution (real browser)", () => {
     });
 
     expect(withWorker).toEqual(withoutWorker);
+  });
+
+  test("client.on() fires 'query' then 'result' via a real Worker, same as main-thread mode", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfRunSearchWithEvents?.("widgets", true);
+      const m = await window.__csfRunSearchWithEvents?.("widgets", false);
+      return [w, m];
+    });
+
+    const expected = [
+      { type: "query", payload: { query: "widgets", options: {} } },
+      { type: "result", payload: { query: "widgets", options: {} } },
+    ];
+    expect(withWorker).toEqual(expected);
+    expect(withoutWorker).toEqual(expected);
   });
 });
 

@@ -23,6 +23,24 @@
         return client.facetValues(field);
       };
 
+      window.__csfRunSearchWithEvents = async (query, useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker ? new URL("./worker.js", location.href) : undefined,
+        });
+        const events = [];
+        client.on("query", (payload) => events.push({ type: "query", payload }));
+        client.on("result", (payload) =>
+          events.push({
+            type: "result",
+            payload: { query: payload.query, options: payload.options },
+          }),
+        );
+        await client.search(query);
+        return events;
+      };
+
       async function rejectionOf(promise) {
         try {
           await promise;

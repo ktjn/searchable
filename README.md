@@ -22,7 +22,8 @@ matching + Web Worker execution + terms and range facet filtering with
 contextual counts + a filter-only `facetValues()` browsing call +
 term-to-page pinning + multi-language query isolation + opt-in synonym
 expansion + opt-in fuzzy matching with "did you mean" suggestions + opt-in
-result highlighting (literal query terms only), all proven in a real
+result highlighting (literal query terms only) + observability hooks
+(`client.on("query" | "result", ...)`), all proven in a real
 browser via Playwright, no
 hierarchical facets/aggregate-range-facet-results/additional-stemmers/
 CJK/multi-word-synonyms/synonym-or-fuzzy-variant-highlighting yet), and
@@ -43,8 +44,8 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 208 Vitest tests across all packages, including real-HTTP e2e tests
-pnpm test:browser             # 23 Playwright tests in real Chromium (Worker execution, lifecycle, showcase, feature gallery)
+pnpm test                     # 212 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test:browser             # 24 Playwright tests in real Chromium (Worker execution, lifecycle, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically
 ```

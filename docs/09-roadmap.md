@@ -16,9 +16,10 @@ pending — see below). Phase 5 is mostly built (query-time synonym
 expansion, plus SymSpell fuzzy matching and "did you mean"
 suggestions; `multiWord` phrase-level synonyms remain pending — see
 below). Phase 6 is partially built (a configuration testbed, a
-bundle-size CI gate, and a first slice of result highlighting;
-streaming/offline-Service-Worker/accessibility/observability remain
-pending — see below). Phase 7+ remain design-only. The GitHub Pages showcase's first three stages
+bundle-size CI gate, a first slice of result highlighting, and a first
+slice of observability hooks; streaming, an offline/Service Worker
+plugin, and an accessibility pass remain pending — see below). Phase 7+
+remain design-only. The GitHub Pages showcase's first three stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stage 3 remains blocked on Phase 8.
 
@@ -256,8 +257,26 @@ Phase 2 is now fully implemented.
   and `didYouMean` presence/absence — not just unit tests in isolation.
 
 **Phase 6 — Modern features polish**
-- Streaming results, offline/Service Worker plugin, accessibility pass,
-  observability hooks.
+- Streaming results, offline/Service Worker plugin, accessibility pass.
+- ✅ Observability hooks, first slice
+  ([docs/08-modern-features.md#observability-hooks](08-modern-features.md#observability-hooks),
+  [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
+  `SearchClient.on("query" | "result", listener)` exposes the two
+  lifecycle events named in the design doc — `"query"` fires
+  synchronously the moment `search()` is called (before any
+  fetch/worker round trip), `"result"` fires once it resolves — so a
+  consumer wires up its own analytics without this library phoning
+  home. `on()` returns an unsubscribe function; a throwing listener
+  can't break the `search()` call it's observing. Deliberately scoped
+  to `search()` only (not `facetValues()`, which has no query text for
+  a `"query"` event to carry) and to just these two event types —
+  finer-grained phase events (shards fetched, scoring complete) and a
+  dedicated zero-results event remain unbuilt, since a consumer already
+  gets that by inspecting `result.totalHits` inside its own `"result"`
+  listener. Verified with real end-to-end tests over real HTTP,
+  including a real-browser Playwright test proving events fire
+  identically whether the query executed inside a Worker or on the
+  main thread.
 - ✅ Result highlighting, first slice
   ([docs/08-modern-features.md#highlighting--snippets](08-modern-features.md#highlighting--snippets),
   [`packages/client/src/highlight.ts`](../packages/client/src/highlight.ts)):

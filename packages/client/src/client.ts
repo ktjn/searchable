@@ -71,6 +71,28 @@ interface PendingRequest {
 }
 
 /**
+ * Lifecycle events a consumer can observe without the library phoning
+ * home itself (docs/08-modern-features.md#observability-hooks) —
+ * click-through tracking or zero-result-query logging are consuming-app
+ * concerns built on top of these, not something this library bundles.
+ * Scoped to `search()` only, not `facetValues()`: "a query was issued"
+ * is naturally about free-text search, and a facet-only browsing call
+ * has no query text for a "query" event to carry. A fuller diagnostics
+ * surface (phase timings, per-plugin attribution) is a separate,
+ * larger spec (spec-diagnostics.md), not this first slice.
+ */
+export interface SearchClientEventMap {
+  /** Fired synchronously the moment search() is called, before any fetch/worker round trip. */
+  query: { query: string; options: SearchOptions };
+  /** Fired once search() resolves, with the same query/options plus the result. */
+  result: { query: string; options: SearchOptions; result: SearchResult };
+}
+
+type SearchClientEvent = keyof SearchClientEventMap;
+// biome-ignore lint/suspicious/noExplicitAny: a listener map keyed by event name can't stay precisely typed per-key without an event-specific overload set this hand-rolled emitter doesn't need; on()/#emit() re-establish the precise type at their public boundary.
+type AnyListener = (payload: any) => void;
+
+/**
  * Manifest + shard fetch over plain HTTP, boolean AND + BM25F scoring
  * with field/term/document boosts and prefix matching. Executes in a
  * Worker by default; the direct-execution path below is not a
@@ -92,6 +114,7 @@ export class SearchClient {
    * mode, silently continuing to work after `dispose()`).
    */
   #fatalError?: Error;
+  #listeners = new Map<SearchClientEvent, Set<AnyListener>>();
 
   constructor(options: SearchClientOptions) {
     this.#indexUrl = toAbsoluteUrl(options.indexUrl);
@@ -147,16 +170,62 @@ export class SearchClient {
     if (this.#fatalError) throw this.#fatalError;
     await this.#ready;
     if (this.#fatalError) throw this.#fatalError;
-    if (this.#worker) {
-      return this.#sendToWorker<SearchResult>({
-        type: "search",
-        query,
-        options,
-      });
+    this.#emit("query", { query, options });
+    const result = this.#worker
+      ? await this.#sendToWorker<SearchResult>({
+          type: "search",
+          query,
+          options,
+        })
+      : await search(
+          query,
+          // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
+          await this.#manifest!,
+          this.#cache,
+          this.#indexUrl,
+          options,
+        );
+    this.#emit("result", { query, options, result });
+    return result;
+  }
+
+  /**
+   * Subscribe to a lifecycle event (docs/08-modern-features.md#observability-hooks).
+   * Returns an unsubscribe function rather than requiring a separate
+   * `off()` call — the caller already has the one reference it needs to
+   * stop listening, so a second method just for that would be redundant.
+   */
+  on<K extends SearchClientEvent>(
+    event: K,
+    listener: (payload: SearchClientEventMap[K]) => void,
+  ): () => void {
+    let set = this.#listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.#listeners.set(event, set);
     }
-    // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
-    const manifest = await this.#manifest!;
-    return search(query, manifest, this.#cache, this.#indexUrl, options);
+    set.add(listener as AnyListener);
+    return () => {
+      set?.delete(listener as AnyListener);
+    };
+  }
+
+  #emit<K extends SearchClientEvent>(
+    event: K,
+    payload: SearchClientEventMap[K],
+  ): void {
+    const set = this.#listeners.get(event);
+    if (!set) return;
+    for (const listener of set) {
+      try {
+        listener(payload);
+      } catch {
+        // A listener throwing (e.g. a broken analytics integration)
+        // must not break the search() call it's observing -- this is
+        // a side-channel notification, not part of the query's own
+        // control flow.
+      }
+    }
   }
 
   /**

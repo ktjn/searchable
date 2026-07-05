@@ -220,12 +220,30 @@ never call) rather than doing the split speculatively:
 
 ## Observability hooks
 
-`client.on("query", ...)`, `client.on("result", ...)` and similar
-lifecycle events (query issued, shards fetched, scoring complete, zero
-results) are exposed so consumers can wire up their own analytics
-(click-through tracking, zero-result-query logging for content gap
-analysis) — the library does not phone home or include any bundled
-analytics itself. [spec-diagnostics.md](spec-diagnostics.md) works out
-the fuller diagnostics surface this points toward — explain API, query
+**Status**: A first slice is built —
+[`SearchClient.on()`](../packages/client/src/client.ts) exposes `"query"`
+(fired synchronously the moment `search()` is called, before any
+fetch/worker round trip, with `{query, options}`) and `"result"` (fired
+once `search()` resolves, with `{query, options, result}`) — so a
+consumer wires up its own analytics (click-through tracking,
+zero-result-query logging for content gap analysis) without this
+library phoning home or bundling any analytics itself. `on()` returns
+an unsubscribe function; a listener that throws doesn't break the
+`search()` call it's observing, since it's a side-channel notification,
+not part of the query's own control flow. Events fire identically
+whether the query actually executed on the main thread or inside a
+Worker, since they're emitted from `SearchClient` itself around the
+worker-message round trip, not from inside the worker.
+
+Deliberately scoped to `search()` only, not `facetValues()` — "a query
+was issued" is naturally about free-text search, and a facet-only
+browsing call has no query text for a `"query"` event to carry. Also
+scoped to just these two events for now: finer-grained lifecycle
+events (shards fetched, scoring complete) and a zero-results event
+remain unbuilt — a consumer gets the same information today by
+inspecting `result.totalHits` inside its own `"result"` listener, so a
+dedicated event isn't a capability gap, just a convenience not yet
+added. [spec-diagnostics.md](spec-diagnostics.md) works out the fuller
+diagnostics surface these hooks point toward — explain API, query
 trace, phase timings, per-plugin attribution — once there's more than
-event hooks to specify.
+two event types to specify.

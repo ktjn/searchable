@@ -157,6 +157,27 @@ its own values shows real per-value counts. An unknown field, or a
 range-type field (aggregate range results aren't implemented, see
 above), returns an empty `values` array.
 
+### Observability hooks
+
+```ts
+const unsubscribe = client.on("query", ({ query, options }) => {
+  analytics.track("search_query", { query });
+});
+client.on("result", ({ query, options, result }) => {
+  if (result.totalHits === 0) analytics.track("zero_result_query", { query });
+});
+
+unsubscribe(); // stop listening -- on() returns this instead of requiring a separate off() call
+```
+
+`"query"` fires synchronously the moment `search()` is called, before
+any fetch/worker round trip; `"result"` fires once it resolves. Fires
+identically whether the query ran on the main thread or inside a
+Worker. Scoped to `search()` only — `facetValues()` has no query text
+for a `"query"` event to carry
+([08-modern-features.md](08-modern-features.md#observability-hooks)). A
+listener that throws doesn't break the `search()` call it's observing.
+
 ### Disposal
 
 ```ts
