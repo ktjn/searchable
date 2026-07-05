@@ -96,6 +96,19 @@ at several sizes — 1k / 10k / 100k / 1M documents — so the suite shows
   other release-readiness numbers, not off in a separate report nobody
   correlates with the perf data).
 
+**Resource-citizenship checks** (see
+[18-resource-aware-loading.md](18-resource-aware-loading.md)):
+- Long Tasks API assertion: no single task attributable to this engine
+  (worker or main-thread proxy) exceeds 50ms during a realistic query
+  burst — a citizenship regression (e.g. someone removes a time-slicing
+  yield point) shows up here, not just as a vague "feels janky" report.
+- Mocked `navigator.connection` test confirming speculative fetches
+  (`preload()`, facet prefetch) are actually skipped under simulated
+  `saveData`/slow-connection conditions, not merely documented as
+  skipped.
+- Concurrency-cap assertion: a query needing many shards never exceeds
+  the configured max simultaneous in-flight requests.
+
 **Environment realism:**
 - Macro-benchmarks run in an actual headless browser (not just Node)
   since `Intl.Segmenter` availability/performance, Web Worker overhead,

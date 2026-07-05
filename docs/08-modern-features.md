@@ -11,7 +11,13 @@ janks scrolling/typing. The main-thread `SearchClient` is a thin
 message-passing proxy with the same async surface regardless of
 `worker: true/false`, so toggling it is a config change, not an API
 change. Implementation uses a small RPC layer (Comlink or an in-house
-equivalent) rather than hand-rolled `postMessage` protocol per method.
+equivalent) rather than hand-rolled `postMessage` protocol per method,
+using transferable `ArrayBuffer`s (not structured-clone copies) for
+shard payloads crossing the thread boundary. Moving work off the main
+thread doesn't by itself guarantee the worker stays responsive to
+cancellation or considerate of CPU/battery — see the time-slicing and
+resource-awareness design in
+[18-resource-aware-loading.md](18-resource-aware-loading.md).
 
 ## Optional WASM core
 

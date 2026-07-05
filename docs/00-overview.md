@@ -84,3 +84,16 @@ apps, and privacy-sensitive search).
   relevant, performance tests (does it stay fast as corpus/query
   complexity grows) — see
   [10-testing-and-performance.md](10-testing-and-performance.md).
+- **Modular by contract, not by convention.** Every optional capability
+  (fuzzy, synonyms, facets, pins, i18n stemmers, vector search) attaches
+  to a documented hook in core rather than core knowing it exists — see
+  [17-plugin-architecture.md](17-plugin-architecture.md). This is what
+  actually delivers "pay only for what you use": a naming convention
+  alone doesn't stop core from importing a feature it merely doesn't
+  enable.
+- **A good browser citizen, not just a fast one.** The engine must never
+  be the reason the *host page* feels slow — network requests it makes
+  speculatively yield priority to the page's own critical resources,
+  memory/CPU usage adapts to the device, and cancellation is honored
+  promptly even inside a background thread. See
+  [18-resource-aware-loading.md](18-resource-aware-loading.md).

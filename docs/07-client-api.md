@@ -67,7 +67,12 @@ searchInput.addEventListener("input", (e) => {
 `preload()` is fire-and-forget (returns a promise callers may ignore) and
 purely a cache-warming hint — it never blocks or is required before
 calling `search()`; a search issued before preloading simply pays the
-normal fetch cost.
+normal fetch cost. Because it's speculative rather than user-blocking,
+`preload()` fetches are deprioritized and network/data-saver-aware by
+default — see
+[18-resource-aware-loading.md](18-resource-aware-loading.md#network-priority-not-just-laziness) —
+unlike an actual `search()` call, which always fetches immediately since
+the user is directly waiting on it.
 
 ### Streaming/incremental results
 

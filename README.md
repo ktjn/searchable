@@ -31,6 +31,7 @@ yet. Start here:
 | [docs/15-cms-meta-tag-control.md](docs/15-cms-meta-tag-control.md) | Authoritative reference: every `csf-*` meta tag the CMS uses to control indexing/search |
 | [docs/16-term-to-page-pinning.md](docs/16-term-to-page-pinning.md) | Curated "best bets" — pin a specific search term/phrase to a specific page |
 | [docs/17-plugin-architecture.md](docs/17-plugin-architecture.md) | The plugin contract: hook points, registration, capability negotiation, versioning |
+| [docs/18-resource-aware-loading.md](docs/18-resource-aware-loading.md) | Fetch priority, idle scheduling, network/memory awareness, worker time-slicing |
 
 ## TL;DR design
 
