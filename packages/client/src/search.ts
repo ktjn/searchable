@@ -1,4 +1,4 @@
-import { analyze, getLanguageProfile } from "@csf/analysis";
+import { getLanguageProfile } from "@csf/analysis";
 import type {
   DocStoreEntry,
   Manifest,
@@ -6,6 +6,7 @@ import type {
   TermShard,
 } from "@csf/format";
 import type { ShardCache } from "./fetch-json.js";
+import { parseQueryTerms } from "./parse-query.js";
 import { scoreTermForDoc } from "./score.js";
 
 export interface Hit {
@@ -54,8 +55,8 @@ export async function search(
   const language = options.language ?? manifest.defaultLanguage;
   const profile = getLanguageProfile(language);
 
-  const terms = [...new Set(analyze(query, profile).map((t) => t.term))];
-  if (terms.length === 0) return [];
+  const queryTerms = parseQueryTerms(query, profile);
+  if (queryTerms.length === 0) return [];
 
   const shardEntries = manifest.shards.terms.filter((s) => s.lang === language);
   const shards = await Promise.all(
@@ -71,18 +72,33 @@ export async function search(
     }
   }
 
-  const matchedPairs = terms.map((term) => ({
-    term,
-    entry: termLookup.get(term),
-  }));
-  if (matchedPairs.some(({ entry }) => entry === undefined)) {
-    return []; // boolean AND: every query term must be present somewhere
+  // Each query term becomes a clause: an exact term matches at most one
+  // TermEntry, a prefix (`term*`) matches every real term starting with
+  // it — resolved here by scanning the already-fetched shard's term
+  // dictionary (a contiguous range scan over a sorted structure at
+  // larger scale, per docs/02-index-format.md#size-targets--sharding-tuning,
+  // but a plain filter is exact and sufficient at this corpus size).
+  // A clause with zero matches fails the whole query (boolean AND).
+  const clauses: { term: string; entries: TermEntry[] }[] = [];
+  for (const qt of queryTerms) {
+    const entries = qt.prefix
+      ? [...termLookup.entries()]
+          .filter(([term]) => term.startsWith(qt.term))
+          .map(([, entry]) => entry)
+      : [termLookup.get(qt.term)].filter(
+          (e): e is TermEntry => e !== undefined,
+        );
+    if (entries.length === 0) return [];
+    clauses.push({ term: qt.term, entries });
   }
-  const matchedTerms = matchedPairs as { term: string; entry: TermEntry }[];
 
-  const docIdSets = matchedTerms.map(
-    ({ entry }) => new Set(entry.postings.map((p) => p.doc)),
-  );
+  const docIdSets = clauses.map((clause) => {
+    const ids = new Set<number>();
+    for (const entry of clause.entries) {
+      for (const posting of entry.postings) ids.add(posting.doc);
+    }
+    return ids;
+  });
   const [first, ...rest] = docIdSets;
   const candidateIds = [...(first ?? [])].filter((id) =>
     rest.every((set) => set.has(id)),
@@ -91,16 +107,18 @@ export async function search(
 
   const scores = new Map<number, number>();
   const docBoosts = new Map<number, number>();
-  for (const { term, entry } of matchedTerms) {
-    const termBoost = options.boosts?.terms?.[term] ?? 1.0;
-    for (const posting of entry.postings) {
-      if (!candidateSet.has(posting.doc)) continue;
-      const s =
-        scoreTermForDoc(posting, entry.df, manifest, options.boosts?.fields) *
-        termBoost;
-      scores.set(posting.doc, (scores.get(posting.doc) ?? 0) + s);
-      if (posting.boost !== undefined)
-        docBoosts.set(posting.doc, posting.boost);
+  for (const clause of clauses) {
+    const termBoost = options.boosts?.terms?.[clause.term] ?? 1.0;
+    for (const entry of clause.entries) {
+      for (const posting of entry.postings) {
+        if (!candidateSet.has(posting.doc)) continue;
+        const s =
+          scoreTermForDoc(posting, entry.df, manifest, options.boosts?.fields) *
+          termBoost;
+        scores.set(posting.doc, (scores.get(posting.doc) ?? 0) + s);
+        if (posting.boost !== undefined)
+          docBoosts.set(posting.doc, posting.boost);
+      }
     }
   }
 

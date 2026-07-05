@@ -2,9 +2,10 @@
 
 ## Status
 
-Phases 0 and 1 have working code in this repo (`packages/`, `spec/`),
-not just design docs — see each phase below for what's actually
-implemented vs. still pending. Phases 2+ remain design-only.
+Phases 0, 1, and most of Phase 2 have working code in this repo
+(`packages/`, `spec/`), not just design docs — see each phase below for
+what's actually implemented vs. still pending. Phase 2's Worker
+execution and Phase 3+ remain design-only.
 
 ## Phased build plan
 
@@ -42,9 +43,24 @@ implemented vs. still pending. Phases 2+ remain design-only.
   shard-fetch-on-demand model works, not just each half in isolation.
 
 **Phase 2 — Ranking & boosts**
-- BM25F with field boosts, term boosts, document boosts.
-- Prefix matching.
-- Move execution into a Web Worker.
+- ✅ Field boosts: configurable at build time
+  (`buildIndex(sources, lang, { fieldBoosts })`, defaulting to
+  title=3.0/body=1.0) and overridable per-query
+  (`search(query, { boosts: { fields } })`).
+- ✅ Term boosts: `search(query, { boosts: { terms } })` multiplies one
+  specific query term's score contribution.
+- ✅ Document boosts: `csf-boost` meta tag, applied as a final
+  per-document multiplier (see Phase 1's `len` note — `boost` is
+  denormalized onto term-shard postings the same way, for the same
+  reason: it must be known before the doc-store fetch, not after).
+- ✅ Prefix matching (`term*`): query parsing splits on raw whitespace
+  before analysis (so a trailing `*` survives tokenization), then
+  expands against the already-fetched term dictionary.
+- ⬜ Move execution into a Web Worker — not yet done; still main-thread.
+- All of the above verified with real end-to-end tests (not just unit
+  tests) proving the ranking/boost effect actually changes what the
+  real client returns, not just that the scoring function's math
+  looks right in isolation. 51 tests passing across the workspace.
 
 **Phase 3 — Facets & curated pins**
 - Facet shard format, filtering, contextual counts, range facets.

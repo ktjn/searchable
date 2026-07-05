@@ -238,3 +238,78 @@ describe("per-query term boost", () => {
     expect(hits[0]?.id).toBe(1); // doc 1 has 3x "apple", benefits most
   });
 });
+
+describe("prefix matching (term*)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const prefixSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widget",
+      html: `<html lang="en"><head><title>Widget</title></head>
+        <body><main><p>A single widget for sale.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/widgets",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>Buy widgets in bulk.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/widgetry",
+      html: `<html lang="en"><head><title>Widgetry</title></head>
+        <body><main><p>The fine art of widgetry.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/gadgets",
+      html: `<html lang="en"><head><title>Gadgets</title></head>
+        <body><main><p>Gadgets and gizmos only.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-prefix-"));
+    await writeIndex(buildIndex(prefixSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("matches every real term sharing the prefix, not just an exact term", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("widg*");
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("does not match documents outside the prefix", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("widg*");
+    expect(hits.some((h) => h.id === 4)).toBe(false);
+  });
+
+  it("still ANDs a prefix clause against other exact clauses", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("widg* bulk");
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("returns no results when a prefix matches no real term", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    expect(await client.search("zzz*")).toEqual([]);
+  });
+
+  it("falls back to an exact match when there's no trailing *", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("widget");
+    expect(hits.map((h) => h.id)).toEqual([1]); // not 2 or 3
+  });
+});
