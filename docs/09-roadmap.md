@@ -5,6 +5,8 @@
 Phases 0, 1, and 2 have working code in this repo (`packages/`,
 `spec/`), not just design docs — see each phase below for what's
 actually implemented vs. still pending. Phase 3+ remain design-only.
+The GitHub Pages showcase (see below) is also unbuilt so far, though
+its first two stages are now unblocked by Phase 1/2 being done.
 
 ## Phased build plan
 
@@ -124,11 +126,20 @@ Phase 2 is now fully implemented.
 **Showcase (runs alongside, not a phase of its own)**
 - A GitHub Pages demo is staged against the phases above rather than
   built all at once — see
-  [19-github-pages-showcase.md](19-github-pages-showcase.md). The docs
-  site (Stage 0) ships independently of engine code; "search these
-  docs" (Stage 1) lands right after Phase 1; the feature gallery
-  (Stage 2) lands across Phases 2-5; vector search demo (Stage 3) lands
-  with Phase 8.
+  [19-github-pages-showcase.md](19-github-pages-showcase.md).
+  - ⬜ Stage 0 (docs site rendering this repo's own markdown): ships
+    independently of engine code; unbuilt, but nothing is blocking it —
+    could be done today.
+  - ⬜ Stage 1 ("search these docs"): needs Phase 1, which is now done
+    (`packages/indexer` + `packages/client` are real, tested code) —
+    unblocked and buildable now, just not yet built. Would also be the
+    first real dogfood test of the engine at production scale (repo's
+    own doc set) rather than only small inline test fixtures.
+  - ⬜ Stage 2 (feature gallery: product catalog for facets/boosts/pins,
+    synonym playground, multi-language corpus, typo-tolerance demo):
+    needs facets/pins (Phase 3), i18n (Phase 4), synonyms/fuzzy
+    (Phase 5) — still blocked on those.
+  - ⬜ Stage 3 (semantic search demo): needs Phase 8 — still blocked.
 
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is
 already a usable, if basic, client-side search engine) — this is
