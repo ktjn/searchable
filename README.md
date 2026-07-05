@@ -8,22 +8,25 @@ entirely in the browser. No search server, no query-time backend.
 Think "Algolia/Typesense-grade query features, Pagefind/lunr-style
 zero-backend deployment."
 
-**Status**: Phases 0, 1, and most of Phase 2 of the roadmap have working
-code — [`packages/analysis`](packages/analysis) (shared tokenizer),
+**Status**: Phases 0, 1, and 2 of the roadmap have working code —
+[`packages/analysis`](packages/analysis) (shared tokenizer),
 [`packages/format`](packages/format) (shared manifest/shard types),
 [`packages/indexer`](packages/indexer) (rendered HTML → manifest +
 shards, configurable field boosts, `csf-boost` extraction), and
 [`packages/client`](packages/client) (fetch + boolean AND + BM25F +
-field/term/document boosts + prefix matching, no Worker/plugins yet),
-plus [`spec/`](spec) (JSON Schema + independent Python/TypeScript
-reference generators). Everything else below is design docs for phases
-not yet built — see [docs/09-roadmap.md](docs/09-roadmap.md#status) for
-what's done vs. pending.
+field/term/document boosts + prefix matching + Web Worker execution,
+proven in a real browser via Playwright, no facets/synonyms/pins
+plugins yet), plus [`spec/`](spec) (JSON Schema + independent
+Python/TypeScript reference generators). Everything else below is
+design docs for phases not yet built — see
+[docs/09-roadmap.md](docs/09-roadmap.md#status) for what's done vs.
+pending.
 
 ```sh
 pnpm install
-pnpm test        # 51 tests across all packages, including real-HTTP e2e tests
-pnpm build        # builds every package
+pnpm test           # 51 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test:browser   # 3 Playwright tests in real Chromium (Worker execution)
+pnpm build          # builds every package
 ```
 
 Design docs — start here:

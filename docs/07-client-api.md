@@ -19,12 +19,15 @@ import { SearchClient } from "@csf/client";
 const client = new SearchClient({
   indexUrl: "https://cdn.example.com/search-index/manifest.json",
   worker: true,               // default true; false = main-thread execution
+  workerUrl: new URL("@csf/client/dist/worker.js", import.meta.url),
   cache: "default",           // reuses browser HTTP cache; also keeps an in-memory LRU
   prefetchFacets: ["category", "brand"],
 });
 
 await client.ready(); // resolves once the manifest is fetched/parsed
 ```
+
+`workerUrl` isn't auto-resolved from `worker: true` alone — every bundler (Vite, webpack, esbuild, or none at all) has its own incompatible convention for referencing a sibling worker file from a library, and guessing one specific convention would silently break under the others. Point it at wherever your build/CDN actually serves this package's `dist/worker.js`; omitting it runs on the main thread regardless of `worker`, the same graceful-degradation behavior as a missing `Worker` global.
 
 ## Searching
 

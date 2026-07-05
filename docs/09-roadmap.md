@@ -2,10 +2,9 @@
 
 ## Status
 
-Phases 0, 1, and most of Phase 2 have working code in this repo
-(`packages/`, `spec/`), not just design docs — see each phase below for
-what's actually implemented vs. still pending. Phase 2's Worker
-execution and Phase 3+ remain design-only.
+Phases 0, 1, and 2 have working code in this repo (`packages/`,
+`spec/`), not just design docs — see each phase below for what's
+actually implemented vs. still pending. Phase 3+ remain design-only.
 
 ## Phased build plan
 
@@ -56,11 +55,28 @@ execution and Phase 3+ remain design-only.
 - ✅ Prefix matching (`term*`): query parsing splits on raw whitespace
   before analysis (so a trailing `*` survives tokenization), then
   expands against the already-fetched term dictionary.
-- ⬜ Move execution into a Web Worker — not yet done; still main-thread.
+- ✅ Web Worker execution: `worker.ts` runs the same `search()` code the
+  main thread does, via a minimal hand-rolled request/response protocol
+  (`worker-protocol.ts`) — not Comlink, since the whole message surface
+  is one method. `SearchClient` takes an explicit `workerUrl` rather
+  than trying to auto-resolve its sibling `worker.js`: that pattern
+  (`new Worker(new URL("./worker.js", import.meta.url))`) looks natural
+  but every bundler statically detects and rewrites it under its own
+  app-bundling assumptions — Vite in particular either hardcodes an
+  absolute `/assets/...` path (wrong for a library at an arbitrary base
+  path) or, worse, inlines raw unbundled TypeScript source as a base64
+  `data:` URL. An explicit `workerUrl` sidesteps every bundler's
+  incompatible convention at once. Proven correct in an actual browser
+  (Playwright/Chromium, not Node/Vitest, since Node has no `Worker`
+  global to meaningfully exercise this) — see
+  [`packages/client/e2e-browser/worker.spec.ts`](../packages/client/e2e-browser/worker.spec.ts).
 - All of the above verified with real end-to-end tests (not just unit
-  tests) proving the ranking/boost effect actually changes what the
-  real client returns, not just that the scoring function's math
-  looks right in isolation. 51 tests passing across the workspace.
+  tests) proving the ranking/boost/worker effect actually changes what
+  the real client returns, not just that the scoring function's math
+  looks right in isolation or the protocol's shape typechecks. 51
+  Vitest tests + 3 real-browser Playwright tests passing.
+
+Phase 2 is now fully implemented.
 
 **Phase 3 — Facets & curated pins**
 - Facet shard format, filtering, contextual counts, range facets.

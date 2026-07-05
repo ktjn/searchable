@@ -12,13 +12,16 @@
     "build": "pnpm -r --filter=./packages/* build",
     "pretest": "pnpm build",
     "test": "vitest run",
+    "pretest:browser": "pnpm build",
+    "test:browser": "playwright test",
     "pretypecheck": "pnpm build",
-    "typecheck": "pnpm -r --filter=./packages/* exec tsc --noEmit",
+    "typecheck": "pnpm -r --filter=./packages/* run typecheck",
     "lint": "biome check .",
     "format": "biome format --write ."
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@playwright/test": "^1.49.1",
     "@vitest/coverage-v8": "^2.1.9",
     "typescript": "^5.7.3",
     "vite": "^6.0.11",

@@ -12,7 +12,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.e2e-browser.json"
   },
   "dependencies": {
     "@csf/analysis": "workspace:*",

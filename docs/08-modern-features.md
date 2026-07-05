@@ -10,14 +10,37 @@ default (`worker: true`), so a burst of keystroke-driven queries never
 janks scrolling/typing. The main-thread `SearchClient` is a thin
 message-passing proxy with the same async surface regardless of
 `worker: true/false`, so toggling it is a config change, not an API
-change. Implementation uses a small RPC layer (Comlink or an in-house
-equivalent) rather than hand-rolled `postMessage` protocol per method,
-using transferable `ArrayBuffer`s (not structured-clone copies) for
-shard payloads crossing the thread boundary. Moving work off the main
-thread doesn't by itself guarantee the worker stays responsive to
-cancellation or considerate of CPU/battery — see the time-slicing and
-resource-awareness design in
-[18-resource-aware-loading.md](18-resource-aware-loading.md).
+change — `search()` and `ready()` return the same promises either way,
+and the direct-execution code path isn't a separate legacy
+implementation, it's the exact code the worker itself runs (`worker.ts`
+imports the same `search()` used on the main thread), just invoked
+in-process when no worker is used.
+
+Implementation is a small hand-rolled request/response protocol keyed
+by an incrementing request id (`{type, id, ...}` in, `{type: "result"
+| "error", id, ...}` out) — not Comlink; a generic proxy-based RPC
+library would be solving a problem this project doesn't have when the
+whole message surface is one method (`search`) plus an `init` handshake.
+Transferable `ArrayBuffer`s for shard payloads and the time-slicing/
+resource-awareness behavior in
+[18-resource-aware-loading.md](18-resource-aware-loading.md) remain
+future refinements, not yet implemented — today's protocol passes
+plain JSON-shaped messages via structured clone, which is correct but
+not yet optimized for large payloads crossing the thread boundary.
+
+**The worker file is not auto-discovered.** `SearchClient` takes an
+explicit `workerUrl` alongside `worker: true`
+([07-client-api.md](07-client-api.md#initialization)) rather than
+resolving its own sibling `worker.js` via `new URL("./worker.js",
+import.meta.url)`. That pattern looks appealing but every bundler
+(Vite in particular) statically detects and rewrites it under its own
+app-bundling assumptions — in Vite's case, rewriting it to a hardcoded
+absolute `/assets/...` path that's wrong for a library consumed from an
+arbitrary base path, or in the worst case inlining raw unbundled
+TypeScript source as a base64 `data:` URL. Requiring an explicit
+`workerUrl` sidesteps every bundler's incompatible convention at once,
+which is a more robust default than picking one bundler to special-case
+for.
 
 ## Optional WASM core
 

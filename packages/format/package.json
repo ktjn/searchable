@@ -12,7 +12,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.7.3",

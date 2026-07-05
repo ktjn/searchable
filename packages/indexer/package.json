@@ -12,7 +12,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@csf/analysis": "workspace:*",

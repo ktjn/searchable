@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8" /><title>csf worker test harness</title></head>
+  <body>
+    <script type="module">
+      import { SearchClient } from "./index.js";
+
+      window.__csfRunSearch = async (query, useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker ? new URL("./worker.js", location.href) : undefined,
+        });
+        return client.search(query);
+      };
+
+      window.__csfHarnessReady = true;
+    </script>
+  </body>
+</html>
