@@ -9,6 +9,19 @@ import type {
 
 const EXCERPT_LENGTH = 200;
 
+interface FieldBoosts {
+  title: number;
+  body: number;
+}
+
+/** Realistic defaults matching the example in docs/04-query-ranking-boosts.md. */
+const DEFAULT_FIELD_BOOSTS: FieldBoosts = { title: 3.0, body: 1.0 };
+
+export interface BuildIndexOptions {
+  /** Per-field boost overrides, merged over DEFAULT_FIELD_BOOSTS. */
+  fieldBoosts?: Partial<FieldBoosts>;
+}
+
 function deriveExcerpt(body: string): string {
   return body.length <= EXCERPT_LENGTH
     ? body
@@ -61,8 +74,10 @@ function addPostings(
 export function buildIndex(
   sources: SourceDocument[],
   language = "en",
+  options: BuildIndexOptions = {},
 ): BuiltIndex {
   const profile = getLanguageProfile(language);
+  const fieldBoosts = { ...DEFAULT_FIELD_BOOSTS, ...options.fieldBoosts };
 
   const termShard: TermShard = {};
   const docStore: DocStoreShard = {};
@@ -111,8 +126,8 @@ export function buildIndex(
       languages: [language],
       defaultLanguage: language,
       fields: {
-        title: { boost: 1.0, stored: true },
-        body: { boost: 1.0, stored: false },
+        title: { boost: fieldBoosts.title, stored: true },
+        body: { boost: fieldBoosts.body, stored: false },
       },
       docCount: indexedCount,
       avgFieldLength: {

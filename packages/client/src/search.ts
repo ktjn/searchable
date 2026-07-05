@@ -18,6 +18,8 @@ export interface Hit {
 export interface SearchOptions {
   language?: string;
   limit?: number;
+  /** Per-query overrides of the manifest's build-time field boosts. */
+  boosts?: { fields?: Record<string, number> };
 }
 
 function resolve(baseUrl: string, relPath: string): string {
@@ -79,7 +81,12 @@ export async function search(
   for (const entry of matchedEntries) {
     for (const posting of entry.postings) {
       if (!candidateSet.has(posting.doc)) continue;
-      const s = scoreTermForDoc(posting, entry.df, manifest);
+      const s = scoreTermForDoc(
+        posting,
+        entry.df,
+        manifest,
+        options.boosts?.fields,
+      );
       scores.set(posting.doc, (scores.get(posting.doc) ?? 0) + s);
       if (posting.boost !== undefined)
         docBoosts.set(posting.doc, posting.boost);

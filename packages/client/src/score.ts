@@ -12,17 +12,20 @@ function idf(docCount: number, df: number): number {
  * Scores one term's contribution to one document under BM25F: field-
  * weighted term frequency (normalized by that field's length relative
  * to the corpus average), run through the BM25 saturation curve and
- * scaled by idf. Field boosts default to 1.0 until manifests carry
- * non-default weights (docs/09-roadmap.md Phase 2).
+ * scaled by idf. `fieldBoostOverrides` lets a caller override the
+ * manifest's build-time field weights per-query
+ * (docs/04-query-ranking-boosts.md#boost-types-summarized).
  */
 export function scoreTermForDoc(
   posting: Posting,
   df: number,
   manifest: Manifest,
+  fieldBoostOverrides?: Record<string, number>,
 ): number {
   let weightedTf = 0;
   for (const [field, fieldPosting] of Object.entries(posting.fields)) {
-    const boost = manifest.fields[field]?.boost ?? 1.0;
+    const boost =
+      fieldBoostOverrides?.[field] ?? manifest.fields[field]?.boost ?? 1.0;
     const avgLen = manifest.avgFieldLength[field] ?? fieldPosting.len;
     const lengthNorm = 1 - B + B * (fieldPosting.len / (avgLen || 1));
     weightedTf += (boost * fieldPosting.tf) / (lengthNorm || 1);

@@ -136,3 +136,54 @@ describe("document-level boost (csf-boost)", () => {
     expect(hits.map((h) => h.id)).toEqual([2, 1]);
   });
 });
+
+describe("per-query field boost override", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const fieldBoostSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>Unrelated padding content here.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/b",
+      html: `<html lang="en"><head><title>Other Page</title></head>
+        <body><main><p>widgets widgets widgets widgets widgets</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-fieldboost-"));
+    await writeIndex(buildIndex(fieldBoostSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("ranks the 5x body match first under default field boosts", async () => {
+    // doc 1 matches once via a 3x-boosted title; doc 2 matches 5 times in
+    // an unboosted body — BM25's saturation curve means raw occurrence
+    // count still wins here despite the title boost, empirically.
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("widgets");
+    expect(hits[0]?.id).toBe(2);
+  });
+
+  it("flips the ranking when the query overrides title far above body", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("widgets", {
+      boosts: { fields: { title: 100, body: 0.01 } },
+    });
+    expect(hits[0]?.id).toBe(1);
+  });
+});

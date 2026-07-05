@@ -73,4 +73,27 @@ describe("scoreTermForDoc (BM25F)", () => {
       scoreTermForDoc(titleOnly, 10, manifest),
     );
   });
+
+  it("lets a per-query fieldBoostOverrides win over the manifest's boost", () => {
+    const bodyMatch: Posting = {
+      doc: 1,
+      fields: { body: { tf: 1, pos: [0], len: 200 } },
+    };
+    const withoutOverride = scoreTermForDoc(bodyMatch, 10, manifest);
+    const withOverride = scoreTermForDoc(bodyMatch, 10, manifest, {
+      body: 10,
+    });
+    expect(withOverride).toBeGreaterThan(withoutOverride);
+  });
+
+  it("falls back to the manifest boost for fields not present in the override", () => {
+    const titleMatch: Posting = {
+      doc: 1,
+      fields: { title: { tf: 1, pos: [0], len: 5 } },
+    };
+    // override only affects "body"; "title" should still use manifest's 3.0
+    expect(scoreTermForDoc(titleMatch, 10, manifest, { body: 10 })).toBe(
+      scoreTermForDoc(titleMatch, 10, manifest),
+    );
+  });
 });

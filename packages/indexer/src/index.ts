@@ -1,4 +1,5 @@
 export { buildIndex } from "./build-index.js";
+export type { BuildIndexOptions } from "./build-index.js";
 export { discoverHtmlDocuments } from "./discover.js";
 export { extractDocument } from "./extract.js";
 export type { ExtractedDocument } from "./extract.js";

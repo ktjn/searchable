@@ -55,6 +55,18 @@ describe("buildIndex", () => {
     expect(built.docStore["1"]?.boost).toBeUndefined();
   });
 
+  it("defaults field boosts to title=3.0, body=1.0", () => {
+    const built = buildIndex(sources);
+    expect(built.manifest.fields.title?.boost).toBe(3.0);
+    expect(built.manifest.fields.body?.boost).toBe(1.0);
+  });
+
+  it("lets field boosts be overridden at build time", () => {
+    const built = buildIndex(sources, "en", { fieldBoosts: { title: 5 } });
+    expect(built.manifest.fields.title?.boost).toBe(5);
+    expect(built.manifest.fields.body?.boost).toBe(1.0); // unspecified stays default
+  });
+
   it("excludes csf-noindex documents entirely", () => {
     const built = buildIndex(sources);
     expect(built.docStore["3"]).toBeUndefined();
