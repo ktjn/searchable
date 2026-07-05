@@ -1,5 +1,14 @@
 # Tokenization & Internationalization
 
+**Status**: The `LanguageProfile` abstraction is built with two real
+profiles (`english`, `german` — [`packages/analysis`](../packages/analysis)),
+and the indexer/client genuinely partition a multi-language corpus by
+each document's own declared language (not a single language forced
+onto the whole batch) — see [09-roadmap.md](09-roadmap.md#status).
+Still pending: real stemmers (both profiles are an identity pass),
+CJK/Thai segmentation and bigram fallback, RTL-aware result rendering,
+and auto language detection.
+
 The single hardest correctness requirement: **the exact same analysis
 pipeline must run at index time and at query time**, per language,
 otherwise terms silently never match. This doc defines that pipeline and

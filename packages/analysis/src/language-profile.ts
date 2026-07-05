@@ -42,4 +42,20 @@ export const english: LanguageProfile = {
   stem: (term) => term,
 };
 
+/**
+ * No stemming/stopword removal yet, same as `english` above — this
+ * profile's job right now is proving the LanguageProfile abstraction
+ * actually varies per language (Intl.Segmenter locale, diacritic
+ * folding default), not shipping full German linguistic analysis.
+ * `foldDiacritics: false` per docs/03-tokenization-i18n.md#case-folding--diacritics:
+ * folding ü→u would collapse distinct German words (schon/schön).
+ */
+export const german: LanguageProfile = {
+  code: "de",
+  segment: segmentWithIntl("de"),
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: (term) => term,
+};
+
 export { stripDiacritics };

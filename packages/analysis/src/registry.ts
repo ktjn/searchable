@@ -1,4 +1,4 @@
-import { english } from "./language-profile.js";
+import { english, german } from "./language-profile.js";
 import type { LanguageProfile } from "./language-profile.js";
 
 /**
@@ -6,7 +6,7 @@ import type { LanguageProfile } from "./language-profile.js";
  * code, so "is language X supported" and "which profile does X get"
  * can never answer differently on the two sides (docs/03).
  */
-const PROFILES: Record<string, LanguageProfile> = { en: english };
+const PROFILES: Record<string, LanguageProfile> = { en: english, de: german };
 
 export function getLanguageProfile(code: string): LanguageProfile {
   const profile = PROFILES[code];

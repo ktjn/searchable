@@ -33,11 +33,12 @@ export interface SourceDocument {
 
 export interface BuiltIndex {
   manifest: Manifest;
-  termShard: TermShard;
+  /** Language -> its term shard (docs/03-tokenization-i18n.md#mixed-language-corpora--queries). */
+  termShards: Record<string, TermShard>;
   docStore: DocStoreShard;
-  /** Facet field name -> its shard, only for fields with at least one value. */
+  /** Facet field name -> its shard, only for fields with at least one value. Corpus-wide, not partitioned by language. */
   facetShards: Record<string, FacetShard>;
-  pinsShard: PinsShard;
-  language: string;
+  /** Language -> its pins shard, only for languages with at least one csf-pin. */
+  pinsShards: Record<string, PinsShard>;
   idRange: [number, number];
 }

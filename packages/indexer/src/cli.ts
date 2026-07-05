@@ -12,6 +12,8 @@ if (!inputDir || !outDir) {
 const sources = await discoverHtmlDocuments(inputDir);
 const built = buildIndex(sources);
 await writeIndex(built, outDir);
-console.log(
-  `indexed ${built.manifest.docCount} document(s) from ${inputDir} -> ${outDir}`,
+const totalDocs = Object.values(built.manifest.docCount).reduce(
+  (sum, n) => sum + n,
+  0,
 );
+console.log(`indexed ${totalDocs} document(s) from ${inputDir} -> ${outDir}`);

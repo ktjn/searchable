@@ -45,6 +45,7 @@ function collapseWhitespace(text: string): string {
 export function extractDocument(
   html: string,
   sourceUrl: string,
+  defaultLanguage = "en",
 ): ExtractedDocument {
   const root = parse(html);
 
@@ -55,7 +56,7 @@ export function extractDocument(
   );
 
   const language =
-    root.querySelector("html")?.getAttribute("lang")?.trim() || "en";
+    root.querySelector("html")?.getAttribute("lang")?.trim() || defaultLanguage;
 
   const canonical = root
     .querySelector('link[rel="canonical"]')

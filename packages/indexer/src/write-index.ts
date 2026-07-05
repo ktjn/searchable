@@ -29,21 +29,20 @@ export async function writeIndex(
   built: BuiltIndex,
   outDir: string,
 ): Promise<void> {
-  const termsFile = await writeJson(
-    outDir,
-    `terms/${built.language}/all.json`,
-    built.termShard,
+  const languages = Object.keys(built.termShards).sort();
+  built.manifest.shards.terms = await Promise.all(
+    languages.map(async (language) => {
+      const termShard = built.termShards[language] ?? {};
+      return {
+        lang: language,
+        prefix: "all",
+        file: await writeJson(outDir, `terms/${language}/all.json`, termShard),
+        termCount: Object.keys(termShard).length,
+      };
+    }),
   );
-  const docsFile = await writeJson(outDir, "docs/0.json", built.docStore);
 
-  built.manifest.shards.terms = [
-    {
-      lang: built.language,
-      prefix: "all",
-      file: termsFile,
-      termCount: Object.keys(built.termShard).length,
-    },
-  ];
+  const docsFile = await writeJson(outDir, "docs/0.json", built.docStore);
   built.manifest.shards.docs = [
     { shard: 0, file: docsFile, idRange: built.idRange },
   ];
@@ -62,13 +61,19 @@ export async function writeIndex(
     );
   }
 
-  if (Object.keys(built.pinsShard).length) {
-    const pinsFile = await writeJson(
-      outDir,
-      `pins/${built.language}.json`,
-      built.pinsShard,
-    );
-    built.manifest.pins = { [built.language]: pinsFile };
+  const pinLanguages = Object.keys(built.pinsShards)
+    .filter((language) => Object.keys(built.pinsShards[language] ?? {}).length)
+    .sort();
+  if (pinLanguages.length) {
+    const pins: Record<string, string> = {};
+    for (const language of pinLanguages) {
+      pins[language] = await writeJson(
+        outDir,
+        `pins/${language}.json`,
+        built.pinsShards[language],
+      );
+    }
+    built.manifest.pins = pins;
   }
 
   await mkdir(outDir, { recursive: true });

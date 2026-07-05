@@ -610,3 +610,59 @@ describe("term-to-page pinning: facet-filter interaction", () => {
     expect(hits).toEqual([]);
   });
 });
+
+describe("multi-language corpora", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const multiLangSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/en/widgets",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>We sell wonderful widgets.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/de/preise",
+      html: `<html lang="de"><head><title>Preise</title></head>
+        <body><main><p>Unsere Preise sind einfach und fair.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-i18n-"));
+    await writeIndex(buildIndex(multiLangSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("searches the default language's partition when no language is given", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("searches a different language's partition when asked", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("preise", { language: "de" });
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("never cross-matches a term against the wrong language's partition", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    expect((await client.search("widgets", { language: "de" })).hits).toEqual(
+      [],
+    );
+    expect((await client.search("preise", { language: "en" })).hits).toEqual(
+      [],
+    );
+  });
+});

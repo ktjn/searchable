@@ -83,8 +83,12 @@ dist/index/
     "tags":    { "boost": 1.5, "stored": true, "facet": true }
   },
   "facetFields": ["tags", "category", "publishedYear"],
-  "docCount": 18342,
-  "avgFieldLength": { "title": 6.1, "body": 412.4 },
+  "docCount": { "en": 12100, "de": 4200, "ja": 2042 },
+  "avgFieldLength": {
+    "en": { "title": 6.1, "body": 412.4 },
+    "de": { "title": 5.4, "body": 388.9 },
+    "ja": { "title": 8.2, "body": 501.1 }
+  },
   "shards": {
     "terms": [
       { "lang": "en", "prefix": "a", "file": "terms/en/a.7f3c.json", "termCount": 812 },
@@ -102,9 +106,11 @@ dist/index/
 }
 ```
 
-`avgFieldLength` and `docCount` are stored up front because BM25 needs
-corpus-wide statistics (average document length, total doc count) that
-must be known without fetching every shard.
+`avgFieldLength` and `docCount` are stored up front, keyed by language,
+because BM25 needs these statistics (average document length, total doc
+count) *within the partition actually being searched* without fetching
+every shard — mixing them across languages sharing one manifest would
+skew idf and length normalization for both (docs/03-tokenization-i18n.md#mixed-language-corpora--queries).
 
 ## Term shard (inverted index)
 

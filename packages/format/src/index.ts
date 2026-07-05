@@ -20,8 +20,16 @@ export interface Manifest {
   fields: Record<string, FieldConfig>;
   /** Names of fields with at least one facet value in the corpus. */
   facetFields?: string[];
-  docCount: number;
-  avgFieldLength: Record<string, number>;
+  /**
+   * Doc count and average field length, keyed by language. BM25's idf
+   * (docs/04-query-ranking-boosts.md#ranking-model-bm25f) and length
+   * normalization must be computed within the language partition
+   * actually being searched — a query against the "de" term shard only
+   * ever sees "de" postings, so mixing in English corpus-wide stats
+   * would skew both. Sum the values for a whole-corpus total.
+   */
+  docCount: Record<string, number>;
+  avgFieldLength: Record<string, Record<string, number>>;
   shards: {
     terms: Array<{
       lang: string;

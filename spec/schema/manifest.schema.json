@@ -44,11 +44,21 @@
       "type": "array",
       "items": { "type": "string" }
     },
-    "docCount": { "type": "integer", "minimum": 0 },
-    "avgFieldLength": {
+    "docCount": {
+      "description": "Doc count per language — see docs/02-index-format.md#manifest.",
       "type": "object",
       "propertyNames": { "type": "string" },
-      "additionalProperties": { "type": "number", "minimum": 0 }
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "avgFieldLength": {
+      "description": "Average field length per language, then per field.",
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "type": "string" },
+        "additionalProperties": { "type": "number", "minimum": 0 }
+      }
     },
     "shards": {
       "type": "object",

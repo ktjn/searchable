@@ -6,8 +6,11 @@ Phases 0, 1, and 2 have working code in this repo (`packages/`,
 `spec/`), not just design docs — see each phase below for what's
 actually implemented vs. still pending. Phase 3 is partially built
 (terms facets and pins; range/hierarchy facets remain pending — see
-below). Phase 4+ remain design-only. The GitHub Pages showcase's first
-two stages ([`showcase/`](../showcase/)) are also built and actually
+below). Phase 4 is partially built (a second real LanguageProfile and
+true per-document-language corpus partitioning; additional stemmers and
+the CJK bigram fallback remain pending — see below). Phase 5+ remain
+design-only. The GitHub Pages showcase's first two stages
+([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stages 2-3 remain blocked on later phases.
 
 ## Phased build plan
@@ -111,12 +114,38 @@ Phase 2 is now fully implemented.
   implemented; today `search()` requires at least one query term.
 - All of the above verified with real end-to-end tests over real HTTP
   (`packages/indexer/test/{extract,build-index}.test.ts`,
-  `packages/client/test/e2e.test.ts`), not just unit tests in isolation —
-  77 Vitest tests + 6 Playwright tests passing.
+  `packages/client/test/e2e.test.ts`), not just unit tests in isolation.
 
 **Phase 4 — I18n**
-- LanguageProfile abstraction, additional stemmers, `Intl.Segmenter`
-  integration, CJK bigram fallback, per-language partitions.
+- ✅ `LanguageProfile` abstraction with a second real profile
+  ([`packages/analysis`](../packages/analysis)'s `german`, `Intl.Segmenter`
+  locale `"de"`, `foldDiacritics: false` per
+  [03-tokenization-i18n.md](03-tokenization-i18n.md#case-folding--diacritics)) —
+  proves the abstraction actually varies per language, not just English
+  reshaped.
+- ✅ True per-language corpus partitioning: `buildIndex` analyzes each
+  document under *its own* declared `<html lang>` (previously extracted
+  but silently ignored — every document was forced through one
+  language's profile regardless of what it declared), producing one
+  term shard and one pins shard per language actually present, plus
+  `docCount`/`avgFieldLength` computed independently per language — BM25
+  needs these corpus-wide stats computed *within* the partition actually
+  being searched, since mixing an English and a German doc's stats in
+  one number would skew both languages' idf and length normalization.
+  This required a manifest format change (`docCount`/`avgFieldLength`
+  keyed by language — `spec/schema/manifest.schema.json`,
+  `@csf/format`), which also fixed the two independent Phase 0 reference
+  generators (`spec/examples/`) and re-verified they're still
+  byte-for-byte identical and schema-valid after the change.
+- ⬜ Additional stemmers (Snowball or otherwise) — both shipped profiles
+  are still an identity pass, same status as Phase 1's English profile.
+- ⬜ CJK/Thai bigram fallback, `Intl.Segmenter`-unsupported-locale
+  handling — no non-Latin-script profile exists yet.
+- All of the above verified with real end-to-end tests over real HTTP
+  proving cross-language query isolation (a term never matches the
+  wrong language's partition) and per-language BM25 stats, not just
+  unit tests in isolation — 88 Vitest tests + 6 Playwright tests
+  passing.
 
 **Phase 5 — Synonyms & fuzzy**
 - Query-time synonym expansion.
@@ -176,9 +205,10 @@ Phase 2 is now fully implemented.
     to function, so it was removed.
   - ⬜ Stage 2 (feature gallery: product catalog for facets/boosts/pins,
     synonym playground, multi-language corpus, typo-tolerance demo):
-    facets/pins (Phase 3 terms/pins half) are now available to build
-    this on; still blocked on i18n (Phase 4) and synonyms/fuzzy
-    (Phase 5) for the other two demos.
+    facets/pins (Phase 3 terms/pins half) and a basic multi-language
+    corpus demo (Phase 4's LanguageProfile/partitioning half — English +
+    German, no CJK/RTL yet) are now available to build on; still
+    blocked on synonyms/fuzzy (Phase 5) for the remaining demo.
   - ⬜ Stage 3 (semantic search demo): needs Phase 8 — still blocked.
 
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is

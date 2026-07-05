@@ -60,45 +60,48 @@ interface PinAccumulatorEntry {
 }
 
 /**
- * Resolves the accumulated per-phrase pin declarations into the final
- * shard shape, applying the tie-break order from
+ * Resolves the accumulated per-language, per-phrase pin declarations
+ * into the final shard shapes, applying the tie-break order from
  * docs/16-term-to-page-pinning.md#conflicting-pins (priority, then doc
  * boost, then build/insertion order — the last relies on Array#sort
  * being a stable sort, guaranteed since ES2019). Returns the finished
- * shard plus one warning string per phrase pinned by more than one
+ * shards plus one warning string per phrase pinned by more than one
  * distinct page, so the caller can surface them exactly as the docs
  * require ("always emits a build warning"), without buildIndex itself
  * being responsible for how warnings get logged.
  */
-function resolvePins(pinsAcc: Map<string, PinAccumulatorEntry>): {
-  pinsShard: PinsShard;
-  warnings: string[];
-} {
-  const pinsShard: PinsShard = {};
+function resolvePins(
+  pinsAccByLanguage: Map<string, Map<string, PinAccumulatorEntry>>,
+): { pinsShards: Record<string, PinsShard>; warnings: string[] } {
+  const pinsShards: Record<string, PinsShard> = {};
   const warnings: string[] = [];
 
-  for (const [phrase, acc] of pinsAcc) {
-    const sortedDocs = [...acc.docs].sort((a, b) => {
-      if (b.priority !== a.priority) return b.priority - a.priority;
-      return b.boost - a.boost;
-    });
-    const distinctDocIds = new Set(sortedDocs.map((d) => d.id));
-    if (distinctDocIds.size > 1) {
-      warnings.push(
-        `pin conflict: "${phrase}" is pinned by ${distinctDocIds.size} pages (doc ids ${[...distinctDocIds].join(", ")}) — resolved by priority/boost/build order; see docs/16-term-to-page-pinning.md#conflicting-pins`,
-      );
+  for (const [language, pinsAcc] of pinsAccByLanguage) {
+    const pinsShard: PinsShard = {};
+    for (const [phrase, acc] of pinsAcc) {
+      const sortedDocs = [...acc.docs].sort((a, b) => {
+        if (b.priority !== a.priority) return b.priority - a.priority;
+        return b.boost - a.boost;
+      });
+      const distinctDocIds = new Set(sortedDocs.map((d) => d.id));
+      if (distinctDocIds.size > 1) {
+        warnings.push(
+          `pin conflict: "${phrase}" (${language}) is pinned by ${distinctDocIds.size} pages (doc ids ${[...distinctDocIds].join(", ")}) — resolved by priority/boost/build order; see docs/16-term-to-page-pinning.md#conflicting-pins`,
+        );
+      }
+      pinsShard[phrase] = {
+        mode: acc.mode,
+        docs: sortedDocs.map(({ id, priority, exclusive }) => ({
+          id,
+          priority,
+          exclusive,
+        })),
+      };
     }
-    pinsShard[phrase] = {
-      mode: acc.mode,
-      docs: sortedDocs.map(({ id, priority, exclusive }) => ({
-        id,
-        priority,
-        exclusive,
-      })),
-    };
+    pinsShards[language] = pinsShard;
   }
 
-  return { pinsShard, warnings };
+  return { pinsShards, warnings };
 }
 
 function addPostings(
@@ -137,59 +140,88 @@ function addPostings(
   }
 }
 
+interface LanguageLengthStats {
+  title: number;
+  body: number;
+  count: number;
+}
+
 /**
- * Builds an in-memory index from rendered HTML source documents — single
- * language, single (unsharded) term shard and doc store, matching the
- * "small corpus mode" sizing in docs/14-reference-deployment-cms-2k.md.
- * File writing/hashing is a separate step (write-index.ts) so this stays
- * a pure, easily-testable function.
+ * Builds an in-memory index from rendered HTML source documents,
+ * matching the "small corpus mode" sizing in
+ * docs/14-reference-deployment-cms-2k.md (single, unsharded term shard
+ * per language, single doc store). Each document is analyzed under
+ * *its own* declared language (`<html lang>`, extract.ts), not a single
+ * language for the whole batch — `defaultLanguage` is only the fallback
+ * for documents that don't declare one, and doubles as
+ * `manifest.defaultLanguage`. File writing/hashing is a separate step
+ * (write-index.ts) so this stays a pure, easily-testable function.
  */
 export function buildIndex(
   sources: SourceDocument[],
-  language = "en",
+  defaultLanguage = "en",
   options: BuildIndexOptions = {},
 ): BuiltIndex {
-  const profile = getLanguageProfile(language);
   const fieldBoosts = { ...DEFAULT_FIELD_BOOSTS, ...options.fieldBoosts };
 
-  const termShard: TermShard = {};
+  const termShards: Record<string, TermShard> = {};
   const docStore: DocStoreShard = {};
   const facetShards: Record<string, FacetShard> = {};
-  const pinsAcc = new Map<string, PinAccumulatorEntry>();
-  let titleLengthSum = 0;
-  let bodyLengthSum = 0;
+  const pinsAccByLanguage = new Map<string, Map<string, PinAccumulatorEntry>>();
+  const statsByLanguage = new Map<string, LanguageLengthStats>();
   let indexedCount = 0;
   let minId = Number.POSITIVE_INFINITY;
   let maxId = Number.NEGATIVE_INFINITY;
 
   for (const source of sources) {
-    const extracted = extractDocument(source.html, source.url);
+    const extracted = extractDocument(source.html, source.url, defaultLanguage);
     if (extracted.noindex) continue;
+
+    const language = extracted.language;
+    const profile = getLanguageProfile(language);
 
     const titleTokens = analyze(extracted.title, profile);
     const bodyTokens = analyze(extracted.body, profile);
 
-    titleLengthSum += titleTokens.length;
-    bodyLengthSum += bodyTokens.length;
+    let stats = statsByLanguage.get(language);
+    if (!stats) {
+      stats = { title: 0, body: 0, count: 0 };
+      statsByLanguage.set(language, stats);
+    }
+    stats.title += titleTokens.length;
+    stats.body += bodyTokens.length;
+    stats.count++;
 
+    let termShard = termShards[language];
+    if (!termShard) {
+      termShard = {};
+      termShards[language] = termShard;
+    }
     addPostings(termShard, "title", source.id, extracted.boost, titleTokens);
     addPostings(termShard, "body", source.id, extracted.boost, bodyTokens);
     addFacetValues(facetShards, extracted.facets, source.id);
 
-    for (const pin of extracted.pins) {
-      const normalized = normalizePhrase(pin.phrase, profile);
-      if (!normalized) continue;
-      let acc = pinsAcc.get(normalized);
-      if (!acc) {
-        acc = { mode: pin.mode, docs: [] };
-        pinsAcc.set(normalized, acc);
+    if (extracted.pins.length > 0) {
+      let pinsAcc = pinsAccByLanguage.get(language);
+      if (!pinsAcc) {
+        pinsAcc = new Map();
+        pinsAccByLanguage.set(language, pinsAcc);
       }
-      acc.docs.push({
-        id: source.id,
-        priority: pin.priority,
-        exclusive: pin.exclusive,
-        boost: extracted.boost,
-      });
+      for (const pin of extracted.pins) {
+        const normalized = normalizePhrase(pin.phrase, profile);
+        if (!normalized) continue;
+        let acc = pinsAcc.get(normalized);
+        if (!acc) {
+          acc = { mode: pin.mode, docs: [] };
+          pinsAcc.set(normalized, acc);
+        }
+        acc.docs.push({
+          id: source.id,
+          priority: pin.priority,
+          exclusive: pin.exclusive,
+          boost: extracted.boost,
+        });
+      }
     }
 
     docStore[String(source.id)] = {
@@ -206,34 +238,46 @@ export function buildIndex(
     maxId = Math.max(maxId, source.id);
   }
 
-  const { pinsShard, warnings } = resolvePins(pinsAcc);
+  const { pinsShards, warnings } = resolvePins(pinsAccByLanguage);
   for (const warning of warnings) console.warn(`[csf-indexer] ${warning}`);
 
   const facetFields = Object.keys(facetShards).sort();
+  // An empty corpus still needs one language for the manifest to make
+  // sense at all — fall back to defaultLanguage with zeroed stats.
+  const languages = statsByLanguage.size
+    ? [...statsByLanguage.keys()].sort()
+    : [defaultLanguage];
+
+  const docCount: Record<string, number> = {};
+  const avgFieldLength: Record<string, Record<string, number>> = {};
+  for (const language of languages) {
+    const stats = statsByLanguage.get(language);
+    docCount[language] = stats?.count ?? 0;
+    avgFieldLength[language] = {
+      title: stats?.count ? stats.title / stats.count : 0,
+      body: stats?.count ? stats.body / stats.count : 0,
+    };
+  }
 
   return {
-    language,
-    termShard,
+    termShards,
     docStore,
     facetShards,
-    pinsShard,
+    pinsShards,
     idRange: indexedCount ? [minId, maxId] : [0, 0],
     manifest: {
       version: 1,
       buildId: new Date().toISOString(),
       format: "json",
-      languages: [language],
-      defaultLanguage: language,
+      languages,
+      defaultLanguage,
       fields: {
         title: { boost: fieldBoosts.title, stored: true },
         body: { boost: fieldBoosts.body, stored: false },
       },
       ...(facetFields.length ? { facetFields } : {}),
-      docCount: indexedCount,
-      avgFieldLength: {
-        title: indexedCount ? titleLengthSum / indexedCount : 0,
-        body: indexedCount ? bodyLengthSum / indexedCount : 0,
-      },
+      docCount,
+      avgFieldLength,
       shards: { terms: [], docs: [] },
     },
   };

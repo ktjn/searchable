@@ -14,22 +14,29 @@ function idf(docCount: number, df: number): number {
  * to the corpus average), run through the BM25 saturation curve and
  * scaled by idf. `fieldBoostOverrides` lets a caller override the
  * manifest's build-time field weights per-query
- * (docs/04-query-ranking-boosts.md#boost-types-summarized).
+ * (docs/04-query-ranking-boosts.md#boost-types-summarized). `language`
+ * selects which partition's corpus-wide stats (docCount, avgFieldLength)
+ * to use — a manifest spanning multiple languages keeps these per
+ * language, since mixing them would skew idf/length-norm for both
+ * (docs/03-tokenization-i18n.md#mixed-language-corpora--queries).
  */
 export function scoreTermForDoc(
   posting: Posting,
   df: number,
   manifest: Manifest,
+  language: string,
   fieldBoostOverrides?: Record<string, number>,
 ): number {
+  const avgFieldLength = manifest.avgFieldLength[language] ?? {};
   let weightedTf = 0;
   for (const [field, fieldPosting] of Object.entries(posting.fields)) {
     const boost =
       fieldBoostOverrides?.[field] ?? manifest.fields[field]?.boost ?? 1.0;
-    const avgLen = manifest.avgFieldLength[field] ?? fieldPosting.len;
+    const avgLen = avgFieldLength[field] ?? fieldPosting.len;
     const lengthNorm = 1 - B + B * (fieldPosting.len / (avgLen || 1));
     weightedTf += (boost * fieldPosting.tf) / (lengthNorm || 1);
   }
 
-  return idf(manifest.docCount, df) * (weightedTf / (weightedTf + K1));
+  const docCount = manifest.docCount[language] ?? 0;
+  return idf(docCount, df) * (weightedTf / (weightedTf + K1));
 }

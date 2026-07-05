@@ -86,10 +86,12 @@ def main():
             "title": {"boost": 1.0, "stored": True},
             "body": {"boost": 1.0, "stored": False},
         },
-        "docCount": len(docs),
+        "docCount": {"en": len(docs)},
         "avgFieldLength": {
-            "title": title_len_sum / len(docs),
-            "body": body_len_sum / len(docs),
+            "en": {
+                "title": title_len_sum / len(docs),
+                "body": body_len_sum / len(docs),
+            }
         },
         "shards": {
             "terms": [

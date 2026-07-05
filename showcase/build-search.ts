@@ -50,9 +50,11 @@ async function main() {
   const sources = await discoverRenderedPages(distDir);
   const built = buildIndex(sources);
   await writeIndex(built, searchIndexDir);
-  console.log(
-    `indexed ${built.manifest.docCount} page(s) -> ${searchIndexDir}`,
+  const totalDocs = Object.values(built.manifest.docCount).reduce(
+    (sum, n) => sum + n,
+    0,
   );
+  console.log(`indexed ${totalDocs} page(s) -> ${searchIndexDir}`);
 
   await cp(clientDist, assetsDir, { recursive: true });
   console.log(`copied @csf/client build -> ${assetsDir}`);

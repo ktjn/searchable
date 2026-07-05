@@ -110,10 +110,12 @@ const manifest = {
     title: { boost: 1.0, stored: true },
     body: { boost: 1.0, stored: false },
   },
-  docCount: docs.length,
+  docCount: { en: docs.length },
   avgFieldLength: {
-    title: titleLenSum / docs.length,
-    body: bodyLenSum / docs.length,
+    en: {
+      title: titleLenSum / docs.length,
+      body: bodyLenSum / docs.length,
+    },
   },
   shards: {
     terms: [

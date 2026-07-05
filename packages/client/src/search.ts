@@ -233,8 +233,13 @@ export async function search(
       for (const posting of entry.postings) {
         if (!candidateSet.has(posting.doc)) continue;
         const s =
-          scoreTermForDoc(posting, entry.df, manifest, options.boosts?.fields) *
-          termBoost;
+          scoreTermForDoc(
+            posting,
+            entry.df,
+            manifest,
+            language,
+            options.boosts?.fields,
+          ) * termBoost;
         scores.set(posting.doc, (scores.get(posting.doc) ?? 0) + s);
         if (posting.boost !== undefined)
           docBoosts.set(posting.doc, posting.boost);

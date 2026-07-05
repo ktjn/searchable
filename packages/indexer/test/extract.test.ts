@@ -21,6 +21,13 @@ describe("extractDocument", () => {
     expect(doc.noindex).toBe(false);
   });
 
+  it("falls back to a configurable default language, not a hardcoded 'en'", () => {
+    const html =
+      "<html><head><title>Ohne Lang</title></head><body>x</body></html>";
+    expect(extractDocument(html, "/x").language).toBe("en"); // default default
+    expect(extractDocument(html, "/x", "de").language).toBe("de");
+  });
+
   it("respects csf-noindex", () => {
     const html = `<html><head><title>Draft</title><meta name="csf-noindex"></head><body>x</body></html>`;
     expect(extractDocument(html, "/draft").noindex).toBe(true);

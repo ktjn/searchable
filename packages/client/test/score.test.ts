@@ -12,8 +12,8 @@ const manifest: Manifest = {
     title: { boost: 3.0, stored: true },
     body: { boost: 1.0, stored: false },
   },
-  docCount: 100,
-  avgFieldLength: { title: 5, body: 200 },
+  docCount: { en: 100 },
+  avgFieldLength: { en: { title: 5, body: 200 } },
   shards: { terms: [], docs: [] },
 };
 
@@ -28,8 +28,8 @@ describe("scoreTermForDoc (BM25F)", () => {
       fields: { body: { tf: 1, pos: [0], len: 200 } },
     };
     const df = 10;
-    expect(scoreTermForDoc(titleMatch, df, manifest)).toBeGreaterThan(
-      scoreTermForDoc(bodyMatch, df, manifest),
+    expect(scoreTermForDoc(titleMatch, df, manifest, "en")).toBeGreaterThan(
+      scoreTermForDoc(bodyMatch, df, manifest, "en"),
     );
   });
 
@@ -38,8 +38,8 @@ describe("scoreTermForDoc (BM25F)", () => {
       doc: 1,
       fields: { body: { tf: 1, pos: [0], len: 200 } },
     };
-    expect(scoreTermForDoc(posting, 2, manifest)).toBeGreaterThan(
-      scoreTermForDoc(posting, 50, manifest),
+    expect(scoreTermForDoc(posting, 2, manifest, "en")).toBeGreaterThan(
+      scoreTermForDoc(posting, 50, manifest, "en"),
     );
   });
 
@@ -52,8 +52,8 @@ describe("scoreTermForDoc (BM25F)", () => {
       doc: 2,
       fields: { body: { tf: 1, pos: [0], len: 2000 } },
     };
-    expect(scoreTermForDoc(shortField, 10, manifest)).toBeGreaterThan(
-      scoreTermForDoc(longField, 10, manifest),
+    expect(scoreTermForDoc(shortField, 10, manifest, "en")).toBeGreaterThan(
+      scoreTermForDoc(longField, 10, manifest, "en"),
     );
   });
 
@@ -69,8 +69,8 @@ describe("scoreTermForDoc (BM25F)", () => {
       doc: 2,
       fields: { title: { tf: 1, pos: [0], len: 5 } },
     };
-    expect(scoreTermForDoc(multiField, 10, manifest)).toBeGreaterThan(
-      scoreTermForDoc(titleOnly, 10, manifest),
+    expect(scoreTermForDoc(multiField, 10, manifest, "en")).toBeGreaterThan(
+      scoreTermForDoc(titleOnly, 10, manifest, "en"),
     );
   });
 
@@ -79,8 +79,8 @@ describe("scoreTermForDoc (BM25F)", () => {
       doc: 1,
       fields: { body: { tf: 1, pos: [0], len: 200 } },
     };
-    const withoutOverride = scoreTermForDoc(bodyMatch, 10, manifest);
-    const withOverride = scoreTermForDoc(bodyMatch, 10, manifest, {
+    const withoutOverride = scoreTermForDoc(bodyMatch, 10, manifest, "en");
+    const withOverride = scoreTermForDoc(bodyMatch, 10, manifest, "en", {
       body: 10,
     });
     expect(withOverride).toBeGreaterThan(withoutOverride);
@@ -92,8 +92,30 @@ describe("scoreTermForDoc (BM25F)", () => {
       fields: { title: { tf: 1, pos: [0], len: 5 } },
     };
     // override only affects "body"; "title" should still use manifest's 3.0
-    expect(scoreTermForDoc(titleMatch, 10, manifest, { body: 10 })).toBe(
-      scoreTermForDoc(titleMatch, 10, manifest),
+    expect(scoreTermForDoc(titleMatch, 10, manifest, "en", { body: 10 })).toBe(
+      scoreTermForDoc(titleMatch, 10, manifest, "en"),
     );
+  });
+
+  it("uses the given language's own docCount/avgFieldLength, not another language's", () => {
+    const multiLangManifest: Manifest = {
+      ...manifest,
+      languages: ["en", "de"],
+      docCount: { en: 100, de: 4 },
+      avgFieldLength: {
+        en: { title: 5, body: 200 },
+        de: { title: 2, body: 20 },
+      },
+    };
+    const posting: Posting = {
+      doc: 1,
+      fields: { body: { tf: 1, pos: [0], len: 20 } },
+    };
+    // Same posting, scored against each language's own (very different)
+    // corpus stats, must give different scores -- proving the language
+    // parameter actually selects distinct stats rather than being ignored.
+    expect(
+      scoreTermForDoc(posting, 2, multiLangManifest, "en"),
+    ).not.toBeCloseTo(scoreTermForDoc(posting, 2, multiLangManifest, "de"));
   });
 });

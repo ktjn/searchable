@@ -32,19 +32,23 @@ const sources: SourceDocument[] = [
 describe("buildIndex", () => {
   it("indexes documents and produces correct postings", () => {
     const built = buildIndex(sources);
-    expect(built.manifest.docCount).toBe(3); // draft excluded
-    expect(built.termShard.widgets.df).toBe(3);
-    expect(built.termShard.widgets.postings.map((p) => p.doc).sort()).toEqual([
-      1, 2, 4,
-    ]);
-    expect(built.termShard.gizmos.df).toBe(1);
-    expect(built.termShard.gizmos.postings[0]?.doc).toBe(2);
+    expect(built.manifest.docCount.en).toBe(3); // draft excluded
+    expect(built.termShards.en?.widgets?.df).toBe(3);
+    expect(
+      built.termShards.en?.widgets?.postings.map((p) => p.doc).sort(),
+    ).toEqual([1, 2, 4]);
+    expect(built.termShards.en?.gizmos?.df).toBe(1);
+    expect(built.termShards.en?.gizmos?.postings[0]?.doc).toBe(2);
   });
 
   it("sets posting-level boost from csf-boost, omitting it when default", () => {
     const built = buildIndex(sources);
-    const boosted = built.termShard.widgets.postings.find((p) => p.doc === 4);
-    const unboosted = built.termShard.widgets.postings.find((p) => p.doc === 1);
+    const boosted = built.termShards.en?.widgets?.postings.find(
+      (p) => p.doc === 4,
+    );
+    const unboosted = built.termShards.en?.widgets?.postings.find(
+      (p) => p.doc === 1,
+    );
     expect(boosted?.boost).toBe(2.0);
     expect(unboosted?.boost).toBeUndefined();
   });
@@ -70,12 +74,14 @@ describe("buildIndex", () => {
   it("excludes csf-noindex documents entirely", () => {
     const built = buildIndex(sources);
     expect(built.docStore["3"]).toBeUndefined();
-    expect(built.termShard.draft).toBeUndefined();
+    expect(built.termShards.en?.draft).toBeUndefined();
   });
 
   it("records per-field term frequency and positions", () => {
     const built = buildIndex(sources);
-    const posting = built.termShard.widgets.postings.find((p) => p.doc === 1);
+    const posting = built.termShards.en?.widgets?.postings.find(
+      (p) => p.doc === 1,
+    );
     // doc 1's title is literally "Widgets", so it appears in both fields
     expect(posting?.fields.title).toEqual({ tf: 1, pos: [0], len: 1 });
     expect(posting?.fields.body).toEqual({ tf: 1, pos: [3], len: 6 });
@@ -84,7 +90,7 @@ describe("buildIndex", () => {
   it("computes avgFieldLength across indexed (non-noindex) docs only", () => {
     const built = buildIndex(sources);
     // titles: "Widgets"=1, "Gadgets"=1, "Featured Widgets"=2 tokens -> 4/3
-    expect(built.manifest.avgFieldLength.title).toBeCloseTo(4 / 3);
+    expect(built.manifest.avgFieldLength.en?.title).toBeCloseTo(4 / 3);
   });
 
   it("stores title and a derived excerpt in the doc store", () => {
@@ -170,7 +176,7 @@ describe("buildIndex pins", () => {
     // the English profile) — the English profile has no stemmer yet, so
     // this is just case-folding for now, but the same analyze() call
     // any future stemmer would run through.
-    expect(built.pinsShard["pricing plans"]).toEqual({
+    expect(built.pinsShards.en?.["pricing plans"]).toEqual({
       mode: "exact",
       docs: [{ id: 1, priority: 0, exclusive: false }],
     });
@@ -189,7 +195,7 @@ describe("buildIndex pins", () => {
           <body><main>x</main></body></html>`,
       },
     ]);
-    expect(built.pinsShard.cost).toEqual({
+    expect(built.pinsShards.en?.cost).toEqual({
       mode: "contains",
       docs: [{ id: 1, priority: 10, exclusive: true }],
     });
@@ -206,7 +212,7 @@ describe("buildIndex pins", () => {
           <body><main>x</main></body></html>`,
       },
     ]);
-    expect(built.pinsShard).toEqual({});
+    expect(built.pinsShards).toEqual({});
   });
 
   it("resolves a pin conflict by priority, then boost, then build order, and warns", () => {
@@ -236,7 +242,9 @@ describe("buildIndex pins", () => {
           <body><main>x</main></body></html>`,
       },
     ]);
-    expect(built.pinsShard.pricing?.docs.map((d) => d.id)).toEqual([2, 3, 1]);
+    expect(built.pinsShards.en?.pricing?.docs.map((d) => d.id)).toEqual([
+      2, 3, 1,
+    ]);
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('pin conflict: "pricing"'),
     );
@@ -256,5 +264,93 @@ describe("buildIndex pins", () => {
     ]);
     expect(warnSpy).not.toHaveBeenCalled();
     warnSpy.mockRestore();
+  });
+});
+
+describe("buildIndex multi-language corpora", () => {
+  const mixedSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/en/widgets",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>We sell wonderful widgets.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/de/preise",
+      html: `<html lang="de"><head><title>Preise</title></head>
+        <body><main><p>Unsere Preise sind einfach und fair.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/de/kontakt",
+      html: `<html lang="de"><head><title>Kontakt</title>
+        <meta name="csf-pin" content="kontakt"></head>
+        <body><main><p>So erreichen Sie uns.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/no-lang",
+      html: `<html><head><title>Untitled</title></head>
+        <body><main><p>falls back to the corpus default language</p></main></body></html>`,
+    },
+  ];
+
+  it("lists every language actually present in the corpus, sorted", () => {
+    const built = buildIndex(mixedSources);
+    expect(built.manifest.languages).toEqual(["de", "en"]);
+  });
+
+  it("partitions each document into its own language's term shard", () => {
+    const built = buildIndex(mixedSources);
+    expect(built.termShards.en?.widgets).toBeDefined();
+    expect(built.termShards.de?.widgets).toBeUndefined();
+    expect(built.termShards.de?.preise).toBeDefined();
+    expect(built.termShards.en?.preise).toBeUndefined();
+  });
+
+  it("falls back a document without <html lang> to the corpus's default language", () => {
+    const built = buildIndex(mixedSources, "en");
+    expect(built.termShards.en?.untitled?.postings.map((p) => p.doc)).toEqual([
+      4,
+    ]);
+    expect(built.termShards.de?.untitled).toBeUndefined();
+  });
+
+  it("computes docCount and avgFieldLength independently per language", () => {
+    const built = buildIndex(mixedSources);
+    expect(built.manifest.docCount).toEqual({ en: 2, de: 2 });
+    // en titles: "Widgets"=1, "Untitled"=1 -> avg 1; de titles: "Preise"=1, "Kontakt"=1 -> avg 1
+    expect(built.manifest.avgFieldLength.en?.title).toBeCloseTo(1);
+    expect(built.manifest.avgFieldLength.de?.title).toBeCloseTo(1);
+  });
+
+  it("keeps facet shards corpus-wide, not partitioned by language", () => {
+    const built = buildIndex([
+      {
+        id: 1,
+        url: "/en/a",
+        html: `<html lang="en"><head><title>A</title>
+          <meta name="csf-facet-category" content="shared"></head>
+          <body><main>a</main></body></html>`,
+      },
+      {
+        id: 2,
+        url: "/de/b",
+        html: `<html lang="de"><head><title>B</title>
+          <meta name="csf-facet-category" content="shared"></head>
+          <body><main>b</main></body></html>`,
+      },
+    ]);
+    expect(built.facetShards.category?.values.shared).toEqual({
+      count: 2,
+      docs: [1, 2],
+    });
+  });
+
+  it("partitions pins by language, keyed under each document's own language", () => {
+    const built = buildIndex(mixedSources);
+    expect(built.pinsShards.de?.kontakt?.docs.map((d) => d.id)).toEqual([3]);
+    expect(built.pinsShards.en).toBeUndefined();
   });
 });
