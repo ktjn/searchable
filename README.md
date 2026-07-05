@@ -15,25 +15,32 @@ Phases 3, 4, and 5 are partially built — [`packages/analysis`](packages/analys
 [`packages/indexer`](packages/indexer) (rendered HTML → manifest +
 shards, per-document-language corpus partitioning, configurable field
 boosts, `csf-boost`/`csf-facet-<field>`/`csf-pin*` extraction, authored
-synonym equivalence/directional data), and
-[`packages/client`](packages/client) (fetch + boolean AND + BM25F +
-field/term/document boosts + prefix matching + Web Worker execution +
-facet filtering with contextual counts + term-to-page pinning +
-multi-language query isolation + opt-in synonym expansion at reduced
-score weight, proven in a real browser via Playwright, no fuzzy/
-range-or-hierarchy-facets/stemmers/CJK/multi-word-synonyms yet), plus
-[`spec/`](spec) (JSON Schema + independent Python/TypeScript reference
-generators). [`showcase/`](showcase) is a live demo of it all, deployed
-to GitHub Pages — this repo's own docs, rendered as a static site and
-searched by the real engine (see
-[docs/19-github-pages-showcase.md](docs/19-github-pages-showcase.md)).
+synonym equivalence/directional data, a SymSpell fuzzy/typo-tolerance
+dictionary), [`packages/client`](packages/client) (fetch + boolean AND +
+BM25F + field/term/document boosts + prefix matching + Web Worker
+execution + facet filtering with contextual counts + term-to-page
+pinning + multi-language query isolation + opt-in synonym expansion +
+opt-in fuzzy matching with "did you mean" suggestions, all proven in a
+real browser via Playwright, no range-or-hierarchy-facets/additional-
+stemmers/CJK/multi-word-synonyms yet), and
+[`packages/fixtures`](packages/fixtures) (a realistically-shaped,
+deterministic CMS-export-style corpus generator for real-scale
+correctness testing, per
+[docs/14-reference-deployment-cms-2k.md](docs/14-reference-deployment-cms-2k.md)),
+plus [`spec/`](spec) (JSON Schema + independent Python/TypeScript
+reference generators). [`showcase/`](showcase) is a live demo of it
+all, deployed to GitHub Pages — the docs site (this repo's own docs,
+rendered and searched by the real engine) plus a feature gallery of
+purpose-built demos (product catalog with facets/boosts/pins/fuzzy
+matching, a synonym playground, a multi-language corpus) — see
+[docs/19-github-pages-showcase.md](docs/19-github-pages-showcase.md).
 Everything else below is design docs for phases not yet built — see
 [docs/09-roadmap.md](docs/09-roadmap.md#status) for what's done vs.
 pending.
 
 ```sh
 pnpm install
-pnpm test                     # 145 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 161 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 21 Playwright tests in real Chromium (Worker execution, lifecycle, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

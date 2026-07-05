@@ -141,11 +141,29 @@ search cost, not the query-embedding constraint.
 
 ## Using this as the Phase 0 fixture
 
+**Status**: Built — [`@csf/fixtures`](../packages/fixtures) generates
+this corpus (hand-written prose, not lorem-ipsum, combined
+deterministically per document; marketing pages with authored pins;
+blog/docs-style pages with category/tag facets and boosts), used by
+real-scale end-to-end tests in both
+[`packages/indexer/test/cms-2k-fixture.test.ts`](../packages/indexer/test/cms-2k-fixture.test.ts)
+and
+[`packages/client/test/cms-2k-fixture.test.ts`](../packages/client/test/cms-2k-fixture.test.ts).
+Scoped to English + German only, since those are the only two
+LanguageProfiles that exist (docs/09-roadmap.md#status, Phase 4) —
+Japanese and Arabic remain unbuilt, so generating pages tagged with
+those language codes would just make `buildIndex()` throw
+(`getLanguageProfile()` has no profile registered for them). Add them
+to the generator once Phase 4 lands those profiles, not before.
+
 [09-roadmap.md](09-roadmap.md)'s Phase 0 calls for "a small multi-language
-fixture corpus." Recommend using a real (or realistically shaped)
-~2,000-document CMS export as that fixture, in addition to synthetic
+fixture corpus." A real (or realistically shaped) ~2,000-document CMS
+export is the fixture, in addition to synthetic
 Zipfian corpora for the scaling benchmarks in
 [10-testing-and-performance.md](10-testing-and-performance.md#macro-benchmarks)
 — grounding correctness tests in the actual target deployment shape
 catches CMS-content-shape issues (rich text flattening, locale
-handling) that a purely synthetic corpus would never surface.
+handling) that a purely synthetic corpus would never surface. The
+generator's `count` option defaults to a smaller size for fast
+correctness-test runs; pass the full ~2,000 (or beyond) when a test
+specifically needs deployment-scale volume.

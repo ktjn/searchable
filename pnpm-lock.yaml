@@ -48,6 +48,9 @@ importers:
         specifier: workspace:*
         version: link:../format
     devDependencies:
+      '@csf/fixtures':
+        specifier: workspace:*
+        version: link:../fixtures
       '@csf/indexer':
         specifier: workspace:*
         version: link:../indexer
@@ -60,6 +63,15 @@ importers:
       vite:
         specifier: ^6.0.11
         version: 6.4.3(@types/node@22.20.0)(tsx@4.23.0)
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@22.20.0)
+
+  packages/fixtures:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.20.0)
@@ -85,6 +97,9 @@ importers:
         specifier: ^7.0.1
         version: 7.1.0
     devDependencies:
+      '@csf/fixtures':
+        specifier: workspace:*
+        version: link:../fixtures
       '@types/node':
         specifier: ^22.10.5
         version: 22.20.0

@@ -4,7 +4,9 @@
 
 Phases 0, 1, and 2 have working code in this repo (`packages/`,
 `spec/`), not just design docs — see each phase below for what's
-actually implemented vs. still pending. Phase 3 is partially built
+actually implemented vs. still pending. Phase 0 is now fully built,
+including the realistically-shaped fixture corpus that was its last
+pending item. Phase 3 is partially built
 (terms facets and pins; range/hierarchy facets remain pending — see
 below). Phase 4 is partially built (a second real LanguageProfile and
 true per-document-language corpus partitioning; additional stemmers and
@@ -40,10 +42,24 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   library buy-in — [`spec/examples/`](../spec/examples/)
   (Python + TypeScript), verified byte-for-byte structurally identical
   output and schema-valid against the files above.
-- ⬜ Small multi-language fixture corpus (English, German, Japanese,
-  Arabic at minimum) grounded in a real ~2,000-document CMS export (see
-  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md))
-  — not yet built; current tests use small inline HTML fixtures instead.
+- ✅ Realistically-shaped fixture corpus grounded in
+  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md):
+  [`@csf/fixtures`](../packages/fixtures) generates a deterministic,
+  hand-written-prose (not lorem-ipsum) CMS-export-style corpus —
+  marketing pages with authored pins, blog/docs-style pages with
+  category/tag facets and boosts — parameterized by document count
+  (fast counts for correctness tests, up to the full ~2,000, or beyond
+  for Phase 7 macro-benchmarks, with a single option). Scoped to
+  English + German only (the two LanguageProfiles that exist, Phase 4
+  below); Japanese/Arabic remain unbuilt, so a fixture claiming to
+  cover them would just crash `buildIndex`. Exercised end-to-end at
+  realistic scale (hundreds of documents, not a handful) in both
+  [`packages/indexer/test/cms-2k-fixture.test.ts`](../packages/indexer/test/cms-2k-fixture.test.ts)
+  and
+  [`packages/client/test/cms-2k-fixture.test.ts`](../packages/client/test/cms-2k-fixture.test.ts) —
+  the existing tiny inline fixtures stay in place for fast, targeted
+  per-feature unit tests; this is additive, a real-scale correctness
+  pass alongside them, not a replacement.
 
 **Phase 1 — Minimal viable engine (single language, JSON tier only)**
 - ✅ Reference indexer — [`packages/indexer/`](../packages/indexer/):

@@ -20,6 +20,7 @@
     "@csf/format": "workspace:*"
   },
   "devDependencies": {
+    "@csf/fixtures": "workspace:*",
     "@csf/indexer": "workspace:*",
     "@types/node": "^22.10.5",
     "typescript": "^5.7.3",
