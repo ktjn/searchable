@@ -1,4 +1,4 @@
-import type { Hit, SearchOptions } from "./search.js";
+import type { SearchOptions, SearchResult } from "./search.js";
 
 /**
  * Wire format between the main-thread SearchClient and the Worker,
@@ -18,5 +18,5 @@ export type WorkerRequestPayload =
 export type WorkerRequest = WorkerRequestPayload & { id: number };
 
 export type WorkerResponse =
-  | { type: "result"; id: number; hits: Hit[] }
+  | { type: "result"; id: number; result: SearchResult }
   | { type: "error"; id: number; message: string };

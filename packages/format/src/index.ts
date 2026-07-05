@@ -18,6 +18,8 @@ export interface Manifest {
   languages: string[];
   defaultLanguage: string;
   fields: Record<string, FieldConfig>;
+  /** Names of fields with at least one facet value in the corpus. */
+  facetFields?: string[];
   docCount: number;
   avgFieldLength: Record<string, number>;
   shards: {
@@ -27,8 +29,11 @@ export interface Manifest {
       file: string;
       termCount: number;
     }>;
+    facets?: Array<{ field: string; file: string }>;
     docs: Array<{ shard: number; file: string; idRange: [number, number] }>;
   };
+  /** lang -> pins shard file, only present for languages with at least one csf-pin. */
+  pins?: Record<string, string>;
 }
 
 export interface FieldPosting {
@@ -66,3 +71,29 @@ export interface DocStoreEntry {
 }
 
 export type DocStoreShard = Record<string, DocStoreEntry>;
+
+export interface FacetValueEntry {
+  /** Global count over the whole corpus, computed once at build time (docs/06-faceted-search.md#facet-counts). */
+  count: number;
+  docs: number[];
+}
+
+export interface FacetShard {
+  /** Only "terms" is implemented so far; range/hierarchy remain design-only (docs/09-roadmap.md). */
+  type: "terms" | "range" | "hierarchy";
+  separator?: string;
+  values: Record<string, FacetValueEntry>;
+}
+
+export interface PinDoc {
+  id: number;
+  priority: number;
+  exclusive: boolean;
+}
+
+export interface PinEntry {
+  mode: "exact" | "contains";
+  docs: PinDoc[];
+}
+
+export type PinsShard = Record<string, PinEntry>;

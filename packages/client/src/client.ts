@@ -1,7 +1,7 @@
 import type { Manifest } from "@csf/format";
 import { ShardCache } from "./fetch-json.js";
 import { search } from "./search.js";
-import type { Hit, SearchOptions } from "./search.js";
+import type { SearchOptions, SearchResult } from "./search.js";
 import type {
   WorkerRequestPayload,
   WorkerResponse,
@@ -53,7 +53,7 @@ export interface SearchClientOptions {
 }
 
 interface PendingRequest {
-  resolve: (hits: Hit[]) => void;
+  resolve: (result: SearchResult) => void;
   reject: (err: Error) => void;
 }
 
@@ -101,7 +101,10 @@ export class SearchClient {
     await this.#ready;
   }
 
-  async search(query: string, options: SearchOptions = {}): Promise<Hit[]> {
+  async search(
+    query: string,
+    options: SearchOptions = {},
+  ): Promise<SearchResult> {
     await this.#ready;
     if (this.#worker) {
       return this.#sendToWorker({ type: "search", query, options });
@@ -111,7 +114,7 @@ export class SearchClient {
     return search(query, manifest, this.#cache, this.#indexUrl, options);
   }
 
-  #sendToWorker(message: WorkerRequestPayload): Promise<Hit[]> {
+  #sendToWorker(message: WorkerRequestPayload): Promise<SearchResult> {
     const id = this.#nextRequestId++;
     return new Promise((resolve, reject) => {
       this.#pendingRequests.set(id, { resolve, reject });
@@ -127,7 +130,7 @@ export class SearchClient {
     if (message.type === "error") {
       pending.reject(new Error(message.message));
     } else {
-      pending.resolve(message.hits);
+      pending.resolve(message.result);
     }
   }
 }

@@ -77,4 +77,62 @@ describe("extractDocument", () => {
     const html = `<html><head><title>Bad</title><meta name="csf-boost" content="-3"></head><body>x</body></html>`;
     expect(extractDocument(html, "/x").boost).toBe(1.0);
   });
+
+  it("has no facets or pins by default", () => {
+    const html = "<html><head><title>Plain</title></head><body>x</body></html>";
+    const doc = extractDocument(html, "/x");
+    expect(doc.facets).toEqual({});
+    expect(doc.pins).toEqual([]);
+  });
+
+  it("collects repeated csf-facet-<field> tags into arrays, deduping repeats", () => {
+    const html = `<html><head><title>Product</title>
+      <meta name="csf-facet-category" content="electronics">
+      <meta name="csf-facet-category" content="audio">
+      <meta name="csf-facet-category" content="audio">
+      <meta name="csf-facet-brand" content="acme">
+      </head><body>x</body></html>`;
+    const doc = extractDocument(html, "/x");
+    expect(doc.facets).toEqual({
+      category: ["electronics", "audio"],
+      brand: ["acme"],
+    });
+  });
+
+  it("collects repeated csf-pin tags with page-level mode/priority/exclusive", () => {
+    const html = `<html><head><title>Pricing</title>
+      <meta name="csf-pin" content="pricing">
+      <meta name="csf-pin" content="how much does it cost">
+      <meta name="csf-pin-mode" content="contains">
+      <meta name="csf-pin-priority" content="10">
+      <meta name="csf-pin-exclusive">
+      </head><body>x</body></html>`;
+    const doc = extractDocument(html, "/x");
+    expect(doc.pins).toEqual([
+      { phrase: "pricing", mode: "contains", priority: 10, exclusive: true },
+      {
+        phrase: "how much does it cost",
+        mode: "contains",
+        priority: 10,
+        exclusive: true,
+      },
+    ]);
+  });
+
+  it("defaults pin mode to exact, priority to 0, and exclusive to false", () => {
+    const html = `<html><head><title>Pricing</title>
+      <meta name="csf-pin" content="pricing"></head><body>x</body></html>`;
+    const doc = extractDocument(html, "/x");
+    expect(doc.pins).toEqual([
+      { phrase: "pricing", mode: "exact", priority: 0, exclusive: false },
+    ]);
+  });
+
+  it("falls back to exact for an unrecognized csf-pin-mode value", () => {
+    const html = `<html><head><title>Pricing</title>
+      <meta name="csf-pin" content="pricing">
+      <meta name="csf-pin-mode" content="bogus">
+      </head><body>x</body></html>`;
+    expect(extractDocument(html, "/x").pins[0]?.mode).toBe("exact");
+  });
 });

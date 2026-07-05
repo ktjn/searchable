@@ -41,10 +41,16 @@ Two showcase surfaces, published from the same repo:
   the rendered doc pages are exactly the kind of `<main>`/`<title>`
   structure that adapter expects.
 - Deploys via [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml)
-  (`actions/deploy-pages`) on push to `main`. Enabling Pages itself —
-  Settings → Pages → "GitHub Actions" as the source — is a one-time
-  repo-settings change outside what a workflow file can do; that's a
-  manual step for whoever administers the repo.
+  (`actions/deploy-pages`) on push to `main` and is live. Enabling Pages
+  itself — Settings → Pages → "GitHub Actions" as the source — was a
+  one-time repo-settings change outside what a workflow file can do, a
+  manual step for whoever administers the repo; it's been done. Getting
+  the `deploy` job itself green after that needed one more fix: its
+  `environment: {name: github-pages}` block (GitHub's official template)
+  requires the deployment-Environments feature, which is a paid-plan
+  restriction for *private* repos — it made the job get rejected before
+  a runner was ever assigned. `actions/deploy-pages` doesn't need that
+  binding to function, so it was dropped.
 
 ## Stage 1 — "Search these docs" ✅ built
 

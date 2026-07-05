@@ -1,5 +1,12 @@
 import { parse } from "node-html-parser";
 
+export interface PinDeclaration {
+  phrase: string;
+  mode: "exact" | "contains";
+  priority: number;
+  exclusive: boolean;
+}
+
 export interface ExtractedDocument {
   title: string;
   language: string;
@@ -8,7 +15,12 @@ export interface ExtractedDocument {
   url: string;
   noindex: boolean;
   boost: number;
+  /** Facet field name -> distinct values declared via csf-facet-<field> (docs/15-cms-meta-tag-control.md). */
+  facets: Record<string, string[]>;
+  pins: PinDeclaration[];
 }
+
+const FACET_TAG_PREFIX = "csf-facet-";
 
 const BOILERPLATE_SELECTORS = [
   "nav",
@@ -25,10 +37,10 @@ function collapseWhitespace(text: string): string {
 
 /**
  * Extracts indexable fields from one rendered HTML page, honoring the
- * csf-* meta-tag control surface (docs/15-cms-meta-tag-control.md) for
- * the subset relevant to indexing content (title/body/language/
- * excerpt/canonical/noindex/boost — facet/pin extraction land with the
- * roadmap phases that have a consumer for them).
+ * csf-* meta-tag control surface (docs/15-cms-meta-tag-control.md):
+ * title/body/language/excerpt/canonical/noindex/boost plus facet
+ * values (csf-facet-<field>) and pin declarations (csf-pin*, see
+ * docs/16-term-to-page-pinning.md).
  */
 export function extractDocument(
   html: string,
@@ -75,5 +87,49 @@ export function extractDocument(
   const boost =
     Number.isFinite(parsedBoost) && parsedBoost > 0 ? parsedBoost : 1.0;
 
-  return { title, language, body, excerpt, url, noindex, boost };
+  const facets: Record<string, string[]> = {};
+  for (const meta of root.querySelectorAll("meta")) {
+    const name = meta.getAttribute("name") ?? "";
+    if (!name.startsWith(FACET_TAG_PREFIX)) continue;
+    const field = name.slice(FACET_TAG_PREFIX.length);
+    const value = meta.getAttribute("content")?.trim();
+    if (!field || !value) continue;
+    const values = facets[field] ?? [];
+    if (!values.includes(value)) values.push(value);
+    facets[field] = values;
+  }
+
+  const pinPhrases = root
+    .querySelectorAll('meta[name="csf-pin"]')
+    .map((el) => el.getAttribute("content")?.trim())
+    .filter((v): v is string => Boolean(v));
+
+  const pinModeAttr = root
+    .querySelector('meta[name="csf-pin-mode"]')
+    ?.getAttribute("content")
+    ?.trim();
+  const pinMode: "exact" | "contains" =
+    pinModeAttr === "contains" ? "contains" : "exact";
+
+  const pinPriorityAttr = root
+    .querySelector('meta[name="csf-pin-priority"]')
+    ?.getAttribute("content");
+  const parsedPriority = pinPriorityAttr
+    ? Number.parseFloat(pinPriorityAttr)
+    : Number.NaN;
+  const pinPriority = Number.isFinite(parsedPriority) ? parsedPriority : 0;
+
+  // Presence-based, like csf-noindex above: the tag's content isn't
+  // interpreted, only whether the tag exists on the page at all.
+  const pinExclusive =
+    root.querySelector('meta[name="csf-pin-exclusive"]') !== null;
+
+  const pins: PinDeclaration[] = pinPhrases.map((phrase) => ({
+    phrase,
+    mode: pinMode,
+    priority: pinPriority,
+    exclusive: pinExclusive,
+  }));
+
+  return { title, language, body, excerpt, url, noindex, boost, facets, pins };
 }

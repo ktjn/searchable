@@ -29,3 +29,21 @@ export function analyze(text: string, profile: LanguageProfile): Token[] {
 
   return tokens;
 }
+
+/**
+ * Normalizes a phrase (a pin term/query, docs/16-term-to-page-pinning.md)
+ * to a single canonical string by running it through the same analysis
+ * pipeline as any other text and joining the resulting terms with a
+ * single space. Both the indexer (building pin shard keys) and the
+ * runtime (matching a raw query against those keys) call this — like
+ * `analyze()` itself, the two sides must never normalize independently
+ * or a pin authored at build time could silently stop matching.
+ */
+export function normalizePhrase(
+  text: string,
+  profile: LanguageProfile,
+): string {
+  return analyze(text, profile)
+    .map((t) => t.term)
+    .join(" ");
+}

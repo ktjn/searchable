@@ -8,18 +8,20 @@ entirely in the browser. No search server, no query-time backend.
 Think "Algolia/Typesense-grade query features, Pagefind/lunr-style
 zero-backend deployment."
 
-**Status**: Phases 0, 1, and 2 of the roadmap have working code —
-[`packages/analysis`](packages/analysis) (shared tokenizer),
-[`packages/format`](packages/format) (shared manifest/shard types),
-[`packages/indexer`](packages/indexer) (rendered HTML → manifest +
-shards, configurable field boosts, `csf-boost` extraction), and
+**Status**: Phases 0, 1, and 2 of the roadmap have working code, and
+Phase 3 is partially built — [`packages/analysis`](packages/analysis)
+(shared tokenizer), [`packages/format`](packages/format) (shared
+manifest/shard types), [`packages/indexer`](packages/indexer) (rendered
+HTML → manifest + shards, configurable field boosts, `csf-boost`/
+`csf-facet-<field>`/`csf-pin*` extraction), and
 [`packages/client`](packages/client) (fetch + boolean AND + BM25F +
-field/term/document boosts + prefix matching + Web Worker execution,
-proven in a real browser via Playwright, no facets/synonyms/pins
-plugins yet), plus [`spec/`](spec) (JSON Schema + independent
+field/term/document boosts + prefix matching + Web Worker execution +
+facet filtering with contextual counts + term-to-page pinning, proven
+in a real browser via Playwright, no synonyms/fuzzy/range-or-hierarchy
+facets yet), plus [`spec/`](spec) (JSON Schema + independent
 Python/TypeScript reference generators). [`showcase/`](showcase) is a
-live demo of it all — this repo's own docs, rendered as a static site
-and searched by the real engine (see
+live demo of it all, deployed to GitHub Pages — this repo's own docs,
+rendered as a static site and searched by the real engine (see
 [docs/19-github-pages-showcase.md](docs/19-github-pages-showcase.md)).
 Everything else below is design docs for phases not yet built — see
 [docs/09-roadmap.md](docs/09-roadmap.md#status) for what's done vs.
@@ -27,7 +29,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 51 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 77 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 6 Playwright tests in real Chromium (Worker execution + showcase)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

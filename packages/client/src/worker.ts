@@ -19,7 +19,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       indexUrl = msg.indexUrl;
       manifestPromise = cache.fetchJson<Manifest>(indexUrl);
       await manifestPromise;
-      post({ type: "result", id: msg.id, hits: [] });
+      post({ type: "result", id: msg.id, result: { hits: [], totalHits: 0 } });
       return;
     }
 
@@ -27,14 +27,14 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       throw new Error("worker received a search request before init");
     }
     const manifest = await manifestPromise;
-    const hits = await search(
+    const result = await search(
       msg.query,
       manifest,
       cache,
       indexUrl,
       msg.options,
     );
-    post({ type: "result", id: msg.id, hits });
+    post({ type: "result", id: msg.id, result });
   } catch (err) {
     post({
       type: "error",

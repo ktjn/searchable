@@ -4,11 +4,11 @@
 
 Phases 0, 1, and 2 have working code in this repo (`packages/`,
 `spec/`), not just design docs — see each phase below for what's
-actually implemented vs. still pending. Phase 3+ remain design-only.
-The GitHub Pages showcase's first two stages ([`showcase/`](../showcase/))
-are also built — search these docs for real, right now (locally; live
-deployment needs a one-time Pages setting flipped in this repo's
-GitHub settings). Stages 2-3 remain blocked on later phases.
+actually implemented vs. still pending. Phase 3 is partially built
+(terms facets and pins; range/hierarchy facets remain pending — see
+below). Phase 4+ remain design-only. The GitHub Pages showcase's first
+two stages ([`showcase/`](../showcase/)) are also built and actually
+deployed — see below. Stages 2-3 remain blocked on later phases.
 
 ## Phased build plan
 
@@ -83,12 +83,36 @@ GitHub settings). Stages 2-3 remain blocked on later phases.
 Phase 2 is now fully implemented.
 
 **Phase 3 — Facets & curated pins**
-- Facet shard format, filtering, contextual counts, range facets.
-- Term-to-page pinning ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)),
-  grouped with facets because pin display must respect active facet
-  filters — the two features share the "apply after/alongside the
-  candidate set, before final result assembly" slot in the query
-  pipeline, so building them together avoids a rework of that seam.
+- ✅ Terms facets: extraction (repeatable `csf-facet-<field>` meta tags,
+  [15-cms-meta-tag-control.md](15-cms-meta-tag-control.md)), a
+  shard-per-field format matching `spec/schema/facet-shard.schema.json`,
+  `search()` options `filters` (OR within one field's array of values,
+  AND across fields) and `facets` (contextual counts computed against
+  every *other* active filter but not a field's own, so switching
+  between values of the same facet shows real counts instead of the
+  post-filter count for all of them).
+- ⬜ Range and hierarchical facets — the shard format
+  ([06-faceted-search.md](06-faceted-search.md)) supports `type: "range"
+  | "hierarchy"` but only `"terms"` has a builder/query-time
+  implementation so far.
+- ✅ Term-to-page pinning ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)):
+  extraction of `csf-pin`/`csf-pin-mode`/`csf-pin-priority`/
+  `csf-pin-exclusive`, a pins shard keyed by the same normalized-phrase
+  form as any indexed term, exact/contains matching at query time
+  independent of whether the organic query itself matched anything,
+  priority → doc-boost → build-order conflict resolution (with a build
+  warning whenever more than one page pins the same phrase), exclusive
+  mode (suppresses organic results entirely), and the facet-filter
+  interaction (an active filter that excludes a pinned page hides that
+  pin — grouped with facets for exactly this reason, since pin display
+  has to respect active facet filters).
+- ⬜ `facetValues()` (docs/07-client-api.md#facet-only-queries) — a
+  filter-only browsing call with no free-text query — is not yet
+  implemented; today `search()` requires at least one query term.
+- All of the above verified with real end-to-end tests over real HTTP
+  (`packages/indexer/test/{extract,build-index}.test.ts`,
+  `packages/client/test/e2e.test.ts`), not just unit tests in isolation —
+  77 Vitest tests + 6 Playwright tests passing.
 
 **Phase 4 — I18n**
 - LanguageProfile abstraction, additional stemmers, `Intl.Segmenter`
@@ -141,12 +165,20 @@ Phase 2 is now fully implemented.
     not the page's) that testing only at server root would have missed.
     Deploys via
     [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml)
-    on every push to `main`; actually publishing still needs Settings →
-    Pages → "GitHub Actions" enabled once, a manual repo-admin step.
+    on every push to `main` and is **live** at Pages' Project Pages URL
+    for this repo. Getting there caught a second real deploy-workflow
+    bug beyond the browser one above: the `deploy` job's official-
+    template `environment: {name: github-pages}` block requires
+    GitHub's deployment-Environments feature, which is a paid-plan
+    restriction for *private* repositories — it made the job get
+    rejected before a runner was ever assigned, rather than failing on
+    an actual step. `actions/deploy-pages` doesn't require that binding
+    to function, so it was removed.
   - ⬜ Stage 2 (feature gallery: product catalog for facets/boosts/pins,
     synonym playground, multi-language corpus, typo-tolerance demo):
-    needs facets/pins (Phase 3), i18n (Phase 4), synonyms/fuzzy
-    (Phase 5) — still blocked on those.
+    facets/pins (Phase 3 terms/pins half) are now available to build
+    this on; still blocked on i18n (Phase 4) and synonyms/fuzzy
+    (Phase 5) for the other two demos.
   - ⬜ Stage 3 (semantic search demo): needs Phase 8 — still blocked.
 
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is

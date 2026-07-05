@@ -1,5 +1,13 @@
 # Term-to-Page Pinning ("Best Bets")
 
+**Status**: Built — extraction of `csf-pin`/`csf-pin-mode`/
+`csf-pin-priority`/`csf-pin-exclusive`, the pins shard format, exact and
+contains matching, priority/boost/build-order conflict resolution (with
+the build warning below), exclusivity, and the facet-filter interaction
+all have working code and real tests in
+[`packages/indexer`](../packages/indexer)/[`packages/client`](../packages/client) —
+see [09-roadmap.md](09-roadmap.md#status).
+
 Lets a CMS author guarantee that searching a specific word or phrase
 surfaces a specific page — e.g. searching "pricing" always shows the
 `/pricing` page first, regardless of what the general ranking model

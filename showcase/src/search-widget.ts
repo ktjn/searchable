@@ -25,7 +25,7 @@ interface Hit {
 }
 
 interface SearchClientLike {
-  search(query: string, options?: { limit?: number }): Promise<Hit[]>;
+  search(query: string, options?: { limit?: number }): Promise<{ hits: Hit[] }>;
 }
 
 const siteRoot = new URL(".", import.meta.url);
@@ -83,7 +83,7 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
 
   async function runSearch(query: string): Promise<void> {
     const queryId = ++latestQueryId;
-    const hits = await client.search(query, { limit: 8 });
+    const { hits } = await client.search(query, { limit: 8 });
     if (queryId !== latestQueryId) return; // a newer keystroke already superseded this one
 
     results.replaceChildren();

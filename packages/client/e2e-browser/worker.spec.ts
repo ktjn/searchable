@@ -13,7 +13,7 @@ declare global {
     __csfRunSearch?: (
       query: string,
       useWorker: boolean,
-    ) => Promise<Array<{ id: number; url: string }>>;
+    ) => Promise<{ hits: Array<{ id: number; url: string }> }>;
   }
 }
 
@@ -71,13 +71,13 @@ test.describe("Web Worker execution (real browser)", () => {
     await page.goto(`${baseUrl}harness.html`);
     await page.waitForFunction(() => "__csfHarnessReady" in window);
 
-    const hits = await page.evaluate(
+    const result = await page.evaluate(
       ([query, useWorker]) => window.__csfRunSearch?.(query, useWorker),
       ["widgets", true] as [string, boolean],
     );
 
-    expect(hits?.map((h) => h.id)).toEqual([1, 2]);
-    expect(hits?.[0]?.url).toBe("/widgets");
+    expect(result?.hits.map((h) => h.id)).toEqual([1, 2]);
+    expect(result?.hits[0]?.url).toBe("/widgets");
   });
 
   test("worker:true and worker:false return identical results", async ({
@@ -104,11 +104,11 @@ test.describe("Web Worker execution (real browser)", () => {
     await page.goto(`${baseUrl}harness.html`);
     await page.waitForFunction(() => "__csfHarnessReady" in window);
 
-    const hits = await page.evaluate(
+    const result = await page.evaluate(
       ([query, useWorker]) => window.__csfRunSearch?.(query, useWorker),
       ["company", false] as [string, boolean],
     );
 
-    expect(hits?.map((h) => h.id)).toEqual([3]);
+    expect(result?.hits.map((h) => h.id)).toEqual([3]);
   });
 });

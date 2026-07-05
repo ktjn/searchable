@@ -1,7 +1,9 @@
 import type {
   DocStoreShard,
+  FacetShard,
   FieldPosting,
   Manifest,
+  PinsShard,
   Posting,
   TermEntry,
   TermShard,
@@ -10,9 +12,14 @@ import type {
 export type {
   DocStoreEntry,
   DocStoreShard,
+  FacetShard,
+  FacetValueEntry,
   FieldPosting,
   FieldConfig,
   Manifest,
+  PinDoc,
+  PinEntry,
+  PinsShard,
   Posting,
   TermEntry,
   TermShard,
@@ -28,6 +35,9 @@ export interface BuiltIndex {
   manifest: Manifest;
   termShard: TermShard;
   docStore: DocStoreShard;
+  /** Facet field name -> its shard, only for fields with at least one value. */
+  facetShards: Record<string, FacetShard>;
+  pinsShard: PinsShard;
   language: string;
   idRange: [number, number];
 }

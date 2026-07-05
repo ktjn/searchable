@@ -1,5 +1,16 @@
 # Faceted Search
 
+**Status**: Terms facets are built — extraction (`csf-facet-<field>`,
+[15-cms-meta-tag-control.md](15-cms-meta-tag-control.md)), the shard
+format below, filtering (single/multi-select, AND-across-fields), and
+contextual counts (excluding a facet's own active filter, per
+["Facet counts"](#facet-counts-how-many-results-if-i-also-select-x)
+below) all have working code and real tests in
+[`packages/indexer`](../packages/indexer)/[`packages/client`](../packages/client) —
+see [09-roadmap.md](09-roadmap.md#status). Range and hierarchical
+facets, and a `facetValues()`/filter-only browsing call with no free-text
+query, remain design-only for now.
+
 ## Facet types
 
 | Type | Example | Storage |

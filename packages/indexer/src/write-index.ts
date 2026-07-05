@@ -48,6 +48,29 @@ export async function writeIndex(
     { shard: 0, file: docsFile, idRange: built.idRange },
   ];
 
+  const facetFields = Object.keys(built.facetShards).sort();
+  if (facetFields.length) {
+    built.manifest.shards.facets = await Promise.all(
+      facetFields.map(async (field) => ({
+        field,
+        file: await writeJson(
+          outDir,
+          `facets/${field}.json`,
+          built.facetShards[field],
+        ),
+      })),
+    );
+  }
+
+  if (Object.keys(built.pinsShard).length) {
+    const pinsFile = await writeJson(
+      outDir,
+      `pins/${built.language}.json`,
+      built.pinsShard,
+    );
+    built.manifest.pins = { [built.language]: pinsFile };
+  }
+
   await mkdir(outDir, { recursive: true });
   await writeFile(
     join(outDir, "manifest.json"),
