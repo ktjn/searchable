@@ -11,8 +11,9 @@
     "build:search": "tsx build-search.ts",
     "build:gallery": "tsx build-gallery.ts",
     "build:gallery-synonyms": "tsx build-gallery-synonyms.ts",
+    "build:gallery-i18n": "tsx build-gallery-i18n.ts",
     "build:gallery-index": "tsx build-gallery-index.ts",
-    "build": "pnpm build:docs && pnpm build:widget && pnpm build:search && pnpm build:gallery && pnpm build:gallery-synonyms && pnpm build:gallery-index",
+    "build": "pnpm build:docs && pnpm build:widget && pnpm build:search && pnpm build:gallery && pnpm build:gallery-synonyms && pnpm build:gallery-i18n && pnpm build:gallery-index",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

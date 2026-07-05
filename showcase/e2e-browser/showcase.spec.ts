@@ -214,3 +214,54 @@ test.describe("feature gallery: synonym playground demo (real browser)", () => {
     await expect(page.locator(".gallery-badge")).toHaveCount(0);
   });
 });
+
+test.describe("feature gallery: multi-language corpus demo (real browser)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+
+  test.beforeAll(async () => {
+    const server = await serveDir(distDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+  });
+
+  test("the identically-spelled word 'espresso' returns only that language's own page", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/i18n/index.html`);
+    await expect(page.locator(".gallery-language-select")).toHaveValue("en");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+    await expect(page.locator(".gallery-hit-title")).toContainText(
+      "Espresso Basics",
+    );
+
+    await page.locator(".gallery-language-select").selectOption("de");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+    await expect(page.locator(".gallery-hit-title")).toContainText(
+      "Espresso Grundlagen",
+    );
+  });
+
+  test("diacritics are not folded: schon and schön never cross-match", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/i18n/index.html`);
+    await page.locator(".gallery-language-select").selectOption("de");
+
+    await page.locator(".gallery-search-input").fill("schon");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+    await expect(page.locator(".gallery-hit-title")).toContainText(
+      "Schon unterwegs",
+    );
+
+    await page.locator(".gallery-search-input").fill("schön");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+    await expect(page.locator(".gallery-hit-title")).toContainText(
+      "Schöne Aussicht",
+    );
+  });
+});

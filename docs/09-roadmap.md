@@ -12,9 +12,9 @@ the CJK bigram fallback remain pending — see below). Phase 5 is
 mostly built (query-time synonym expansion, plus SymSpell fuzzy
 matching and "did you mean" suggestions; `multiWord` phrase-level
 synonyms remain pending — see below). Phase 6+ remain
-design-only. The GitHub Pages showcase's first two stages
+design-only. The GitHub Pages showcase's first three stages
 ([`showcase/`](../showcase/)) are also built and actually
-deployed — see below. Stages 2-3 remain blocked on later phases.
+deployed — see below. Stage 3 remains blocked on Phase 8.
 
 A code/docs review ([`REVIEW.md`](archive/REVIEW.md), response noted
 inline there, archived now that its findings are all resolved) landed
@@ -266,22 +266,29 @@ Phase 2 is now fully implemented.
     rejected before a runner was ever assigned, rather than failing on
     an actual step. `actions/deploy-pages` doesn't require that binding
     to function, so it was removed.
-  - 🟡 Stage 2 (feature gallery) — 3 of 4 demos built:
-    the product catalog demo (64 synthetic products, terms facets,
+  - ✅ Stage 2 (feature gallery) — all 4 demos built: the product
+    catalog demo (64 synthetic products, terms facets,
     `csf-boost`-featured items, a `csf-pin` best-bet), the typo-
-    tolerance demo (same corpus, a fuzzy on/off toggle), and the
-    synonym playground (6 docs with deliberately non-overlapping
-    vocabulary, a symmetric equivalence class and a directional pair,
-    expansion-only hits visibly badged) are live at `gallery/index.html`
+    tolerance demo (same corpus, a fuzzy on/off toggle), the synonym
+    playground (6 docs with deliberately non-overlapping vocabulary, a
+    symmetric equivalence class and a directional pair, expansion-only
+    hits visibly badged), and the multi-language corpus demo (6
+    parallel English/German articles — scoped to the two
+    LanguageProfiles that actually exist per Phase 4 above, not the
+    full English/German/Japanese/Arabic list originally proposed —
+    demonstrating real per-document-language partitioning and
+    diacritic-sensitive matching) are all live at `gallery/index.html`
     ([`showcase/build-gallery.ts`](../showcase/build-gallery.ts),
     [`showcase/build-gallery-synonyms.ts`](../showcase/build-gallery-synonyms.ts),
-    verified end-to-end with real-browser Playwright tests). Each demo's
-    manifest/shards are kept entirely separate from the docs site's
-    search index and from each other (`build-search.ts` skips
+    [`showcase/build-gallery-i18n.ts`](../showcase/build-gallery-i18n.ts),
+    verified end-to-end with real-browser Playwright tests). Each
+    demo's manifest/shards are kept entirely separate from the docs
+    site's search index and from each other (`build-search.ts` skips
     `dist/gallery/`), per
     [19-github-pages-showcase.md](19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)'s
-    "not one shared mega corpus" design. The multi-language corpus demo
-    remains unbuilt.
+    "not one shared mega corpus" design. `Intl.Segmenter` CJK handling,
+    RTL rendering, and per-language stemming differences remain
+    unbuilt (blocked on Phase 4 itself, not this stage).
   - ⬜ Stage 3 (semantic search demo): needs Phase 8 — still blocked.
 
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is

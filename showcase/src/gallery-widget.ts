@@ -12,7 +12,8 @@
  *        data-default-query="..."      (shown/used before the visitor types)
  *        data-facets="field1,field2"   (comma list of facet fields to render as checkboxes)
  *        data-fuzzy-toggle="true"      (omit to hide the fuzzy on/off control)
- *        data-synonyms-toggle="true">  (omit to hide the synonym-expansion on/off control)
+ *        data-synonyms-toggle="true"   (omit to hide the synonym-expansion on/off control)
+ *        data-languages="en,de">       (comma list -> a language <select>; omit to use manifest.defaultLanguage)
  *   </div>
  *
  * When a fuzzy/synonyms toggle is on, a hit that only appears because of
@@ -53,12 +54,18 @@ interface SearchResult {
 }
 
 interface SearchOptions {
+  language?: string;
   limit?: number;
   filters?: Record<string, string | string[]>;
   facets?: string[];
   fuzzy?: boolean;
   synonyms?: boolean;
 }
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: "English",
+  de: "Deutsch",
+};
 
 interface SearchClientLike {
   search(query: string, options?: SearchOptions): Promise<SearchResult>;
@@ -83,6 +90,10 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     .filter(Boolean);
   const showFuzzyToggle = root.dataset.fuzzyToggle === "true";
   const showSynonymsToggle = root.dataset.synonymsToggle === "true";
+  const languageCodes = (root.dataset.languages ?? "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
 
   const { SearchClient } = await import(
     new URL("assets/index.js", siteRoot).href
@@ -103,6 +114,24 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   input.value = defaultQuery;
   input.setAttribute("aria-label", "Search this demo");
   controls.append(input);
+
+  let selectedLanguage: string | undefined = languageCodes[0];
+  if (languageCodes.length > 1) {
+    const select = document.createElement("select");
+    select.className = "gallery-language-select";
+    select.setAttribute("aria-label", "Language");
+    for (const code of languageCodes) {
+      const option = document.createElement("option");
+      option.value = code;
+      option.textContent = LANGUAGE_LABELS[code] ?? code;
+      select.append(option);
+    }
+    select.addEventListener("change", () => {
+      selectedLanguage = select.value;
+      void runSearch();
+    });
+    controls.append(select);
+  }
 
   let fuzzyEnabled = false;
   if (showFuzzyToggle) {
@@ -267,6 +296,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       limit: 24,
       facets: facetFields,
       ...(filters ? { filters } : {}),
+      ...(selectedLanguage ? { language: selectedLanguage } : {}),
       fuzzy: fuzzyEnabled,
       synonyms: synonymsEnabled,
     });
@@ -281,6 +311,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
         limit: 24,
         facets: facetFields,
         ...(filters ? { filters } : {}),
+        ...(selectedLanguage ? { language: selectedLanguage } : {}),
         fuzzy: false,
         synonyms: false,
       });

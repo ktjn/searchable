@@ -93,7 +93,7 @@ live, editable example:
 | Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `csf-boost` (7 "featured" products score-boosted), a `csf-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../showcase/gallery-data.ts), live at `gallery/products/index.html` |
 | Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," a checkbox toggle on the same page so the value is visible by comparison (same query, fuzzy off vs. on) | ✅ built — same demo, `data-fuzzy-toggle` on [`showcase/src/gallery-widget.ts`](../showcase/src/gallery-widget.ts) |
 | Synonym playground | 6 docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query, plus an unrelated control and a directional pair) | Synonym expansion, visibly labeled in the UI ("Synonym match" badge) so the mechanism is legible, not just "it worked" | ✅ built — [`showcase/build-gallery-synonyms.ts`](../showcase/build-gallery-synonyms.ts), [`showcase/gallery-synonyms-data.ts`](../showcase/gallery-synonyms-data.ts), live at `gallery/synonyms/index.html` |
-| Multi-language corpus | Short parallel articles in English, German, Japanese, Arabic | Language partitioning, `Intl.Segmenter` CJK handling, RTL rendering, per-language stemming differences | ⬜ not built |
+| Multi-language corpus | 6 short parallel articles, English + German only (docs/09-roadmap.md#status — the two LanguageProfiles that actually exist; Japanese/Arabic aren't built) | Language partitioning ("espresso," spelled identically in both languages, returns only the selected language's page) and diacritic-sensitive matching (`schon` vs. `schön` never cross-match) | ✅ built — [`showcase/build-gallery-i18n.ts`](../showcase/build-gallery-i18n.ts), [`showcase/gallery-i18n-data.ts`](../showcase/gallery-i18n-data.ts), live at `gallery/i18n/index.html`. `Intl.Segmenter` CJK handling, RTL rendering, and per-language stemming differences remain unbuilt (blocked on Phase 4, not just this demo) |
 
 A `gallery/index.html` hub page ([`showcase/build-gallery-index.ts`](../showcase/build-gallery-index.ts)) links every built demo; the docs site header's "Feature gallery" link points there rather than at any one demo directly.
 
@@ -137,6 +137,20 @@ Collection" hit carries no badge. The corpus's directional pair
 (`laptop -> notebook`, forward only) and unrelated control
 ("loveseat", which never expands) exercise the asymmetry and the
 false-positive case in the same demo.
+
+The multi-language corpus demo adds a `data-languages="en,de"`
+attribute to `gallery-widget.ts`'s data-driven contract, rendering a
+`<select>` that passes `language: <code>` into `search()` — this is the
+same manifest that indexes both languages side by side (Phase 4's true
+per-document-language partitioning, not two separate builds), so
+switching the dropdown proves the partition is real: "espresso" is
+spelled identically in the English and German source text, and
+switching the language selector while searching it swaps which single
+page comes back, never both. The corpus's `schon`/`schön` pair (see
+[03-tokenization-i18n.md](03-tokenization-i18n.md#case-folding--diacritics))
+demonstrates the complementary point — two *different* German words
+that a naive diacritic-folding scheme would incorrectly conflate stay
+correctly distinct.
 
 ## Stage 3 — Vector/hybrid search (needs Phase 8)
 

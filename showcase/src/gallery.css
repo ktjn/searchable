@@ -68,6 +68,15 @@
   font-size: 0.95rem;
 }
 
+.gallery-language-select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+}
+
 .gallery-toggle {
   display: flex;
   align-items: center;

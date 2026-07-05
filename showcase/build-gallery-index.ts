@@ -32,6 +32,12 @@ const DEMOS: DemoLink[] = [
     description:
       "Non-overlapping vocabulary docs demonstrating synonym expansion, with matched-via-synonym results visibly labeled.",
   },
+  {
+    href: "i18n/index.html",
+    title: "Multi-language corpus",
+    description:
+      "Parallel English/German articles: language partitioning (same word, isolated results per language) and diacritic-sensitive matching (schon vs. schön).",
+  },
 ];
 
 function renderHubPage(): string {
