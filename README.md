@@ -17,16 +17,20 @@ shards, configurable field boosts, `csf-boost` extraction), and
 field/term/document boosts + prefix matching + Web Worker execution,
 proven in a real browser via Playwright, no facets/synonyms/pins
 plugins yet), plus [`spec/`](spec) (JSON Schema + independent
-Python/TypeScript reference generators). Everything else below is
-design docs for phases not yet built — see
+Python/TypeScript reference generators). [`showcase/`](showcase) is a
+live demo of it all — this repo's own docs, rendered as a static site
+and searched by the real engine (see
+[docs/19-github-pages-showcase.md](docs/19-github-pages-showcase.md)).
+Everything else below is design docs for phases not yet built — see
 [docs/09-roadmap.md](docs/09-roadmap.md#status) for what's done vs.
 pending.
 
 ```sh
 pnpm install
-pnpm test           # 51 Vitest tests across all packages, including real-HTTP e2e tests
-pnpm test:browser   # 3 Playwright tests in real Chromium (Worker execution)
-pnpm build          # builds every package
+pnpm test                     # 51 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test:browser             # 6 Playwright tests in real Chromium (Worker execution + showcase)
+pnpm build                    # builds every package
+pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically
 ```
 
 Design docs — start here:

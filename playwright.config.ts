@@ -13,7 +13,11 @@ const executablePath = existsSync(sandboxChromium)
   : undefined;
 
 export default defineConfig({
-  testDir: "./packages/client/e2e-browser",
+  testDir: ".",
+  testMatch: [
+    "packages/client/e2e-browser/**/*.spec.ts",
+    "showcase/e2e-browser/**/*.spec.ts",
+  ],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

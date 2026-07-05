@@ -26,45 +26,53 @@ Two showcase surfaces, published from the same repo:
    "kitchen sink" search box. Ships incrementally as each roadmap phase
    lands a capability.
 
-## Stage 0 — Docs site (buildable today, no engine code needed)
+## Stage 0 — Docs site ✅ built
 
-- Render `docs/*.md` to a small static site: a landing page (adapted
-  from `README.md`), one page per doc, a nav sidebar in doc order.
-  Deliberately simple tooling — a small static-site step (even a script
-  that wraps each markdown file in a shared HTML template) rather than
-  pulling in a full docs framework, consistent with
+- [`showcase/build-docs.ts`](../showcase/build-docs.ts) renders every
+  `docs/*.md` file plus `README.md` to a small static site (landing
+  page, one page per doc, an auto-generated nav sidebar in doc order),
+  using `marked` for markdown → HTML and a hand-written ~150-line
+  template/nav/link-rewriting step — no docs framework, consistent with
   [00-overview.md](00-overview.md#guiding-principles)'s "simple over
-  clever."
+  clever." Cross-doc `.md` links are rewritten to the `.html` pages
+  this build actually produces.
 - This *is* the first real instance of the HTML-ingestion design in
   [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#ingestion-from-rendered-html):
   the rendered doc pages are exactly the kind of `<main>`/`<title>`
-  structure that adapter expects, so building this site now produces
-  the fixture the engine will eventually index in Stage 1 — not
-  throwaway scaffolding.
-- Deploy via GitHub Actions → GitHub Pages (`actions/deploy-pages`),
-  triggered on push to `main` touching `docs/**`. (Enabling Pages itself
-  — Settings → Pages → "GitHub Actions" as the source — is a one-time
+  structure that adapter expects.
+- Deploys via [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml)
+  (`actions/deploy-pages`) on push to `main`. Enabling Pages itself —
+  Settings → Pages → "GitHub Actions" as the source — is a one-time
   repo-settings change outside what a workflow file can do; that's a
-  manual step for whoever administers the repo.)
+  manual step for whoever administers the repo.
 
-## Stage 1 — "Search these docs" (needs Phase 1 MVP)
+## Stage 1 — "Search these docs" ✅ built
 
-- Once the reference indexer and minimal browser runtime exist
-  ([09-roadmap.md](09-roadmap.md) Phase 1), point the indexer at the
-  Stage 0 docs site's rendered output and publish the resulting shards
-  alongside it.
-- A search box on every docs page, wired to `@csf/client`, replacing
-  (or augmenting) GitHub's own file browser as the way to find content
-  in this repo — dogfooding at the smallest possible scale (~19 doc
-  pages today), which is a good stress-test of the "small corpus mode"
-  simplifications in
-  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale)
-  (even smaller than the 2k-doc reference target, so if sharding-related
-  complexity ever leaks into a deployment this size, it's a bug).
-- This is also the natural place to prove the resource-aware loading
-  claims in [18-resource-aware-loading.md](18-resource-aware-loading.md)
-  — a real Lighthouse/PageSpeed run against a live Pages URL is a much
-  more convincing check than a synthetic benchmark alone.
+- [`showcase/build-search.ts`](../showcase/build-search.ts) runs the
+  real `@csf/indexer` against Stage 0's rendered HTML output and copies
+  the built `@csf/client` bundle alongside it — the actual reference
+  indexer and runtime from Phases 0-2, not a mock.
+- [`showcase/src/search-widget.ts`](../showcase/src/search-widget.ts) is
+  a small (~100 line), unbundled glue script — loaded via a plain
+  `<script type="module">` on every page — that constructs a real
+  `SearchClient` (Worker execution included) and renders results.
+  Verified end-to-end in a real browser via
+  [`showcase/e2e-browser/showcase.spec.ts`](../showcase/e2e-browser/showcase.spec.ts),
+  including that it works correctly when served from a subpath (as
+  GitHub Project Pages does — `user.github.io/<repo>/`, not domain
+  root) — every asset/result-link reference is resolved from
+  `import.meta.url` (this script's own stable site-root location), not
+  a hand-computed page-depth prefix, which was a real bug caught by
+  testing at a subpath and not just at server root.
+- Dogfooding at the smallest possible scale (22 pages today) turned out
+  to be a good stress-test of the "small corpus mode" simplifications
+  in [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale)
+  — even smaller than the 2k-doc reference target.
+- Not yet done: a Lighthouse/PageSpeed run against a live deployed Pages
+  URL to check the resource-aware loading claims in
+  [18-resource-aware-loading.md](18-resource-aware-loading.md) — worth
+  doing once this is actually deployed, not just built and tested
+  locally.
 
 ## Stage 2 — Feature gallery (needs Phases 2-5)
 
@@ -115,15 +123,24 @@ real rather than contrived. Side-by-side lexical vs. hybrid results
 
 ## Deployment mechanics
 
-- One GitHub Actions workflow: build docs site → (once available) run
-  the reference indexer against it → run the feature-gallery build
-  (separate small script generating the synthetic corpora + running the
-  indexer against each) → upload combined artifact → `deploy-pages`.
+- [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml):
+  builds every `packages/*`, then `showcase` (docs → search index →
+  copy client bundle), uploads `showcase/dist` as the Pages artifact,
+  deploys via `actions/deploy-pages`. Runs on every push to `main`
+  (not path-filtered to `docs/**`, since a change to the engine itself
+  should also redeploy the demo — the repo is small enough that a full
+  rebuild on every push is cheap, same reasoning as the "just rebuild"
+  answer to incremental indexing in
+  [09-roadmap.md](09-roadmap.md#open-questions)).
 - Project Pages are served under `/<repo>/`, not domain root — every
-  `indexUrl`/asset reference in the showcase must be relative or use
-  the repo's base path, not hardcoded to `/`; worth a build-time check
-  (broken-link/broken-manifest-URL check) rather than discovering it
-  after a deploy.
+  `indexUrl`/asset/result-link reference in the showcase is resolved
+  from `import.meta.url` rather than hardcoded to `/`, and this was
+  actually verified by serving a built copy from a subpath in a real
+  browser, not just asserted — an earlier version used a hand-computed
+  page-depth-relative prefix instead, which looked correct but broke
+  because a dynamic `import()` resolves against *its own module's*
+  URL, not the page's, catching a real bug testing-at-root alone would
+  have missed.
 - Same content-hashed shard/manifest versioning as any other deployment
   ([02-index-format.md](02-index-format.md#versioning--cache-strategy))
   — no special-casing for Pages beyond the base-path detail above.

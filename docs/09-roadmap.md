@@ -5,8 +5,10 @@
 Phases 0, 1, and 2 have working code in this repo (`packages/`,
 `spec/`), not just design docs — see each phase below for what's
 actually implemented vs. still pending. Phase 3+ remain design-only.
-The GitHub Pages showcase (see below) is also unbuilt so far, though
-its first two stages are now unblocked by Phase 1/2 being done.
+The GitHub Pages showcase's first two stages ([`showcase/`](../showcase/))
+are also built — search these docs for real, right now (locally; live
+deployment needs a one-time Pages setting flipped in this repo's
+GitHub settings). Stages 2-3 remain blocked on later phases.
 
 ## Phased build plan
 
@@ -127,14 +129,20 @@ Phase 2 is now fully implemented.
 - A GitHub Pages demo is staged against the phases above rather than
   built all at once — see
   [19-github-pages-showcase.md](19-github-pages-showcase.md).
-  - ⬜ Stage 0 (docs site rendering this repo's own markdown): ships
-    independently of engine code; unbuilt, but nothing is blocking it —
-    could be done today.
-  - ⬜ Stage 1 ("search these docs"): needs Phase 1, which is now done
-    (`packages/indexer` + `packages/client` are real, tested code) —
-    unblocked and buildable now, just not yet built. Would also be the
-    first real dogfood test of the engine at production scale (repo's
-    own doc set) rather than only small inline test fixtures.
+  - ✅ Stage 0 (docs site) — [`showcase/`](../showcase/): every
+    `docs/*.md` + `README.md` rendered to a small static site (nav,
+    cross-link rewriting), no framework.
+  - ✅ Stage 1 ("search these docs") — the real `@csf/indexer` runs
+    against Stage 0's rendered output, the real `@csf/client` (Worker
+    execution included) powers a search box on every page. Verified in
+    a real browser via Playwright, including at a Pages-style subpath
+    deployment (`/repo-name/`, not domain root) — which caught a real
+    bug (a dynamic `import()` resolving against its own module's URL,
+    not the page's) that testing only at server root would have missed.
+    Deploys via
+    [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml)
+    on every push to `main`; actually publishing still needs Settings →
+    Pages → "GitHub Actions" enabled once, a manual repo-admin step.
   - ⬜ Stage 2 (feature gallery: product catalog for facets/boosts/pins,
     synonym playground, multi-language corpus, typo-tolerance demo):
     needs facets/pins (Phase 3), i18n (Phase 4), synonyms/fuzzy

@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+  - "showcase"
 allowBuilds:
   '@biomejs/biome': true
   esbuild: true

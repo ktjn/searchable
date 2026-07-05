@@ -7,9 +7,9 @@ serialization tiers are supported (chosen per deployment):
   compresses very well for text-heavy postings, zero decode dependency.
 - **Binary tier** (opt-in, for large corpora): a compact custom format
   (varint-delta-encoded postings, similar in spirit to Lucene's codec)
-  for indexes where JSON parse time/size becomes the bottleneck (roughly
-  >50k documents). Same logical schema, different bytes on the wire.
-  See [11-binary-vs-json-index.md](11-binary-vs-json-index.md) for the
+  for indexes where JSON parse time/size becomes the bottleneck (roughly,
+  more than 50k documents). Same logical schema, different bytes on the
+  wire. See [11-binary-vs-json-index.md](11-binary-vs-json-index.md) for the
   full analysis of when this tier actually pays for itself (it's less
   about raw bytes-on-the-wire — compression already closes most of that
   gap — and more about avoiding whole-shard parsing and enabling

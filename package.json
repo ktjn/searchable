@@ -12,10 +12,10 @@
     "build": "pnpm -r --filter=./packages/* build",
     "pretest": "pnpm build",
     "test": "vitest run",
-    "pretest:browser": "pnpm build",
+    "pretest:browser": "pnpm build && pnpm --filter showcase build",
     "test:browser": "playwright test",
     "pretypecheck": "pnpm build",
-    "typecheck": "pnpm -r --filter=./packages/* run typecheck",
+    "typecheck": "pnpm -r --filter=./packages/* run typecheck && pnpm --filter showcase run typecheck",
     "lint": "biome check .",
     "format": "biome format --write ."
   },

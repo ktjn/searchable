@@ -1,0 +1,25 @@
+{
+  "name": "showcase",
+  "private": true,
+  "version": "0.0.0",
+  "description": "GitHub Pages demo: this repo's own docs, rendered as a static site and searched by @csf/client (docs/19-github-pages-showcase.md).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build:docs": "tsx build-docs.ts",
+    "build:widget": "tsc -p tsconfig.widget.json",
+    "build:search": "tsx build-search.ts",
+    "build": "pnpm build:docs && pnpm build:widget && pnpm build:search",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "marked": "^15.0.6"
+  },
+  "devDependencies": {
+    "@csf/client": "workspace:*",
+    "@csf/indexer": "workspace:*",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
