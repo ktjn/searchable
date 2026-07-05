@@ -1,4 +1,4 @@
-import { cp, mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +14,12 @@ declare global {
       query: string,
       useWorker: boolean,
     ) => Promise<{ hits: Array<{ id: number; url: string }> }>;
+    __csfTestDisposeRejectsInFlight?: () => Promise<string | undefined>;
+    __csfTestSearchAfterDispose?: () => Promise<string | undefined>;
+    __csfTestWorkerFatalError?: () => Promise<string | undefined>;
+    __csfTestWorkerManifestValidation?: (
+      manifestUrl: string,
+    ) => Promise<string | undefined>;
   }
 }
 
@@ -110,5 +116,84 @@ test.describe("Web Worker execution (real browser)", () => {
     );
 
     expect(result?.hits.map((h) => h.id)).toEqual([3]);
+  });
+});
+
+test.describe("SearchClient lifecycle (real browser)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let rootDir: string;
+
+  test.beforeAll(async () => {
+    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-lifecycle-"));
+    await cp(clientDist, rootDir, { recursive: true });
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
+    await writeIndex(buildIndex(sources), rootDir);
+    await writeFile(
+      join(rootDir, "bad-manifest.json"),
+      JSON.stringify({ version: 2, format: "json" }),
+      "utf8",
+    );
+
+    const server = await serveDir(rootDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  test("dispose() rejects an in-flight request instead of hanging forever", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const message = await page.evaluate(() =>
+      window.__csfTestDisposeRejectsInFlight?.(),
+    );
+    expect(message).toContain("disposed");
+  });
+
+  test("search() after dispose() rejects rather than hitting a dead worker", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const message = await page.evaluate(() =>
+      window.__csfTestSearchAfterDispose?.(),
+    );
+    expect(message).toContain("disposed");
+  });
+
+  test("a fatal worker error (failed script load) rejects ready() with a clear error", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const message = await page.evaluate(() =>
+      window.__csfTestWorkerFatalError?.(),
+    );
+    expect(message).toBeDefined();
+  });
+
+  test("a structurally invalid manifest is rejected inside the worker, not just the main thread", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const message = await page.evaluate(
+      (manifestUrl) => window.__csfTestWorkerManifestValidation?.(manifestUrl),
+      "./bad-manifest.json",
+    );
+    expect(message).toContain("invalid manifest");
   });
 });

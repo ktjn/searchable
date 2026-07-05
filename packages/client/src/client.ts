@@ -2,6 +2,7 @@ import type { Manifest } from "@csf/format";
 import { ShardCache } from "./fetch-json.js";
 import { search } from "./search.js";
 import type { SearchOptions, SearchResult } from "./search.js";
+import { validateManifest } from "./validate-manifest.js";
 import type {
   WorkerRequestPayload,
   WorkerResponse,
@@ -50,6 +51,13 @@ export interface SearchClientOptions {
    * main thread regardless of `worker`.
    */
   workerUrl?: string | URL;
+  /**
+   * Allow the manifest to reference shard files on a different origin
+   * than the manifest itself. Off by default — a compromised or
+   * misconfigured manifest shouldn't be able to make the client fetch
+   * arbitrary cross-origin URLs (REVIEW.md#6).
+   */
+  allowCrossOriginShards?: boolean;
 }
 
 interface PendingRequest {
@@ -69,9 +77,16 @@ export class SearchClient {
   #cache = new ShardCache();
   #ready: Promise<void>;
   #manifest?: Promise<Manifest>;
-  #worker?: Worker;
+  #worker: Worker | undefined;
   #nextRequestId = 0;
   #pendingRequests = new Map<number, PendingRequest>();
+  /**
+   * Set once the client is disposed, or the worker hits a fatal
+   * (not per-request) error — every future call rejects immediately
+   * with this instead of hanging on a dead worker (or, in main-thread
+   * mode, silently continuing to work after `dispose()`).
+   */
+  #fatalError?: Error;
 
   constructor(options: SearchClientOptions) {
     this.#indexUrl = toAbsoluteUrl(options.indexUrl);
@@ -87,12 +102,31 @@ export class SearchClient {
       this.#worker.addEventListener("message", (event: MessageEvent) => {
         this.#handleWorkerMessage(event.data);
       });
+      this.#worker.addEventListener("error", (event: ErrorEvent) => {
+        this.#handleWorkerFatalError(
+          new Error(event.message || "worker encountered a fatal error"),
+        );
+      });
+      this.#worker.addEventListener("messageerror", () => {
+        this.#handleWorkerFatalError(
+          new Error("worker message could not be deserialized"),
+        );
+      });
       this.#ready = this.#sendToWorker({
         type: "init",
         indexUrl: this.#indexUrl,
+        ...(options.allowCrossOriginShards !== undefined
+          ? { allowCrossOriginShards: options.allowCrossOriginShards }
+          : {}),
       }).then(() => undefined);
     } else {
-      this.#manifest = this.#cache.fetchJson<Manifest>(this.#indexUrl);
+      this.#manifest = this.#cache
+        .fetchJson<Manifest>(this.#indexUrl)
+        .then((manifest) =>
+          validateManifest(manifest, this.#indexUrl, {
+            allowCrossOriginShards: options.allowCrossOriginShards ?? false,
+          }),
+        );
       this.#ready = this.#manifest.then(() => undefined);
     }
   }
@@ -105,7 +139,9 @@ export class SearchClient {
     query: string,
     options: SearchOptions = {},
   ): Promise<SearchResult> {
+    if (this.#fatalError) throw this.#fatalError;
     await this.#ready;
+    if (this.#fatalError) throw this.#fatalError;
     if (this.#worker) {
       return this.#sendToWorker({ type: "search", query, options });
     }
@@ -114,11 +150,43 @@ export class SearchClient {
     return search(query, manifest, this.#cache, this.#indexUrl, options);
   }
 
+  /**
+   * Terminates the underlying worker (if any) and rejects every
+   * in-flight request. Always call this when a client is no longer
+   * needed — an undisposed worker keeps running, and any request still
+   * pending against it would otherwise never settle. Idempotent, and
+   * also disables further use in main-thread (non-worker) mode, so
+   * `dispose()` means the same thing regardless of which mode the
+   * client happens to be running in.
+   */
+  dispose(): void {
+    if (this.#fatalError) return;
+    this.#worker?.terminate();
+    this.#worker = undefined;
+    this.#setFatalError(new Error("SearchClient disposed"));
+  }
+
+  #handleWorkerFatalError(err: Error): void {
+    this.#setFatalError(err);
+  }
+
+  #setFatalError(err: Error): void {
+    if (this.#fatalError) return;
+    this.#fatalError = err;
+    for (const pending of this.#pendingRequests.values()) {
+      pending.reject(err);
+    }
+    this.#pendingRequests.clear();
+  }
+
   #sendToWorker(message: WorkerRequestPayload): Promise<SearchResult> {
+    if (this.#fatalError) {
+      return Promise.reject(this.#fatalError);
+    }
     const id = this.#nextRequestId++;
     return new Promise((resolve, reject) => {
       this.#pendingRequests.set(id, { resolve, reject });
-      // biome-ignore lint/style/noNonNullAssertion: only called when #worker was constructed
+      // biome-ignore lint/style/noNonNullAssertion: only called when #worker was constructed and not yet disposed
       this.#worker!.postMessage({ ...message, id });
     });
   }

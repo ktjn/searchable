@@ -2,6 +2,21 @@
 
 Status: Draft
 
+**Relationship to [17-plugin-architecture.md](17-plugin-architecture.md)**:
+that doc is this project's concrete, decided plugin contract — a fixed
+six-stage hook pipeline (`analyzeQuery → expandQuery → planFetch →
+score → filter → assembleResults`) that every existing "plugin" concept
+(fuzzy, synonyms, facets, pins, highlighting, vector, per-language
+profiles) already maps onto, referenced by the roadmap and the plugin
+table there. This document's per-category typed-interface design
+(`AnalyzerPlugin`, `QueryRewritePlugin`, `RankingPlugin`, etc.) is a
+more abstract restatement of similar goals from a different angle, not
+a second, competing contract to implement — 17's hook-registry shape is
+authoritative for this repo. Treat the ideas unique to this doc
+(metadata/compatibility negotiation shape, per-category rule lists) as
+candidate refinements to fold into 17 later, not as a parallel design to
+build against.
+
 ## Purpose
 
 The Plugin API defines how optional behavior can be added without changing the core search engine.

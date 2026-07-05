@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildIndex, writeIndex } from "@csf/indexer";
@@ -93,6 +93,89 @@ describe("indexer -> client end to end (over real HTTP)", () => {
     expect(hits[0]?.fields.excerpt).toBe(
       "Everything you need to know about widgets.",
     );
+  });
+});
+
+describe("SearchClient.dispose() in main-thread mode", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-dispose-"));
+    await writeIndex(buildIndex(sources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("is idempotent -- calling it more than once does not throw", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    await client.ready();
+    client.dispose();
+    expect(() => client.dispose()).not.toThrow();
+  });
+
+  it("rejects search() after dispose(), even without a worker", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    await client.ready();
+    client.dispose();
+    await expect(client.search("widgets")).rejects.toThrow(/disposed/);
+  });
+});
+
+describe("manifest validation (real HTTP)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-validate-"));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("rejects a structurally invalid manifest instead of failing deep in search()", async () => {
+    await writeFile(
+      join(outDir, "bad-manifest.json"),
+      JSON.stringify({ version: 2, format: "json" }),
+      "utf8",
+    );
+    const client = new SearchClient({
+      indexUrl: `${baseUrl}bad-manifest.json`,
+    });
+    await expect(client.ready()).rejects.toThrow(/invalid manifest/);
+  });
+
+  it("rejects a manifest whose shard file resolves cross-origin by default", async () => {
+    const built = buildIndex(sources);
+    await writeIndex(built, outDir);
+    const manifestPath = join(outDir, "manifest.json");
+    const { readFile } = await import("node:fs/promises");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    manifest.shards.terms[0].file =
+      "https://evil.example.com/terms/en/all.json";
+    await writeFile(
+      join(outDir, "cross-origin-manifest.json"),
+      JSON.stringify(manifest),
+      "utf8",
+    );
+
+    const client = new SearchClient({
+      indexUrl: `${baseUrl}cross-origin-manifest.json`,
+    });
+    await expect(client.ready()).rejects.toThrow(/different origin/);
   });
 });
 

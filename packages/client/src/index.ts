@@ -7,3 +7,5 @@ export type {
   SearchOptions,
   SearchResult,
 } from "./search.js";
+export { InvalidManifestError, validateManifest } from "./validate-manifest.js";
+export type { ValidateManifestOptions } from "./validate-manifest.js";

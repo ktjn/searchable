@@ -183,4 +183,7 @@ lifecycle events (query issued, shards fetched, scoring complete, zero
 results) are exposed so consumers can wire up their own analytics
 (click-through tracking, zero-result-query logging for content gap
 analysis) — the library does not phone home or include any bundled
-analytics itself.
+analytics itself. [spec-diagnostics.md](spec-diagnostics.md) works out
+the fuller diagnostics surface this points toward — explain API, query
+trace, phase timings, per-plugin attribution — once there's more than
+event hooks to specify.

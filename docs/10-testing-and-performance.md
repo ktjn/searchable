@@ -67,7 +67,10 @@ Kept separate from correctness CI because timing is noisy in shared CI
 runners; runs on a schedule (nightly) and required before tagging a
 release, with results tracked over time (not just pass/fail against a
 fixed threshold) so gradual regressions are visible even if no single
-run crosses an alert threshold.
+run crosses an alert threshold. See
+[spec-benchmarking.md](spec-benchmarking.md) for the fuller methodology
+(corpus profiles, query sets, measurement rules, regression thresholds,
+CI integration) once this suite is built out beyond the summary below.
 
 **Micro-benchmarks** (module level, e.g. `bench/scoring.bench.ts`):
 - Posting-list intersection throughput at varying list sizes.

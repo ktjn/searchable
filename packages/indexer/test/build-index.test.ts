@@ -354,3 +354,42 @@ describe("buildIndex multi-language corpora", () => {
     expect(built.pinsShards.en).toBeUndefined();
   });
 });
+
+describe("buildIndex source id validation", () => {
+  const page = (id: number, url: string): SourceDocument => ({
+    id,
+    url,
+    html: `<html lang="en"><head><title>Page</title></head><body><main>x</main></body></html>`,
+  });
+
+  it("rejects duplicate document ids", () => {
+    expect(() => buildIndex([page(1, "/a"), page(1, "/b")])).toThrow(
+      /duplicate document id 1/,
+    );
+  });
+
+  it("rejects a non-integer document id", () => {
+    expect(() => buildIndex([page(1.5, "/a")])).toThrow(/invalid document id/);
+  });
+
+  it("rejects a negative document id", () => {
+    expect(() => buildIndex([page(-1, "/a")])).toThrow(/invalid document id/);
+  });
+
+  it("accepts distinct non-negative integer ids, including zero", () => {
+    expect(() =>
+      buildIndex([page(0, "/a"), page(1, "/b"), page(2, "/c")]),
+    ).not.toThrow();
+  });
+
+  it("catches a duplicate even when one of the pair is csf-noindex", () => {
+    const noindexPage: SourceDocument = {
+      id: 1,
+      url: "/draft",
+      html: `<html lang="en"><head><title>Draft</title><meta name="csf-noindex"></head><body><main>x</main></body></html>`,
+    };
+    expect(() => buildIndex([page(1, "/a"), noindexPage])).toThrow(
+      /duplicate document id 1/,
+    );
+  });
+});

@@ -13,6 +13,20 @@ design-only. The GitHub Pages showcase's first two stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stages 2-3 remain blocked on later phases.
 
+A code/docs review ([`REVIEW.md`](../REVIEW.md), response noted inline
+there) landed alongside a batch of new draft specs
+([spec-query-planner.md](spec-query-planner.md),
+[spec-storage-api.md](spec-storage-api.md),
+[spec-plugin-api.md](spec-plugin-api.md),
+[spec-diagnostics.md](spec-diagnostics.md),
+[spec-benchmarking.md](spec-benchmarking.md),
+[spec-binary-format.md](spec-binary-format.md),
+[21](21-architecture-principles.md)-[24](24-architecture-recommendations.md)) —
+its findings (worker lifecycle, cache eviction, id validation, manifest
+mutation, canonical JSON output, manifest/shard-origin validation, and
+splitting docs/07 into implemented-vs-target) are all fixed with tests.
+119 Vitest tests + 10 Playwright tests passing as of that work.
+
 ## Phased build plan
 
 **Phase 0 — Spec & fixtures**
@@ -160,13 +174,18 @@ Phase 2 is now fully implemented.
   variant), benchmarked against JSON at 10k/100k/1M synthetic corpus
   sizes to empirically set the size/density threshold where it's worth
   switching — see the investigation in
-  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) — optional
+  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) (the "should
+  we, and when") and [spec-binary-format.md](spec-binary-format.md)
+  (the physical layout, if/when the investigation says yes) — optional
   WASM scoring core, federated multi-index search, and the independent
   Python reference generator ([20-tech-stack.md](20-tech-stack.md#reference-index-generators-python-and-typescript),
   [10-testing-and-performance.md](10-testing-and-performance.md)) to
   prove the format is genuinely implementation-agnostic and not just
   agnostic in principle, alongside the TypeScript reference indexer
-  already built in Phase 1.
+  already built in Phase 1. A query planner
+  ([spec-query-planner.md](spec-query-planner.md)) and storage
+  abstraction ([spec-storage-api.md](spec-storage-api.md)) are drafted
+  extensibility groundwork for this phase's scale work, not yet built.
 
 **Phase 8 — Vector & hybrid search**
 - Embedding shard format, chunking, quantization (int8 default), brute-

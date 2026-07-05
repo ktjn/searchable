@@ -1,5 +1,13 @@
 # Client API
 
+**Status**: "Implemented today" below is real, tested code
+(`packages/client`) — see [09-roadmap.md](09-roadmap.md#status) for
+what's built vs. pending. Everything under a "Target API" heading is
+design-only: do not treat option/method names there as stable, and
+don't use them as the primary usage example — they're what
+[REVIEW.md](../REVIEW.md)'s "client API docs overpromise" finding was
+about, and this doc was restructured specifically to fix that.
+
 ## Design goals
 
 - Small, promise-based, framework-agnostic core; official thin wrappers
@@ -7,11 +15,15 @@
   core.
 - Works identically whether or not a Web Worker is used underneath
   (see [08-modern-features.md](08-modern-features.md#web-worker-execution)).
-- Every network-triggering call is cancellable (`AbortSignal`), since
-  instant-search fires a request per keystroke and stale requests must
-  not race the latest one.
+- **Target**: every network-triggering call is cancellable
+  (`AbortSignal`), since instant-search fires a request per keystroke
+  and stale requests must not race the latest one — not implemented
+  yet (no `signal` option exists today); see "Cancellation" under
+  Target API below.
 
-## Initialization
+## Implemented today
+
+### Initialization
 
 ```ts
 import { SearchClient } from "@csf/client";
@@ -20,23 +32,98 @@ const client = new SearchClient({
   indexUrl: "https://cdn.example.com/search-index/manifest.json",
   worker: true,               // default true; false = main-thread execution
   workerUrl: new URL("@csf/client/dist/worker.js", import.meta.url),
-  cache: "default",           // reuses browser HTTP cache; also keeps an in-memory LRU
-  prefetchFacets: ["category", "brand"],
 });
 
 await client.ready(); // resolves once the manifest is fetched/parsed
 ```
 
-`workerUrl` isn't auto-resolved from `worker: true` alone — every bundler (Vite, webpack, esbuild, or none at all) has its own incompatible convention for referencing a sibling worker file from a library, and guessing one specific convention would silently break under the others. Point it at wherever your build/CDN actually serves this package's `dist/worker.js`; omitting it runs on the main thread regardless of `worker`, the same graceful-degradation behavior as a missing `Worker` global.
+`workerUrl` isn't auto-resolved from `worker: true` alone — every
+bundler (Vite, webpack, esbuild, or none at all) has its own
+incompatible convention for referencing a sibling worker file from a
+library, and guessing one specific convention would silently break
+under the others. Point it at wherever your build/CDN actually serves
+this package's `dist/worker.js`; omitting it runs on the main thread
+regardless of `worker`, the same graceful-degradation behavior as a
+missing `Worker` global.
 
-## Searching
+`indexUrl` may be relative — it's resolved against the page's own
+location (or the worker's, when running in one) before anything is
+fetched.
+
+### Searching
 
 ```ts
 const result = await client.search("wireless keyboard", {
-  language: "en",              // omit to auto-detect
-  filters: { category: "electronics", price: { gte: 20, lte: 100 } },
-  facets: ["category", "brand", "price"],
+  language: "en",                              // omit to use the manifest's defaultLanguage
+  filters: { category: "electronics" },        // terms-only: string | string[] per field (OR within a field, AND across fields)
+  facets: ["category", "brand"],               // contextual counts for these facet fields
   boosts: { fields: { title: 4 }, terms: { wireless: 2 } },
+  limit: 10,                                   // default 10
+});
+
+result.hits;        // Hit[] -- id, url, score, stored fields, pinned?
+result.facets;      // Record<field, FacetResult> -- only for fields requested via `facets`
+result.totalHits;
+```
+
+Prefix queries (a trailing `*`, e.g. `"widg*"`) are written directly in
+the query string, not a separate option. Term-to-page pinning
+([16-term-to-page-pinning.md](16-term-to-page-pinning.md)) is
+transparent: a matching pin is spliced into `result.hits` automatically
+(marked `pinned: true`), no separate call needed.
+
+Range filters, `fuzzy`, `synonyms`, `page`/`sort`, `signal`, and
+`result.tookMs` are **not implemented** — see Target API below.
+
+### Disposal
+
+```ts
+client.dispose(); // terminates the underlying worker (if any) and rejects any in-flight requests
+```
+
+Always call this when a `SearchClient` instance is no longer needed
+(e.g. component unmount) — an undisposed worker keeps running and its
+pending requests would otherwise never settle if the page keeps a
+stale reference around.
+
+### Error handling & degradation (implemented)
+
+- A failed shard fetch throws a plain `Error` from the `search()` call
+  (propagated through the worker as an `error` message when running in
+  one) — there's no soft-fail/partial-results mode yet (see Target API
+  below). A failed fetch is evicted from the in-memory cache, so a
+  later retry gets a fresh attempt rather than replaying the same
+  cached rejection forever.
+- The manifest is structurally validated right after it's fetched (both
+  in worker and main-thread mode) — a corrupt, stale, or incompatible
+  manifest throws a clear `InvalidManifestError` from `ready()` instead
+  of failing deep inside query execution against `undefined` fields.
+- By default, every shard file the manifest references must resolve to
+  the same origin as the manifest itself; a manifest pointing at a
+  cross-origin shard URL is rejected unless the caller explicitly opts
+  in with `allowCrossOriginShards: true` on `SearchClientOptions` — a
+  compromised or misconfigured manifest shouldn't be able to make the
+  client fetch arbitrary third-party URLs.
+- If Web Workers are unavailable (rare, e.g. certain locked-down
+  embedded webviews) or `workerUrl` is omitted, the client transparently
+  runs on the main thread instead of failing to initialize — same
+  public API either way.
+- If the underlying worker hits a fatal, unrecoverable error (an
+  `error`/`messageerror` event, not a per-request failure), every
+  currently-pending `search()` call rejects with that error rather than
+  hanging forever.
+
+## Target API (not yet implemented)
+
+Everything in this section is design-only. Option and method names here
+are proposed, not stable — expect them to change shape before they're
+actually built. Don't copy these as working examples.
+
+### Extended search options
+
+```ts
+const result = await client.search("wireless keyboard", {
+  filters: { price: { gte: 20, lte: 100 } },  // range filters -- today, filters only match discrete facet values
   fuzzy: true,
   synonyms: true,
   page: { size: 10, offset: 0 },
@@ -44,11 +131,15 @@ const result = await client.search("wireless keyboard", {
   signal: abortController.signal,
 });
 
-result.hits;        // Hit[] — id, url, score, stored fields, highlighted snippet
-result.facets;      // requested facet breakdowns with contextual counts
-result.totalHits;
 result.tookMs;
 ```
+
+### Cancellation
+
+No `signal` option exists on `SearchOptions` today, and no fetch or
+worker message is ever aborted mid-flight. A newer keystroke's request
+can still race an older one to completion (the caller is responsible
+for ignoring a stale response, as the showcase's search widget does).
 
 ### Warm-up/preload
 
@@ -94,21 +185,21 @@ Both `search()` and `searchStream()` share the same underlying query
 plan; `search()` is just `searchStream()` awaited to its final event —
 callers pick whichever fits their UI.
 
-## Suggestions / autocomplete
+### Suggestions / autocomplete
 
 ```ts
 const suggestions = await client.suggest("widg", { limit: 5 });
 // → prefix-matched terms/phrases from the corpus, for a typeahead dropdown
 ```
 
-## Facet-only queries
+### Facet-only queries
 
 ```ts
 const facetValues = await client.facetValues("brand", { filters: {...} });
 // for rendering a facet panel without running a full search (e.g. category landing page)
 ```
 
-## Federated / multi-index search
+### Federated / multi-index search
 
 ```ts
 const client = new SearchClient({
@@ -126,6 +217,19 @@ normalizes scores (min-max or z-score normalization per source, a
 documented, overridable strategy) before interleaving, since raw BM25
 scores aren't directly comparable across corpora with different
 vocabularies.
+
+### Soft-fail partial results
+
+```ts
+onFetchError: "soft" | "throw"
+```
+
+Network failure fetching a shard → that shard's terms are treated as
+"no matches" for a `should` clause (soft-fail) but surfaces a
+`result.warnings` entry, or hard-fails a `must` clause with a thrown
+`PartialIndexError` — since a partial static hosting outage shouldn't
+necessarily null out an entire search UI. Today, any shard fetch
+failure just throws.
 
 ## Pinning a manifest
 
@@ -152,15 +256,3 @@ dependency); actual index fetch + execution is browser-only by design
 (the whole point is client-side execution) — an SSR page can prerender
 an empty/placeholder search UI and hydrate the live client on the client,
 which is standard practice for this class of widget.
-
-## Error handling & degradation
-
-- Network failure fetching a shard → that shard's terms are treated as
-  "no matches" for a `should` clause (soft-fail) but surfaces a
-  `result.warnings` entry, or hard-fails a `must` clause with a thrown
-  `PartialIndexError` — behavior configurable (`onFetchError: "soft" | "throw"`),
-  since a partial static hosting outage shouldn't necessarily null out
-  an entire search UI.
-- If Web Workers are unavailable (rare, e.g. certain locked-down
-  embedded webviews), core transparently falls back to main-thread
-  execution rather than failing to initialize.

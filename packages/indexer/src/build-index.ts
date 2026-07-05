@@ -24,6 +24,32 @@ export interface BuildIndexOptions {
   fieldBoosts?: Partial<FieldBoosts>;
 }
 
+/**
+ * source.id ends up denormalized into postings, the doc store, facet
+ * value doc-id lists, pin doc lists, and idRange — a duplicate silently
+ * merges two unrelated documents' postings and overwrites one's doc
+ * store entry; a non-integer or negative id corrupts the idRange
+ * min/max math used to pick doc-store shards at query time
+ * (REVIEW.md#7). Both are content/authoring bugs worth failing the
+ * build over, not something to silently tolerate.
+ */
+function validateSourceIds(sources: SourceDocument[]): void {
+  const seen = new Set<number>();
+  for (const source of sources) {
+    if (!Number.isInteger(source.id) || source.id < 0) {
+      throw new Error(
+        `buildIndex: invalid document id ${JSON.stringify(source.id)} for "${source.url}" — ids must be non-negative integers`,
+      );
+    }
+    if (seen.has(source.id)) {
+      throw new Error(
+        `buildIndex: duplicate document id ${source.id} (seen again at "${source.url}") — every source document must have a unique id`,
+      );
+    }
+    seen.add(source.id);
+  }
+}
+
 function deriveExcerpt(body: string): string {
   return body.length <= EXCERPT_LENGTH
     ? body
@@ -162,6 +188,7 @@ export function buildIndex(
   defaultLanguage = "en",
   options: BuildIndexOptions = {},
 ): BuiltIndex {
+  validateSourceIds(sources);
   const fieldBoosts = { ...DEFAULT_FIELD_BOOSTS, ...options.fieldBoosts };
 
   const termShards: Record<string, TermShard> = {};
@@ -240,6 +267,23 @@ export function buildIndex(
 
   const { pinsShards, warnings } = resolvePins(pinsAccByLanguage);
   for (const warning of warnings) console.warn(`[csf-indexer] ${warning}`);
+
+  // Postings/facet doc-id lists are appended in source-array processing
+  // order, which is not a meaningful order (unlike pins' priority-based
+  // docs order, deliberately left alone) — sort by doc id so byte-for-
+  // byte output doesn't depend on what order the corpus happened to be
+  // fed in (REVIEW.md#10, write-index.ts's canonicalize() handles object
+  // key order but can't know which arrays are safe to reorder).
+  for (const termShard of Object.values(termShards)) {
+    for (const entry of Object.values(termShard)) {
+      entry.postings.sort((a, b) => a.doc - b.doc);
+    }
+  }
+  for (const facetShard of Object.values(facetShards)) {
+    for (const entry of Object.values(facetShard.values)) {
+      entry.docs.sort((a, b) => a - b);
+    }
+  }
 
   const facetFields = Object.keys(facetShards).sort();
   // An empty corpus still needs one language for the manifest to make

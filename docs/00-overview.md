@@ -54,6 +54,11 @@ apps, and privacy-sensitive search).
 
 ## Guiding principles
 
+See [21-architecture-principles.md](21-architecture-principles.md) for
+a fuller, more formal invariant list (determinism, storage/format
+independence, lazy loading, small public API, etc.) this section's
+principles are drawn from and consistent with.
+
 - **Static + pull, never dynamic + push.** If a feature needs the server
   to compute something per-query, it doesn't belong in the core design;
   push that computation to the client or to index-build time.

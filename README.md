@@ -31,8 +31,8 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 88 Vitest tests across all packages, including real-HTTP e2e tests
-pnpm test:browser             # 6 Playwright tests in real Chromium (Worker execution + showcase)
+pnpm test                     # 119 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test:browser             # 10 Playwright tests in real Chromium (Worker execution, lifecycle, showcase)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically
 ```
@@ -62,6 +62,16 @@ Design docs — start here:
 | [docs/18-resource-aware-loading.md](docs/18-resource-aware-loading.md) | Fetch priority, idle scheduling, network/memory awareness, worker time-slicing |
 | [docs/19-github-pages-showcase.md](docs/19-github-pages-showcase.md) | Plan for a live GitHub Pages demo, staged against the roadmap phases |
 | [docs/20-tech-stack.md](docs/20-tech-stack.md) | Concrete tooling: TypeScript, Vite, Vitest, Playwright, Python+TypeScript reference generators |
+| [docs/21-architecture-principles.md](docs/21-architecture-principles.md) | Long-term architectural invariants (determinism, storage/format independence, small API, ...) |
+| [docs/22-project-governance.md](docs/22-project-governance.md) | ADRs, contributor guidelines, compatibility/benchmark/documentation policy |
+| [docs/23-implementation-roadmap.md](docs/23-implementation-roadmap.md) | Which major specs to write next, on a separate axis from 09-roadmap.md's build-status phases |
+| [docs/24-architecture-recommendations.md](docs/24-architecture-recommendations.md) | Longer-term extensibility/maturity recommendations (query planner, storage abstraction, explain API, ...) |
+| [docs/spec-query-planner.md](docs/spec-query-planner.md) | Draft spec: separating query planning from execution |
+| [docs/spec-storage-api.md](docs/spec-storage-api.md) | Draft spec: storage-backend abstraction (HTTP, IndexedDB, Service Worker, ...) |
+| [docs/spec-plugin-api.md](docs/spec-plugin-api.md) | Draft spec exploring plugin-system goals from a different angle than 17's decided contract |
+| [docs/spec-diagnostics.md](docs/spec-diagnostics.md) | Draft spec: explain API, query trace, phase timings, plugin attribution |
+| [docs/spec-benchmarking.md](docs/spec-benchmarking.md) | Draft spec: benchmark methodology, corpus profiles, regression policy |
+| [docs/spec-binary-format.md](docs/spec-binary-format.md) | Draft spec: binary index physical layout, if/when 11's investigation favors it |
 
 ## TL;DR design
 

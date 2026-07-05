@@ -1,5 +1,15 @@
 # Implementation Roadmap
 
+**Relationship to [09-roadmap.md](09-roadmap.md)**: the "Phase 1-4" below
+is a *specification-writing* sequence (which design docs to write next),
+a different axis from 09-roadmap.md's "Phase 0-8", which tracks actual
+*build* status (what has working code vs. what's design-only) and is
+the canonical source for "is X done." A doc phase and a build phase
+with the same number here are coincidental, not the same milestone —
+e.g. this doc's "Phase 1" (binary format / query planner / storage
+specs) has no fixed correspondence to 09-roadmap.md's Phase 1 (the
+minimal viable engine, long since built).
+
 This document identifies the remaining major technical specifications that should be written before the project reaches a stable 1.0 architecture.
 
 ## Objective

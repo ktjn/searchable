@@ -14,6 +14,56 @@
         return client.search(query);
       };
 
+      async function rejectionOf(promise) {
+        try {
+          await promise;
+          return undefined;
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err);
+        }
+      }
+
+      window.__csfTestDisposeRejectsInFlight = async () => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: true,
+          workerUrl: new URL("./worker.js", location.href),
+        });
+        await client.ready();
+        const pending = client.search("widgets");
+        client.dispose();
+        return rejectionOf(pending);
+      };
+
+      window.__csfTestSearchAfterDispose = async () => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: true,
+          workerUrl: new URL("./worker.js", location.href),
+        });
+        await client.ready();
+        client.dispose();
+        return rejectionOf(client.search("widgets"));
+      };
+
+      window.__csfTestWorkerFatalError = async () => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: true,
+          workerUrl: new URL("./does-not-exist.js", location.href),
+        });
+        return rejectionOf(client.ready());
+      };
+
+      window.__csfTestWorkerManifestValidation = async (manifestUrl) => {
+        const client = new SearchClient({
+          indexUrl: manifestUrl,
+          worker: true,
+          workerUrl: new URL("./worker.js", location.href),
+        });
+        return rejectionOf(client.ready());
+      };
+
       window.__csfHarnessReady = true;
     </script>
   </body>

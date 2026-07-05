@@ -2,6 +2,7 @@
 import type { Manifest } from "@csf/format";
 import { ShardCache } from "./fetch-json.js";
 import { search } from "./search.js";
+import { validateManifest } from "./validate-manifest.js";
 import type { WorkerRequest, WorkerResponse } from "./worker-protocol.js";
 
 const cache = new ShardCache();
@@ -17,7 +18,11 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   try {
     if (msg.type === "init") {
       indexUrl = msg.indexUrl;
-      manifestPromise = cache.fetchJson<Manifest>(indexUrl);
+      manifestPromise = cache.fetchJson<Manifest>(indexUrl).then((manifest) =>
+        validateManifest(manifest, indexUrl as string, {
+          allowCrossOriginShards: msg.allowCrossOriginShards ?? false,
+        }),
+      );
       await manifestPromise;
       post({ type: "result", id: msg.id, result: { hits: [], totalHits: 0 } });
       return;

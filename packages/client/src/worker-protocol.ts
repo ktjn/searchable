@@ -12,7 +12,7 @@ import type { SearchOptions, SearchResult } from "./search.js";
  * discriminated union, it collapses it.
  */
 export type WorkerRequestPayload =
-  | { type: "init"; indexUrl: string }
+  | { type: "init"; indexUrl: string; allowCrossOriginShards?: boolean }
   | { type: "search"; query: string; options: SearchOptions };
 
 export type WorkerRequest = WorkerRequestPayload & { id: number };

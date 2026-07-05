@@ -1,5 +1,10 @@
 # Investigation: Should the Index Be Served as Binary?
 
+See [spec-binary-format.md](spec-binary-format.md) for the concrete
+physical layout (sections, encoding, versioning) *if and when* this
+investigation concludes binary is worth building — that doc is the
+"what it would look like," this doc is the "should we, and when."
+
 [02-index-format.md](02-index-format.md) already proposes a binary tier
 as an opt-in. This doc works through *when that's actually worth it*,
 since it trades against the "open, trivially-generatable JSON spec"
