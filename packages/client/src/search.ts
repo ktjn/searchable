@@ -10,6 +10,8 @@ import type {
   TermShard,
 } from "@csf/format";
 import type { ShardCache } from "./fetch-json.js";
+import type { HighlightSpan } from "./highlight.js";
+import { highlightText } from "./highlight.js";
 import { parseQueryTerms } from "./parse-query.js";
 import { scoreTermForDoc } from "./score.js";
 
@@ -20,6 +22,14 @@ export interface Hit {
   fields: Record<string, string>;
   /** Placed by a csf-pin match (docs/16-term-to-page-pinning.md), not by relevance. */
   pinned?: boolean;
+  /**
+   * Per stored field, that field's text split into match/non-match
+   * spans for the literal query terms typed (docs/08-modern-features.md#highlighting--snippets).
+   * Only present when `options.highlight` is true. A synonym- or
+   * fuzzy-matched term that isn't also literally present in the query
+   * is not highlighted — see packages/client/src/highlight.ts for why.
+   */
+  highlights?: Record<string, HighlightSpan[]>;
 }
 
 export interface FacetResultValue {
@@ -124,6 +134,15 @@ export interface SearchOptions {
    * else equal. Only meaningful when `fuzzy: true`.
    */
   fuzzyWeight?: number;
+  /**
+   * Compute `Hit.highlights` for every stored field of every hit
+   * (docs/08-modern-features.md#highlighting--snippets). Off by
+   * default, matching every other opt-in query feature here — most
+   * callers building a list UI want this, but it's extra work per hit
+   * that a caller only rendering, say, a "did you mean" prompt doesn't
+   * need to pay for.
+   */
+  highlight?: boolean;
 }
 
 /** docs/05-synonyms.md#scoring-impact. */
@@ -602,12 +621,22 @@ export async function search(
 
   function toHit(id: number, score: number, pinned: boolean): Hit {
     const doc = docLookup.get(id);
+    const fields = doc?.fields ?? {};
+    const highlights = options.highlight
+      ? Object.fromEntries(
+          Object.entries(fields).map(([field, text]) => [
+            field,
+            highlightText(text, queryTerms),
+          ]),
+        )
+      : undefined;
     return {
       id,
       score,
       url: doc?.url ?? "",
-      fields: doc?.fields ?? {},
+      fields,
       ...(pinned ? { pinned: true } : {}),
+      ...(highlights ? { highlights } : {}),
     };
   }
 

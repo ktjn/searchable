@@ -104,6 +104,37 @@ choosing between "use the preset" or "configure everything from scratch."
 
 ## Highlighting & snippets
 
+**Status**: A first slice is built —
+[`packages/client/src/highlight.ts`](../packages/client/src/highlight.ts)'s
+`highlightText()`, wired into `search(query, { highlight: true })`,
+populates `Hit.highlights: Record<string, HighlightSpan[]>` (one
+`{ text, isMatch }[]` array per stored field — today, `title` and
+`excerpt`) by matching the literal query terms typed (prefix-aware for
+`term*`) against each field's already-stored text. This is deliberately
+narrower than the target design below:
+
+- **Literal terms only.** A hit that only matched via synonym expansion
+  or fuzzy correction doesn't get that expanded/corrected term
+  highlighted — `search()`'s clause-scoring loop doesn't currently
+  track which literal real term an expansion match resolved to per
+  hit, and highlighting a term the visitor never typed with no way to
+  tell it apart from what they searched for would be confusing rather
+  than helpful. Revisit once clauses carry that provenance.
+- **Whatever's already stored, not the full body.** The doc store
+  deliberately doesn't retain full body text
+  ([02-index-format.md](02-index-format.md)); the stored per-field
+  token *positions* (`FieldPosting.pos`) describe the full body's own
+  tokenization, but an excerpt is either author-supplied (`<meta
+  name="description">`) or a character-length truncation of the body —
+  neither reliably corresponds to those body-token indices, so
+  highlighting matches directly against the stored text instead of
+  trying to reuse positions that don't actually describe it. This also
+  means there's no "highest-scoring window" snippet selection yet
+  (there's no full body text to select a window *from*).
+- **Structured spans only** — matches the target design below already;
+  no raw-HTML convenience string yet.
+
+The original target design, still not fully built:
 `plugin:highlight` uses the stored term positions
 ([02-index-format.md](02-index-format.md#term-shard-inverted-index)) plus
 the doc store's stored excerpt text to:

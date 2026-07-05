@@ -1029,3 +1029,78 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
     expect(didYouMean).toBeUndefined(); // no hits, but only because zzzznotaword has no near match either
   });
 });
+
+describe("result highlighting (options.highlight)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const highlightSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widgets",
+      html: `<html lang="en"><head><title>Premium Widgets</title>
+        <meta name="description" content="Our widgets are built to last a lifetime."></head>
+        <body><main><p>widgets widgets widgets</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/about",
+      html: `<html lang="en"><head><title>About Us</title></head>
+        <body><main><p>We are a small company that makes things.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-highlight-"));
+    await writeIndex(buildIndex(highlightSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("omits highlights by default", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+    expect(hits[0]?.highlights).toBeUndefined();
+  });
+
+  it("splits every stored field into match/non-match spans when requested", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets", { highlight: true });
+    const hit = hits[0];
+    expect(hit?.highlights?.title).toEqual([
+      { text: "Premium ", isMatch: false },
+      { text: "Widgets", isMatch: true },
+    ]);
+    expect(hit?.highlights?.excerpt).toEqual([
+      { text: "Our ", isMatch: false },
+      { text: "widgets", isMatch: true },
+      { text: " are built to last a lifetime.", isMatch: false },
+    ]);
+  });
+
+  it("does not highlight terms absent from a hit's fields", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("company", { highlight: true });
+    const hit = hits.find((h) => h.url === "/about");
+    expect(hit?.highlights?.title).toEqual([
+      { text: "About Us", isMatch: false },
+    ]);
+    expect(hit?.highlights?.excerpt?.some((s) => s.isMatch)).toBe(true);
+  });
+
+  it("is prefix-aware, matching the whole word for a term* query", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widg*", { highlight: true });
+    expect(hits[0]?.highlights?.title).toEqual([
+      { text: "Premium ", isMatch: false },
+      { text: "Widgets", isMatch: true },
+    ]);
+  });
+});

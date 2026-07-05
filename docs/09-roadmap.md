@@ -14,10 +14,10 @@ partitioning; additional stemmers and the CJK bigram fallback remain
 pending — see below). Phase 5 is mostly built (query-time synonym
 expansion, plus SymSpell fuzzy matching and "did you mean"
 suggestions; `multiWord` phrase-level synonyms remain pending — see
-below). Phase 6 is partially built (a configuration testbed and a
-bundle-size CI gate; streaming/highlighting/offline-Service-Worker/
-accessibility/observability remain pending — see below). Phase 7+
-remain design-only. The GitHub Pages showcase's first three stages
+below). Phase 6 is partially built (a configuration testbed, a
+bundle-size CI gate, and a first slice of result highlighting;
+streaming/offline-Service-Worker/accessibility/observability remain
+pending — see below). Phase 7+ remain design-only. The GitHub Pages showcase's first three stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stage 3 remains blocked on Phase 8.
 
@@ -241,8 +241,20 @@ Phase 2 is now fully implemented.
   and `didYouMean` presence/absence — not just unit tests in isolation.
 
 **Phase 6 — Modern features polish**
-- Streaming results, highlighting, offline/Service Worker plugin,
-  accessibility pass, observability hooks.
+- Streaming results, offline/Service Worker plugin, accessibility pass,
+  observability hooks.
+- ✅ Result highlighting, first slice
+  ([docs/08-modern-features.md#highlighting--snippets](08-modern-features.md#highlighting--snippets),
+  [`packages/client/src/highlight.ts`](../packages/client/src/highlight.ts)):
+  `search(query, { highlight: true })` populates `Hit.highlights` with
+  match/non-match spans per stored field, matching the literal query
+  terms typed (prefix-aware). Deliberately scoped narrower than the
+  target design: no synonym/fuzzy-expansion-variant highlighting (only
+  literal typed terms), no best-scoring-window snippet selection over
+  full body text (the doc store doesn't retain full body text to
+  select a window from), and no raw-HTML convenience string (spans
+  only) — see the doc's Status note for why each is deferred rather
+  than a redesign.
 - ✅ Bundle-size CI gate
   ([docs/08-modern-features.md#bundle-size-budget](08-modern-features.md#bundle-size-budget),
   [`packages/client/scripts/check-bundle-size.mjs`](../packages/client/scripts/check-bundle-size.mjs),
