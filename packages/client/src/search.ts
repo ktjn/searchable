@@ -2,6 +2,7 @@ import { getLanguageProfile, normalizePhrase } from "@csf/analysis";
 import type {
   DocStoreEntry,
   FacetShard,
+  FuzzyShard,
   Manifest,
   PinsShard,
   SynonymShard,
@@ -36,6 +37,14 @@ export interface SearchResult {
   /** Only present for facet fields the caller asked to include via options.facets. */
   facets?: Record<string, FacetResult>;
   totalHits: number;
+  /**
+   * Nearest real term(s) in the corpus for a query term that failed to
+   * match at all, byproduct of the fuzzy dictionary
+   * (docs/04-query-ranking-boosts.md#did-you-mean--query-suggestions).
+   * Only ever populated when `options.fuzzy` is true and the query
+   * still returned zero hits (even after fuzzy expansion).
+   */
+  didYouMean?: string[];
 }
 
 export interface SearchOptions {
@@ -89,10 +98,31 @@ export interface SearchOptions {
    * expansion, all else equal. Only meaningful when `synonyms: true`.
    */
   synonymWeight?: number;
+  /**
+   * Expand each non-prefix query term into typo-tolerant matches from
+   * the manifest's fuzzy (SymSpell deletion dictionary) shard for the
+   * resolved language, if one exists
+   * (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching). Off by
+   * default. Same independence-from-prefix scoping decision as
+   * `synonyms`.
+   */
+  fuzzy?: boolean;
+  /**
+   * Base score multiplier for a fuzzy-matched term, raised to the
+   * power of its edit distance from the literal query term (so a
+   * distance-2 match is penalized more than distance-1) — a document
+   * containing the literal term still outranks a fuzzy-only match, all
+   * else equal. Only meaningful when `fuzzy: true`.
+   */
+  fuzzyWeight?: number;
 }
 
 /** docs/05-synonyms.md#scoring-impact. */
 const DEFAULT_SYNONYM_WEIGHT = 0.5;
+/** docs/04-query-ranking-boosts.md#prefix--fuzzy-matching. */
+const DEFAULT_FUZZY_WEIGHT = 0.5;
+/** How many "did you mean" suggestions to surface per unmatched query term. */
+const MAX_SUGGESTIONS_PER_TERM = 3;
 
 function resolve(baseUrl: string, relPath: string): string {
   return new URL(relPath, baseUrl).toString();
@@ -138,6 +168,113 @@ function synonymVariantsFor(
     variants.add(variant);
   }
   return [...variants];
+}
+
+/**
+ * Unique strings reachable by deleting exactly one Unicode code point
+ * from `term` (plus `term` itself, 0 deletions) — the query-side half
+ * of the SymSpell candidate lookup. Deliberately duplicated from the
+ * indexer's identical helper (build-index.ts) rather than shared:
+ * it's a ~6-line pure function with exactly two callers across two
+ * packages that must never share a runtime dependency (the browser
+ * bundle can't pull in indexer code), the same reasoning already
+ * applied to the e2e-browser serve-dir.ts duplication.
+ */
+function generateDeletes(term: string): string[] {
+  const chars = [...term];
+  const variants = new Set<string>([term]);
+  for (let i = 0; i < chars.length; i++) {
+    variants.add(chars.slice(0, i).join("") + chars.slice(i + 1).join(""));
+  }
+  return [...variants];
+}
+
+/** Levenshtein edit distance, code-point aware. */
+function levenshteinDistance(a: string, b: string): number {
+  const s = [...a];
+  const t = [...b];
+  const prevRow = new Array<number>(t.length + 1);
+  for (let j = 0; j <= t.length; j++) prevRow[j] = j;
+
+  for (let i = 1; i <= s.length; i++) {
+    let diag = prevRow[0] ?? 0;
+    prevRow[0] = i;
+    for (let j = 1; j <= t.length; j++) {
+      const temp = prevRow[j] ?? 0;
+      prevRow[j] =
+        s[i - 1] === t[j - 1]
+          ? diag
+          : 1 + Math.min(diag, prevRow[j] ?? 0, prevRow[j - 1] ?? 0);
+      diag = temp;
+    }
+  }
+  return prevRow[t.length] ?? 0;
+}
+
+/**
+ * Every real term discoverable from `term` via the deletion dictionary
+ * (a fast candidate generator, not a distance oracle), each paired with
+ * its true Levenshtein distance from `term`. Excludes `term` itself
+ * (distance 0 — that's an exact match, not a fuzzy one). Deliberately
+ * unfiltered by `fuzzyShard.maxEdits`: the symmetric-delete lookup can
+ * surface true-distance-2 candidates too (e.g. an adjacent-character
+ * transposition, where query and real term each delete a different
+ * character and land on the same shorter string) even though the
+ * dictionary was only built to guarantee distance-1 coverage. Callers
+ * decide how strict to be.
+ */
+function fuzzyCandidatesFor(
+  term: string,
+  fuzzyShard: FuzzyShard | undefined,
+): { term: string; distance: number }[] {
+  if (!fuzzyShard) return [];
+  const candidates = new Set<string>();
+  for (const t of fuzzyShard.deletions[term] ?? []) candidates.add(t);
+  for (const deletion of generateDeletes(term)) {
+    for (const t of fuzzyShard.deletions[deletion] ?? []) candidates.add(t);
+  }
+  const matches: { term: string; distance: number }[] = [];
+  for (const candidate of candidates) {
+    if (candidate === term) continue;
+    matches.push({
+      term: candidate,
+      distance: levenshteinDistance(term, candidate),
+    });
+  }
+  return matches;
+}
+
+/**
+ * Real terms within `fuzzyShard.maxEdits` of `term` — the strict subset
+ * of `fuzzyCandidatesFor` used for query expansion (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching).
+ */
+function fuzzyMatchesFor(
+  term: string,
+  fuzzyShard: FuzzyShard | undefined,
+): { term: string; distance: number }[] {
+  if (!fuzzyShard) return [];
+  return fuzzyCandidatesFor(term, fuzzyShard).filter(
+    (match) => match.distance <= fuzzyShard.maxEdits,
+  );
+}
+
+/**
+ * The `limit` nearest real terms to `term`, distance ascending (ties
+ * broken alphabetically) — used for "did you mean" suggestions, which
+ * deliberately does NOT apply `fuzzyMatchesFor`'s maxEdits cutoff: a
+ * term that failed strict fuzzy matching (and is therefore a candidate
+ * for suggestion in the first place) can still have discoverable
+ * distance-2 candidates worth surfacing.
+ */
+function nearestTermsFor(
+  term: string,
+  fuzzyShard: FuzzyShard | undefined,
+  limit: number,
+): string[] {
+  return fuzzyCandidatesFor(term, fuzzyShard)
+    .sort((a, b) => a.distance - b.distance || a.term.localeCompare(b.term))
+    .slice(0, limit)
+    .map((match) => match.term);
 }
 
 /**
@@ -189,24 +326,34 @@ export async function search(
     : undefined;
   const synonymWeight = options.synonymWeight ?? DEFAULT_SYNONYM_WEIGHT;
 
+  const fuzzyFile = options.fuzzy ? manifest.fuzzy?.[language] : undefined;
+  const fuzzyShard = fuzzyFile
+    ? await cache.fetchJson<FuzzyShard>(resolve(baseUrl, fuzzyFile))
+    : undefined;
+  const fuzzyWeight = options.fuzzyWeight ?? DEFAULT_FUZZY_WEIGHT;
+
   // Each query term becomes a clause: an exact term matches at most one
-  // TermEntry (plus, when synonyms are enabled, any equivalence/
-  // directional variant that also has a dictionary entry, each scored
-  // at a reduced weight relative to the literal term), a prefix
-  // (`term*`) matches every real term starting with it — resolved here
-  // by scanning the already-fetched shard's term dictionary (a
-  // contiguous range scan over a sorted structure at larger scale, per
-  // docs/02-index-format.md#size-targets--sharding-tuning, but a plain
-  // filter is exact and sufficient at this corpus size). A clause with
-  // zero matches fails the organic query (boolean AND) — but not pin
-  // matching, which runs independently below.
+  // TermEntry (plus, when synonyms/fuzzy are enabled, any equivalence/
+  // directional variant or typo-tolerant match that also has a
+  // dictionary entry, each scored at a reduced weight relative to the
+  // literal term), a prefix (`term*`) matches every real term starting
+  // with it — resolved here by scanning the already-fetched shard's
+  // term dictionary (a contiguous range scan over a sorted structure at
+  // larger scale, per docs/02-index-format.md#size-targets--sharding-tuning,
+  // but a plain filter is exact and sufficient at this corpus size). A
+  // clause with zero matches fails the organic query (boolean AND) —
+  // but not pin matching, which runs independently below. Every query
+  // term is processed (not just up to the first failure) so
+  // `failedTerms` below can drive "did you mean" suggestions for every
+  // term that didn't match, not only the first one.
   interface ClauseEntry {
     entry: TermEntry;
-    /** 1.0 for the literal/prefix-matched term, synonymWeight for a synonym-expanded variant. */
+    /** 1.0 for the literal/prefix-matched term, otherwise a synonym/fuzzy penalty weight. */
     weight: number;
   }
   const clauses: { term: string; entries: ClauseEntry[] }[] = [];
-  let organicMatched = true;
+  const failedTerms: string[] = [];
+  let anyClauseFailed = false;
   for (const qt of queryTerms) {
     let clauseEntries: ClauseEntry[];
     if (qt.prefix) {
@@ -215,21 +362,40 @@ export async function search(
         .map(([, entry]) => ({ entry, weight: 1.0 }));
     } else {
       clauseEntries = [];
+      const addedTerms = new Set<string>();
       const exact = termLookup.get(qt.term);
-      if (exact) clauseEntries.push({ entry: exact, weight: 1.0 });
+      if (exact) {
+        clauseEntries.push({ entry: exact, weight: 1.0 });
+        addedTerms.add(qt.term);
+      }
       for (const variant of synonymVariantsFor(qt.term, synonymShard)) {
+        if (addedTerms.has(variant)) continue;
         const variantEntry = termLookup.get(variant);
         if (variantEntry) {
           clauseEntries.push({ entry: variantEntry, weight: synonymWeight });
+          addedTerms.add(variant);
+        }
+      }
+      for (const match of fuzzyMatchesFor(qt.term, fuzzyShard)) {
+        if (addedTerms.has(match.term)) continue;
+        const fuzzyEntry = termLookup.get(match.term);
+        if (fuzzyEntry) {
+          clauseEntries.push({
+            entry: fuzzyEntry,
+            weight: fuzzyWeight ** match.distance,
+          });
+          addedTerms.add(match.term);
         }
       }
     }
     if (clauseEntries.length === 0) {
-      organicMatched = false;
-      break;
+      anyClauseFailed = true;
+      if (!qt.prefix) failedTerms.push(qt.term);
+    } else {
+      clauses.push({ term: qt.term, entries: clauseEntries });
     }
-    clauses.push({ term: qt.term, entries: clauseEntries });
   }
+  const organicMatched = !anyClauseFailed;
 
   let organicCandidateIds: number[] = [];
   if (organicMatched) {
@@ -436,5 +602,33 @@ export async function search(
     }
   }
 
-  return { hits, ...(facets ? { facets } : {}), totalHits };
+  // --- "did you mean" (docs/04-query-ranking-boosts.md#did-you-mean--query-suggestions):
+  // a byproduct of the fuzzy dictionary, only computed when the caller
+  // opted into fuzzy matching and the query still returned nothing ---
+  let didYouMean: string[] | undefined;
+  if (
+    options.fuzzy &&
+    fuzzyShard &&
+    hits.length === 0 &&
+    failedTerms.length > 0
+  ) {
+    const suggestions = new Set<string>();
+    for (const term of failedTerms) {
+      for (const candidate of nearestTermsFor(
+        term,
+        fuzzyShard,
+        MAX_SUGGESTIONS_PER_TERM,
+      )) {
+        suggestions.add(candidate);
+      }
+    }
+    if (suggestions.size > 0) didYouMean = [...suggestions];
+  }
+
+  return {
+    hits,
+    ...(facets ? { facets } : {}),
+    totalHits,
+    ...(didYouMean ? { didYouMean } : {}),
+  };
 }

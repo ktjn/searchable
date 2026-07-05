@@ -9,8 +9,9 @@ actually implemented vs. still pending. Phase 3 is partially built
 below). Phase 4 is partially built (a second real LanguageProfile and
 true per-document-language corpus partitioning; additional stemmers and
 the CJK bigram fallback remain pending — see below). Phase 5 is
-partially built (query-time synonym expansion; fuzzy/SymSpell matching
-and "did you mean" remain pending — see below). Phase 6+ remain
+mostly built (query-time synonym expansion, plus SymSpell fuzzy
+matching and "did you mean" suggestions; `multiWord` phrase-level
+synonyms remain pending — see below). Phase 6+ remain
 design-only. The GitHub Pages showcase's first two stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stages 2-3 remain blocked on later phases.
@@ -181,11 +182,32 @@ Phase 2 is now fully implemented.
   need a different, pre-tokenization phrase-matching path than the
   single-term lookups implemented so far, so neither the indexer nor
   the client produce/consume them yet.
-- ⬜ SymSpell fuzzy plugin, "did you mean" — not started.
+- ✅ SymSpell fuzzy plugin, "did you mean"
+  ([04-query-ranking-boosts.md](04-query-ranking-boosts.md#prefix--fuzzy-matching)):
+  a precomputed deletion dictionary (`spec/schema/fuzzy-shard.schema.json`,
+  one `fuzzy/<lang>.json` shard per language) built at index time via
+  `buildIndex(sources, lang, { fuzzy: true })` — for every indexed term,
+  every string reachable by deleting one code point maps back to the
+  real term(s) that produced it. `search(query, { fuzzy: true })` looks
+  up each non-prefix query term's own deletion variants against that
+  dictionary to find distance-≤1 candidates cheaply, verifies true edit
+  distance (Levenshtein) to reject deletion-variant collisions, and adds
+  genuine matches at a reduced score weight (default 0.5×, raised to the
+  power of edit distance, overridable via `fuzzyWeight`) — same
+  literal-outranks-expansion pattern as synonyms. Off by default. When
+  the query still returns zero hits, the same dictionary is reused
+  (without the maxEdits cutoff, since a term worth suggesting has by
+  definition already failed the strict threshold) to populate
+  `didYouMean` with the nearest real term(s), including
+  structurally-discoverable true-distance-2 matches (e.g. adjacent
+  transpositions) that the strict matcher correctly excludes from
+  scoring. Distance-2 dictionaries, length/language-dependent maxEdits,
+  and the CJK bigram fallback remain design-only.
 - Verified with real end-to-end tests over real HTTP: equivalence-class
   symmetry, directional one-way expansion, reduced-weight ranking,
-  custom `synonymWeight`, and off-by-default behavior — not just unit
-  tests in isolation.
+  custom `synonymWeight`/`fuzzyWeight`, off-by-default behavior for both
+  synonyms and fuzzy, strict-vs-suggestion distance cutoffs for fuzzy,
+  and `didYouMean` presence/absence — not just unit tests in isolation.
 
 **Phase 6 — Modern features polish**
 - Streaming results, highlighting, offline/Service Worker plugin,

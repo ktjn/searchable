@@ -33,7 +33,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 132 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 145 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 10 Playwright tests in real Chromium (Worker execution, lifecycle, showcase)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

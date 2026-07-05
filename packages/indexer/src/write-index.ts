@@ -124,6 +124,24 @@ export async function writeIndex(
     }
   }
 
+  const fuzzyLanguages = Object.keys(built.fuzzyShards)
+    .filter(
+      (language) =>
+        Object.keys(built.fuzzyShards[language]?.deletions ?? {}).length,
+    )
+    .sort();
+  let fuzzy: Record<string, string> | undefined;
+  if (fuzzyLanguages.length) {
+    fuzzy = {};
+    for (const language of fuzzyLanguages) {
+      fuzzy[language] = await writeJson(
+        outDir,
+        `fuzzy/${language}.json`,
+        built.fuzzyShards[language],
+      );
+    }
+  }
+
   const manifest: Manifest = {
     ...built.manifest,
     shards: {
@@ -133,6 +151,7 @@ export async function writeIndex(
     },
     ...(pins ? { pins } : {}),
     ...(synonyms ? { synonyms } : {}),
+    ...(fuzzy ? { fuzzy } : {}),
   };
 
   await mkdir(outDir, { recursive: true });

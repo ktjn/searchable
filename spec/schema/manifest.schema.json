@@ -121,6 +121,12 @@
       "propertyNames": { "type": "string" },
       "additionalProperties": { "type": "string" }
     },
+    "fuzzy": {
+      "description": "lang -> fuzzy-shard file, only present for languages with a built deletion dictionary. See fuzzy-shard.schema.json.",
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": { "type": "string" }
+    },
     "vectors": {
       "type": "object",
       "propertyNames": { "type": "string" },

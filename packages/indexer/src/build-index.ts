@@ -4,6 +4,7 @@ import type {
   BuiltIndex,
   DocStoreShard,
   FacetShard,
+  FuzzyShard,
   PinsShard,
   SourceDocument,
   SynonymShard,
@@ -35,6 +36,47 @@ export interface BuildIndexOptions {
    * SynonymShard).
    */
   synonyms?: Record<string, Pick<SynonymShard, "equivalences" | "directional">>;
+  /**
+   * Build a SymSpell-style deletion dictionary (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching)
+   * from each language's own indexed term vocabulary, enabling
+   * typo-tolerant fuzzy matching at query time. Off by default: the
+   * dictionary adds real index size (roughly proportional to total
+   * term length across the vocabulary) that not every deployment wants
+   * to pay for. Only distance-1 deletions are generated.
+   */
+  fuzzy?: boolean;
+}
+
+/** Unique strings reachable by deleting exactly one Unicode code point from `term` (plus `term` itself, 0 deletions). */
+function generateDeletes(term: string): string[] {
+  const chars = [...term];
+  const variants = new Set<string>([term]);
+  for (let i = 0; i < chars.length; i++) {
+    variants.add(chars.slice(0, i).join("") + chars.slice(i + 1).join(""));
+  }
+  return [...variants];
+}
+
+/**
+ * Builds a distance-1 SymSpell deletion dictionary from a language's
+ * term-shard vocabulary: every deletion-variant of every real term maps
+ * back to the term(s) that produced it. This is purely derived from
+ * what's already indexed (unlike synonyms/pins, there's nothing to
+ * author) — it's regenerated fresh from `termShard`'s own keys.
+ */
+function buildFuzzyShard(termShard: TermShard): FuzzyShard {
+  const deletionSets: Record<string, Set<string>> = {};
+  for (const term of Object.keys(termShard)) {
+    for (const variant of generateDeletes(term)) {
+      if (!deletionSets[variant]) deletionSets[variant] = new Set();
+      deletionSets[variant].add(term);
+    }
+  }
+  const deletions: Record<string, string[]> = {};
+  for (const [variant, terms] of Object.entries(deletionSets)) {
+    deletions[variant] = [...terms].sort();
+  }
+  return { maxEdits: 1, deletions };
 }
 
 /**
@@ -359,12 +401,20 @@ export function buildIndex(
     };
   }
 
+  const fuzzyShards: Record<string, FuzzyShard> = {};
+  if (options.fuzzy) {
+    for (const [language, termShard] of Object.entries(termShards)) {
+      fuzzyShards[language] = buildFuzzyShard(termShard);
+    }
+  }
+
   return {
     termShards,
     docStore,
     facetShards,
     pinsShards,
     synonymShards: buildSynonymShards(options.synonyms),
+    fuzzyShards,
     idRange: indexedCount ? [minId, maxId] : [0, 0],
     manifest: {
       version: 1,

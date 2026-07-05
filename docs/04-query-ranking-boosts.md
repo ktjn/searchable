@@ -85,6 +85,12 @@ idf(term) = ln( 1 + (N - df(term) + 0.5) / (df(term) + 0.5) )
 
 ## Prefix & fuzzy matching
 
+**Status**: Prefix matching and a distance-1 SymSpell fuzzy dictionary
+(plus "did you mean") are built and tested — see
+[09-roadmap.md](09-roadmap.md#status). Distance-2 dictionaries, the
+length/language-dependent maxEdits policy, and the CJK bigram fallback
+remain design-only.
+
 - **Prefix matching** (`term*`, and implicitly for the last token of an
   in-progress instant-search query) is resolved directly against the
   sorted term dictionary in a shard — since terms are already sorted for

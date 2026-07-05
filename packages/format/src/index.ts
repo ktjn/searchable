@@ -44,6 +44,8 @@ export interface Manifest {
   pins?: Record<string, string>;
   /** lang -> synonyms shard file, only present for languages with an authored synonym set. */
   synonyms?: Record<string, string>;
+  /** lang -> fuzzy shard file, only present for languages with a built deletion dictionary. */
+  fuzzy?: Record<string, string>;
 }
 
 export interface FieldPosting {
@@ -120,4 +122,22 @@ export interface SynonymShard {
   equivalences?: string[][];
   /** Asymmetric: querying the key also matches the listed terms, but not vice versa. */
   directional?: Record<string, string[]>;
+}
+
+/**
+ * A SymSpell-style precomputed deletion dictionary for typo-tolerant
+ * matching (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching).
+ * Only `maxEdits: 1` is produced by the reference indexer today —
+ * `deletions` maps a deletion-variant string (a real term with 0 or 1
+ * characters removed) to every real term that produced it, so a query
+ * term's own deletion variants can be looked up directly instead of
+ * scanning the whole vocabulary; the client still verifies true edit
+ * distance against candidates before treating them as a fuzzy match
+ * (this dictionary is a fast candidate generator, not a distance oracle
+ * — two terms can collide on the same deletion variant while actually
+ * being more than `maxEdits` apart).
+ */
+export interface FuzzyShard {
+  maxEdits: 1 | 2;
+  deletions: Record<string, string[]>;
 }

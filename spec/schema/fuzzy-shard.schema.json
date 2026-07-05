@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://client-search-framework/schema/fuzzy-shard.schema.json",
+  "title": "Fuzzy shard",
+  "description": "One fuzzy/<lang>.<hash>.json file: a SymSpell-style precomputed deletion dictionary for typo-tolerant matching. See docs/04-query-ranking-boosts.md#prefix--fuzzy-matching.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["maxEdits", "deletions"],
+  "properties": {
+    "maxEdits": {
+      "description": "Only 1 is produced by the reference indexer today; the format allows 2 for a future distance-2 dictionary.",
+      "type": "integer",
+      "enum": [1, 2]
+    },
+    "deletions": {
+      "description": "Deletion-variant string (a real term with up to maxEdits characters removed, including the term itself at 0 deletions) -> every real term that produced it. Multiple real terms may collide on the same variant.",
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 1
+      }
+    }
+  }
+}

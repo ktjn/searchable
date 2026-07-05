@@ -127,4 +127,31 @@ describe("writeIndex", () => {
     );
     expect(manifest.synonyms).toBeUndefined();
   });
+
+  it("writes a fuzzy shard and records it in the manifest when fuzzy:true", async () => {
+    const outDir = await tempOutDir();
+    const built = buildIndex([docA], "en", { fuzzy: true });
+    await writeIndex(built, outDir);
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.fuzzy.en).toMatch(/^fuzzy\/en\.[0-9a-f]+\.json$/);
+
+    const content = JSON.parse(
+      await readFile(join(outDir, manifest.fuzzy.en), "utf8"),
+    );
+    expect(content.maxEdits).toBe(1);
+    expect(content.deletions.widget).toContain("widgets");
+  });
+
+  it("omits manifest.fuzzy entirely when fuzzy was not requested", async () => {
+    const outDir = await tempOutDir();
+    await writeIndex(buildIndex([docA]), outDir);
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.fuzzy).toBeUndefined();
+  });
 });

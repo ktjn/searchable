@@ -12,6 +12,7 @@ export type {
   FacetValueEntry,
   FieldConfig,
   FieldPosting,
+  FuzzyShard,
   Manifest,
   PinDoc,
   PinEntry,

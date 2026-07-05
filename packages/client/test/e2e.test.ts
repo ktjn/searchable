@@ -842,3 +842,91 @@ describe("synonym expansion (csf synonyms)", () => {
     expect(hits[1]?.score).toBeLessThan(0.1);
   });
 });
+
+describe("fuzzy matching (SymSpell deletion dictionary)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const fuzzySources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widget",
+      html: `<html lang="en"><head><title>Widget Page</title></head>
+        <body><main><p>All about the widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/widgit-literal",
+      html: `<html lang="en"><head><title>Widgit Literal</title></head>
+        <body><main><p>This page literally says widgit, on purpose.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/unrelated",
+      html: `<html lang="en"><head><title>Unrelated</title></head>
+        <body><main><p>Nothing to do with any of that.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-fuzzy-"));
+    const built = buildIndex(fuzzySources, "en", { fuzzy: true });
+    await writeIndex(built, outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("does not fuzzy-match a typo by default", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgit"); // typo of "widget", true edit distance 1
+    expect(hits.map((h) => h.id)).toEqual([2]); // only the literal "widgit" doc
+  });
+
+  it("fuzzy:true finds a true distance-1 typo, ranked below a literal match", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgit", { fuzzy: true });
+    expect(hits.map((h) => h.id)).toEqual([2, 1]); // literal "widgit" (id 2) outranks fuzzy-matched "widget" (id 1)
+    expect(hits[0]?.score).toBeGreaterThan(hits[1]?.score ?? Number.NaN);
+  });
+
+  it("respects a custom fuzzyWeight", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgit", {
+      fuzzy: true,
+      fuzzyWeight: 0.01,
+    });
+    expect(hits.map((h) => h.id)).toEqual([2, 1]);
+    expect(hits[1]?.score).toBeLessThan(0.1);
+  });
+
+  it("does not fuzzy-match a true distance-2 typo (beyond maxEdits:1), but surfaces it via didYouMean", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // "wigdet" is an adjacent-character transposition of "widget" (true edit distance 2).
+    const { hits, didYouMean } = await client.search("wigdet", { fuzzy: true });
+    expect(hits).toEqual([]);
+    expect(didYouMean).toContain("widget");
+  });
+
+  it("omits didYouMean when fuzzy is not enabled", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits, didYouMean } = await client.search("wigdet");
+    expect(hits).toEqual([]);
+    expect(didYouMean).toBeUndefined();
+  });
+
+  it("omits didYouMean when the query returns hits, even with unmatched terms", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits, didYouMean } = await client.search("widget zzzznotaword", {
+      fuzzy: true,
+    });
+    expect(hits).toEqual([]); // boolean AND: the nonsense term fails the whole query
+    expect(didYouMean).toBeUndefined(); // no hits, but only because zzzznotaword has no near match either
+  });
+});

@@ -452,3 +452,67 @@ describe("buildIndex synonyms", () => {
     expect(built.synonymShards.de?.equivalences).toEqual([["sofa", "couch"]]);
   });
 });
+
+describe("buildIndex fuzzy dictionary", () => {
+  const widgetSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>Widgets</title></head><body><main>x</main></body></html>`,
+    },
+  ];
+
+  it("builds no fuzzy shards at all by default", () => {
+    const built = buildIndex(widgetSources);
+    expect(built.fuzzyShards).toEqual({});
+  });
+
+  it("builds a maxEdits:1 deletion dictionary per language when fuzzy:true", () => {
+    const built = buildIndex(widgetSources, "en", { fuzzy: true });
+    expect(built.fuzzyShards.en?.maxEdits).toBe(1);
+    // "widgets" with one character deleted includes "widget" (drop the trailing "s")
+    expect(built.fuzzyShards.en?.deletions.widget).toContain("widgets");
+  });
+
+  it("maps a term's own identity (0 deletions) back to itself", () => {
+    const built = buildIndex(widgetSources, "en", { fuzzy: true });
+    expect(built.fuzzyShards.en?.deletions.widgets).toContain("widgets");
+  });
+
+  it("collapses multiple real terms that collide on the same deletion variant", () => {
+    const built = buildIndex(
+      [
+        {
+          id: 1,
+          url: "/a",
+          html: `<html lang="en"><head><title>Cat Cats</title></head><body><main>x</main></body></html>`,
+        },
+      ],
+      "en",
+      { fuzzy: true },
+    );
+    // deleting the trailing "s" from "cats" gives "cat" -- both "cat" and "cats" should map there
+    expect(built.fuzzyShards.en?.deletions.cat?.sort()).toEqual([
+      "cat",
+      "cats",
+    ]);
+  });
+
+  it("keeps fuzzy dictionaries separate per language", () => {
+    const built = buildIndex(
+      [
+        widgetSources[0] as SourceDocument,
+        {
+          id: 2,
+          url: "/b",
+          html: `<html lang="de"><head><title>Katze</title></head><body><main>x</main></body></html>`,
+        },
+      ],
+      "en",
+      { fuzzy: true },
+    );
+    expect(built.fuzzyShards.en?.deletions.katze).toBeUndefined();
+    expect(built.fuzzyShards.de?.deletions.widgets).toBeUndefined();
+    expect(built.fuzzyShards.de?.deletions.katz).toContain("katze");
+  });
+});
