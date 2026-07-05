@@ -47,10 +47,13 @@ recommended starting point: it optimizes for *anyone can produce a valid
 index with an afternoon of scripting*, deferring the binary codec (which
 does require a purpose-built encoder) to corpora that have actually
 outgrown JSON. A minimal reference generator (pseudocode-level, not a
-full library) will be included under `spec/examples/` in Python, Node,
-and Java, showing the ~50 lines of tokenize → count → emit-JSON logic
-needed for a basic single-field, single-language index, so it's obvious
-by example that no framework buy-in is required.
+full library) is included under `spec/examples/` in Python and
+TypeScript ([20-tech-stack.md](20-tech-stack.md#reference-index-generators-python-and-typescript)),
+showing the ~50 lines of tokenize → count → emit-JSON logic needed for a
+basic single-field, single-language index, so it's obvious by example
+that no framework buy-in is required — other languages are equally
+capable of the same thing, these two are just this project's own proof
+points.
 
 ## Directory layout
 

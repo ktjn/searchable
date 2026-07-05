@@ -54,11 +54,12 @@
   sizes to empirically set the size/density threshold where it's worth
   switching — see the investigation in
   [11-binary-vs-json-index.md](11-binary-vs-json-index.md) — optional
-  WASM scoring core, federated multi-index search, second/third-language
-  indexer implementations (Python, Java — see
+  WASM scoring core, federated multi-index search, and the independent
+  Python reference generator ([20-tech-stack.md](20-tech-stack.md#reference-index-generators-python-and-typescript),
   [10-testing-and-performance.md](10-testing-and-performance.md)) to
   prove the format is genuinely implementation-agnostic and not just
-  agnostic in principle.
+  agnostic in principle, alongside the TypeScript reference indexer
+  already built in Phase 1.
 
 **Phase 8 — Vector & hybrid search**
 - Embedding shard format, chunking, quantization (int8 default), brute-

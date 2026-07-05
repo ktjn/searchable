@@ -39,13 +39,16 @@ Roadmap Phase 0):
   only same-language results unless "all languages" is requested.
 - **Cross-implementation conformance**: since the format is an open spec
   ([02-index-format.md](02-index-format.md#the-format-is-a-spec-not-a-library-dependency)),
-  the same fixture corpus is also indexed by the Python and Java example
-  generators, and the *same* end-to-end query assertions are run against
-  indexes built by all three producers. This is both a correctness test
-  and the proof that the format is genuinely implementation-agnostic —
-  if the Python-built index doesn't satisfy the same assertions as the
-  Node-built one, the spec has an ambiguity that needs fixing, not a bug
-  to patch around in one implementation.
+  the same fixture corpus is also indexed by the independent Python
+  reference generator ([20-tech-stack.md](20-tech-stack.md#reference-index-generators-python-and-typescript) —
+  sharing no code with the real TypeScript indexer, which is the point),
+  and the *same* end-to-end query assertions are run (via a Vitest test
+  that shells out to it as a subprocess) against both outputs. This is
+  both a correctness test and the proof that the format is genuinely
+  implementation-agnostic — if the Python-built index doesn't satisfy
+  the same assertions as the TypeScript-built one, the spec has an
+  ambiguity that needs fixing, not a bug to patch around in one
+  implementation.
 
 **Regression suite / snapshot corpus:**
 - A fixed, versioned "known queries → known result sets + scores"
@@ -110,10 +113,15 @@ at several sizes — 1k / 10k / 100k / 1M documents — so the suite shows
   the configured max simultaneous in-flight requests.
 
 **Environment realism:**
-- Macro-benchmarks run in an actual headless browser (not just Node)
-  since `Intl.Segmenter` availability/performance, Web Worker overhead,
-  and real `fetch`/HTTP-cache behavior all differ from a Node-only
-  simulation — a Node-only perf suite would systematically understate
+- Macro-benchmarks and resource-citizenship checks run under Playwright
+  against real Chromium/Firefox/WebKit (not just Node), and unit/
+  golden-file/regression tests run under Vitest — see
+  [20-tech-stack.md](20-tech-stack.md#testing-vitest--playwright-split-by-what-theyre-good-at)
+  for why the split, not just one runner for everything. Real-browser
+  execution matters here since `Intl.Segmenter` availability/performance,
+  Web Worker overhead, and real `fetch`/HTTP-cache behavior all differ
+  from a Node-only simulation — a Node-only perf suite would
+  systematically understate
   real-world cost/benefit of the sharding and worker design.
 - Synthetic corpora are generated with a documented, seeded generator
   (reproducible) covering a realistic term-frequency distribution
