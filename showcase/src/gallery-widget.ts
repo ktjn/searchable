@@ -11,8 +11,16 @@
  *        data-index-path="gallery/<demo>/search-index/manifest.json"
  *        data-default-query="..."      (shown/used before the visitor types)
  *        data-facets="field1,field2"   (comma list of facet fields to render as checkboxes)
- *        data-fuzzy-toggle="true">      (omit to hide the fuzzy on/off control)
+ *        data-fuzzy-toggle="true"      (omit to hide the fuzzy on/off control)
+ *        data-synonyms-toggle="true">  (omit to hide the synonym-expansion on/off control)
  *   </div>
+ *
+ * When a fuzzy/synonyms toggle is on, a hit that only appears because of
+ * that expansion (not found by a literal-only baseline search) is
+ * labeled with a badge -- docs/19-github-pages-showcase.md's Stage 2
+ * asks for the mechanism to be "visibly labeled ... not just 'it
+ * worked'", so this diffs against a second, unexpanded search rather
+ * than asserting the toggle worked without evidence.
  *
  * Same import.meta.url-anchored site-root resolution as search-widget.ts
  * -- this script is deployed once at the site root regardless of how
@@ -49,6 +57,7 @@ interface SearchOptions {
   filters?: Record<string, string | string[]>;
   facets?: string[];
   fuzzy?: boolean;
+  synonyms?: boolean;
 }
 
 interface SearchClientLike {
@@ -73,6 +82,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     .map((f) => f.trim())
     .filter(Boolean);
   const showFuzzyToggle = root.dataset.fuzzyToggle === "true";
+  const showSynonymsToggle = root.dataset.synonymsToggle === "true";
 
   const { SearchClient } = await import(
     new URL("assets/index.js", siteRoot).href
@@ -97,7 +107,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   let fuzzyEnabled = false;
   if (showFuzzyToggle) {
     const label = document.createElement("label");
-    label.className = "gallery-fuzzy-toggle";
+    label.className = "gallery-toggle gallery-fuzzy-toggle";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.addEventListener("change", () => {
@@ -108,6 +118,20 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       checkbox,
       document.createTextNode(" Fuzzy matching (typo-tolerant)"),
     );
+    controls.append(label);
+  }
+
+  let synonymsEnabled = false;
+  if (showSynonymsToggle) {
+    const label = document.createElement("label");
+    label.className = "gallery-toggle gallery-synonyms-toggle";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.addEventListener("change", () => {
+      synonymsEnabled = checkbox.checked;
+      void runSearch();
+    });
+    label.append(checkbox, document.createTextNode(" Synonym expansion"));
     controls.append(label);
   }
 
@@ -177,7 +201,11 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     }
   }
 
-  function renderResults(result: SearchResult): void {
+  function renderResults(
+    result: SearchResult,
+    expandedOnlyIds: Set<number>,
+    expansionLabel: string,
+  ): void {
     resultsPane.replaceChildren();
     const summary = document.createElement("p");
     summary.className = "gallery-results-summary";
@@ -213,6 +241,12 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
         badge.textContent = "Pinned";
         title.append(" ", badge);
       }
+      if (expandedOnlyIds.has(hit.id)) {
+        const badge = document.createElement("span");
+        badge.className = "gallery-badge gallery-badge-expansion";
+        badge.textContent = expansionLabel;
+        title.append(" ", badge);
+      }
       const excerpt = document.createElement("div");
       excerpt.className = "gallery-hit-excerpt";
       excerpt.textContent = hit.fields.excerpt ?? "";
@@ -234,10 +268,37 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       facets: facetFields,
       ...(filters ? { filters } : {}),
       fuzzy: fuzzyEnabled,
+      synonyms: synonymsEnabled,
     });
     if (queryId !== latestQueryId) return; // a newer request already superseded this one
+
+    // Only the toggles' own contribution is worth labeling -- if neither
+    // is on there's nothing expansion-only to diff against, so skip the
+    // extra baseline round trip in the common (non-demo-toggle) case.
+    let expandedOnlyIds = new Set<number>();
+    if (fuzzyEnabled || synonymsEnabled) {
+      const baseline = await client.search(query, {
+        limit: 24,
+        facets: facetFields,
+        ...(filters ? { filters } : {}),
+        fuzzy: false,
+        synonyms: false,
+      });
+      if (queryId !== latestQueryId) return;
+      const baselineIds = new Set(baseline.hits.map((h) => h.id));
+      expandedOnlyIds = new Set(
+        result.hits.map((h) => h.id).filter((id) => !baselineIds.has(id)),
+      );
+    }
+    const expansionLabel =
+      fuzzyEnabled && synonymsEnabled
+        ? "Expanded match"
+        : fuzzyEnabled
+          ? "Fuzzy match"
+          : "Synonym match";
+
     renderFacets(result.facets);
-    renderResults(result);
+    renderResults(result, expandedOnlyIds, expansionLabel);
   }
 
   await runSearch();

@@ -92,8 +92,10 @@ live, editable example:
 |---|---|---|---|
 | Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `csf-boost` (7 "featured" products score-boosted), a `csf-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../showcase/gallery-data.ts), live at `gallery/products/index.html` |
 | Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," a checkbox toggle on the same page so the value is visible by comparison (same query, fuzzy off vs. on) | ✅ built — same demo, `data-fuzzy-toggle` on [`showcase/src/gallery-widget.ts`](../showcase/src/gallery-widget.ts) |
-| Synonym playground | A handful of docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query) | Synonym expansion, visibly labeled in the UI so the mechanism is legible, not just "it worked" | ⬜ not built |
+| Synonym playground | 6 docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query, plus an unrelated control and a directional pair) | Synonym expansion, visibly labeled in the UI ("Synonym match" badge) so the mechanism is legible, not just "it worked" | ✅ built — [`showcase/build-gallery-synonyms.ts`](../showcase/build-gallery-synonyms.ts), [`showcase/gallery-synonyms-data.ts`](../showcase/gallery-synonyms-data.ts), live at `gallery/synonyms/index.html` |
 | Multi-language corpus | Short parallel articles in English, German, Japanese, Arabic | Language partitioning, `Intl.Segmenter` CJK handling, RTL rendering, per-language stemming differences | ⬜ not built |
+
+A `gallery/index.html` hub page ([`showcase/build-gallery-index.ts`](../showcase/build-gallery-index.ts)) links every built demo; the docs site header's "Feature gallery" link points there rather than at any one demo directly.
 
 Each demo is intentionally small and self-contained (not one shared mega
 corpus) so a visitor can see *which* feature is responsible for a given
@@ -122,6 +124,19 @@ in `extractDocument` won't remove it and it silently leaks into every
 page's indexed body — caught because it was making the "returns
 policy" support page match the default browse-all query, which it
 should never do.
+
+The synonym playground's "visibly labeled" requirement is met by
+diffing two searches rather than asserting the mechanism worked: for
+any toggle-driven expansion (synonyms today, fuzzy matching too, since
+the toggle logic in `gallery-widget.ts` is shared), the widget also
+runs a literal-only baseline search behind the scenes and badges any
+hit present in the expanded results but absent from the baseline —
+e.g. searching "sofa" with expansion on visibly labels the "Couch
+Showroom" result as a "Synonym match" while the literal "Sofa
+Collection" hit carries no badge. The corpus's directional pair
+(`laptop -> notebook`, forward only) and unrelated control
+("loveseat", which never expands) exercise the asymmetry and the
+false-positive case in the same demo.
 
 ## Stage 3 — Vector/hybrid search (needs Phase 8)
 

@@ -11,6 +11,30 @@
   font-size: 0.9rem;
 }
 
+.gallery-demo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.gallery-demo-list li {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.gallery-demo-list a {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.gallery-demo-list p {
+  color: var(--muted);
+  margin: 0.3rem 0 0;
+}
+
 .gallery-tags {
   display: flex;
   flex-wrap: wrap;
@@ -44,7 +68,7 @@
   font-size: 0.95rem;
 }
 
-.gallery-fuzzy-toggle {
+.gallery-toggle {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -140,6 +164,10 @@
   font-weight: 600;
   padding: 0.05rem 0.5rem;
   vertical-align: middle;
+}
+
+.gallery-badge-expansion {
+  background: var(--muted);
 }
 
 .gallery-empty,

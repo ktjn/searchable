@@ -5,6 +5,7 @@ import { buildIndex, writeIndex } from "@csf/indexer";
 import type { SourceDocument } from "@csf/indexer";
 import { generateProducts } from "./gallery-data.js";
 import type { Product } from "./gallery-data.js";
+import { escapeHtml, pageShell } from "./gallery-shared.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -12,47 +13,6 @@ const galleryDir = join(distDir, "gallery", "products");
 const searchIndexDir = join(galleryDir, "search-index");
 
 const RETURNS_POLICY_ID = 1000;
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function pageShell(opts: {
-  title: string;
-  description: string;
-  root: string;
-  bodyHtml: string;
-  withWidget?: boolean;
-}): string {
-  const widgetScript = opts.withWidget
-    ? `\n    <script type="module" src="${opts.root}gallery-widget.js"></script>`
-    : "";
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(opts.title)}</title>
-    <meta name="description" content="${escapeHtml(opts.description)}" />
-    <link rel="stylesheet" href="${opts.root}style.css" />
-    <link rel="stylesheet" href="${opts.root}gallery.css" />
-  </head>
-  <body>
-    <header>
-      <a href="${opts.root}index.html" class="brand">client-search-framework</a>
-      <a href="${opts.root}gallery/products/index.html">Product catalog demo</a>
-    </header>
-    <div class="gallery-layout">
-      ${opts.bodyHtml}
-    </div>${widgetScript}
-  </body>
-</html>
-`;
-}
 
 function renderProductPage(product: Product): string {
   const bodyHtml = `

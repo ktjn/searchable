@@ -144,3 +144,73 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     await expect(page.locator("main h1")).toHaveText((title ?? "").trim());
   });
 });
+
+test.describe("feature gallery: synonym playground demo (real browser)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+
+  test.beforeAll(async () => {
+    const server = await serveDir(distDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+  });
+
+  test("does not cross vocabulary by default (synonyms off)", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/synonyms/index.html`);
+    await expect(page.locator(".gallery-search-input")).toHaveValue("sofa");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+    await expect(page.locator(".gallery-hit-title")).toContainText(
+      "Sofa Collection",
+    );
+  });
+
+  test("enabling synonym expansion crosses the equivalence class and labels the expanded match", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/synonyms/index.html`);
+    await page.locator(".gallery-synonyms-toggle input").check();
+
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(2);
+    const first = page.locator(".gallery-hit-list li").first();
+    const second = page.locator(".gallery-hit-list li").nth(1);
+    await expect(first).toContainText("Sofa Collection");
+    await expect(first.locator(".gallery-badge")).toHaveCount(0);
+    await expect(second).toContainText("Couch Showroom");
+    await expect(second.locator(".gallery-badge")).toHaveText("Synonym match");
+  });
+
+  test("directional synonym only expands forward: laptop -> notebook, not back", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/synonyms/index.html`);
+    await page.locator(".gallery-synonyms-toggle input").check();
+
+    await page.locator(".gallery-search-input").fill("laptop");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(2);
+    await expect(page.locator(".gallery-hit-list li").last()).toContainText(
+      "Notebook Reviews",
+    );
+
+    await page.locator(".gallery-search-input").fill("notebook");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+    await expect(page.locator(".gallery-hit-title")).toContainText(
+      "Notebook Reviews",
+    );
+  });
+
+  test("an unrelated term never expands, on or off", async ({ page }) => {
+    await page.goto(`${baseUrl}gallery/synonyms/index.html`);
+    await page.locator(".gallery-search-input").fill("loveseat");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+
+    await page.locator(".gallery-synonyms-toggle input").check();
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+    await expect(page.locator(".gallery-badge")).toHaveCount(0);
+  });
+});

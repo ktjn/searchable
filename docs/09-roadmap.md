@@ -266,18 +266,22 @@ Phase 2 is now fully implemented.
     rejected before a runner was ever assigned, rather than failing on
     an actual step. `actions/deploy-pages` doesn't require that binding
     to function, so it was removed.
-  - 🟡 Stage 2 (feature gallery) — partially built:
+  - 🟡 Stage 2 (feature gallery) — 3 of 4 demos built:
     the product catalog demo (64 synthetic products, terms facets,
-    `csf-boost`-featured items, a `csf-pin` best-bet) and the typo-
-    tolerance demo (same corpus, a fuzzy on/off toggle) are live at
-    `gallery/products/index.html`
+    `csf-boost`-featured items, a `csf-pin` best-bet), the typo-
+    tolerance demo (same corpus, a fuzzy on/off toggle), and the
+    synonym playground (6 docs with deliberately non-overlapping
+    vocabulary, a symmetric equivalence class and a directional pair,
+    expansion-only hits visibly badged) are live at `gallery/index.html`
     ([`showcase/build-gallery.ts`](../showcase/build-gallery.ts),
-    verified end-to-end with real-browser Playwright tests). Its own
+    [`showcase/build-gallery-synonyms.ts`](../showcase/build-gallery-synonyms.ts),
+    verified end-to-end with real-browser Playwright tests). Each demo's
     manifest/shards are kept entirely separate from the docs site's
-    search index (`build-search.ts` skips `dist/gallery/`), per
+    search index and from each other (`build-search.ts` skips
+    `dist/gallery/`), per
     [19-github-pages-showcase.md](19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)'s
-    "not one shared mega corpus" design. The synonym playground and
-    multi-language corpus demos remain unbuilt.
+    "not one shared mega corpus" design. The multi-language corpus demo
+    remains unbuilt.
   - ⬜ Stage 3 (semantic search demo): needs Phase 8 — still blocked.
 
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is
