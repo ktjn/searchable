@@ -25,6 +25,7 @@ yet. Start here:
 | [docs/09-roadmap.md](docs/09-roadmap.md) | Phased build plan and open questions |
 | [docs/10-testing-and-performance.md](docs/10-testing-and-performance.md) | Regression suite, correctness testing, performance/benchmark suite |
 | [docs/11-binary-vs-json-index.md](docs/11-binary-vs-json-index.md) | Investigation: when (if ever) a binary index format pays for itself |
+| [docs/12-competitive-landscape.md](docs/12-competitive-landscape.md) | Feature comparison vs Orama, MiniSearch, Lunr, FlexSearch, Pagefind, and what to cherry-pick |
 
 ## TL;DR design
 

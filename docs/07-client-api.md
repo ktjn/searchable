@@ -47,6 +47,28 @@ result.totalHits;
 result.tookMs;
 ```
 
+### Warm-up/preload
+
+Borrowed from Pagefind's `preload()` (see
+[12-competitive-landscape.md](12-competitive-landscape.md#features-worth-cherry-picking)):
+lets an app fetch likely-needed term shards *before* the user has typed
+anything, so the first keystroke's result feels instant rather than
+paying a cold-fetch cost on the first real query.
+
+```ts
+searchInput.addEventListener("focus", () => {
+  client.preload();              // warms manifest + configured prefetch facets
+});
+searchInput.addEventListener("input", (e) => {
+  client.preload(e.target.value); // warms the term shard(s) this partial query will need
+});
+```
+
+`preload()` is fire-and-forget (returns a promise callers may ignore) and
+purely a cache-warming hint — it never blocks or is required before
+calling `search()`; a search issued before preloading simply pays the
+normal fetch cost.
+
 ### Streaming/incremental results
 
 For instant-search UX, a callback-based variant avoids waiting for the

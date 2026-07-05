@@ -25,6 +25,28 @@ an opt-in performance upgrade, not a hard dependency, since it adds a
 binary payload and a load-time cost that only pays off past a certain
 corpus size.
 
+## Index build profiles
+
+Rather than exposing only fine-grained knobs (BM25 `k1`/`b`, shard size
+budget, fuzzy max-edits) individually, the indexer also offers named
+presets — borrowed from FlexSearch's `memory`/`performance`/`match`/
+`score` presets (see
+[12-competitive-landscape.md](12-competitive-landscape.md#features-worth-cherry-picking)) —
+since most authors want a sensible trade-off choice, not a formula to
+tune by hand:
+
+| Profile | Trades off | Good for |
+|---|---|---|
+| `balanced` (default) | — | most sites |
+| `compact` | smaller index (fewer stored positions/fields), faster fetch | large corpora, bandwidth-constrained |
+| `precise` | larger index (more positions, finer shard prefixes, fuzzy distance 2) | relevance-critical search (e.g. e-commerce) |
+| `fast` | favors smaller shards and fewer stored fields over ranking nuance | instant-search-heavy UIs prioritizing latency |
+
+Every named profile is just a documented bundle of the same underlying
+manifest/build settings described elsewhere in these docs — an author
+can start from a profile and override individual fields, rather than
+choosing between "use the preset" or "configure everything from scratch."
+
 ## Caching & offline support
 
 - **HTTP layer**: content-hashed shards are cached by the browser's
@@ -33,6 +55,16 @@ corpus size.
 - **In-memory LRU**: the client keeps parsed (not just fetched) shards
   in memory across queries in a session, since parsing JSON/decoding
   binary shards repeatedly is wasted work even with a warm HTTP cache.
+- **IndexedDB persistence** (opt-in, `persist: true`): borrowed from
+  FlexSearch's persistent-storage adapters (see
+  [12-competitive-landscape.md](12-competitive-landscape.md#features-worth-cherry-picking)) —
+  caches *parsed* shard data in IndexedDB, keyed by content hash, so a
+  returning visitor within the same origin skips both the network fetch
+  and the parse step entirely, not just the network fetch (which the
+  HTTP cache alone already gives you). This is a separate, smaller layer
+  from the full offline Service Worker mode below — useful even for
+  sites that don't need full offline capability, just faster warm
+  starts.
 - **Service Worker / offline mode** (opt-in `plugin:offline`): registers
   a Service Worker that precaches the manifest + all shards (or a
   configurable subset, e.g. just the user's current language) so search
