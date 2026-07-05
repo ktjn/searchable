@@ -10,13 +10,20 @@ const searchIndexDir = join(distDir, "search-index");
 const assetsDir = join(distDir, "assets");
 const clientDist = join(__dirname, "..", "packages", "client", "dist");
 
-async function findHtmlFiles(dir: string): Promise<string[]> {
+/**
+ * Skips dist/gallery -- the Stage 2 feature-gallery demos
+ * (build-gallery.ts) are deliberately self-contained corpora with
+ * their own manifests, not part of the docs search index (docs/19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5,
+ * "not one shared mega corpus").
+ */
+async function findHtmlFiles(dir: string, root = dir): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true });
   const files: string[] = [];
   for (const entry of entries) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      files.push(...(await findHtmlFiles(full)));
+      if (full === join(root, "gallery")) continue;
+      files.push(...(await findHtmlFiles(full, root)));
     } else if (entry.name.endsWith(".html")) {
       files.push(full);
     }

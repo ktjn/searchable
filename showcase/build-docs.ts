@@ -103,6 +103,7 @@ function renderHtml(page: Page, pages: Page[]): string {
   <body>
     <header>
       <a href="${root}index.html" class="brand">client-search-framework</a>
+      <a href="${root}gallery/products/index.html">Feature gallery</a>
       <div id="search-root" data-search-root></div>
     </header>
     <div class="layout">
@@ -156,6 +157,7 @@ async function main() {
   }
 
   await cp(join(__dirname, "src", "style.css"), join(outDir, "style.css"));
+  await cp(join(__dirname, "src", "gallery.css"), join(outDir, "gallery.css"));
 
   console.log(`rendered ${pages.length} page(s) -> ${outDir}`);
 }

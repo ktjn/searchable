@@ -88,17 +88,40 @@ naturally have categories, prices, or multiple languages. Add a small,
 purpose-built demo corpus per feature, each with a short explainer and a
 live, editable example:
 
-| Demo | Corpus | Showcases |
-|---|---|---|
-| Product catalog | ~100-200 synthetic products (name, category, price, tags) | Facets (terms + range), field/doc boosts, `csf-pin` best-bets (e.g. pin "returns policy" to a support page) |
-| Synonym playground | A handful of docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query) | Synonym expansion, visibly labeled in the UI so the mechanism is legible, not just "it worked" |
-| Multi-language corpus | Short parallel articles in English, German, Japanese, Arabic | Language partitioning, `Intl.Segmenter` CJK handling, RTL rendering, per-language stemming differences |
-| Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," side-by-side with fuzzy toggled off so the value is visible by comparison |
+| Demo | Corpus | Showcases | Status |
+|---|---|---|---|
+| Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `csf-boost` (7 "featured" products score-boosted), a `csf-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../showcase/gallery-data.ts), live at `gallery/products/index.html` |
+| Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," a checkbox toggle on the same page so the value is visible by comparison (same query, fuzzy off vs. on) | ✅ built — same demo, `data-fuzzy-toggle` on [`showcase/src/gallery-widget.ts`](../showcase/src/gallery-widget.ts) |
+| Synonym playground | A handful of docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query) | Synonym expansion, visibly labeled in the UI so the mechanism is legible, not just "it worked" | ⬜ not built |
+| Multi-language corpus | Short parallel articles in English, German, Japanese, Arabic | Language partitioning, `Intl.Segmenter` CJK handling, RTL rendering, per-language stemming differences | ⬜ not built |
 
 Each demo is intentionally small and self-contained (not one shared mega
 corpus) so a visitor can see *which* feature is responsible for a given
 result, rather than one opaque combined index where boosts, synonyms,
-and fuzzy all fire on every query and it's unclear which one mattered.
+and fuzzy all fire on every query and it's unclear which one mattered —
+this is also why the product catalog demo has its own manifest/shards
+under `dist/gallery/products/search-index/`, entirely separate from the
+docs site's own search index, and why `build-search.ts`'s doc-discovery
+walk explicitly skips `dist/gallery/`.
+
+Range facets don't exist yet (docs/09-roadmap.md#status), so price is a
+bucketed terms facet (`Under $25` / `$25–$100` / `$100–$500` / `$500+`)
+computed at corpus-generation time, not a true numeric range query.
+
+A `search(query, {facets, filters})`-driven checkbox UI needs a
+non-empty query to get any hits/facets back at all
+([`packages/client/src/search.ts`](../packages/client/src/search.ts)
+short-circuits on zero query terms) — there's no dedicated "browse all"
+mode. The demo works around this by defaulting the search box to a
+fixed word every product's body copy contains (`"product"`), giving a
+real "browse everything, then filter" experience without a separate
+API path. The one gotcha this surfaced: page-chrome text (e.g. a "back
+to catalog" link) has to live inside a `<nav>` (or otherwise be
+excluded via `data-csf-ignore`), or the indexer's boilerplate-stripping
+in `extractDocument` won't remove it and it silently leaks into every
+page's indexed body — caught because it was making the "returns
+policy" support page match the default browse-all query, which it
+should never do.
 
 ## Stage 3 — Vector/hybrid search (needs Phase 8)
 

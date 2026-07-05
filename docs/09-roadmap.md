@@ -266,12 +266,18 @@ Phase 2 is now fully implemented.
     rejected before a runner was ever assigned, rather than failing on
     an actual step. `actions/deploy-pages` doesn't require that binding
     to function, so it was removed.
-  - ⬜ Stage 2 (feature gallery: product catalog for facets/boosts/pins,
-    synonym playground, multi-language corpus, typo-tolerance demo):
-    facets/pins (Phase 3 terms/pins half) and a basic multi-language
-    corpus demo (Phase 4's LanguageProfile/partitioning half — English +
-    German, no CJK/RTL yet) are now available to build on; still
-    blocked on synonyms/fuzzy (Phase 5) for the remaining demo.
+  - 🟡 Stage 2 (feature gallery) — partially built:
+    the product catalog demo (64 synthetic products, terms facets,
+    `csf-boost`-featured items, a `csf-pin` best-bet) and the typo-
+    tolerance demo (same corpus, a fuzzy on/off toggle) are live at
+    `gallery/products/index.html`
+    ([`showcase/build-gallery.ts`](../showcase/build-gallery.ts),
+    verified end-to-end with real-browser Playwright tests). Its own
+    manifest/shards are kept entirely separate from the docs site's
+    search index (`build-search.ts` skips `dist/gallery/`), per
+    [19-github-pages-showcase.md](19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)'s
+    "not one shared mega corpus" design. The synonym playground and
+    multi-language corpus demos remain unbuilt.
   - ⬜ Stage 3 (semantic search demo): needs Phase 8 — still blocked.
 
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is

@@ -9,7 +9,8 @@
     "build:docs": "tsx build-docs.ts",
     "build:widget": "tsc -p tsconfig.widget.json",
     "build:search": "tsx build-search.ts",
-    "build": "pnpm build:docs && pnpm build:widget && pnpm build:search",
+    "build:gallery": "tsx build-gallery.ts",
+    "build": "pnpm build:docs && pnpm build:widget && pnpm build:search && pnpm build:gallery",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

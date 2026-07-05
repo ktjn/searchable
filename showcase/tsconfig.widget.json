@@ -9,5 +9,5 @@
     "declarationMap": false,
     "sourceMap": false
   },
-  "include": ["src/search-widget.ts"]
+  "include": ["src/search-widget.ts", "src/gallery-widget.ts"]
 }
