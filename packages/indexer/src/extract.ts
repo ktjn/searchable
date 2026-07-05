@@ -7,6 +7,7 @@ export interface ExtractedDocument {
   excerpt: string;
   url: string;
   noindex: boolean;
+  boost: number;
 }
 
 const BOILERPLATE_SELECTORS = [
@@ -26,7 +27,7 @@ function collapseWhitespace(text: string): string {
  * Extracts indexable fields from one rendered HTML page, honoring the
  * csf-* meta-tag control surface (docs/15-cms-meta-tag-control.md) for
  * the subset relevant to indexing content (title/body/language/
- * excerpt/canonical/noindex — boost/facet/pin extraction land with the
+ * excerpt/canonical/noindex/boost — facet/pin extraction land with the
  * roadmap phases that have a consumer for them).
  */
 export function extractDocument(
@@ -67,5 +68,12 @@ export function extractDocument(
 
   const body = collapseWhitespace(bodyRoot?.structuredText ?? "");
 
-  return { title, language, body, excerpt, url, noindex };
+  const boostAttr = root
+    .querySelector('meta[name="csf-boost"]')
+    ?.getAttribute("content");
+  const parsedBoost = boostAttr ? Number.parseFloat(boostAttr) : Number.NaN;
+  const boost =
+    Number.isFinite(parsedBoost) && parsedBoost > 0 ? parsedBoost : 1.0;
+
+  return { title, language, body, excerpt, url, noindex, boost };
 }

@@ -56,4 +56,25 @@ describe("extractDocument", () => {
       </body></html>`;
     expect(extractDocument(html, "/x").body).toBe("actual page content");
   });
+
+  it("defaults boost to 1.0 when csf-boost is absent", () => {
+    const html =
+      "<html><head><title>Normal</title></head><body>x</body></html>";
+    expect(extractDocument(html, "/x").boost).toBe(1.0);
+  });
+
+  it("parses csf-boost", () => {
+    const html = `<html><head><title>Featured</title><meta name="csf-boost" content="2.5"></head><body>x</body></html>`;
+    expect(extractDocument(html, "/x").boost).toBe(2.5);
+  });
+
+  it("ignores a malformed csf-boost and falls back to 1.0", () => {
+    const html = `<html><head><title>Bad</title><meta name="csf-boost" content="not-a-number"></head><body>x</body></html>`;
+    expect(extractDocument(html, "/x").boost).toBe(1.0);
+  });
+
+  it("ignores a non-positive csf-boost and falls back to 1.0", () => {
+    const html = `<html><head><title>Bad</title><meta name="csf-boost" content="-3"></head><body>x</body></html>`;
+    expect(extractDocument(html, "/x").boost).toBe(1.0);
+  });
 });

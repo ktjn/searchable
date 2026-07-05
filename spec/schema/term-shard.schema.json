@@ -19,6 +19,11 @@
           "required": ["doc", "fields"],
           "properties": {
             "doc": { "type": "integer", "minimum": 0 },
+            "boost": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Document-level static boost, e.g. from a csf-boost meta tag. Absent means 1.0."
+            },
             "fields": {
               "type": "object",
               "propertyNames": { "type": "string" },

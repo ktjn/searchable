@@ -75,16 +75,26 @@ export async function search(
   const candidateSet = new Set(candidateIds);
 
   const scores = new Map<number, number>();
+  const docBoosts = new Map<number, number>();
   for (const entry of matchedEntries) {
     for (const posting of entry.postings) {
       if (!candidateSet.has(posting.doc)) continue;
       const s = scoreTermForDoc(posting, entry.df, manifest);
       scores.set(posting.doc, (scores.get(posting.doc) ?? 0) + s);
+      if (posting.boost !== undefined)
+        docBoosts.set(posting.doc, posting.boost);
     }
   }
 
+  // Document boost is a final multiplier on the summed term score
+  // (docs/04-query-ranking-boosts.md#boost-types-summarized) — applied
+  // once here, not folded into scoreTermForDoc, so it stays a cheap,
+  // independent knob rather than term-level math.
   const ranked = candidateIds
-    .map((id) => ({ id, score: scores.get(id) ?? 0 }))
+    .map((id) => ({
+      id,
+      score: (scores.get(id) ?? 0) * (docBoosts.get(id) ?? 1.0),
+    }))
     .sort((a, b) => b.score - a.score)
     .slice(0, options.limit ?? 10);
 

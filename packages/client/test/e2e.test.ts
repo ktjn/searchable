@@ -95,3 +95,44 @@ describe("indexer -> client end to end (over real HTTP)", () => {
     );
   });
 });
+
+describe("document-level boost (csf-boost)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const boostSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widgets",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>Buy widgets today.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/clearance",
+      html: `<html lang="en"><head><title>Clearance Sale</title>
+        <meta name="csf-boost" content="50"></head>
+        <body><main><p>Clearance widgets, while supplies last.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-boost-"));
+    await writeIndex(buildIndex(boostSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("lets a heavily boosted, otherwise-lower-relevance doc outrank a title match", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("widgets");
+    expect(hits.map((h) => h.id)).toEqual([2, 1]);
+  });
+});

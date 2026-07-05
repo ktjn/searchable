@@ -121,7 +121,7 @@ byte budget, e.g. ~50KB gzipped).
   "widget": {
     "df": 214,           // document frequency, for idf
     "postings": [
-      { "doc": 41, "fields": { "title": { "tf": 1, "pos": [0], "len": 6 }, "body": { "tf": 3, "pos": [12, 88, 340], "len": 480 } } },
+      { "doc": 41, "boost": 2.0, "fields": { "title": { "tf": 1, "pos": [0], "len": 6 }, "body": { "tf": 3, "pos": [12, 88, 340], "len": 480 } } },
       { "doc": 77, "fields": { "body": { "tf": 1, "pos": [5], "len": 210 } } }
     ]
   },
@@ -144,6 +144,15 @@ repetition (the same doc's field length appearing on every term-posting
 for that doc) is small-integer data that compresses away almost
 entirely under gzip/brotli, so it costs bytes-on-the-wire, not a second
 round trip.
+
+`boost` (on the posting, not per-field) is the same story for the
+document-level static boost described in
+[04-query-ranking-boosts.md](04-query-ranking-boosts.md#boost-types-summarized):
+it multiplies a document's *total* score after summing every matched
+term's contribution, so it has to be known before that summation
+happens — which, again, is before the doc-store fetch — so it's
+denormalized onto postings rather than sourced from the doc store.
+Absent means the default, `1.0`.
 
 For the binary tier, this becomes: a sorted term dictionary (FST or
 simple sorted-array + binary search) mapping term → byte offset into a

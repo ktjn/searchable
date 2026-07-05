@@ -19,6 +19,7 @@ function addPostings(
   shard: TermShard,
   field: string,
   docId: number,
+  docBoost: number,
   tokens: { term: string; position: number }[],
 ): void {
   const fieldLength = tokens.length;
@@ -38,6 +39,7 @@ function addPostings(
     let posting = entry.postings.find((p) => p.doc === docId);
     if (!posting) {
       posting = { doc: docId, fields: {} };
+      if (docBoost !== 1.0) posting.boost = docBoost;
       entry.postings.push(posting);
       entry.df++;
     }
@@ -80,11 +82,12 @@ export function buildIndex(
     titleLengthSum += titleTokens.length;
     bodyLengthSum += bodyTokens.length;
 
-    addPostings(termShard, "title", source.id, titleTokens);
-    addPostings(termShard, "body", source.id, bodyTokens);
+    addPostings(termShard, "title", source.id, extracted.boost, titleTokens);
+    addPostings(termShard, "body", source.id, extracted.boost, bodyTokens);
 
     docStore[String(source.id)] = {
       url: extracted.url,
+      ...(extracted.boost !== 1.0 ? { boost: extracted.boost } : {}),
       fields: {
         title: extracted.title,
         excerpt: extracted.excerpt || deriveExcerpt(extracted.body),

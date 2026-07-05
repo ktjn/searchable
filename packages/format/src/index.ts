@@ -40,6 +40,14 @@ export interface FieldPosting {
 
 export interface Posting {
   doc: number;
+  /**
+   * Document-level static boost (docs/04-query-ranking-boosts.md), e.g.
+   * from a csf-boost meta tag. Denormalized onto every posting for this
+   * doc — like `len` above — because it must be known for every
+   * candidate being scored, not just the final top-N whose doc-store
+   * data gets fetched. Absent/undefined means 1.0 (no boost).
+   */
+  boost?: number;
   fields: Record<string, FieldPosting>;
 }
 
@@ -52,6 +60,8 @@ export type TermShard = Record<string, TermEntry>;
 
 export interface DocStoreEntry {
   url: string;
+  /** Mirrors the posting-level boost, for display/audit purposes only — scoring reads it from postings, not here. */
+  boost?: number;
   fields: Record<string, string>;
 }
 

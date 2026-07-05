@@ -21,18 +21,38 @@ const sources: SourceDocument[] = [
     html: `<html lang="en"><head><title>Draft</title><meta name="csf-noindex"></head>
       <body><main><p>widgets widgets widgets</p></main></body></html>`,
   },
+  {
+    id: 4,
+    url: "/featured-widgets",
+    html: `<html lang="en"><head><title>Featured Widgets</title><meta name="csf-boost" content="2.0"></head>
+      <body><main><p>widgets on sale</p></main></body></html>`,
+  },
 ];
 
 describe("buildIndex", () => {
   it("indexes documents and produces correct postings", () => {
     const built = buildIndex(sources);
-    expect(built.manifest.docCount).toBe(2); // draft excluded
-    expect(built.termShard.widgets.df).toBe(2);
+    expect(built.manifest.docCount).toBe(3); // draft excluded
+    expect(built.termShard.widgets.df).toBe(3);
     expect(built.termShard.widgets.postings.map((p) => p.doc).sort()).toEqual([
-      1, 2,
+      1, 2, 4,
     ]);
     expect(built.termShard.gizmos.df).toBe(1);
     expect(built.termShard.gizmos.postings[0]?.doc).toBe(2);
+  });
+
+  it("sets posting-level boost from csf-boost, omitting it when default", () => {
+    const built = buildIndex(sources);
+    const boosted = built.termShard.widgets.postings.find((p) => p.doc === 4);
+    const unboosted = built.termShard.widgets.postings.find((p) => p.doc === 1);
+    expect(boosted?.boost).toBe(2.0);
+    expect(unboosted?.boost).toBeUndefined();
+  });
+
+  it("mirrors the boost onto the doc store for display/audit purposes", () => {
+    const built = buildIndex(sources);
+    expect(built.docStore["4"]?.boost).toBe(2.0);
+    expect(built.docStore["1"]?.boost).toBeUndefined();
   });
 
   it("excludes csf-noindex documents entirely", () => {
@@ -51,8 +71,8 @@ describe("buildIndex", () => {
 
   it("computes avgFieldLength across indexed (non-noindex) docs only", () => {
     const built = buildIndex(sources);
-    // doc 1 title "Widgets" = 1 token, doc 2 title "Gadgets" = 1 token
-    expect(built.manifest.avgFieldLength.title).toBe(1);
+    // titles: "Widgets"=1, "Gadgets"=1, "Featured Widgets"=2 tokens -> 4/3
+    expect(built.manifest.avgFieldLength.title).toBeCloseTo(4 / 3);
   });
 
   it("stores title and a derived excerpt in the doc store", () => {
