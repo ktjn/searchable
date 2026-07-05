@@ -13,7 +13,8 @@
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.e2e-browser.json"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.e2e-browser.json",
+    "check:bundle-size": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
     "@csf/analysis": "workspace:*",

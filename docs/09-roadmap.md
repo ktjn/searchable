@@ -227,7 +227,18 @@ Phase 2 is now fully implemented.
 
 **Phase 6 — Modern features polish**
 - Streaming results, highlighting, offline/Service Worker plugin,
-  bundle-size CI gate, accessibility pass, observability hooks.
+  accessibility pass, observability hooks.
+- ✅ Bundle-size CI gate
+  ([docs/08-modern-features.md#bundle-size-budget](08-modern-features.md#bundle-size-budget),
+  [`packages/client/scripts/check-bundle-size.mjs`](../packages/client/scripts/check-bundle-size.mjs),
+  run via `pnpm size` in CI): gzips the real `dist/index.js` and
+  `dist/worker.js` entry points and fails the build past a 15 KB
+  budget each — both sit around 1-1.5 KB today. Scoped to today's
+  single-bundle reality (facets/pins/synonyms/fuzzy are all baked into
+  one `@csf/client` bundle, not separate plugin entry points yet); the
+  per-plugin budget table and tree-shaking verification in
+  docs/08 remain the target design for whenever a plugin architecture
+  actually ships, not what's checked now.
 - ✅ Configuration testbed for regression testing
   ([10-testing-and-performance.md](10-testing-and-performance.md#1-correctness-tests),
   [`packages/client/test/config-testbed.test.ts`](../packages/client/test/config-testbed.test.ts)):

@@ -160,7 +160,22 @@ the doc store's stored excerpt text to:
 
 ## Bundle size budget
 
-Enforced in CI via a bundle-size check per package:
+**Status**: A single "core" budget is enforced in CI today
+([`packages/client/scripts/check-bundle-size.mjs`](../packages/client/scripts/check-bundle-size.mjs),
+run via `pnpm size`) — it gzips the two real entry points a consumer
+actually loads (`dist/index.js`, the main-thread bundle; `dist/worker.js`,
+the Worker bundle) and fails the build if either exceeds 15 KB gzipped.
+Both sit around 1-1.5 KB gzipped today, since facets, pins, synonym
+expansion, and fuzzy matching are all baked into the one `@csf/client`
+bundle rather than split into separate lazy-loaded entry points.
+
+The table below is the **target** design once a plugin architecture
+exists — per-plugin budgets, and a "does importing only core produce a
+bundle under budget with zero plugin code included" tree-shaking test —
+not what's checked today. Splitting `@csf/client` into a core + opt-in
+plugin entry points is unscheduled; revisit once there's a concrete
+driver (a consumer that actually needs to shed fuzzy/synonym code they
+never call) rather than doing the split speculatively:
 
 | Package | Budget (gzipped) |
 |---|---|
@@ -171,10 +186,6 @@ Enforced in CI via a bundle-size check per package:
 | `plugin:highlight` | 2 KB |
 | per-language stemmer (`plugin:lang-*`) | 1-3 KB each |
 | `plugin:wasm-core` | separate WASM binary, lazy-loaded, not counted against JS budget |
-
-Consumers only pay for plugins they import; tree-shaking is verified in
-CI (a "does importing only core produce a bundle under budget with zero
-plugin code included" test), not just asserted in docs.
 
 ## Observability hooks
 
