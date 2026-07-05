@@ -61,6 +61,7 @@ dist/index/
   facets/<field>.<hash>.json          # facet value -> doc ids + counts
   docs/<shard>.<hash>.json            # doc store shards (render data)
   synonyms/<lang>.<hash>.json         # synonym tables (see doc 05)
+  pins/<lang>.<hash>.json             # term-to-page pins (see doc 16)
 ```
 
 ## Manifest
@@ -93,7 +94,8 @@ dist/index/
       { "shard": 0, "file": "docs/0.9c11.json", "idRange": [0, 999] }
     ]
   },
-  "synonyms": { "en": "synonyms/en.44bb.json" }
+  "synonyms": { "en": "synonyms/en.44bb.json" },
+  "pins": { "en": "pins/en.7ab3.json" }
 }
 ```
 

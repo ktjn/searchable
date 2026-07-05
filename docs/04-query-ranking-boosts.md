@@ -138,5 +138,11 @@ faceting never distorts relevance ranking, only narrows it.
 4. Sort by score (or by an explicit sort field, e.g. price/date, when the
    UI requests it — pure sort bypasses relevance scoring entirely, which
    is a supported mode, not a hack).
-5. Take top-N, fetch doc-store data for those ids only, generate
+5. Check for a matching curated pin
+   ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)) and, if
+   present (and not excluded by an active filter), insert it at the
+   top — a deterministic placement step *after* scoring/sorting, not a
+   scoring adjustment, since a pin is a stronger guarantee ("this page
+   appears") than a boost ("this page scores higher").
+6. Take top-N, fetch doc-store data for those ids only, generate
    highlights, return.

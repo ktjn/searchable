@@ -87,25 +87,21 @@ URL, or (b) read a build-output directory of static HTML files directly
 the same CI pipeline as the site build) — both feed the same HTML→
 `RawDocument` extraction step.
 
-**Default extraction rules** (all overridable per-page via `data-csf-*`
-attributes/meta tags, mirroring the Pagefind-style convention):
-
-| Field | Default source | Override |
-|---|---|---|
-| `title` | `<title>` | `data-csf-title` on any element |
-| `language` | `<html lang="...">` | per-element `lang` for mixed-language pages |
-| `body` (indexable content) | `<main>` if present, else `<body>` minus `nav`, `header`, `footer`, `aside`, `script`, `style` | `data-csf-body` marks the exact content region; `data-csf-ignore` excludes a sub-element |
-| `headings` | text of `h1`-`h3` within the body region | — |
-| stored excerpt | `<meta name="description">` | `data-csf-excerpt` |
-| `url` | the crawled/file's own URL | `<link rel="canonical">` |
-| doc boost | `1.0` | `<meta name="csf-boost" content="2.0">` |
-| facet values | none by default | `<meta name="csf-facet-<field>" content="<value>">`, repeatable |
-| exclude page entirely | indexed by default | `<meta name="csf-noindex">` |
+**Default extraction rules** are overridable per-page entirely through
+meta tags — this is now the CMS's control surface for search behavior,
+not just an HTML-parsing detail, so it has its own full reference:
+[15-cms-meta-tag-control.md](15-cms-meta-tag-control.md). That doc also
+covers term-to-page pinning
+([16-term-to-page-pinning.md](16-term-to-page-pinning.md)), which lets
+an author guarantee a specific search term surfaces a specific page
+regardless of normal ranking — useful at this scale for exactly the
+kind of high-intent queries a small CMS-driven site tends to have
+("pricing," "contact," "docs").
 
 This gives CMS authors/theme developers a zero-config default (index
 `<main>`, use `<title>`/meta description) with an escape hatch for every
-field this design cares about (boosts, facets, excerpts) expressed as
-plain HTML they already control — no separate config file needed for
+field this design cares about (boosts, facets, excerpts, pins) expressed
+as plain HTML they already control — no separate config file needed for
 the common case, matching
 [01-architecture.md](01-architecture.md#offline-the-indexer)'s adapter
 model (this is one more source adapter, alongside the JSON-feed/CMS-API

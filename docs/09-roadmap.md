@@ -14,7 +14,11 @@
 
 **Phase 1 — Minimal viable engine (single language, JSON tier only)**
 - Reference indexer (one implementation, e.g. Node) producing the
-  manifest + term shards + doc store for English only.
+  manifest + term shards + doc store for English only, ingesting from
+  rendered HTML with the `csf-*` meta-tag control surface
+  ([15-cms-meta-tag-control.md](15-cms-meta-tag-control.md)) from the
+  start, since that's the initial deployment target's actual ingestion
+  path, not a later add-on.
 - Browser runtime: manifest fetch, term shard fetch, boolean AND query,
   plain TF-IDF or BM25 (no field weighting yet), no worker (main thread).
 - Goal: prove the shard-fetch-on-demand model works end-to-end.
@@ -24,8 +28,13 @@
 - Prefix matching.
 - Move execution into a Web Worker.
 
-**Phase 3 — Facets**
+**Phase 3 — Facets & curated pins**
 - Facet shard format, filtering, contextual counts, range facets.
+- Term-to-page pinning ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)),
+  grouped with facets because pin display must respect active facet
+  filters — the two features share the "apply after/alongside the
+  candidate set, before final result assembly" slot in the query
+  pipeline, so building them together avoids a rework of that seam.
 
 **Phase 4 — I18n**
 - LanguageProfile abstraction, additional stemmers, `Intl.Segmenter`
