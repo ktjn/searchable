@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "url": "/widgets",
+    "title": "Widgets",
+    "body": "Our widgets are wonderful. Buy widgets today."
+  },
+  {
+    "id": 2,
+    "url": "/gadgets",
+    "title": "Gadgets",
+    "body": "Gadgets and gizmos, plus a few widgets for good measure."
+  },
+  {
+    "id": 3,
+    "url": "/about",
+    "title": "About Us",
+    "body": "We are a small company that makes things."
+  }
+]

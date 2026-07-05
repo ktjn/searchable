@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://client-search-framework/schema/manifest.schema.json",
+  "title": "Manifest",
+  "description": "Entry point of a client-search-framework index. See docs/02-index-format.md#manifest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "buildId",
+    "format",
+    "languages",
+    "defaultLanguage",
+    "fields",
+    "docCount",
+    "avgFieldLength",
+    "shards"
+  ],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "buildId": { "type": "string" },
+    "format": { "type": "string", "enum": ["json", "binary"] },
+    "languages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "defaultLanguage": { "type": "string" },
+    "fields": {
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["boost", "stored"],
+        "properties": {
+          "boost": { "type": "number", "exclusiveMinimum": 0 },
+          "stored": { "type": "boolean" },
+          "facet": { "type": "boolean" }
+        }
+      }
+    },
+    "facetFields": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "docCount": { "type": "integer", "minimum": 0 },
+    "avgFieldLength": {
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": { "type": "number", "minimum": 0 }
+    },
+    "shards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["terms", "docs"],
+      "properties": {
+        "terms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["lang", "prefix", "file", "termCount"],
+            "properties": {
+              "lang": { "type": "string" },
+              "prefix": { "type": "string" },
+              "file": { "type": "string" },
+              "termCount": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "facets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field", "file"],
+            "properties": {
+              "field": { "type": "string" },
+              "file": { "type": "string" }
+            }
+          }
+        },
+        "docs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["shard", "file", "idRange"],
+            "properties": {
+              "shard": { "type": "integer", "minimum": 0 },
+              "file": { "type": "string" },
+              "idRange": {
+                "type": "array",
+                "items": { "type": "integer", "minimum": 0 },
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        }
+      }
+    },
+    "synonyms": {
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": { "type": "string" }
+    },
+    "pins": {
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": { "type": "string" }
+    },
+    "vectors": {
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}

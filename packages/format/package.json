@@ -1,0 +1,21 @@
+{
+  "name": "@csf/format",
+  "version": "0.0.0",
+  "description": "TypeScript types for the manifest/shard JSON format (docs/02-index-format.md, spec/schema/*.schema.json), shared by the indexer and the client so both sides can't silently drift on the format's shape.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.9"
+  }
+}

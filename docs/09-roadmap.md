@@ -1,27 +1,45 @@
 # Roadmap & Open Questions
 
+## Status
+
+Phases 0 and 1 have working code in this repo (`packages/`, `spec/`),
+not just design docs — see each phase below for what's actually
+implemented vs. still pending. Phases 2+ remain design-only.
+
 ## Phased build plan
 
 **Phase 0 — Spec & fixtures**
-- Freeze the manifest/shard JSON schema (this repo's docs +
-  machine-checkable JSON Schema files).
-- Build a small multi-language fixture corpus (English, German, Japanese,
-  Arabic at minimum) used by every later phase's tests — recommend
-  grounding this in a real ~2,000-document CMS export (see
-  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md)),
-  which is also the concrete initial deployment target for the whole
-  project, alongside synthetic Zipfian corpora for scaling benchmarks.
+- ✅ Manifest/shard JSON Schema frozen as machine-checkable files:
+  [`spec/schema/`](../spec/schema/) (manifest, term shard, facet shard,
+  doc store shard, synonym shard, pins shard).
+- ✅ Two independent reference generators proving the format needs no
+  library buy-in — [`spec/examples/`](../spec/examples/)
+  (Python + TypeScript), verified byte-for-byte structurally identical
+  output and schema-valid against the files above.
+- ⬜ Small multi-language fixture corpus (English, German, Japanese,
+  Arabic at minimum) grounded in a real ~2,000-document CMS export (see
+  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md))
+  — not yet built; current tests use small inline HTML fixtures instead.
 
 **Phase 1 — Minimal viable engine (single language, JSON tier only)**
-- Reference indexer (one implementation, e.g. Node) producing the
-  manifest + term shards + doc store for English only, ingesting from
-  rendered HTML with the `csf-*` meta-tag control surface
-  ([15-cms-meta-tag-control.md](15-cms-meta-tag-control.md)) from the
-  start, since that's the initial deployment target's actual ingestion
-  path, not a later add-on.
-- Browser runtime: manifest fetch, term shard fetch, boolean AND query,
-  plain TF-IDF or BM25 (no field weighting yet), no worker (main thread).
-- Goal: prove the shard-fetch-on-demand model works end-to-end.
+- ✅ Reference indexer — [`packages/indexer/`](../packages/indexer/):
+  parses rendered HTML (title, `<main>`/body-minus-boilerplate,
+  `csf-noindex`, `data-csf-body`/`data-csf-ignore`, canonical URL, meta
+  description) per the `csf-*` meta-tag control surface
+  ([15-cms-meta-tag-control.md](15-cms-meta-tag-control.md)), tokenizes
+  via the shared [`packages/analysis/`](../packages/analysis/) package,
+  emits a content-hashed manifest + single term shard + doc store shard
+  (English only, unsharded — "small corpus mode").
+- ✅ Browser runtime — [`packages/client/`](../packages/client/):
+  manifest + shard fetch over plain HTTP (proven against a real, if
+  tiny, HTTP server in tests, not just direct filesystem access),
+  boolean AND query evaluation, full BM25F scoring (docs/04) with
+  field boosts defaulting to 1.0 until Phase 2 sets real weights. No
+  Worker yet (main thread), no fuzzy/synonyms/facets/pins plugins yet.
+- ✅ Goal met: an end-to-end Vitest suite
+  ([`packages/client/test/e2e.test.ts`](../packages/client/test/e2e.test.ts))
+  builds a real index and queries it back over real HTTP, proving the
+  shard-fetch-on-demand model works, not just each half in isolation.
 
 **Phase 2 — Ranking & boosts**
 - BM25F with field boosts, term boosts, document boosts.

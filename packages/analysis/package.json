@@ -1,0 +1,22 @@
+{
+  "name": "@csf/analysis",
+  "version": "0.0.0",
+  "description": "Shared tokenization/analysis pipeline used identically by the indexer and the runtime, so index-time and query-time analysis can never drift apart.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vite": "^6.0.11",
+    "vitest": "^2.1.9"
+  }
+}

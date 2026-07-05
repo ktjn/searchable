@@ -1,0 +1,59 @@
+import { describe, expect, it } from "vitest";
+import { extractDocument } from "../src/extract.js";
+
+describe("extractDocument", () => {
+  it("extracts title, language, and main content by default", () => {
+    const html = `
+      <html lang="de">
+        <head><title>Preise</title></head>
+        <body>
+          <nav>Home | About</nav>
+          <main><h1>Preise</h1><p>Unsere Preise sind einfach.</p></main>
+          <footer>copyright</footer>
+        </body>
+      </html>`;
+    const doc = extractDocument(html, "/pricing");
+    expect(doc.title).toBe("Preise");
+    expect(doc.language).toBe("de");
+    expect(doc.body).toBe("Preise Unsere Preise sind einfach.");
+    expect(doc.body).not.toContain("Home");
+    expect(doc.body).not.toContain("copyright");
+    expect(doc.noindex).toBe(false);
+  });
+
+  it("respects csf-noindex", () => {
+    const html = `<html><head><title>Draft</title><meta name="csf-noindex"></head><body>x</body></html>`;
+    expect(extractDocument(html, "/draft").noindex).toBe(true);
+  });
+
+  it("respects canonical link and meta description", () => {
+    const html = `
+      <html><head>
+        <title>Pricing</title>
+        <link rel="canonical" href="https://example.com/pricing">
+        <meta name="description" content="Simple pricing.">
+      </head><body><main>content</main></body></html>`;
+    const doc = extractDocument(html, "/pricing-draft");
+    expect(doc.url).toBe("https://example.com/pricing");
+    expect(doc.excerpt).toBe("Simple pricing.");
+  });
+
+  it("respects data-csf-body as an explicit content boundary", () => {
+    const html = `
+      <html><body>
+        <main>ignored default region</main>
+        <div data-csf-body>the real content</div>
+      </body></html>`;
+    expect(extractDocument(html, "/x").body).toBe("the real content");
+  });
+
+  it("falls back to body minus boilerplate when no <main> is present", () => {
+    const html = `
+      <html><body>
+        <header>site header</header>
+        <p>actual page content</p>
+        <footer>site footer</footer>
+      </body></html>`;
+    expect(extractDocument(html, "/x").body).toBe("actual page content");
+  });
+});

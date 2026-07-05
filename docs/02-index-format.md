@@ -121,8 +121,8 @@ byte budget, e.g. ~50KB gzipped).
   "widget": {
     "df": 214,           // document frequency, for idf
     "postings": [
-      { "doc": 41, "fields": { "title": { "tf": 1, "pos": [0] }, "body": { "tf": 3, "pos": [12, 88, 340] } } },
-      { "doc": 77, "fields": { "body": { "tf": 1, "pos": [5] } } }
+      { "doc": 41, "fields": { "title": { "tf": 1, "pos": [0], "len": 6 }, "body": { "tf": 3, "pos": [12, 88, 340], "len": 480 } } },
+      { "doc": 77, "fields": { "body": { "tf": 1, "pos": [5], "len": 210 } } }
     ]
   },
   "widgets": { "df": 190, "postings": [ /* ... */ ] }
@@ -131,7 +131,19 @@ byte budget, e.g. ~50KB gzipped).
 
 Positions are retained (not just term frequency) to support phrase
 queries and proximity scoring, and to drive highlight snippet selection
-without re-fetching document body text.
+without re-fetching document body text. `len` is that document's total
+token count for that field — denormalized onto every posting for that
+doc/field rather than looked up from a separate shard, because BM25F's
+length normalization
+([04-query-ranking-boosts.md](04-query-ranking-boosts.md#ranking-model-bm25f))
+needs the field length of *every candidate being scored*, not just the
+final top-N whose doc-store data gets fetched — so it has to be
+available from whatever's already been fetched to evaluate the query,
+not from a shard that's only fetched after scoring picks winners. The
+repetition (the same doc's field length appearing on every term-posting
+for that doc) is small-integer data that compresses away almost
+entirely under gzip/brotli, so it costs bytes-on-the-wire, not a second
+round trip.
 
 For the binary tier, this becomes: a sorted term dictionary (FST or
 simple sorted-array + binary search) mapping term → byte offset into a
@@ -167,6 +179,21 @@ result card and generate highlights (title, url, a stored excerpt/teaser,
 facet display values, thumbnail ref). Sharded by contiguous doc-id ranges
 so fetching "doc store data for these 10 hit ids" touches at most a
 couple of small shards.
+
+```jsonc
+// docs/0.9c11.json — keyed by doc id (string), covering this shard's idRange
+{
+  "41": {
+    "url": "https://example.com/pricing",
+    "boost": 2.0,
+    "fields": { "title": "Pricing", "excerpt": "Simple, transparent pricing..." }
+  }
+}
+```
+
+Machine-checkable schemas for every shard type on this page live under
+[`spec/schema/`](../spec/schema/) (Phase 0 of
+[09-roadmap.md](09-roadmap.md)).
 
 ## Versioning & cache strategy
 

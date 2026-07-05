@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://client-search-framework/schema/term-shard.schema.json",
+  "title": "Term shard (inverted index)",
+  "description": "One terms/<lang>/<prefix>.<hash>.json file. See docs/02-index-format.md#term-shard-inverted-index.",
+  "type": "object",
+  "propertyNames": { "type": "string" },
+  "additionalProperties": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["df", "postings"],
+    "properties": {
+      "df": { "type": "integer", "minimum": 1 },
+      "postings": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["doc", "fields"],
+          "properties": {
+            "doc": { "type": "integer", "minimum": 0 },
+            "fields": {
+              "type": "object",
+              "propertyNames": { "type": "string" },
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["tf", "pos", "len"],
+                "properties": {
+                  "tf": { "type": "integer", "minimum": 1 },
+                  "pos": {
+                    "type": "array",
+                    "items": { "type": "integer", "minimum": 0 }
+                  },
+                  "len": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "This document's total token count for this field, for BM25F length normalization"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

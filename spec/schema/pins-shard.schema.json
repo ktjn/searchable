@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://client-search-framework/schema/pins-shard.schema.json",
+  "title": "Pins shard",
+  "description": "One pins/<lang>.<hash>.json file. See docs/16-term-to-page-pinning.md.",
+  "type": "object",
+  "propertyNames": {
+    "type": "string",
+    "description": "Normalized (analyzed) pin phrase"
+  },
+  "additionalProperties": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["mode", "docs"],
+    "properties": {
+      "mode": { "type": "string", "enum": ["exact", "contains"] },
+      "docs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "priority", "exclusive"],
+          "properties": {
+            "id": { "type": "integer", "minimum": 0 },
+            "priority": { "type": "number" },
+            "exclusive": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

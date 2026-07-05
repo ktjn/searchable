@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://client-search-framework/schema/facet-shard.schema.json",
+  "title": "Facet shard",
+  "description": "One facets/<field>.<hash>.json file. See docs/06-faceted-search.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "values"],
+  "properties": {
+    "type": { "type": "string", "enum": ["terms", "range", "hierarchy"] },
+    "separator": {
+      "type": "string",
+      "description": "Path separator for type: hierarchy, e.g. '>'"
+    },
+    "values": {
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["count", "docs"],
+        "properties": {
+          "count": { "type": "integer", "minimum": 0 },
+          "docs": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}
