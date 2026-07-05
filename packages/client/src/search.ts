@@ -4,6 +4,7 @@ import type {
   FacetShard,
   Manifest,
   PinsShard,
+  SynonymShard,
   TermEntry,
   TermShard,
 } from "@csf/format";
@@ -70,7 +71,28 @@ export interface SearchOptions {
    * meaningful counts instead of the post-filter count for all of them.
    */
   facets?: string[];
+  /**
+   * Expand each non-prefix query term through the manifest's synonym
+   * shard for the resolved language, if one exists
+   * (docs/05-synonyms.md). Off by default — a caller opts in per query,
+   * matching this option's original design in docs/07-client-api.md.
+   * Prefix clauses (`term*`) are not synonym-expanded; combining the two
+   * expansion mechanisms for one query slot isn't specified anywhere,
+   * so this scopes them as independent.
+   */
+  synonyms?: boolean;
+  /**
+   * Score multiplier applied to a hit's contribution *only* when it
+   * came from a synonym-expanded variant, not the literal query term
+   * (docs/05-synonyms.md#scoring-impact) — a document containing the
+   * literal term still outranks one that only matches via synonym
+   * expansion, all else equal. Only meaningful when `synonyms: true`.
+   */
+  synonymWeight?: number;
 }
+
+/** docs/05-synonyms.md#scoring-impact. */
+const DEFAULT_SYNONYM_WEIGHT = 0.5;
 
 function resolve(baseUrl: string, relPath: string): string {
   return new URL(relPath, baseUrl).toString();
@@ -97,6 +119,25 @@ function valuesFor(
   const raw = filters?.[field];
   if (raw === undefined) return [];
   return Array.isArray(raw) ? raw : [raw];
+}
+
+/** Every other term `term` expands to via the synonym shard's equivalence classes and directional map (docs/05-synonyms.md). */
+function synonymVariantsFor(
+  term: string,
+  synonymShard: SynonymShard | undefined,
+): string[] {
+  if (!synonymShard) return [];
+  const variants = new Set<string>();
+  for (const group of synonymShard.equivalences ?? []) {
+    if (!group.includes(term)) continue;
+    for (const variant of group) {
+      if (variant !== term) variants.add(variant);
+    }
+  }
+  for (const variant of synonymShard.directional?.[term] ?? []) {
+    variants.add(variant);
+  }
+  return [...variants];
 }
 
 /**
@@ -137,36 +178,64 @@ export async function search(
     }
   }
 
+  // Fetched up front (not lazily inside the clause loop below) because
+  // every non-prefix clause needs it to resolve variants before the
+  // organic-match/no-match decision is made for that clause.
+  const synonymsFile = options.synonyms
+    ? manifest.synonyms?.[language]
+    : undefined;
+  const synonymShard = synonymsFile
+    ? await cache.fetchJson<SynonymShard>(resolve(baseUrl, synonymsFile))
+    : undefined;
+  const synonymWeight = options.synonymWeight ?? DEFAULT_SYNONYM_WEIGHT;
+
   // Each query term becomes a clause: an exact term matches at most one
-  // TermEntry, a prefix (`term*`) matches every real term starting with
-  // it — resolved here by scanning the already-fetched shard's term
-  // dictionary (a contiguous range scan over a sorted structure at
-  // larger scale, per docs/02-index-format.md#size-targets--sharding-tuning,
-  // but a plain filter is exact and sufficient at this corpus size).
-  // A clause with zero matches fails the organic query (boolean AND) —
-  // but not pin matching, which runs independently below.
-  const clauses: { term: string; entries: TermEntry[] }[] = [];
+  // TermEntry (plus, when synonyms are enabled, any equivalence/
+  // directional variant that also has a dictionary entry, each scored
+  // at a reduced weight relative to the literal term), a prefix
+  // (`term*`) matches every real term starting with it — resolved here
+  // by scanning the already-fetched shard's term dictionary (a
+  // contiguous range scan over a sorted structure at larger scale, per
+  // docs/02-index-format.md#size-targets--sharding-tuning, but a plain
+  // filter is exact and sufficient at this corpus size). A clause with
+  // zero matches fails the organic query (boolean AND) — but not pin
+  // matching, which runs independently below.
+  interface ClauseEntry {
+    entry: TermEntry;
+    /** 1.0 for the literal/prefix-matched term, synonymWeight for a synonym-expanded variant. */
+    weight: number;
+  }
+  const clauses: { term: string; entries: ClauseEntry[] }[] = [];
   let organicMatched = true;
   for (const qt of queryTerms) {
-    const entries = qt.prefix
-      ? [...termLookup.entries()]
-          .filter(([term]) => term.startsWith(qt.term))
-          .map(([, entry]) => entry)
-      : [termLookup.get(qt.term)].filter(
-          (e): e is TermEntry => e !== undefined,
-        );
-    if (entries.length === 0) {
+    let clauseEntries: ClauseEntry[];
+    if (qt.prefix) {
+      clauseEntries = [...termLookup.entries()]
+        .filter(([term]) => term.startsWith(qt.term))
+        .map(([, entry]) => ({ entry, weight: 1.0 }));
+    } else {
+      clauseEntries = [];
+      const exact = termLookup.get(qt.term);
+      if (exact) clauseEntries.push({ entry: exact, weight: 1.0 });
+      for (const variant of synonymVariantsFor(qt.term, synonymShard)) {
+        const variantEntry = termLookup.get(variant);
+        if (variantEntry) {
+          clauseEntries.push({ entry: variantEntry, weight: synonymWeight });
+        }
+      }
+    }
+    if (clauseEntries.length === 0) {
       organicMatched = false;
       break;
     }
-    clauses.push({ term: qt.term, entries });
+    clauses.push({ term: qt.term, entries: clauseEntries });
   }
 
   let organicCandidateIds: number[] = [];
   if (organicMatched) {
     const docIdSets = clauses.map((clause) => {
       const ids = new Set<number>();
-      for (const entry of clause.entries) {
+      for (const { entry } of clause.entries) {
         for (const posting of entry.postings) ids.add(posting.doc);
       }
       return ids;
@@ -229,7 +298,7 @@ export async function search(
   const docBoosts = new Map<number, number>();
   for (const clause of clauses) {
     const termBoost = options.boosts?.terms?.[clause.term] ?? 1.0;
-    for (const entry of clause.entries) {
+    for (const { entry, weight } of clause.entries) {
       for (const posting of entry.postings) {
         if (!candidateSet.has(posting.doc)) continue;
         const s =
@@ -239,7 +308,9 @@ export async function search(
             manifest,
             language,
             options.boosts?.fields,
-          ) * termBoost;
+          ) *
+          termBoost *
+          weight;
         scores.set(posting.doc, (scores.get(posting.doc) ?? 0) + s);
         if (posting.boost !== undefined)
           docBoosts.set(posting.doc, posting.boost);

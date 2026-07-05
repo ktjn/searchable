@@ -1,5 +1,15 @@
 # Synonyms
 
+**Status**: Query-time expansion of single-word equivalence classes and
+directional maps is built — author-supplied synonym data (there's no
+`csf-*` meta tag for this; see ["Authoring workflow"](#authoring-workflow)),
+a `synonyms/<lang>.json` shard, and `search(query, {synonyms: true})`
+expanding each non-prefix query term into its variants at a reduced
+score weight (default 0.5×, overridable) — see
+[09-roadmap.md](09-roadmap.md#status). `multiWord` phrase-level
+synonyms, index-time expansion, and the `csf synonyms suggest`
+authoring tool remain design-only.
+
 ## Goals
 
 Let "sofa" find documents containing only "couch", let "js" find

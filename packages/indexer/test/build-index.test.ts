@@ -393,3 +393,62 @@ describe("buildIndex source id validation", () => {
     );
   });
 });
+
+describe("buildIndex synonyms", () => {
+  const minimalSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>A</title></head><body><main>x</main></body></html>`,
+    },
+  ];
+
+  it("normalizes equivalence-class entries through the language's analysis pipeline", () => {
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: { en: { equivalences: [["Sofa", "Couch", "Settee"]] } },
+    });
+    expect(built.synonymShards.en?.equivalences).toEqual([
+      ["sofa", "couch", "settee"],
+    ]);
+  });
+
+  it("normalizes directional keys and targets", () => {
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: { en: { directional: { Laptop: ["Notebook"] } } },
+    });
+    expect(built.synonymShards.en?.directional).toEqual({
+      laptop: ["notebook"],
+    });
+  });
+
+  it("drops an equivalence group left with fewer than two distinct members after normalizing", () => {
+    // Both entries analyze to the same term, so nothing is left to expand to.
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: { en: { equivalences: [["Sofa", "SOFA"]] } },
+    });
+    expect(built.synonymShards.en?.equivalences).toBeUndefined();
+  });
+
+  it("omits equivalences/directional keys entirely when empty rather than emitting empty containers", () => {
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: { en: {} },
+    });
+    expect(built.synonymShards.en).toEqual({});
+  });
+
+  it("returns no synonym shards at all when no synonyms option is given", () => {
+    const built = buildIndex(minimalSources);
+    expect(built.synonymShards).toEqual({});
+  });
+
+  it("keeps synonym data separate per language", () => {
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: {
+        en: { equivalences: [["sofa", "couch"]] },
+        de: { equivalences: [["Sofa", "Couch"]] },
+      },
+    });
+    expect(built.synonymShards.en?.equivalences).toEqual([["sofa", "couch"]]);
+    expect(built.synonymShards.de?.equivalences).toEqual([["sofa", "couch"]]);
+  });
+});

@@ -5,6 +5,7 @@ import type {
   Manifest,
   PinsShard,
   Posting,
+  SynonymShard,
   TermEntry,
   TermShard,
 } from "@csf/format";
@@ -21,6 +22,7 @@ export type {
   PinEntry,
   PinsShard,
   Posting,
+  SynonymShard,
   TermEntry,
   TermShard,
 } from "@csf/format";
@@ -40,5 +42,7 @@ export interface BuiltIndex {
   facetShards: Record<string, FacetShard>;
   /** Language -> its pins shard, only for languages with at least one csf-pin. */
   pinsShards: Record<string, PinsShard>;
+  /** Language -> its synonym shard, only for languages with an authored synonym set (BuildIndexOptions.synonyms). */
+  synonymShards: Record<string, SynonymShard>;
   idRange: [number, number];
 }

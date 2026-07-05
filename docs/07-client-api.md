@@ -72,8 +72,25 @@ the query string, not a separate option. Term-to-page pinning
 transparent: a matching pin is spliced into `result.hits` automatically
 (marked `pinned: true`), no separate call needed.
 
-Range filters, `fuzzy`, `synonyms`, `page`/`sort`, `signal`, and
-`result.tookMs` are **not implemented** — see Target API below.
+Range filters, `fuzzy`, `page`/`sort`, `signal`, and `result.tookMs`
+are **not implemented** — see Target API below. `synonyms` *is*
+implemented — see below.
+
+### Synonyms
+
+```ts
+const result = await client.search("sofa", {
+  synonyms: true,               // off by default -- opt in per query
+  synonymWeight: 0.5,           // default 0.5x -- a literal match still outranks a synonym-only one
+});
+```
+
+Expands each non-prefix query term through the manifest's synonym
+shard for the resolved language, if the index has one
+([05-synonyms.md](05-synonyms.md)) — equivalence classes and
+directional maps only; multi-word phrase synonyms aren't implemented
+yet. A term with no synonym data, or a manifest with no synonym shard
+at all, behaves exactly as if `synonyms` were omitted.
 
 ### Disposal
 
@@ -125,7 +142,6 @@ actually built. Don't copy these as working examples.
 const result = await client.search("wireless keyboard", {
   filters: { price: { gte: 20, lte: 100 } },  // range filters -- today, filters only match discrete facet values
   fuzzy: true,
-  synonyms: true,
   page: { size: 10, offset: 0 },
   sort: "relevance",            // or { field: "publishedAt", order: "desc" }
   signal: abortController.signal,

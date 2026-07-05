@@ -42,6 +42,8 @@ export interface Manifest {
   };
   /** lang -> pins shard file, only present for languages with at least one csf-pin. */
   pins?: Record<string, string>;
+  /** lang -> synonyms shard file, only present for languages with an authored synonym set. */
+  synonyms?: Record<string, string>;
 }
 
 export interface FieldPosting {
@@ -105,3 +107,17 @@ export interface PinEntry {
 }
 
 export type PinsShard = Record<string, PinEntry>;
+
+/**
+ * Single-word synonym data only (docs/05-synonyms.md) — `multiWord`
+ * phrase-level synonyms are part of the design (and the JSON Schema)
+ * but need a different, pre-tokenization matching path than the
+ * single-term equivalence/directional lookups implemented so far, so
+ * they're intentionally not produced or consumed yet.
+ */
+export interface SynonymShard {
+  /** Symmetric equivalence classes: any term in a group expands the query to every other member. */
+  equivalences?: string[][];
+  /** Asymmetric: querying the key also matches the listed terms, but not vice versa. */
+  directional?: Record<string, string[]>;
+}

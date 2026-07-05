@@ -18,6 +18,7 @@ export type {
   PinsShard,
   Posting,
   SourceDocument,
+  SynonymShard,
   TermEntry,
   TermShard,
 } from "./types.js";

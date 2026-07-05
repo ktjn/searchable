@@ -6,6 +6,7 @@ import type {
   FacetShard,
   PinsShard,
   SourceDocument,
+  SynonymShard,
   TermShard,
 } from "./types.js";
 
@@ -22,6 +23,61 @@ const DEFAULT_FIELD_BOOSTS: FieldBoosts = { title: 3.0, body: 1.0 };
 export interface BuildIndexOptions {
   /** Per-field boost overrides, merged over DEFAULT_FIELD_BOOSTS. */
   fieldBoosts?: Partial<FieldBoosts>;
+  /**
+   * Author-supplied synonym data, keyed by language — unlike facets/
+   * pins, synonyms are corpus-vocabulary curation, not per-page
+   * metadata, so there's no csf-* meta tag for this
+   * (docs/05-synonyms.md). Entries are single words/phrases as authored
+   * (surface form or already-stemmed, either works); buildIndex
+   * normalizes each one through that language's analysis pipeline so
+   * lookups at query time match however the term is actually stored.
+   * `multiWord` phrase synonyms aren't accepted here yet (see
+   * SynonymShard).
+   */
+  synonyms?: Record<string, Pick<SynonymShard, "equivalences" | "directional">>;
+}
+
+/**
+ * Normalizes author-supplied synonym data through each language's own
+ * analysis pipeline (the same normalizePhrase() pins already use), so
+ * a synonym entry authored as a surface form ("Couch") matches however
+ * @csf/analysis actually stores that term, not the raw authored string.
+ * Empty/blank entries (e.g. a term that stems to nothing) and
+ * single-member equivalence groups (nothing left to expand to) are
+ * dropped rather than carried into the shard as dead weight.
+ */
+function buildSynonymShards(
+  rawSynonyms: BuildIndexOptions["synonyms"],
+): Record<string, SynonymShard> {
+  const synonymShards: Record<string, SynonymShard> = {};
+  if (!rawSynonyms) return synonymShards;
+
+  for (const [language, source] of Object.entries(rawSynonyms)) {
+    const profile = getLanguageProfile(language);
+    const normalize = (term: string) => normalizePhrase(term, profile);
+
+    const equivalences = (source.equivalences ?? [])
+      .map((group) => [...new Set(group.map(normalize).filter(Boolean))])
+      .filter((group) => group.length >= 2);
+
+    const directional: Record<string, string[]> = {};
+    for (const [key, targets] of Object.entries(source.directional ?? {})) {
+      const normalizedKey = normalize(key);
+      if (!normalizedKey) continue;
+      const normalizedTargets = [
+        ...new Set(targets.map(normalize).filter(Boolean)),
+      ];
+      if (normalizedTargets.length === 0) continue;
+      directional[normalizedKey] = normalizedTargets;
+    }
+
+    const shard: SynonymShard = {};
+    if (equivalences.length) shard.equivalences = equivalences;
+    if (Object.keys(directional).length) shard.directional = directional;
+    synonymShards[language] = shard;
+  }
+
+  return synonymShards;
 }
 
 /**
@@ -308,6 +364,7 @@ export function buildIndex(
     docStore,
     facetShards,
     pinsShards,
+    synonymShards: buildSynonymShards(options.synonyms),
     idRange: indexedCount ? [minId, maxId] : [0, 0],
     manifest: {
       version: 1,

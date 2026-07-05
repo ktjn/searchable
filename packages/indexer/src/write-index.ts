@@ -103,6 +103,27 @@ export async function writeIndex(
     }
   }
 
+  const synonymLanguages = Object.keys(built.synonymShards)
+    .filter((language) => {
+      const shard = built.synonymShards[language];
+      return (
+        (shard?.equivalences?.length ?? 0) > 0 ||
+        Object.keys(shard?.directional ?? {}).length > 0
+      );
+    })
+    .sort();
+  let synonyms: Record<string, string> | undefined;
+  if (synonymLanguages.length) {
+    synonyms = {};
+    for (const language of synonymLanguages) {
+      synonyms[language] = await writeJson(
+        outDir,
+        `synonyms/${language}.json`,
+        built.synonymShards[language],
+      );
+    }
+  }
+
   const manifest: Manifest = {
     ...built.manifest,
     shards: {
@@ -111,6 +132,7 @@ export async function writeIndex(
       ...(facets ? { facets } : {}),
     },
     ...(pins ? { pins } : {}),
+    ...(synonyms ? { synonyms } : {}),
   };
 
   await mkdir(outDir, { recursive: true });

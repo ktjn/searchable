@@ -8,7 +8,9 @@ actually implemented vs. still pending. Phase 3 is partially built
 (terms facets and pins; range/hierarchy facets remain pending — see
 below). Phase 4 is partially built (a second real LanguageProfile and
 true per-document-language corpus partitioning; additional stemmers and
-the CJK bigram fallback remain pending — see below). Phase 5+ remain
+the CJK bigram fallback remain pending — see below). Phase 5 is
+partially built (query-time synonym expansion; fuzzy/SymSpell matching
+and "did you mean" remain pending — see below). Phase 6+ remain
 design-only. The GitHub Pages showcase's first two stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stages 2-3 remain blocked on later phases.
@@ -26,7 +28,6 @@ alongside a batch of new draft specs
 its findings (worker lifecycle, cache eviction, id validation, manifest
 mutation, canonical JSON output, manifest/shard-origin validation, and
 splitting docs/07 into implemented-vs-target) are all fixed with tests.
-119 Vitest tests + 10 Playwright tests passing as of that work.
 
 ## Phased build plan
 
@@ -163,8 +164,28 @@ Phase 2 is now fully implemented.
   passing.
 
 **Phase 5 — Synonyms & fuzzy**
-- Query-time synonym expansion.
-- SymSpell fuzzy plugin, "did you mean".
+- ✅ Query-time synonym expansion
+  ([05-synonyms.md](05-synonyms.md)): author-supplied (not extracted
+  from HTML — synonyms are corpus-vocabulary curation, not per-page
+  metadata) equivalence classes and directional maps, normalized
+  through each language's own analysis pipeline at build time (same
+  `normalizePhrase()` pins already use), stored as one
+  `synonyms/<lang>.json` shard per language. `search(query, {synonyms:
+  true})` expands each non-prefix query term into its variants,
+  contributing at a reduced score weight (default 0.5×, overridable via
+  `synonymWeight`) so a literal match still outranks a synonym-only
+  one. Off by default (opt-in per query, matching the option's original
+  design in [07-client-api.md](07-client-api.md)).
+- ⬜ `multiWord` phrase-level synonyms — the shard format
+  (`spec/schema/synonym-shard.schema.json`) supports them, but they
+  need a different, pre-tokenization phrase-matching path than the
+  single-term lookups implemented so far, so neither the indexer nor
+  the client produce/consume them yet.
+- ⬜ SymSpell fuzzy plugin, "did you mean" — not started.
+- Verified with real end-to-end tests over real HTTP: equivalence-class
+  symmetry, directional one-way expansion, reduced-weight ranking,
+  custom `synonymWeight`, and off-by-default behavior — not just unit
+  tests in isolation.
 
 **Phase 6 — Modern features polish**
 - Streaming results, highlighting, offline/Service Worker plugin,

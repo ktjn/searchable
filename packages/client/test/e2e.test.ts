@@ -749,3 +749,96 @@ describe("multi-language corpora", () => {
     );
   });
 });
+
+describe("synonym expansion (csf synonyms)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const synonymSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/couch",
+      html: `<html lang="en"><head><title>Couch Selection</title></head>
+        <body><main><p>Our couch selection is huge.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/sofa-brand",
+      html: `<html lang="en"><head><title>Brand X Sofa</title></head>
+        <body><main><p>The Brand X sofa is elegant.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/notebook",
+      html: `<html lang="en"><head><title>Notebook Reviews</title></head>
+        <body><main><p>Notebook reviews and comparisons.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/laptop",
+      html: `<html lang="en"><head><title>Laptop Deals</title></head>
+        <body><main><p>Laptop deals this week.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-synonyms-"));
+    const built = buildIndex(synonymSources, "en", {
+      synonyms: {
+        en: {
+          equivalences: [["sofa", "couch"]],
+          directional: { laptop: ["notebook"] },
+        },
+      },
+    });
+    await writeIndex(built, outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("does not expand synonyms by default", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("sofa");
+    expect(hits.map((h) => h.id)).toEqual([2]); // only the literal "sofa" doc
+  });
+
+  it("expands an equivalence class when synonyms:true, ranking the literal match above the synonym match", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("sofa", { synonyms: true });
+    expect(hits.map((h) => h.id)).toEqual([2, 1]); // literal "sofa" (id 2) outranks synonym-matched "couch" (id 1)
+    expect(hits[0]?.score).toBeGreaterThan(hits[1]?.score ?? Number.NaN);
+  });
+
+  it("is symmetric for equivalence classes: searching the other member also cross-matches", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("couch", { synonyms: true });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
+  });
+
+  it("expands a directional synonym forward but not backward", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const forward = await client.search("laptop", { synonyms: true });
+    expect(forward.hits.map((h) => h.id).sort()).toEqual([3, 4]); // laptop -> also matches notebook doc
+
+    const backward = await client.search("notebook", { synonyms: true });
+    expect(backward.hits.map((h) => h.id)).toEqual([3]); // notebook does NOT expand back to laptop
+  });
+
+  it("respects a custom synonymWeight", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("sofa", {
+      synonyms: true,
+      synonymWeight: 0.01,
+    });
+    // Still finds both, but the synonym match's score drops much closer to zero.
+    expect(hits.map((h) => h.id)).toEqual([2, 1]);
+    expect(hits[1]?.score).toBeLessThan(0.1);
+  });
+});

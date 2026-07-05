@@ -99,4 +99,32 @@ describe("writeIndex", () => {
     );
     expect(content.values.shared.docs).toEqual([1, 2]);
   });
+
+  it("writes a synonyms shard and records it in the manifest, only for languages with data", async () => {
+    const outDir = await tempOutDir();
+    const built = buildIndex([docA], "en", {
+      synonyms: { en: { equivalences: [["widgets", "gadgets"]] } },
+    });
+    await writeIndex(built, outDir);
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.synonyms.en).toMatch(/^synonyms\/en\.[0-9a-f]+\.json$/);
+
+    const content = JSON.parse(
+      await readFile(join(outDir, manifest.synonyms.en), "utf8"),
+    );
+    expect(content.equivalences).toEqual([["widgets", "gadgets"]]);
+  });
+
+  it("omits manifest.synonyms entirely when no synonym data was authored", async () => {
+    const outDir = await tempOutDir();
+    await writeIndex(buildIndex([docA]), outDir);
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.synonyms).toBeUndefined();
+  });
 });
