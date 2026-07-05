@@ -196,6 +196,64 @@ function rangeFilterFor(
   return isRangeFilter(raw) ? raw : undefined;
 }
 
+/** Fetches every facet shard in `fields` that actually exists in the manifest, keyed by field name. Shared by search() and facetValues() so they resolve facet shards identically. */
+async function fetchFacetShards(
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  fields: string[],
+): Promise<Map<string, FacetShard>> {
+  const entries = (manifest.shards.facets ?? []).filter((s) =>
+    fields.includes(s.field),
+  );
+  const fetched = await Promise.all(
+    entries.map(
+      async (entry) =>
+        [
+          entry.field,
+          await cache.fetchJson<FacetShard>(resolve(baseUrl, entry.file)),
+        ] as const,
+    ),
+  );
+  return new Map(fetched);
+}
+
+/**
+ * Every doc id matching the active filter on `field` (terms: OR across
+ * selected values; range: min/max scan of the sorted array). Shared by
+ * search() (candidate narrowing) and facetValues() (contextual counts
+ * against every *other* active filter).
+ */
+function unionDocsForField(
+  facetShardsByField: Map<string, FacetShard>,
+  filters: Record<string, string | string[] | RangeFilter> | undefined,
+  field: string,
+): Set<number> {
+  const shard = facetShardsByField.get(field);
+  const ids = new Set<number>();
+  if (!shard) return ids;
+  if (shard.type === "range") {
+    const range = rangeFilterFor(filters, field);
+    if (!range) return ids;
+    // Linear scan over the sorted array rather than a binary-search
+    // range lookup -- correct either way since the array is sorted,
+    // and a full scan is negligible at "small corpus" JSON-tier
+    // scale (docs/14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale).
+    // Binary-searching the two endpoints is a documented future
+    // optimization once shard size actually makes it matter.
+    for (const entry of shard.sorted ?? []) {
+      if (range.min !== undefined && entry.value < range.min) continue;
+      if (range.max !== undefined && entry.value > range.max) continue;
+      ids.add(entry.doc);
+    }
+    return ids;
+  }
+  for (const value of valuesFor(filters, field)) {
+    for (const id of shard.values[value]?.docs ?? []) ids.add(id);
+  }
+  return ids;
+}
+
 /** Every other term `term` expands to via the synonym shard's equivalence classes and directional map (docs/05-synonyms.md). */
 function synonymVariantsFor(
   term: string,
@@ -460,54 +518,22 @@ export async function search(
   // --- facet shards needed for filtering and/or requested facet display ---
   const filterFields = Object.keys(options.filters ?? {});
   const requestedFacetFields = options.facets ?? [];
-  const neededFields = [
-    ...new Set([...filterFields, ...requestedFacetFields]),
-  ].filter((f) => manifest.shards.facets?.some((s) => s.field === f));
-  const facetShardFileEntries = (manifest.shards.facets ?? []).filter((s) =>
-    neededFields.includes(s.field),
+  const neededFields = [...new Set([...filterFields, ...requestedFacetFields])];
+  const facetShardsByField = await fetchFacetShards(
+    manifest,
+    cache,
+    baseUrl,
+    neededFields,
   );
-  const fetchedFacetShards = await Promise.all(
-    facetShardFileEntries.map(
-      async (entry) =>
-        [
-          entry.field,
-          await cache.fetchJson<FacetShard>(resolve(baseUrl, entry.file)),
-        ] as const,
-    ),
-  );
-  const facetShardsByField = new Map(fetchedFacetShards);
-
-  function unionDocsForField(field: string): Set<number> {
-    const shard = facetShardsByField.get(field);
-    const ids = new Set<number>();
-    if (!shard) return ids;
-    if (shard.type === "range") {
-      const range = rangeFilterFor(options.filters, field);
-      if (!range) return ids;
-      // Linear scan over the sorted array rather than a binary-search
-      // range lookup -- correct either way since the array is sorted,
-      // and a full scan is negligible at "small corpus" JSON-tier
-      // scale (docs/14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale).
-      // Binary-searching the two endpoints is a documented future
-      // optimization once shard size actually makes it matter.
-      for (const entry of shard.sorted ?? []) {
-        if (range.min !== undefined && entry.value < range.min) continue;
-        if (range.max !== undefined && entry.value > range.max) continue;
-        ids.add(entry.doc);
-      }
-      return ids;
-    }
-    for (const value of valuesFor(options.filters, field)) {
-      for (const id of shard.values[value]?.docs ?? []) ids.add(id);
-    }
-    return ids;
-  }
 
   const activeFilterFields = filterFields.filter((f) =>
     facetShardsByField.has(f),
   );
   const filterUnionSets = new Map(
-    activeFilterFields.map((f) => [f, unionDocsForField(f)]),
+    activeFilterFields.map((f) => [
+      f,
+      unionDocsForField(facetShardsByField, options.filters, f),
+    ]),
   );
 
   // Organic candidates after applying every active filter (AND across fields).
@@ -707,5 +733,78 @@ export async function search(
     ...(facets ? { facets } : {}),
     totalHits,
     ...(didYouMean ? { didYouMean } : {}),
+  };
+}
+
+export interface FacetValuesOptions {
+  /**
+   * Same filter shape as SearchOptions.filters. A filter on `field`
+   * itself is ignored for narrowing (its `selected` flags are still
+   * reported) — matches search()'s options.facets convention: a facet
+   * field never filters against its own active selection, so switching
+   * between its own values shows real per-value counts rather than the
+   * post-filter count for all of them.
+   */
+  filters?: Record<string, string | string[] | RangeFilter>;
+}
+
+/**
+ * A filter-only facet panel query with no free-text search
+ * (docs/07-client-api.md#facet-only-queries) — e.g. rendering a
+ * category-landing-page sidebar before a visitor has typed anything.
+ * Counts are contextual against every *other* active filter, same
+ * convention as search()'s options.facets, but the base candidate set
+ * here is the whole corpus rather than an organic query's matches
+ * (there is none) — when no other filter is active, that base set is
+ * "every doc with a value for this field," so the precomputed
+ * build-time `entry.count` (docs/06-faceted-search.md#facet-counts) is
+ * used directly instead of re-deriving it from `entry.docs.length`;
+ * when another filter *is* active, the count is a live intersection of
+ * `entry.docs` against that filter's matching doc-id set, just like
+ * search()'s facets. A range-type `field` naturally returns an empty
+ * `values` array (`shard.values` is always `{}` for range facets today)
+ * — aggregate range-facet histogram results remain unimplemented
+ * (docs/09-roadmap.md), the same scoping already applied to search()'s
+ * `facets` option for a range field.
+ */
+export async function facetValues(
+  field: string,
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  options: FacetValuesOptions = {},
+): Promise<FacetResult> {
+  const otherFilterFields = Object.keys(options.filters ?? {}).filter(
+    (f) => f !== field,
+  );
+  const neededFields = [...new Set([field, ...otherFilterFields])];
+  const facetShardsByField = await fetchFacetShards(
+    manifest,
+    cache,
+    baseUrl,
+    neededFields,
+  );
+
+  const shard = facetShardsByField.get(field);
+  if (!shard) return { values: [] };
+
+  let baseSet: Set<number> | undefined;
+  for (const f of otherFilterFields) {
+    if (!facetShardsByField.has(f)) continue;
+    const unionSet = unionDocsForField(facetShardsByField, options.filters, f);
+    baseSet = baseSet
+      ? new Set([...baseSet].filter((id) => unionSet.has(id)))
+      : unionSet;
+  }
+
+  const selectedValues = new Set(valuesFor(options.filters, field));
+  return {
+    values: Object.entries(shard.values).map(([value, entry]) => ({
+      value,
+      count: baseSet
+        ? entry.docs.filter((id) => baseSet?.has(id)).length
+        : entry.count,
+      selected: selectedValues.has(value),
+    })),
   };
 }

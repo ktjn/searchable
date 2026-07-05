@@ -17,8 +17,11 @@ not the fastest possible at very large shard sizes) and aggregate range
 facet *results* (`SearchResult.facets` returns an empty `values: []`
 for a range field — the display-side histogram/bucket breakdown a
 UI would render alongside a slider, as opposed to the filtering itself,
-which works). Hierarchical facets, and a `facetValues()`/filter-only
-browsing call with no free-text query, remain design-only for now.
+which works). A `facetValues()` filter-only browsing call with no
+free-text query is also built (docs/07-client-api.md#facet-only-queries) —
+same contextual-count convention as `search()`'s `facets` option, same
+empty-`values`-array scoping for a range field. Hierarchical facets
+remain design-only for now.
 
 ## Facet types
 

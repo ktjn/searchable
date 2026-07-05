@@ -55,13 +55,16 @@ fetched.
 ```ts
 const result = await client.search("wireless keyboard", {
   language: "en",                              // omit to use the manifest's defaultLanguage
-  filters: { category: "electronics" },        // terms-only: string | string[] per field (OR within a field, AND across fields)
+  filters: {
+    category: "electronics",                   // terms facet: string | string[] (OR within a field, AND across fields)
+    price: { min: 20, max: 100 },               // range facet: {min?, max?} -- shape is determined by the field's own facet type
+  },
   facets: ["category", "brand"],               // contextual counts for these facet fields
   boosts: { fields: { title: 4 }, terms: { wireless: 2 } },
   limit: 10,                                   // default 10
 });
 
-result.hits;        // Hit[] -- id, url, score, stored fields, pinned?
+result.hits;        // Hit[] -- id, url, score, stored fields, pinned?, highlights? (see Highlighting below)
 result.facets;      // Record<field, FacetResult> -- only for fields requested via `facets`
 result.totalHits;
 ```
@@ -72,9 +75,12 @@ the query string, not a separate option. Term-to-page pinning
 transparent: a matching pin is spliced into `result.hits` automatically
 (marked `pinned: true`), no separate call needed.
 
-Range filters, `fuzzy`, `page`/`sort`, `signal`, and `result.tookMs`
-are **not implemented** — see Target API below. `synonyms` *is*
-implemented — see below.
+`page`/`sort`, `signal`, and `result.tookMs` are **not implemented** —
+see Target API below. A range facet's aggregate results (a
+histogram/bucket breakdown in `result.facets`) aren't implemented
+either — a range field always reports an empty `values` array there;
+range *filtering* (the `{min, max}` shape above) works today regardless.
+`synonyms`, `fuzzy`, and `highlight` *are* implemented — see below.
 
 ### Synonyms
 
@@ -91,6 +97,65 @@ shard for the resolved language, if the index has one
 directional maps only; multi-word phrase synonyms aren't implemented
 yet. A term with no synonym data, or a manifest with no synonym shard
 at all, behaves exactly as if `synonyms` were omitted.
+
+### Fuzzy matching & did-you-mean
+
+```ts
+const result = await client.search("wigdet", {
+  fuzzy: true,                  // off by default -- opt in per query
+  fuzzyWeight: 0.5,             // default 0.5x, raised to the power of edit distance
+});
+
+result.didYouMean;               // string[] | undefined -- only populated when fuzzy is true and hits is empty
+```
+
+Expands each non-prefix query term into typo-tolerant matches from the
+manifest's SymSpell deletion-dictionary shard for the resolved
+language, if one exists
+([04-query-ranking-boosts.md](04-query-ranking-boosts.md#prefix--fuzzy-matching)).
+A literal match always outranks a fuzzy-only one. `didYouMean` is a
+byproduct of the same dictionary: nearest real terms in the corpus for
+a query term that still matched nothing, surfaced only when the query
+returned zero hits.
+
+### Highlighting
+
+```ts
+const result = await client.search("wireless keyboard", {
+  highlight: true,               // off by default
+});
+
+result.hits[0].highlights;       // Record<field, { text: string; isMatch: boolean }[]> -- one array per stored field
+```
+
+Splits each stored field's text (today: `title`, `excerpt`) into
+match/non-match spans for the literal query terms actually typed
+(prefix-aware for `term*`), so a consumer renders its own `<mark>` (or
+any other) wrapper around `isMatch` spans without a
+`dangerouslySetInnerHTML` step. Scoped to literal terms only — a hit
+that only matched via synonym expansion or fuzzy correction doesn't get
+that expanded/corrected term highlighted (see
+[08-modern-features.md](08-modern-features.md#highlighting--snippets)
+for why).
+
+### Facet-only queries
+
+```ts
+const result = await client.facetValues("brand", {
+  filters: { category: "electronics" },   // narrows counts by every OTHER active filter field
+});
+
+result.values;   // FacetResultValue[] -- { value, count, selected }[], same shape as SearchResult.facets[field].values
+```
+
+A filter-only browsing call with no free-text query — e.g. rendering a
+facet panel on a category landing page before a visitor has typed
+anything. Counts are contextual against every *other* active filter,
+same convention as `search()`'s `facets` option: a field's own active
+filter is excluded from its own count computation, so switching between
+its own values shows real per-value counts. An unknown field, or a
+range-type field (aggregate range results aren't implemented, see
+above), returns an empty `values` array.
 
 ### Disposal
 
@@ -140,8 +205,6 @@ actually built. Don't copy these as working examples.
 
 ```ts
 const result = await client.search("wireless keyboard", {
-  filters: { price: { gte: 20, lte: 100 } },  // range filters -- today, filters only match discrete facet values
-  fuzzy: true,
   page: { size: 10, offset: 0 },
   sort: "relevance",            // or { field: "publishedAt", order: "desc" }
   signal: abortController.signal,
@@ -206,13 +269,6 @@ callers pick whichever fits their UI.
 ```ts
 const suggestions = await client.suggest("widg", { limit: 5 });
 // → prefix-matched terms/phrases from the corpus, for a typeahead dropdown
-```
-
-### Facet-only queries
-
-```ts
-const facetValues = await client.facetValues("brand", { filters: {...} });
-// for rendering a facet panel without running a full search (e.g. category landing page)
 ```
 
 ### Federated / multi-index search

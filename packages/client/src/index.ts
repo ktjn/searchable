@@ -4,6 +4,7 @@ export type { HighlightSpan, HighlightTerm } from "./highlight.js";
 export type {
   FacetResult,
   FacetResultValue,
+  FacetValuesOptions,
   Hit,
   RangeFilter,
   SearchOptions,

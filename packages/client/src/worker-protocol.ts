@@ -1,4 +1,9 @@
-import type { SearchOptions, SearchResult } from "./search.js";
+import type {
+  FacetResult,
+  FacetValuesOptions,
+  SearchOptions,
+  SearchResult,
+} from "./search.js";
 
 /**
  * Wire format between the main-thread SearchClient and the Worker,
@@ -13,10 +18,11 @@ import type { SearchOptions, SearchResult } from "./search.js";
  */
 export type WorkerRequestPayload =
   | { type: "init"; indexUrl: string; allowCrossOriginShards?: boolean }
-  | { type: "search"; query: string; options: SearchOptions };
+  | { type: "search"; query: string; options: SearchOptions }
+  | { type: "facetValues"; field: string; options: FacetValuesOptions };
 
 export type WorkerRequest = WorkerRequestPayload & { id: number };
 
 export type WorkerResponse =
-  | { type: "result"; id: number; result: SearchResult }
+  | { type: "result"; id: number; result: SearchResult | FacetResult }
   | { type: "error"; id: number; message: string };

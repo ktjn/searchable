@@ -14,6 +14,15 @@
         return client.search(query);
       };
 
+      window.__csfRunFacetValues = async (field, useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker ? new URL("./worker.js", location.href) : undefined,
+        });
+        return client.facetValues(field);
+      };
+
       async function rejectionOf(promise) {
         try {
           await promise;

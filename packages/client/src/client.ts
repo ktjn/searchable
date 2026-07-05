@@ -1,7 +1,12 @@
 import type { Manifest } from "@csf/format";
 import { ShardCache } from "./fetch-json.js";
-import { search } from "./search.js";
-import type { SearchOptions, SearchResult } from "./search.js";
+import { facetValues, search } from "./search.js";
+import type {
+  FacetResult,
+  FacetValuesOptions,
+  SearchOptions,
+  SearchResult,
+} from "./search.js";
 import { validateManifest } from "./validate-manifest.js";
 import type {
   WorkerRequestPayload,
@@ -61,7 +66,7 @@ export interface SearchClientOptions {
 }
 
 interface PendingRequest {
-  resolve: (result: SearchResult) => void;
+  resolve: (result: SearchResult | FacetResult) => void;
   reject: (err: Error) => void;
 }
 
@@ -143,11 +148,39 @@ export class SearchClient {
     await this.#ready;
     if (this.#fatalError) throw this.#fatalError;
     if (this.#worker) {
-      return this.#sendToWorker({ type: "search", query, options });
+      return this.#sendToWorker<SearchResult>({
+        type: "search",
+        query,
+        options,
+      });
     }
     // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
     const manifest = await this.#manifest!;
     return search(query, manifest, this.#cache, this.#indexUrl, options);
+  }
+
+  /**
+   * A filter-only facet panel query with no free-text search
+   * (docs/07-client-api.md#facet-only-queries) — e.g. rendering a
+   * category-landing-page sidebar before a visitor has typed anything.
+   */
+  async facetValues(
+    field: string,
+    options: FacetValuesOptions = {},
+  ): Promise<FacetResult> {
+    if (this.#fatalError) throw this.#fatalError;
+    await this.#ready;
+    if (this.#fatalError) throw this.#fatalError;
+    if (this.#worker) {
+      return this.#sendToWorker<FacetResult>({
+        type: "facetValues",
+        field,
+        options,
+      });
+    }
+    // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
+    const manifest = await this.#manifest!;
+    return facetValues(field, manifest, this.#cache, this.#indexUrl, options);
   }
 
   /**
@@ -179,13 +212,18 @@ export class SearchClient {
     this.#pendingRequests.clear();
   }
 
-  #sendToWorker(message: WorkerRequestPayload): Promise<SearchResult> {
+  #sendToWorker<T extends SearchResult | FacetResult>(
+    message: WorkerRequestPayload,
+  ): Promise<T> {
     if (this.#fatalError) {
       return Promise.reject(this.#fatalError);
     }
     const id = this.#nextRequestId++;
-    return new Promise((resolve, reject) => {
-      this.#pendingRequests.set(id, { resolve, reject });
+    return new Promise<T>((resolve, reject) => {
+      this.#pendingRequests.set(id, {
+        resolve: resolve as (result: SearchResult | FacetResult) => void,
+        reject,
+      });
       // biome-ignore lint/style/noNonNullAssertion: only called when #worker was constructed and not yet disposed
       this.#worker!.postMessage({ ...message, id });
     });

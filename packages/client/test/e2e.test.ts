@@ -522,6 +522,100 @@ describe("facet filtering and contextual counts", () => {
   });
 });
 
+describe("facetValues() -- filter-only facet queries with no free-text search", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  // Same shape as the "facet filtering and contextual counts" fixture above,
+  // duplicated (not shared) so this describe block stays self-contained --
+  // category/brand split the docs so global vs. contextual counts are
+  // unambiguous even with no organic query narrowing the candidate set.
+  const facetSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>Widget A</title>
+        <meta name="csf-facet-category" content="electronics">
+        <meta name="csf-facet-brand" content="acme">
+        <meta name="csf-facet-range-price" content="10"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/b",
+      html: `<html lang="en"><head><title>Widget B</title>
+        <meta name="csf-facet-category" content="electronics">
+        <meta name="csf-facet-brand" content="globex">
+        <meta name="csf-facet-range-price" content="20"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/c",
+      html: `<html lang="en"><head><title>Widget C</title>
+        <meta name="csf-facet-category" content="books"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-facet-values-"));
+    await writeIndex(buildIndex(facetSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("reports global counts over the whole corpus with no filters at all", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("category");
+    expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
+      { value: "books", count: 1, selected: false },
+      { value: "electronics", count: 2, selected: false },
+    ]);
+  });
+
+  it("narrows counts by another active filter field, but not the field's own", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("category", {
+      filters: { brand: "acme" },
+    });
+    expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
+      { value: "books", count: 0, selected: false },
+      { value: "electronics", count: 1, selected: false },
+    ]);
+  });
+
+  it("marks the currently-selected value(s) for the field itself without narrowing its own counts", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("brand", {
+      filters: { brand: "acme" },
+    });
+    expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
+      { value: "acme", count: 1, selected: true },
+      { value: "globex", count: 1, selected: false },
+    ]);
+  });
+
+  it("returns an empty values array for an unknown facet field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("nonexistentField");
+    expect(values).toEqual([]);
+  });
+
+  it("returns an empty values array for a range-type facet field (aggregate range results not yet implemented)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("price");
+    expect(values).toEqual([]);
+  });
+});
+
 describe("range facet filtering", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

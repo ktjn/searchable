@@ -14,6 +14,12 @@ declare global {
       query: string,
       useWorker: boolean,
     ) => Promise<{ hits: Array<{ id: number; url: string }> }>;
+    __csfRunFacetValues?: (
+      field: string,
+      useWorker: boolean,
+    ) => Promise<{
+      values: Array<{ value: string; count: number; selected: boolean }>;
+    }>;
     __csfTestDisposeRejectsInFlight?: () => Promise<string | undefined>;
     __csfTestSearchAfterDispose?: () => Promise<string | undefined>;
     __csfTestWorkerFatalError?: () => Promise<string | undefined>;
@@ -30,19 +36,22 @@ const sources: SourceDocument[] = [
   {
     id: 1,
     url: "/widgets",
-    html: `<html lang="en"><head><title>Widgets</title></head>
+    html: `<html lang="en"><head><title>Widgets</title>
+      <meta name="csf-facet-category" content="electronics"></head>
       <body><main><p>Our widgets are wonderful. Buy widgets today.</p></main></body></html>`,
   },
   {
     id: 2,
     url: "/gadgets",
-    html: `<html lang="en"><head><title>Gadgets</title></head>
+    html: `<html lang="en"><head><title>Gadgets</title>
+      <meta name="csf-facet-category" content="electronics"></head>
       <body><main><p>Gadgets and gizmos, plus a few widgets for good measure.</p></main></body></html>`,
   },
   {
     id: 3,
     url: "/about",
-    html: `<html lang="en"><head><title>About Us</title></head>
+    html: `<html lang="en"><head><title>About Us</title>
+      <meta name="csf-facet-category" content="company"></head>
       <body><main><p>We are a small company that makes things.</p></main></body></html>`,
   },
 ];
@@ -116,6 +125,41 @@ test.describe("Web Worker execution (real browser)", () => {
     );
 
     expect(result?.hits.map((h) => h.id)).toEqual([3]);
+  });
+
+  test("facetValues() returns correct contextual counts via a real Worker", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const result = await page.evaluate(
+      ([field, useWorker]) =>
+        window.__csfRunFacetValues?.(field as string, useWorker as boolean),
+      ["category", true] as [string, boolean],
+    );
+
+    expect(
+      result?.values.slice().sort((a, b) => a.value.localeCompare(b.value)),
+    ).toEqual([
+      { value: "company", count: 1, selected: false },
+      { value: "electronics", count: 2, selected: false },
+    ]);
+  });
+
+  test("facetValues() over a Worker matches main-thread results", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfRunFacetValues?.("category", true);
+      const m = await window.__csfRunFacetValues?.("category", false);
+      return [w, m];
+    });
+
+    expect(withWorker).toEqual(withoutWorker);
   });
 });
 

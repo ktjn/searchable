@@ -7,8 +7,9 @@ Phases 0, 1, and 2 have working code in this repo (`packages/`,
 actually implemented vs. still pending. Phase 0 is now fully built,
 including the realistically-shaped fixture corpus that was its last
 pending item. Phase 3 is partially built (terms facets, range facet
-*filtering*, and pins; hierarchical facets and aggregate range facet
-results remain pending — see below). Phase 4 is partially built (a
+*filtering*, pins, and a filter-only `facetValues()` browsing call;
+hierarchical facets and aggregate range facet results remain pending —
+see below). Phase 4 is partially built (a
 second real LanguageProfile and true per-document-language corpus
 partitioning; additional stemmers and the CJK bigram fallback remain
 pending — see below). Phase 5 is mostly built (query-time synonym
@@ -157,9 +158,23 @@ Phase 2 is now fully implemented.
   interaction (an active filter that excludes a pinned page hides that
   pin — grouped with facets for exactly this reason, since pin display
   has to respect active facet filters).
-- ⬜ `facetValues()` (docs/07-client-api.md#facet-only-queries) — a
-  filter-only browsing call with no free-text query — is not yet
-  implemented; today `search()` requires at least one query term.
+- ✅ `facetValues()` (docs/07-client-api.md#facet-only-queries) — a
+  filter-only browsing call with no free-text query, for rendering a
+  facet panel (e.g. a category landing page) before a visitor has typed
+  anything. Reuses the same contextual-count convention as `search()`'s
+  `facets` option (every *other* active filter applied, not the field's
+  own) and the same facet-shard fetch/union-doc-ids logic, refactored to
+  module level in `packages/client/src/search.ts` so `search()` and
+  `facetValues()` can't drift on that logic independently. When no
+  other filter is active, counts come directly from the facet shard's
+  precomputed build-time `count` rather than re-deriving it from
+  `entry.docs.length` — a small optimization justified by the build-time
+  invariant that the two are always incremented together
+  (`packages/indexer/src/build-index.ts`'s `addFacetValues`). A
+  range-type field naturally returns an empty `values` array (same
+  scoping as `search()`'s `facets` option for a range field), since
+  aggregate range-facet histogram results remain a separate, still
+  pending, item (below).
 - All of the above verified with real end-to-end tests over real HTTP
   (`packages/indexer/test/{extract,build-index}.test.ts`,
   `packages/client/test/e2e.test.ts`), not just unit tests in isolation.
