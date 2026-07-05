@@ -37,9 +37,15 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Deliberately no `environment: github-pages` block here (unlike
+    # GitHub's official template): deployment Environments with
+    # protection rules are a paid-plan feature for *private*
+    # repositories, and declaring one on a private repo without that
+    # plan makes this job get rejected before a runner is even
+    # assigned (instant "failure", no steps, runner_id 0) rather than
+    # failing on an actual step. actions/deploy-pages doesn't require
+    # the job to be tied to an Environment to work — that's purely an
+    # optional GitHub UI convention for surfacing the deployment URL.
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment
