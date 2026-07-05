@@ -57,7 +57,10 @@ site).
 
 Ships as an ES module, split into a small **core** plus **plugins** that
 are only pulled in if configured (so a single-language, no-fuzzy,
-no-synonyms deployment stays minimal):
+no-synonyms deployment stays minimal). The full plugin contract — hook
+points, registration, capability negotiation, versioning — is specified
+in [17-plugin-architecture.md](17-plugin-architecture.md); this section
+just lists what ships as which module:
 
 - `core`: manifest loading, shard fetch + cache, boolean query
   evaluation, BM25F scoring, result assembly. ~10-15KB gzipped target.
