@@ -5,8 +5,8 @@
 what's built vs. pending. Everything under a "Target API" heading is
 design-only: do not treat option/method names there as stable, and
 don't use them as the primary usage example — they're what
-[REVIEW.md](../REVIEW.md)'s "client API docs overpromise" finding was
-about, and this doc was restructured specifically to fix that.
+[REVIEW.md](archive/REVIEW.md)'s "client API docs overpromise" finding
+was about, and this doc was restructured specifically to fix that.
 
 ## Design goals
 

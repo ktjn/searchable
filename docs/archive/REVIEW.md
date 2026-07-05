@@ -1,14 +1,19 @@
 # Repository Review
 
+**Status: Archived.** Every actionable finding below has been resolved
+— kept here for historical record, not as an open task list. Moved
+from the repo root into `docs/archive/` once its findings were fully
+addressed.
+
 **Response**: every numbered finding below has been addressed except
 #4 (cancellation), which was resolved by removing it from the primary
 docs example rather than implementing it (this doc's own preferred
-option) — see [docs/07-client-api.md](docs/07-client-api.md)'s
-"Target API" section. #8 was already fixed independently before this
-review landed (`buildIndex` now partitions by each document's own
-declared language). Everything else (#1, #2, #3, #5, #6, #7, #9, #10)
-has working code and tests — see the commit that added this line for
-the full diff, and [docs/09-roadmap.md](docs/09-roadmap.md) for status.
+option) — see [../07-client-api.md](../07-client-api.md)'s "Target
+API" section. #8 was already fixed independently before this review
+landed (`buildIndex` now partitions by each document's own declared
+language). Everything else (#1, #2, #3, #5, #6, #7, #9, #10) has
+working code and tests — see the commit that added this line for the
+full diff, and [../09-roadmap.md](../09-roadmap.md) for status.
 
 Review target: default branch `claude/client-search-engine-design-zza6m1`.
 

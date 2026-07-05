@@ -13,8 +13,9 @@ design-only. The GitHub Pages showcase's first two stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stages 2-3 remain blocked on later phases.
 
-A code/docs review ([`REVIEW.md`](../REVIEW.md), response noted inline
-there) landed alongside a batch of new draft specs
+A code/docs review ([`REVIEW.md`](archive/REVIEW.md), response noted
+inline there, archived now that its findings are all resolved) landed
+alongside a batch of new draft specs
 ([spec-query-planner.md](spec-query-planner.md),
 [spec-storage-api.md](spec-storage-api.md),
 [spec-plugin-api.md](spec-plugin-api.md),
