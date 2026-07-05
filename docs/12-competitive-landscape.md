@@ -131,7 +131,13 @@ this design* rather than just "that library is good":
   overhead may not pay for itself either, which is a reason a "small
   corpus mode" (single unsharded index, still same format) might be
   worth a manifest flag rather than a reason to abandon sharding as the
-  default. Noted as a roadmap consideration, not adopted outright.
+  default. This now has a concrete driver rather than being purely
+  hypothetical: see
+  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md),
+  which recommends exactly this (single term shard per language, no
+  binary tier, no vector clustering) for a ~2,000-document CMS-sourced
+  target — same shard *format* throughout, just configured with one
+  shard instead of many.
 - **FlexSearch's custom contextual/proximity-only scoring** (instead of
   BM25-family) is a legitimate alternative design, but mixing scoring
   paradigms would undermine the "one documented ranking formula" clarity

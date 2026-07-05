@@ -6,7 +6,11 @@
 - Freeze the manifest/shard JSON schema (this repo's docs +
   machine-checkable JSON Schema files).
 - Build a small multi-language fixture corpus (English, German, Japanese,
-  Arabic at minimum) used by every later phase's tests.
+  Arabic at minimum) used by every later phase's tests — recommend
+  grounding this in a real ~2,000-document CMS export (see
+  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md)),
+  which is also the concrete initial deployment target for the whole
+  project, alongside synthetic Zipfian corpora for scaling benchmarks.
 
 **Phase 1 — Minimal viable engine (single language, JSON tier only)**
 - Reference indexer (one implementation, e.g. Node) producing the
