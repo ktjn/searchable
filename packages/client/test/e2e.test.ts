@@ -187,3 +187,54 @@ describe("per-query field boost override", () => {
     expect(hits[0]?.id).toBe(1);
   });
 });
+
+describe("per-query term boost", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  // Symmetric fixture: doc 1 has more "apple", doc 2 has more "banana" -
+  // both match both terms, so under default (no term boost) weighting
+  // they should score identically by symmetry.
+  const termBoostSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>Page A</title></head>
+        <body><main><p>apple apple apple banana</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/b",
+      html: `<html lang="en"><head><title>Page B</title></head>
+        <body><main><p>apple banana banana banana</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-termboost-"));
+    await writeIndex(buildIndex(termBoostSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("scores symmetric documents equally with no term boost", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("apple banana");
+    expect(hits[0]?.score).toBeCloseTo(hits[1]?.score ?? Number.NaN);
+  });
+
+  it("boosting a term tips the tie toward the doc with more of that term", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const hits = await client.search("apple banana", {
+      boosts: { terms: { apple: 20 } },
+    });
+    expect(hits[0]?.id).toBe(1); // doc 1 has 3x "apple", benefits most
+  });
+});

@@ -18,8 +18,18 @@ export interface Hit {
 export interface SearchOptions {
   language?: string;
   limit?: number;
-  /** Per-query overrides of the manifest's build-time field boosts. */
-  boosts?: { fields?: Record<string, number> };
+  boosts?: {
+    /** Per-query overrides of the manifest's build-time field boosts. */
+    fields?: Record<string, number>;
+    /**
+     * Per-query multiplier on one specific query term's score
+     * contribution (docs/04-query-ranking-boosts.md#boost-types-summarized).
+     * Keyed by the term as it appears *after* analysis (lowercased,
+     * stemmed, etc.) — the same form stored in the term shard — not the
+     * raw surface form the user typed.
+     */
+    terms?: Record<string, number>;
+  };
 }
 
 function resolve(baseUrl: string, relPath: string): string {
@@ -61,14 +71,17 @@ export async function search(
     }
   }
 
-  const matched = terms.map((t) => termLookup.get(t));
-  if (matched.some((entry) => entry === undefined)) {
+  const matchedPairs = terms.map((term) => ({
+    term,
+    entry: termLookup.get(term),
+  }));
+  if (matchedPairs.some(({ entry }) => entry === undefined)) {
     return []; // boolean AND: every query term must be present somewhere
   }
-  const matchedEntries = matched as TermEntry[];
+  const matchedTerms = matchedPairs as { term: string; entry: TermEntry }[];
 
-  const docIdSets = matchedEntries.map(
-    (entry) => new Set(entry.postings.map((p) => p.doc)),
+  const docIdSets = matchedTerms.map(
+    ({ entry }) => new Set(entry.postings.map((p) => p.doc)),
   );
   const [first, ...rest] = docIdSets;
   const candidateIds = [...(first ?? [])].filter((id) =>
@@ -78,15 +91,13 @@ export async function search(
 
   const scores = new Map<number, number>();
   const docBoosts = new Map<number, number>();
-  for (const entry of matchedEntries) {
+  for (const { term, entry } of matchedTerms) {
+    const termBoost = options.boosts?.terms?.[term] ?? 1.0;
     for (const posting of entry.postings) {
       if (!candidateSet.has(posting.doc)) continue;
-      const s = scoreTermForDoc(
-        posting,
-        entry.df,
-        manifest,
-        options.boosts?.fields,
-      );
+      const s =
+        scoreTermForDoc(posting, entry.df, manifest, options.boosts?.fields) *
+        termBoost;
       scores.set(posting.doc, (scores.get(posting.doc) ?? 0) + s);
       if (posting.boost !== undefined)
         docBoosts.set(posting.doc, posting.boost);
