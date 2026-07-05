@@ -26,6 +26,7 @@ yet. Start here:
 | [docs/10-testing-and-performance.md](docs/10-testing-and-performance.md) | Regression suite, correctness testing, performance/benchmark suite |
 | [docs/11-binary-vs-json-index.md](docs/11-binary-vs-json-index.md) | Investigation: when (if ever) a binary index format pays for itself |
 | [docs/12-competitive-landscape.md](docs/12-competitive-landscape.md) | Feature comparison vs Orama, MiniSearch, Lunr, FlexSearch, Pagefind, and what to cherry-pick |
+| [docs/13-vector-and-hybrid-search.md](docs/13-vector-and-hybrid-search.md) | Opt-in vector/embedding search and lexical+vector hybrid fusion |
 
 ## TL;DR design
 

@@ -17,6 +17,7 @@ leaning on it for a decision.
 | Synonyms | Yes, query-time expansion | `unclear` | Not built-in | Not built-in | `unclear` | Not built-in |
 | Facets | Yes (terms/range/hierarchy, contextual counts) | Yes, built-in | Not built-in (DIY) | Not built-in (DIY) | Yes, via tag-based multi-tag search | Yes, `data-pagefind-filter` |
 | Fuzzy/typo tolerance | Yes (SymSpell-style) | Yes (Levenshtein) | Yes (edit distance) | Yes (edit distance + wildcards) | Yes (tolerant/phonetic encoders) | No true fuzzy — stemming only, no typo correction |
+| Vector/hybrid search | Roadmapped, opt-in plugin, RRF fusion — see [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md) | Yes, native (`plugin-embeddings`, vector + hybrid modes) | No | No | No | No |
 | Prefix/autocomplete | Yes | `unclear` | Yes, built-in | Yes, via wildcards | Yes (forward/reverse tokenizers) | Yes |
 | Multi-language | Per-language profiles, `Intl.Segmenter`, CJK bigram fallback | ~30 languages claimed | None by default (pluggable/DIY) | English core + `lunr-languages` plugin (30+) | Dedicated CJK/Arabic/Hebrew/Cyrillic encoders | Automatic per-`lang` stemming; CJK segmentation in "extended" build only |
 | Runtime | Browser (query) + any language (index build) | Isomorphic (browser/Node/edge) | Isomorphic | Browser + Node | Isomorphic, dedicated Worker index class | Offline Node/Rust build, browser+WASM query |
@@ -24,6 +25,24 @@ leaning on it for a decision.
 | Worker/WASM | Worker by default, optional WASM scoring core | `unclear` | No | No | Worker support, no WASM | WASM core (Rust) |
 | Bundle size (core, gzip) | ~15KB budget (core) | "\<2KB" core claim (marketing; full package larger) | ~7KB | small, unconfirmed exact figure | 4.5-16KB depending on build | ~30KB init + ~75KB WASM |
 | License | (this project) | Apache 2.0 | MIT | MIT | Apache 2.0 | MIT |
+
+## Where the survey exposed a real gap (and how it's addressed)
+
+- **Orama is the only surveyed library with native vector/hybrid search**
+  (`@orama/plugin-embeddings`, 512-dim vectors, RRF-less weighted hybrid
+  mode). This was previously an open question in
+  [09-roadmap.md](09-roadmap.md) rather than a concrete plan; it's now a
+  designed, sequenced feature (Phase 8) in
+  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md), kept
+  opt-in and lazy-loaded like every other plugin so it doesn't tax
+  deployments that don't need it. Where this design intentionally
+  diverges from Orama's approach: query-time embedding computation is
+  called out explicitly as the hard constraint unique to a
+  static/no-backend architecture (Orama can assume a JS runtime is
+  always available server-side too; this project's default posture is
+  browser-only), and hybrid fusion defaults to RRF rather than a
+  hand-tuned weighted score to avoid needing scale calibration between
+  lexical and vector scores.
 
 ## Where this design already differentiates
 

@@ -47,6 +47,16 @@
   prove the format is genuinely implementation-agnostic and not just
   agnostic in principle.
 
+**Phase 8 — Vector & hybrid search**
+- Embedding shard format, chunking, quantization (int8 default), brute-
+  force cosine similarity scoring, RRF-based hybrid fusion with lexical
+  BM25F results, opt-in coarse clustering for larger corpora. Full design
+  in [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md).
+  Deliberately sequenced after the lexical engine is proven out (Phases
+  1-6), since it's additive, higher-complexity, and depends on choices
+  (embedding model, quantization thresholds) best validated against a
+  working baseline rather than upfront.
+
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is
 already a usable, if basic, client-side search engine) — this is
 sequencing for incremental value, not a waterfall gate.
@@ -65,11 +75,13 @@ sequencing for incremental value, not a waterfall gate.
   non-goals), but should the API leave a documented extension point
   (e.g. a client-side re-ranking hook fed a feature vector per hit) so
   consumers can layer their own signals without forking the engine?
-- **Vector/semantic search.** Purely lexical (BM25F + synonyms) today.
-  Embedding-based nearest-neighbor search is a different cost model
-  (needs vectors shipped to the client or computed there) — worth a
-  separate design doc if/when there's a concrete need, not bolted onto
-  this one prematurely.
+- ~~**Vector/semantic search.**~~ Resolved into a concrete design — see
+  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md) and
+  Phase 8 above. Remaining open sub-question: whether shipping a
+  client-side embedding model (tens of MB) is an acceptable default cost
+  for deployments that enable `plugin:vector`, or whether the remote-API
+  escape hatch ends up being the common case in practice — needs real
+  deployments to answer, not speculation.
 - **Auto language detection accuracy.** How much bundled model size is
   worth it for higher detection accuracy vs. just requiring explicit
   `language` tagging for anything beyond a few high-resource languages?
