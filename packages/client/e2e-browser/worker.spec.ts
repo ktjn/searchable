@@ -35,6 +35,7 @@ declare global {
     __csfTestWorkerManifestValidation?: (
       manifestUrl: string,
     ) => Promise<string | undefined>;
+    __csfTestAbortSearch?: (useWorker: boolean) => Promise<string | undefined>;
   }
 }
 
@@ -189,6 +190,22 @@ test.describe("Web Worker execution (real browser)", () => {
     ];
     expect(withWorker).toEqual(expected);
     expect(withoutWorker).toEqual(expected);
+  });
+
+  test("options.signal aborts a search() call via a real Worker, same as main-thread mode", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestAbortSearch?.(true);
+      const m = await window.__csfTestAbortSearch?.(false);
+      return [w, m];
+    });
+
+    expect(withWorker).toBe("AbortError");
+    expect(withoutWorker).toBe("AbortError");
   });
 });
 

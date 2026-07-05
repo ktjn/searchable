@@ -15,11 +15,10 @@ was about, and this doc was restructured specifically to fix that.
   core.
 - Works identically whether or not a Web Worker is used underneath
   (see [08-modern-features.md](08-modern-features.md#web-worker-execution)).
-- **Target**: every network-triggering call is cancellable
-  (`AbortSignal`), since instant-search fires a request per keystroke
-  and stale requests must not race the latest one — not implemented
-  yet (no `signal` option exists today); see "Cancellation" under
-  Target API below.
+- Every network-triggering call is cancellable (`AbortSignal`), since
+  instant-search fires a request per keystroke and stale requests must
+  not race the latest one — see "Cancellation" under "Implemented
+  today" below.
 
 ## Implemented today
 
@@ -75,11 +74,12 @@ the query string, not a separate option. Term-to-page pinning
 transparent: a matching pin is spliced into `result.hits` automatically
 (marked `pinned: true`), no separate call needed.
 
-`page`/`sort`, `signal`, and `result.tookMs` are **not implemented** —
-see Target API below. A range facet's aggregate results (a
-histogram/bucket breakdown in `result.facets`) aren't implemented
-either — a range field always reports an empty `values` array there;
-range *filtering* (the `{min, max}` shape above) works today regardless.
+`page`/`sort` and `result.tookMs` are **not implemented** — see Target
+API below. A range facet's aggregate results (a histogram/bucket
+breakdown in `result.facets`) aren't implemented either — a range
+field always reports an empty `values` array there; range *filtering*
+(the `{min, max}` shape above) works today regardless. `signal` *is*
+implemented — see Cancellation below.
 `synonyms`, `fuzzy`, and `highlight` *are* implemented — see below.
 
 ### Synonyms
@@ -178,6 +178,31 @@ for a `"query"` event to carry
 ([08-modern-features.md](08-modern-features.md#observability-hooks)). A
 listener that throws doesn't break the `search()` call it's observing.
 
+### Cancellation
+
+```ts
+const controller = new AbortController();
+searchInput.addEventListener("input", async (e) => {
+  controller.abort();               // supersede any still-in-flight previous query
+  const result = await client.search(e.target.value, { signal: controller.signal });
+  renderResults(result);            // never runs for a query that got superseded
+});
+```
+
+`search()` and `facetValues()` both accept `options.signal`. An
+already-aborted signal rejects immediately, before any fetch/worker
+round trip; a signal that aborts mid-flight rejects the call with a
+`DOMException` named `"AbortError"` as soon as it fires. This does
+**not** cancel the underlying shard fetch/worker computation itself —
+only the caller's *wait* on it — since shard fetches are memoized
+across concurrent callers
+([02-index-format.md](02-index-format.md#caching--offline-support)),
+and cancelling a fetch another still-active query depends on would be
+wrong. The aborted call's own fetch still completes in the background
+and warms the cache for the next query; it just never resolves for the
+caller who aborted. Fires/rejects identically whether the query is
+running on the main thread or inside a Worker.
+
 ### Disposal
 
 ```ts
@@ -228,18 +253,10 @@ actually built. Don't copy these as working examples.
 const result = await client.search("wireless keyboard", {
   page: { size: 10, offset: 0 },
   sort: "relevance",            // or { field: "publishedAt", order: "desc" }
-  signal: abortController.signal,
 });
 
 result.tookMs;
 ```
-
-### Cancellation
-
-No `signal` option exists on `SearchOptions` today, and no fetch or
-worker message is ever aborted mid-flight. A newer keystroke's request
-can still race an older one to completion (the caller is responsible
-for ignoring a stale response, as the showcase's search widget does).
 
 ### Warm-up/preload
 

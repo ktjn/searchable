@@ -143,6 +143,23 @@ export interface SearchOptions {
    * need to pay for.
    */
   highlight?: boolean;
+  /**
+   * Reject the in-flight `SearchClient.search()` call as soon as this
+   * signal aborts (docs/08-modern-features.md#instant-search--debouncing--cancellation)
+   * — the primary building block for a keystroke-driven instant-search
+   * box, where a superseded query must never resolve after (or
+   * overwrite the results of) a newer one. Handled entirely by
+   * `SearchClient` itself, not by this module's `search()` function: an
+   * `AbortSignal` isn't structured-clone-able, so it's stripped before
+   * a request ever reaches the Worker, and honoring it doesn't cancel
+   * the underlying shard fetch either, since `ShardCache` memoizes
+   * fetches across concurrent callers — aborting the shared network
+   * request out from under a different, still-active query would be
+   * wrong. This only cancels *waiting* on the result; the fetch that
+   * was already in flight still completes and populates the cache
+   * normally, it just won't be delivered to the caller who aborted.
+   */
+  signal?: AbortSignal;
 }
 
 /** docs/05-synonyms.md#scoring-impact. */
@@ -746,6 +763,8 @@ export interface FacetValuesOptions {
    * post-filter count for all of them.
    */
   filters?: Record<string, string | string[] | RangeFilter>;
+  /** Same cancellation semantics as SearchOptions.signal above. */
+  signal?: AbortSignal;
 }
 
 /**

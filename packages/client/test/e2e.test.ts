@@ -181,6 +181,103 @@ describe("observability hooks (client.on)", () => {
   });
 });
 
+describe("cancellation (options.signal)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-cancellation-"));
+    await writeIndex(buildIndex(sources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("rejects immediately with an AbortError when the signal is already aborted", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // Rejecting before ever awaiting readiness (the whole point of this
+    // test) leaves the constructor's own eager manifest fetch promise
+    // otherwise unobserved by this test -- attach a no-op handler so it
+    // can't surface as an unrelated unhandled rejection.
+    client.ready().catch(() => {});
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      client.search("widgets", { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("rejects with an AbortError when aborted after the call has started", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    await client.ready();
+    const controller = new AbortController();
+
+    const promise = client.search("widgets", { signal: controller.signal });
+    controller.abort();
+
+    await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("does not fire the 'query'/'result' events when already aborted", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    client.ready().catch(() => {});
+    const events: string[] = [];
+    client.on("query", () => events.push("query"));
+    client.on("result", () => events.push("result"));
+    const controller = new AbortController();
+    controller.abort();
+
+    await client
+      .search("widgets", { signal: controller.signal })
+      .catch(() => {});
+
+    expect(events).toEqual([]);
+  });
+
+  it("does not affect a concurrent, non-aborted call against the same client", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const controller = new AbortController();
+
+    const aborted = client.search("widgets", { signal: controller.signal });
+    const notAborted = client.search("widgets");
+    controller.abort();
+
+    await expect(aborted).rejects.toMatchObject({ name: "AbortError" });
+    const { hits } = await notAborted;
+    expect(hits.map((h) => h.id)).toEqual([1, 2]);
+  });
+
+  it("a later call without a signal still succeeds after a prior call was aborted", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const controller = new AbortController();
+    controller.abort();
+    await client
+      .search("widgets", { signal: controller.signal })
+      .catch(() => {});
+
+    const { hits } = await client.search("widgets");
+    expect(hits.map((h) => h.id)).toEqual([1, 2]);
+  });
+
+  it("facetValues() also honors an already-aborted signal", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    client.ready().catch(() => {});
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      client.facetValues("category", { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+});
+
 describe("SearchClient.dispose() in main-thread mode", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

@@ -16,10 +16,11 @@ pending — see below). Phase 5 is mostly built (query-time synonym
 expansion, plus SymSpell fuzzy matching and "did you mean"
 suggestions; `multiWord` phrase-level synonyms remain pending — see
 below). Phase 6 is partially built (a configuration testbed, a
-bundle-size CI gate, a first slice of result highlighting, and a first
-slice of observability hooks; streaming, an offline/Service Worker
-plugin, and an accessibility pass remain pending — see below). Phase 7+
-remain design-only. The GitHub Pages showcase's first three stages
+bundle-size CI gate, a first slice of result highlighting, observability
+hooks, and `options.signal` cancellation; `searchStream()`, an
+offline/Service Worker plugin, and an accessibility pass remain pending
+— see below). Phase 7+ remain design-only. The GitHub Pages showcase's
+first three stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stage 3 remains blocked on Phase 8.
 
@@ -257,7 +258,30 @@ Phase 2 is now fully implemented.
   and `didYouMean` presence/absence — not just unit tests in isolation.
 
 **Phase 6 — Modern features polish**
-- Streaming results, offline/Service Worker plugin, accessibility pass.
+- Streaming results (`searchStream()`), offline/Service Worker plugin,
+  accessibility pass.
+- ✅ Cancellation
+  ([docs/08-modern-features.md#instant-search--debouncing--cancellation](08-modern-features.md#instant-search--debouncing--cancellation),
+  [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
+  `search()`/`facetValues()` accept `options.signal: AbortSignal` — an
+  already-aborted signal rejects immediately, before any fetch/worker
+  round trip; a signal that fires mid-flight rejects the call with a
+  `DOMException` named `"AbortError"` as soon as it does, giving a
+  keystroke-driven instant-search box a way to guarantee a superseded
+  query's promise never resolves and overwrites the latest results,
+  even without an app-level debounce. Deliberately does not cancel the
+  underlying shard fetch/worker computation itself — only the caller's
+  wait on it — since `ShardCache` memoizes fetches across concurrent
+  callers and aborting a fetch a different, still-active query depends
+  on would be wrong; the aborted call's own fetch still completes in
+  the background and warms the cache for the *next* query. Verified
+  with real end-to-end tests over real HTTP plus a real-browser
+  Playwright test proving identical behavior whether the aborted query
+  executed inside a Worker or on the main thread. `searchStream()`
+  itself remains unbuilt and is a separate, larger piece of work — it
+  needs `search()`'s clause-scoring loop restructured into two
+  sequential passes (literal-first, then fuzzy/synonym-expanded), not
+  just this cancellation primitive underneath it.
 - ✅ Observability hooks, first slice
   ([docs/08-modern-features.md#observability-hooks](08-modern-features.md#observability-hooks),
   [`packages/client/src/client.ts`](../packages/client/src/client.ts)):

@@ -34,6 +34,44 @@ function toAbsoluteUrl(url: string): string {
   }
 }
 
+function abortError(): DOMException {
+  return new DOMException("The operation was aborted.", "AbortError");
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw abortError();
+}
+
+/**
+ * Rejects with an AbortError as soon as `signal` fires, without
+ * cancelling `work` itself -- `work` may be a shared, memoized shard
+ * fetch (ShardCache) or an in-flight worker computation that other,
+ * still-active callers depend on, so aborting the underlying operation
+ * out from under them would be wrong. This only cancels *waiting* on
+ * the result for the caller who aborted; `work` still runs to
+ * completion and populates the cache normally either way.
+ */
+function raceAbort<T>(
+  work: Promise<T>,
+  signal: AbortSignal | undefined,
+): Promise<T> {
+  if (!signal) return work;
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(abortError());
+    signal.addEventListener("abort", onAbort, { once: true });
+    work.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (err) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(err);
+      },
+    );
+  });
+}
+
 export interface SearchClientOptions {
   indexUrl: string;
   /**
@@ -168,23 +206,28 @@ export class SearchClient {
     options: SearchOptions = {},
   ): Promise<SearchResult> {
     if (this.#fatalError) throw this.#fatalError;
+    throwIfAborted(options.signal);
     await this.#ready;
     if (this.#fatalError) throw this.#fatalError;
+    throwIfAborted(options.signal);
     this.#emit("query", { query, options });
-    const result = this.#worker
-      ? await this.#sendToWorker<SearchResult>({
+    // `signal` is stripped before the options cross into the worker
+    // message or the direct-execution search() call -- neither needs
+    // to know about it (see SearchOptions.signal's doc comment for why
+    // cancellation is handled entirely here).
+    const { signal, ...rest } = options;
+    const work = this.#worker
+      ? this.#sendToWorker<SearchResult>({
           type: "search",
           query,
-          options,
+          options: rest,
         })
-      : await search(
-          query,
+      : (async () => {
           // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
-          await this.#manifest!,
-          this.#cache,
-          this.#indexUrl,
-          options,
-        );
+          const manifest = await this.#manifest!;
+          return search(query, manifest, this.#cache, this.#indexUrl, rest);
+        })();
+    const result = await raceAbort(work, signal);
     this.#emit("result", { query, options, result });
     return result;
   }
@@ -238,18 +281,29 @@ export class SearchClient {
     options: FacetValuesOptions = {},
   ): Promise<FacetResult> {
     if (this.#fatalError) throw this.#fatalError;
+    throwIfAborted(options.signal);
     await this.#ready;
     if (this.#fatalError) throw this.#fatalError;
-    if (this.#worker) {
-      return this.#sendToWorker<FacetResult>({
-        type: "facetValues",
-        field,
-        options,
-      });
-    }
-    // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
-    const manifest = await this.#manifest!;
-    return facetValues(field, manifest, this.#cache, this.#indexUrl, options);
+    throwIfAborted(options.signal);
+    const { signal, ...rest } = options;
+    const work = this.#worker
+      ? this.#sendToWorker<FacetResult>({
+          type: "facetValues",
+          field,
+          options: rest,
+        })
+      : (async () => {
+          // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
+          const manifest = await this.#manifest!;
+          return facetValues(
+            field,
+            manifest,
+            this.#cache,
+            this.#indexUrl,
+            rest,
+          );
+        })();
+    return raceAbort(work, signal);
   }
 
   /**

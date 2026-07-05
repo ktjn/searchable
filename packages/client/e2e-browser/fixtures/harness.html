@@ -91,6 +91,24 @@
         return rejectionOf(client.ready());
       };
 
+      window.__csfTestAbortSearch = async (useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker ? new URL("./worker.js", location.href) : undefined,
+        });
+        await client.ready();
+        const controller = new AbortController();
+        const pending = client.search("widgets", { signal: controller.signal });
+        controller.abort();
+        try {
+          await pending;
+          return undefined;
+        } catch (err) {
+          return err && err.name;
+        }
+      };
+
       window.__csfHarnessReady = true;
     </script>
   </body>

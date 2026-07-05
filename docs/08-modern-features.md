@@ -152,12 +152,36 @@ the doc store's stored excerpt text to:
 
 ## Instant search / debouncing / cancellation
 
-- The client does not itself impose a debounce (UI-layer concern — apps
-  differ on desired latency), but every method accepts an `AbortSignal`
-  and internally guarantees that a superseded in-flight query never
-  overwrites the latest results, even without an app-level debounce.
-- `searchStream` (see [07-client-api.md](07-client-api.md#streamingincremental-results))
-  is the primary building block for a responsive instant-search box.
+**Status**: The client does not itself impose a debounce (UI-layer
+concern — apps differ on desired latency). `search()` and
+`facetValues()` accept an `options.signal: AbortSignal`
+([`packages/client/src/client.ts`](../packages/client/src/client.ts)) —
+a caller passes a fresh `AbortController` per keystroke and aborts the
+previous one, guaranteeing a superseded in-flight query's promise
+rejects (with a `DOMException` named `"AbortError"`) rather than
+resolving and overwriting the latest results, even without an
+app-level debounce. Already-aborted signals reject synchronously
+before any fetch/worker round trip is even attempted.
+
+Deliberately **does not** cancel the underlying network/worker
+operation itself, only the caller's *wait* on it: shard fetches are
+memoized across concurrent callers in `ShardCache`
+([02-index-format.md](02-index-format.md#caching--offline-support)), so
+aborting the shared fetch out from under a different, still-active
+query would be wrong. In practice this means an aborted query's shard
+fetch still completes in the background and populates the cache
+normally (a net win for the *next* query, which gets a warm cache) —
+it just never gets delivered to the caller who aborted. Verified with
+a real-browser Playwright test proving this behaves identically
+whether the query executed inside a Worker or on the main thread.
+
+`searchStream` (see [07-client-api.md](07-client-api.md#streamingincremental-results))
+— a callback-based API with `onPartial`/`onComplete` for showing
+literal-match results before a slower fuzzy/synonym pass lands — is
+still design-only and a larger, separate piece of work: it needs
+`search()`'s clause-scoring loop restructured into two sequential
+passes (see the doc for that call's own `onPartial`/`onComplete`
+contract), not just this cancellation primitive underneath it.
 
 ## Accessibility
 
