@@ -70,6 +70,15 @@
   (embedding model, quantization thresholds) best validated against a
   working baseline rather than upfront.
 
+**Showcase (runs alongside, not a phase of its own)**
+- A GitHub Pages demo is staged against the phases above rather than
+  built all at once — see
+  [19-github-pages-showcase.md](19-github-pages-showcase.md). The docs
+  site (Stage 0) ships independently of engine code; "search these
+  docs" (Stage 1) lands right after Phase 1; the feature gallery
+  (Stage 2) lands across Phases 2-5; vector search demo (Stage 3) lands
+  with Phase 8.
+
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is
 already a usable, if basic, client-side search engine) — this is
 sequencing for incremental value, not a waterfall gate.
