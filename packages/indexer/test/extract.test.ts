@@ -85,11 +85,38 @@ describe("extractDocument", () => {
     expect(extractDocument(html, "/x").boost).toBe(1.0);
   });
 
-  it("has no facets or pins by default", () => {
+  it("has no facets, range facets, or pins by default", () => {
     const html = "<html><head><title>Plain</title></head><body>x</body></html>";
     const doc = extractDocument(html, "/x");
     expect(doc.facets).toEqual({});
+    expect(doc.rangeFacets).toEqual({});
     expect(doc.pins).toEqual([]);
+  });
+
+  it("parses a csf-facet-range-<field> tag as a single numeric value", () => {
+    const html = `<html><head><title>Product</title>
+      <meta name="csf-facet-range-price" content="49.99">
+      </head><body>x</body></html>`;
+    const doc = extractDocument(html, "/x");
+    expect(doc.rangeFacets).toEqual({ price: 49.99 });
+    expect(doc.facets).toEqual({}); // not also parsed as a terms facet
+  });
+
+  it("ignores a non-numeric csf-facet-range-<field> value", () => {
+    const html = `<html><head><title>Product</title>
+      <meta name="csf-facet-range-price" content="call-for-quote">
+      </head><body>x</body></html>`;
+    const doc = extractDocument(html, "/x");
+    expect(doc.rangeFacets).toEqual({});
+  });
+
+  it("keeps the first declared value when a range facet field is repeated", () => {
+    const html = `<html><head><title>Product</title>
+      <meta name="csf-facet-range-price" content="10">
+      <meta name="csf-facet-range-price" content="20">
+      </head><body>x</body></html>`;
+    const doc = extractDocument(html, "/x");
+    expect(doc.rangeFacets).toEqual({ price: 10 });
   });
 
   it("collects repeated csf-facet-<field> tags into arrays, deduping repeats", () => {

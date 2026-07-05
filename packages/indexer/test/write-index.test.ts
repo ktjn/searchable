@@ -100,6 +100,38 @@ describe("writeIndex", () => {
     expect(content.values.shared.docs).toEqual([1, 2]);
   });
 
+  it("writes a range facet shard's sorted (value, doc) array to disk intact", async () => {
+    const outDir = await tempOutDir();
+    const rangeDocs = [
+      {
+        id: 1,
+        url: "/a",
+        html: `<html lang="en"><head><title>A</title>
+          <meta name="csf-facet-range-price" content="29.99"></head>
+          <body><main>a</main></body></html>`,
+      },
+      {
+        id: 2,
+        url: "/b",
+        html: `<html lang="en"><head><title>B</title>
+          <meta name="csf-facet-range-price" content="9.5"></head>
+          <body><main>b</main></body></html>`,
+      },
+    ];
+    const built = buildIndex(rangeDocs);
+    await writeIndex(built, outDir);
+
+    const facetFiles = await readdir(join(outDir, "facets"));
+    const content = JSON.parse(
+      await readFile(join(outDir, "facets", facetFiles[0] as string), "utf8"),
+    );
+    expect(content.type).toBe("range");
+    expect(content.sorted).toEqual([
+      { value: 9.5, doc: 2 },
+      { value: 29.99, doc: 1 },
+    ]);
+  });
+
   it("writes a synonyms shard and records it in the manifest, only for languages with data", async () => {
     const outDir = await tempOutDir();
     const built = buildIndex([docA], "en", {

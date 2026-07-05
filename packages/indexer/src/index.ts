@@ -18,6 +18,7 @@ export type {
   PinEntry,
   PinsShard,
   Posting,
+  RangeFacetValue,
   SourceDocument,
   SynonymShard,
   TermEntry,

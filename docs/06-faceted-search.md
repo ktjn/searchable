@@ -7,9 +7,18 @@ contextual counts (excluding a facet's own active filter, per
 ["Facet counts"](#facet-counts-how-many-results-if-i-also-select-x)
 below) all have working code and real tests in
 [`packages/indexer`](../packages/indexer)/[`packages/client`](../packages/client) —
-see [09-roadmap.md](09-roadmap.md#status). Range and hierarchical
-facets, and a `facetValues()`/filter-only browsing call with no free-text
-query, remain design-only for now.
+see [09-roadmap.md](09-roadmap.md#status). Range facet **filtering**
+is also built: `csf-facet-range-<field>` extraction, a shard storing
+every `(value, doc)` pair sorted ascending (`FacetShard.sorted`), and
+`search(query, {filters: {field: {min?, max?}}})` resolving an
+arbitrary min/max via a scan of that sorted array. Not built yet:
+precomputed range buckets (the sorted-array scan is correct today, just
+not the fastest possible at very large shard sizes) and aggregate range
+facet *results* (`SearchResult.facets` returns an empty `values: []`
+for a range field — the display-side histogram/bucket breakdown a
+UI would render alongside a slider, as opposed to the filtering itself,
+which works). Hierarchical facets, and a `facetValues()`/filter-only
+browsing call with no free-text query, remain design-only for now.
 
 ## Facet types
 
@@ -50,7 +59,15 @@ Range facets store both precomputed buckets (fast common case: "0-50",
 "50-100"...) and a sorted array of raw `(value, docId)` pairs (binary
 tier: delta-encoded) so an arbitrary user-entered min/max slider filter
 can binary-search the sorted array rather than being limited to the
-bucket boundaries chosen at build time.
+bucket boundaries chosen at build time. **Built today**: the sorted
+array (`FacetShard.sorted`, JSON tier, no delta-encoding), resolved via
+a linear scan rather than binary search (correct either way, since the
+array is sorted; negligible cost difference at "small corpus" JSON-tier
+scale — see
+[14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale)).
+Precomputed buckets and the binary tier's delta-encoding remain
+design-only — `values` is always `{}` for a range shard in the current
+implementation.
 
 ## Filtering
 
@@ -65,9 +82,12 @@ and prior to relevance scoring (they don't affect BM25 scores — see
   the query's candidate set — standard "OR within a facet, AND across
   facets" semantics that match user expectation (matches
   Algolia/Typesense/ES aggregation UX conventions).
-- **Range filter**: binary-search range on the sorted values array (or
-  union of overlapping precomputed buckets, whichever the query
-  resolves to faster given what's already been fetched).
+- **Range filter**: `{min?, max?}` inclusive bounds
+  (`packages/client/src/search.ts`'s `RangeFilter`), resolved today as
+  a linear scan over the sorted values array (a binary-search-narrowed
+  scan, and a union-of-overlapping-precomputed-buckets fast path, are
+  documented future optimizations once shard size makes the difference
+  measurable — see the "Facet index structure" status note above).
 
 ## Facet counts ("how many results if I also select X")
 

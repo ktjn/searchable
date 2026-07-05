@@ -164,6 +164,8 @@ function addFacetValues(
     if (!shard) {
       shard = { type: "terms", values: {} };
       facetShards[field] = shard;
+    } else if (shard.type !== "terms") {
+      continue; // same field also declared as a range facet elsewhere -- first declaration wins
     }
     for (const value of values) {
       let entry = shard.values[value];
@@ -174,6 +176,33 @@ function addFacetValues(
       entry.docs.push(docId);
       entry.count++;
     }
+  }
+}
+
+/**
+ * Range facets (docs/06-faceted-search.md#facet-index-structure) store
+ * every (value, doc) pair rather than precomputed buckets -- an
+ * arbitrary min/max filter can be resolved directly against the sorted
+ * array (sorted once, after every document is processed) without
+ * bucket boundaries chosen ahead of time. `values` stays `{}`;
+ * precomputed buckets are a documented future optimization layer, not
+ * required for correctness at "small corpus" scale
+ * (docs/14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale).
+ */
+function addRangeFacetValues(
+  facetShards: Record<string, FacetShard>,
+  rangeFacets: Record<string, number>,
+  docId: number,
+): void {
+  for (const [field, value] of Object.entries(rangeFacets)) {
+    let shard = facetShards[field];
+    if (!shard) {
+      shard = { type: "range", values: {}, sorted: [] };
+      facetShards[field] = shard;
+    } else if (shard.type !== "range") {
+      continue; // same field also declared as a terms facet elsewhere -- first declaration wins
+    }
+    shard.sorted?.push({ value, doc: docId });
   }
 }
 
@@ -325,6 +354,7 @@ export function buildIndex(
     addPostings(termShard, "title", source.id, extracted.boost, titleTokens);
     addPostings(termShard, "body", source.id, extracted.boost, bodyTokens);
     addFacetValues(facetShards, extracted.facets, source.id);
+    addRangeFacetValues(facetShards, extracted.rangeFacets, source.id);
 
     if (extracted.pins.length > 0) {
       let pinsAcc = pinsAccByLanguage.get(language);
@@ -381,6 +411,10 @@ export function buildIndex(
     for (const entry of Object.values(facetShard.values)) {
       entry.docs.sort((a, b) => a - b);
     }
+    // doc id as tiebreaker for documents sharing the same value, so
+    // output is deterministic regardless of corpus feed order (same
+    // REVIEW.md#10 reasoning as postings/facet-value docs above).
+    facetShard.sorted?.sort((a, b) => a.value - b.value || a.doc - b.doc);
   }
 
   const facetFields = Object.keys(facetShards).sort();

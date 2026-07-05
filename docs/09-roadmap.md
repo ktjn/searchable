@@ -6,15 +6,18 @@ Phases 0, 1, and 2 have working code in this repo (`packages/`,
 `spec/`), not just design docs — see each phase below for what's
 actually implemented vs. still pending. Phase 0 is now fully built,
 including the realistically-shaped fixture corpus that was its last
-pending item. Phase 3 is partially built
-(terms facets and pins; range/hierarchy facets remain pending — see
-below). Phase 4 is partially built (a second real LanguageProfile and
-true per-document-language corpus partitioning; additional stemmers and
-the CJK bigram fallback remain pending — see below). Phase 5 is
-mostly built (query-time synonym expansion, plus SymSpell fuzzy
-matching and "did you mean" suggestions; `multiWord` phrase-level
-synonyms remain pending — see below). Phase 6+ remain
-design-only. The GitHub Pages showcase's first three stages
+pending item. Phase 3 is partially built (terms facets, range facet
+*filtering*, and pins; hierarchical facets and aggregate range facet
+results remain pending — see below). Phase 4 is partially built (a
+second real LanguageProfile and true per-document-language corpus
+partitioning; additional stemmers and the CJK bigram fallback remain
+pending — see below). Phase 5 is mostly built (query-time synonym
+expansion, plus SymSpell fuzzy matching and "did you mean"
+suggestions; `multiWord` phrase-level synonyms remain pending — see
+below). Phase 6 is partially built (a configuration testbed and a
+bundle-size CI gate; streaming/highlighting/offline-Service-Worker/
+accessibility/observability remain pending — see below). Phase 7+
+remain design-only. The GitHub Pages showcase's first three stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stage 3 remains blocked on Phase 8.
 
@@ -127,10 +130,22 @@ Phase 2 is now fully implemented.
   every *other* active filter but not a field's own, so switching
   between values of the same facet shows real counts instead of the
   post-filter count for all of them).
-- ⬜ Range and hierarchical facets — the shard format
-  ([06-faceted-search.md](06-faceted-search.md)) supports `type: "range"
-  | "hierarchy"` but only `"terms"` has a builder/query-time
-  implementation so far.
+- ✅ Range facet *filtering*: `csf-facet-range-<field>` extraction (one
+  numeric value per doc, unlike terms facets' multi-value), a `type:
+  "range"` shard storing every `(value, doc)` pair sorted ascending
+  (`FacetShard.sorted`; `values` stays `{}` — precomputed buckets are a
+  documented future optimization, not required for correctness at
+  "small corpus" scale, [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale)),
+  and `search(query, {filters: {field: {min?, max?}}})` resolving an
+  arbitrary min/max via a scan of that array (linear, not
+  binary-search — correct either way given the array's already
+  sorted). Closes the gap the product-catalog showcase demo's
+  bucketed-price terms facet was working around.
+- ⬜ Aggregate range facet *results* (a histogram/bucket breakdown in
+  `SearchResult.facets` for a range field, as opposed to filtering,
+  which is built) and hierarchical facets — the shard format
+  ([06-faceted-search.md](06-faceted-search.md)) supports `type:
+  "hierarchy"` but has no builder/query-time implementation yet.
 - ✅ Term-to-page pinning ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)):
   extraction of `csf-pin`/`csf-pin-mode`/`csf-pin-priority`/
   `csf-pin-exclusive`, a pins shard keyed by the same normalized-phrase

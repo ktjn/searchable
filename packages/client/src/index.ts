@@ -4,6 +4,7 @@ export type {
   FacetResult,
   FacetResultValue,
   Hit,
+  RangeFilter,
   SearchOptions,
   SearchResult,
 } from "./search.js";

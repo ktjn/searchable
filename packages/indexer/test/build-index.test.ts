@@ -161,6 +161,99 @@ describe("buildIndex facets", () => {
   });
 });
 
+describe("buildIndex range facets", () => {
+  const rangeSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>A</title>
+        <meta name="csf-facet-range-price" content="29.99"></head>
+        <body><main>a</main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/b",
+      html: `<html lang="en"><head><title>B</title>
+        <meta name="csf-facet-range-price" content="9.5"></head>
+        <body><main>b</main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/c",
+      html: `<html lang="en"><head><title>C</title>
+        <meta name="csf-facet-range-price" content="150"></head>
+        <body><main>c</main></body></html>`,
+    },
+  ];
+
+  it("tags the shard as type: range with an empty precomputed-bucket values object", () => {
+    const built = buildIndex(rangeSources);
+    expect(built.facetShards.price?.type).toBe("range");
+    expect(built.facetShards.price?.values).toEqual({});
+  });
+
+  it("stores every (value, doc) pair sorted ascending by value, independent of processing order", () => {
+    const built = buildIndex([...rangeSources].reverse());
+    expect(built.facetShards.price?.sorted).toEqual([
+      { value: 9.5, doc: 2 },
+      { value: 29.99, doc: 1 },
+      { value: 150, doc: 3 },
+    ]);
+  });
+
+  it("lists a range facet field on the manifest same as a terms facet field", () => {
+    const built = buildIndex(rangeSources);
+    expect(built.manifest.facetFields).toEqual(["price"]);
+  });
+
+  it("ignores a non-numeric range facet value", () => {
+    const built = buildIndex([
+      {
+        id: 1,
+        url: "/a",
+        html: `<html lang="en"><head><title>A</title>
+          <meta name="csf-facet-range-price" content="not-a-number"></head>
+          <body><main>a</main></body></html>`,
+      },
+    ]);
+    expect(built.facetShards.price).toBeUndefined();
+  });
+
+  it("keeps a plain csf-facet-<field> tag from being misparsed as a range field literally named 'range-<field>'", () => {
+    const built = buildIndex([
+      {
+        id: 1,
+        url: "/a",
+        html: `<html lang="en"><head><title>A</title>
+          <meta name="csf-facet-category" content="electronics"></head>
+          <body><main>a</main></body></html>`,
+      },
+    ]);
+    expect(Object.keys(built.facetShards)).toEqual(["category"]);
+    expect(built.facetShards["range-category"]).toBeUndefined();
+  });
+
+  it("first declaration wins when a field is authored as both a terms and a range facet somewhere in the corpus", () => {
+    const built = buildIndex([
+      {
+        id: 1,
+        url: "/a",
+        html: `<html lang="en"><head><title>A</title>
+          <meta name="csf-facet-price" content="on-sale"></head>
+          <body><main>a</main></body></html>`,
+      },
+      {
+        id: 2,
+        url: "/b",
+        html: `<html lang="en"><head><title>B</title>
+          <meta name="csf-facet-range-price" content="42"></head>
+          <body><main>b</main></body></html>`,
+      },
+    ]);
+    expect(built.facetShards.price?.type).toBe("terms");
+  });
+});
+
 describe("buildIndex pins", () => {
   it("keys the pins shard by the normalized (analyzed) phrase", () => {
     const built = buildIndex([

@@ -17,10 +17,13 @@ export interface ExtractedDocument {
   boost: number;
   /** Facet field name -> distinct values declared via csf-facet-<field> (docs/15-cms-meta-tag-control.md). */
   facets: Record<string, string[]>;
+  /** Range-facet field name -> single numeric value declared via csf-facet-range-<field> (docs/06-faceted-search.md). One value per doc, unlike terms facets. */
+  rangeFacets: Record<string, number>;
   pins: PinDeclaration[];
 }
 
 const FACET_TAG_PREFIX = "csf-facet-";
+const RANGE_FACET_TAG_PREFIX = "csf-facet-range-";
 
 const BOILERPLATE_SELECTORS = [
   "nav",
@@ -89,8 +92,23 @@ export function extractDocument(
     Number.isFinite(parsedBoost) && parsedBoost > 0 ? parsedBoost : 1.0;
 
   const facets: Record<string, string[]> = {};
+  const rangeFacets: Record<string, number> = {};
   for (const meta of root.querySelectorAll("meta")) {
     const name = meta.getAttribute("name") ?? "";
+    // Checked first: csf-facet-range-<field> also starts with the plain
+    // csf-facet- prefix below, so it would otherwise be misparsed as a
+    // terms facet field literally named "range-<field>".
+    if (name.startsWith(RANGE_FACET_TAG_PREFIX)) {
+      const field = name.slice(RANGE_FACET_TAG_PREFIX.length);
+      const raw = meta.getAttribute("content")?.trim();
+      const parsed = raw ? Number.parseFloat(raw) : Number.NaN;
+      // First declared value wins; a page authoring the same range
+      // field twice is almost certainly a mistake, not intentional.
+      if (field && Number.isFinite(parsed) && !(field in rangeFacets)) {
+        rangeFacets[field] = parsed;
+      }
+      continue;
+    }
     if (!name.startsWith(FACET_TAG_PREFIX)) continue;
     const field = name.slice(FACET_TAG_PREFIX.length);
     const value = meta.getAttribute("content")?.trim();
@@ -132,5 +150,16 @@ export function extractDocument(
     exclusive: pinExclusive,
   }));
 
-  return { title, language, body, excerpt, url, noindex, boost, facets, pins };
+  return {
+    title,
+    language,
+    body,
+    excerpt,
+    url,
+    noindex,
+    boost,
+    facets,
+    rangeFacets,
+    pins,
+  };
 }

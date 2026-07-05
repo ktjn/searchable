@@ -27,6 +27,19 @@
           }
         }
       }
+    },
+    "sorted": {
+      "description": "Only present for type: range -- every (value, doc) pair sorted ascending by value, so an arbitrary min/max filter can be resolved without precomputed bucket boundaries (docs/06-faceted-search.md#facet-index-structure). 'values' is always present but empty ({}) for a range shard in the current implementation -- precomputed buckets are a documented future optimization, not required for correctness.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "doc"],
+        "properties": {
+          "value": { "type": "number" },
+          "doc": { "type": "integer", "minimum": 0 }
+        }
+      }
     }
   }
 }

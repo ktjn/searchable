@@ -32,6 +32,12 @@ export interface FacetResult {
   values: FacetResultValue[];
 }
 
+/** Inclusive bounds for a range-facet filter (docs/06-faceted-search.md#filtering). Omit either end for an open-ended range. */
+export interface RangeFilter {
+  min?: number;
+  max?: number;
+}
+
 export interface SearchResult {
   hits: Hit[];
   /** Only present for facet fields the caller asked to include via options.facets. */
@@ -63,14 +69,17 @@ export interface SearchOptions {
     terms?: Record<string, number>;
   };
   /**
-   * Terms-only facet filters (docs/06-faceted-search.md#filtering):
-   * OR across an array of values within one field, AND across
-   * different fields. A field with no matching facet shard in the
-   * manifest is ignored rather than zeroing out the whole query — a
-   * typo'd/unknown filter field is a build-time linting concern
+   * Facet filters (docs/06-faceted-search.md#filtering): a string or
+   * string[] for a terms facet (OR across an array of values within
+   * one field, AND across different fields); a `{min?, max?}` range
+   * for a range facet (docs/06-faceted-search.md#facet-index-structure) —
+   * which shape applies is determined by the field's own facet shard
+   * `type`, not declared here. A field with no matching facet shard in
+   * the manifest is ignored rather than zeroing out the whole query —
+   * a typo'd/unknown filter field is a build-time linting concern
    * elsewhere, not something a single query should hard-fail on.
    */
-  filters?: Record<string, string | string[]>;
+  filters?: Record<string, string | string[] | RangeFilter>;
   /**
    * Facet fields to compute contextual counts for and include in
    * `SearchResult.facets`. Counts are computed against the candidate
@@ -142,13 +151,30 @@ function containsPhrase(
   return false;
 }
 
+function isRangeFilter(value: unknown): value is RangeFilter {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    ("min" in value || "max" in value)
+  );
+}
+
 function valuesFor(
-  filters: Record<string, string | string[]> | undefined,
+  filters: Record<string, string | string[] | RangeFilter> | undefined,
   field: string,
 ): string[] {
   const raw = filters?.[field];
-  if (raw === undefined) return [];
+  if (raw === undefined || isRangeFilter(raw)) return [];
   return Array.isArray(raw) ? raw : [raw];
+}
+
+function rangeFilterFor(
+  filters: Record<string, string | string[] | RangeFilter> | undefined,
+  field: string,
+): RangeFilter | undefined {
+  const raw = filters?.[field];
+  return isRangeFilter(raw) ? raw : undefined;
 }
 
 /** Every other term `term` expands to via the synonym shard's equivalence classes and directional map (docs/05-synonyms.md). */
@@ -436,6 +462,22 @@ export async function search(
     const shard = facetShardsByField.get(field);
     const ids = new Set<number>();
     if (!shard) return ids;
+    if (shard.type === "range") {
+      const range = rangeFilterFor(options.filters, field);
+      if (!range) return ids;
+      // Linear scan over the sorted array rather than a binary-search
+      // range lookup -- correct either way since the array is sorted,
+      // and a full scan is negligible at "small corpus" JSON-tier
+      // scale (docs/14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale).
+      // Binary-searching the two endpoints is a documented future
+      // optimization once shard size actually makes it matter.
+      for (const entry of shard.sorted ?? []) {
+        if (range.min !== undefined && entry.value < range.min) continue;
+        if (range.max !== undefined && entry.value > range.max) continue;
+        ids.add(entry.doc);
+      }
+      return ids;
+    }
     for (const value of valuesFor(options.filters, field)) {
       for (const id of shard.values[value]?.docs ?? []) ids.add(id);
     }
@@ -592,6 +634,12 @@ export async function search(
         baseSet = new Set([...baseSet].filter((id) => unionSet.has(id)));
       }
       const selectedValues = new Set(valuesFor(options.filters, field));
+      // For a range-type shard, `shard.values` is always {} (no
+      // precomputed buckets yet, see FacetShard.values doc comment in
+      // @csf/format) -- this naturally produces an empty `values`
+      // array rather than a bucketed histogram, since aggregate range
+      // facet results are deferred; range *filtering* (unionDocsForField
+      // above) works today regardless.
       facets[field] = {
         values: Object.entries(shard.values).map(([value, entry]) => ({
           value,

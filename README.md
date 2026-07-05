@@ -14,15 +14,16 @@ Phases 3, 4, and 5 are partially built — [`packages/analysis`](packages/analys
 [`packages/format`](packages/format) (shared manifest/shard types),
 [`packages/indexer`](packages/indexer) (rendered HTML → manifest +
 shards, per-document-language corpus partitioning, configurable field
-boosts, `csf-boost`/`csf-facet-<field>`/`csf-pin*` extraction, authored
-synonym equivalence/directional data, a SymSpell fuzzy/typo-tolerance
-dictionary), [`packages/client`](packages/client) (fetch + boolean AND +
-BM25F + field/term/document boosts + prefix matching + Web Worker
-execution + facet filtering with contextual counts + term-to-page
-pinning + multi-language query isolation + opt-in synonym expansion +
-opt-in fuzzy matching with "did you mean" suggestions, all proven in a
-real browser via Playwright, no range-or-hierarchy-facets/additional-
-stemmers/CJK/multi-word-synonyms yet), and
+boosts, `csf-boost`/`csf-facet-<field>`/`csf-facet-range-<field>`/
+`csf-pin*` extraction, authored synonym equivalence/directional data, a
+SymSpell fuzzy/typo-tolerance dictionary), [`packages/client`](packages/client)
+(fetch + boolean AND + BM25F + field/term/document boosts + prefix
+matching + Web Worker execution + terms and range facet filtering with
+contextual counts + term-to-page pinning + multi-language query
+isolation + opt-in synonym expansion + opt-in fuzzy matching with "did
+you mean" suggestions, all proven in a real browser via Playwright, no
+hierarchical facets/aggregate-range-facet-results/additional-stemmers/
+CJK/multi-word-synonyms yet), and
 [`packages/fixtures`](packages/fixtures) (a realistically-shaped,
 deterministic CMS-export-style corpus generator for real-scale
 correctness testing, per
@@ -40,7 +41,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 173 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 189 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 21 Playwright tests in real Chromium (Worker execution, lifecycle, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

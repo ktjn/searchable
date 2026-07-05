@@ -522,6 +522,105 @@ describe("facet filtering and contextual counts", () => {
   });
 });
 
+describe("range facet filtering", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  // All four organically match "widget"; price is a range facet
+  // (csf-facet-range-price) so min/max filtering is unambiguous.
+  const rangeSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/cheap",
+      html: `<html lang="en"><head><title>Cheap Widget</title>
+        <meta name="csf-facet-range-price" content="9.99"></head>
+        <body><main><p>An affordable widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/mid",
+      html: `<html lang="en"><head><title>Midrange Widget</title>
+        <meta name="csf-facet-range-price" content="49.5"></head>
+        <body><main><p>A midrange widget.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/premium",
+      html: `<html lang="en"><head><title>Premium Widget</title>
+        <meta name="csf-facet-range-price" content="199"></head>
+        <body><main><p>A premium widget.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/no-price",
+      html: `<html lang="en"><head><title>Undated Widget</title></head>
+        <body><main><p>A widget with no listed price.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-range-facets-"));
+    await writeIndex(buildIndex(rangeSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("filters to an inclusive [min, max] range", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { min: 10, max: 100 } },
+    });
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("supports an open-ended minimum (no max)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { min: 50 } },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([3]);
+  });
+
+  it("supports an open-ended maximum (no min)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { max: 10 } },
+    });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("includes exact boundary values (inclusive bounds)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { min: 49.5, max: 49.5 } },
+    });
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("excludes documents with no declared value for the range field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { min: 0 } },
+    });
+    expect(hits.map((h) => h.id)).not.toContain(4);
+  });
+
+  it("combines a range filter with organic scoring (still ranked by relevance)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { totalHits } = await client.search("widget", {
+      filters: { price: { min: 0, max: 1000 } },
+    });
+    expect(totalHits).toBe(3); // every priced widget, excluding the unpriced one
+  });
+});
+
 describe("term-to-page pinning (csf-pin)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

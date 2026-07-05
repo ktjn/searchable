@@ -48,6 +48,7 @@ consolidating and extending the table introduced in
 | `<meta name="csf-noindex">` | Excludes the whole page from the index | `<meta name="csf-noindex" content="true">` | page is indexed |
 | `<meta name="csf-boost">` | Document-level score multiplier | `<meta name="csf-boost" content="2.0">` | `1.0` |
 | `<meta name="csf-facet-<field>">` | Adds a value for facet field `<field>` | `<meta name="csf-facet-category" content="pricing">` | no facet values for that field |
+| `<meta name="csf-facet-range-<field>">` | Declares a single numeric value for range facet field `<field>` (docs/06-faceted-search.md#facet-types) | `<meta name="csf-facet-range-price" content="49.99">` | no range value for that field |
 | `<meta name="csf-pin">` | Query term(s)/phrase this page should be pinned for — see [16-term-to-page-pinning.md](16-term-to-page-pinning.md) | `<meta name="csf-pin" content="pricing">` | no pins |
 | `<meta name="csf-pin-priority">` | Tie-break order when multiple pages pin the same term | `<meta name="csf-pin-priority" content="10">` | `0`; ties broken by doc boost, then build order (with a build warning either way — see [16](16-term-to-page-pinning.md#conflicting-pins)) |
 | `<meta name="csf-pin-mode">` | `exact` (whole normalized query must match) or `contains` (query containing the term matches) | `<meta name="csf-pin-mode" content="contains">` | `exact` |
