@@ -77,12 +77,16 @@ this design* rather than just "that library is good":
 2. **Pagefind's zero-config `data-*` attribute authoring.** For static
    sites, Pagefind lets authors mark boosts/filters directly in HTML
    (`data-pagefind-weight`, `data-pagefind-filter`) with no separate
-   config file — the indexer just reads the DOM. **Adopt** as an
-   additional, optional source adapter (alongside the JSON-feed/CMS-API
-   adapters already described in
-   [01-architecture.md](01-architecture.md#offline-the-indexer)): a
-   static-HTML adapter that recognizes the same-shaped `data-*`
-   attributes, so migrating a Pagefind-based site costs nothing.
+   config file — the indexer just reads the DOM. **Adopted as the
+   primary ingestion path** (not just an optional extra) for the initial
+   deployment — see
+   [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#ingestion-from-rendered-html),
+   which indexes rendered HTML with a `data-csf-*`/`csf-*` meta-tag
+   convention for title/body/boost/facets/excerpt, alongside the
+   JSON-feed/CMS-API adapters in
+   [01-architecture.md](01-architecture.md#offline-the-indexer) for
+   cases that need fields HTML doesn't expose — so migrating a
+   Pagefind-based site costs nothing.
 3. **FlexSearch's tunable memory/speed/accuracy presets.** FlexSearch
    ships named presets (`memory`, `performance`, `match`, `score`,
    `default`) trading index size against match quality/speed, rather

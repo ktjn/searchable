@@ -55,55 +55,81 @@ is solving a problem that doesn't exist yet.
   not) based on what the CMS content and site actually need, independent
   of document count.
 
-## CMS ingestion adapter
+## Ingestion: from rendered HTML
 
-The CMS itself isn't named here, so this describes the generic shape;
-swap in the specific API of whichever CMS is in use.
+The initial index is built from **rendered HTML** — the CMS's public
+output (crawled live pages, or a static build/export directory) — rather
+than by calling the CMS's content API directly. This is a deliberate
+simplification, not a stopgap:
 
-**Pull model (recommended default):** the indexer's CMS source adapter
-calls the CMS's content API (REST or GraphQL, whichever the CMS
-exposes) at build time, paginating through all **published** entries
-(explicitly excluding drafts/unpublished content unless a separate
-preview index is deliberately wanted), and maps each CMS entry to the
-`RawDocument` shape already defined in
-[01-architecture.md](01-architecture.md#offline-the-indexer):
+- It sidesteps the structured/rich-text flattening problem entirely
+  (Contentful rich text nodes, Sanity Portable Text, WordPress block
+  JSON, etc. all end up as plain HTML by the time it's rendered) —
+  there's exactly one input shape to handle, regardless of which CMS
+  produced it.
+- It matches how the architecturally-closest prior art (Pagefind) works
+  and is the natural fit for the `data-*` attribute authoring convention
+  already adopted in
+  [12-competitive-landscape.md](12-competitive-landscape.md#features-worth-cherry-picking) —
+  that convention now becomes the **primary** ingestion mechanism for
+  this deployment, not just an optional adapter alongside a CMS-API one.
+- It stays CMS-agnostic: the indexer never needs to know which CMS
+  produced the pages, only how to read HTML — consistent with the
+  "generatable by simple means" principle, since every mainstream
+  language has a small, standard HTML/DOM parsing library (Python:
+  `html.parser`/BeautifulSoup; Node: a lightweight DOM parser; Java:
+  Jsoup) — heavier than plain JSON-in/JSON-out, but still a single small
+  library, not a framework dependency.
 
-```ts
-interface RawDocument {
-  id: string;                          // CMS entry id
-  url: string;                         // computed from the site's routing/slug convention
-  fields: Record<string, FieldValue>;  // title, body, tags, etc.
-  language?: string;                   // from the CMS's locale field, if multi-locale
-  boost?: number;                      // e.g. from a CMS "featured" flag
-}
-```
+**Source adapter:** either (a) crawl the site's sitemap and fetch each
+URL, or (b) read a build-output directory of static HTML files directly
+(faster, no network round trips, appropriate when the indexer runs in
+the same CI pipeline as the site build) — both feed the same HTML→
+`RawDocument` extraction step.
 
-Two CMS-shape realities worth calling out explicitly, since they're easy
-to get wrong:
+**Default extraction rules** (all overridable per-page via `data-csf-*`
+attributes/meta tags, mirroring the Pagefind-style convention):
 
-- **Structured/rich-text body fields.** Many CMSs don't store body copy
-  as a plain string (Contentful rich text nodes, Sanity Portable Text,
-  WordPress block JSON, etc.) — the adapter needs an explicit
-  "flatten structured content to indexable plain text" step per field
-  before it ever reaches tokenization
-  ([03-tokenization-i18n.md](03-tokenization-i18n.md#pipeline-stages)).
-  This is CMS-specific rendering logic, not something the generic
-  analysis pipeline can guess at.
-- **Locale-per-entry vs. locale-per-field.** If the CMS is multi-locale,
-  confirm whether each entry has one locale (common — maps directly to
-  the document-level `language` field) or fields can each carry their
-  own locale (rarer) requiring the per-field language tagging noted in
-  [03-tokenization-i18n.md](03-tokenization-i18n.md#mixed-language-corpora--queries).
+| Field | Default source | Override |
+|---|---|---|
+| `title` | `<title>` | `data-csf-title` on any element |
+| `language` | `<html lang="...">` | per-element `lang` for mixed-language pages |
+| `body` (indexable content) | `<main>` if present, else `<body>` minus `nav`, `header`, `footer`, `aside`, `script`, `style` | `data-csf-body` marks the exact content region; `data-csf-ignore` excludes a sub-element |
+| `headings` | text of `h1`-`h3` within the body region | — |
+| stored excerpt | `<meta name="description">` | `data-csf-excerpt` |
+| `url` | the crawled/file's own URL | `<link rel="canonical">` |
+| doc boost | `1.0` | `<meta name="csf-boost" content="2.0">` |
+| facet values | none by default | `<meta name="csf-facet-<field>" content="<value>">`, repeatable |
+| exclude page entirely | indexed by default | `<meta name="csf-noindex">` |
 
-**Rebuild trigger:** a CMS publish webhook fires a CI job that reruns
-the full indexer and republishes the static shards. At 2,000 documents,
-a full rebuild is fast (well under the timescale of a typical CI job) —
-this is a concrete, real answer to the "is incremental indexing worth
-the complexity" open question in
-[09-roadmap.md](09-roadmap.md#open-questions): at this scale, no, a full
-rebuild on every publish event is clearly the simpler and entirely
-sufficient choice. Revisit only if a future deployment target is orders
-of magnitude larger.
+This gives CMS authors/theme developers a zero-config default (index
+`<main>`, use `<title>`/meta description) with an escape hatch for every
+field this design cares about (boosts, facets, excerpts) expressed as
+plain HTML they already control — no separate config file needed for
+the common case, matching
+[01-architecture.md](01-architecture.md#offline-the-indexer)'s adapter
+model (this is one more source adapter, alongside the JSON-feed/CMS-API
+adapters already described there, not a replacement for the general
+architecture).
+
+**Rebuild trigger:** since indexing reads rendered output, the indexer
+must run **after** the site's build/deploy step completes, not
+independently of it — a CMS publish webhook triggers the site rebuild,
+and the indexer runs as the last step of that same pipeline (or is
+triggered by the site build's completion event) before the new shards
+are published. At 2,000 documents, both the site rebuild and the index
+rebuild are fast enough that this "full rebuild on every publish"
+approach is a concrete, real answer to the "is incremental indexing
+worth the complexity" open question in
+[09-roadmap.md](09-roadmap.md#open-questions): at this scale, no. Revisit
+only if a future deployment target is orders of magnitude larger.
+
+**If a direct CMS-API adapter is wanted later** (e.g. to index draft
+content for a preview search UI, or to get structured fields the
+rendered HTML doesn't expose, like a raw numeric price for range
+facets) — that remains available as an additional adapter per
+[01-architecture.md](01-architecture.md#offline-the-indexer); it's not
+precluded by starting with HTML, just not needed for the initial index.
 
 ## Vector/hybrid search at this scale (optional)
 

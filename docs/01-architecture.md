@@ -25,8 +25,11 @@ flowchart LR
 
 A Node.js CLI (`csf build`) that:
 
-1. **Ingests** documents via pluggable source adapters (filesystem glob,
-   sitemap crawl, JSON feed, headless CMS API). Each adapter yields a
+1. **Ingests** documents via pluggable source adapters (rendered-HTML
+   crawl/build-output — the recommended default, see
+   [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#ingestion-from-rendered-html) —
+   plus filesystem glob, JSON feed, or headless CMS API for cases that
+   need structured fields HTML doesn't expose). Each adapter yields a
    normalized `RawDocument { id, url, fields: Record<string, FieldValue>, language?, boost? }`.
 2. **Detects/validates language** per document (explicit `language` field
    wins; otherwise a lightweight n-gram detector runs, e.g. a trained
