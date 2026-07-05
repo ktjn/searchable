@@ -1,0 +1,295 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > default :: "boosts" 1`] = `
+{
+  "hits": [
+    {
+      "score": 0.9892,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
+    },
+    {
+      "score": 0.9892,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
+    },
+    {
+      "score": 0.9892,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
+    },
+    {
+      "score": 0.9892,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
+    },
+    {
+      "score": 0.9892,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
+    },
+  ],
+  "totalHits": 150,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > default :: "shardin" 1`] = `
+{
+  "hits": [],
+  "totalHits": 0,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > default :: "the" 1`] = `
+{
+  "hits": [
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-20.html",
+    },
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-60.html",
+    },
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-100.html",
+    },
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-140.html",
+    },
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-180.html",
+    },
+  ],
+  "totalHits": 303,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-lenient :: "boosts" 1`] = `
+{
+  "hits": [
+    {
+      "score": 1.9694,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
+    },
+    {
+      "score": 1.9694,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
+    },
+    {
+      "score": 1.9694,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
+    },
+    {
+      "score": 1.9694,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
+    },
+    {
+      "score": 1.9694,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
+    },
+  ],
+  "totalHits": 150,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-lenient :: "shardin" 1`] = `
+{
+  "hits": [
+    {
+      "score": 1.4587,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
+    },
+    {
+      "score": 1.4587,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
+    },
+    {
+      "score": 1.4587,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
+    },
+    {
+      "score": 1.4587,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
+    },
+    {
+      "score": 1.4587,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
+    },
+  ],
+  "totalHits": 37,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-lenient :: "the" 1`] = `
+{
+  "hits": [
+    {
+      "score": 1.4623,
+      "url": "/en/guides/guides-setting-up-token-mismatches-11.html",
+    },
+    {
+      "score": 1.4623,
+      "url": "/en/guides/guides-setting-up-token-mismatches-19.html",
+    },
+    {
+      "score": 1.4623,
+      "url": "/en/guides/guides-setting-up-token-mismatches-27.html",
+    },
+    {
+      "score": 1.4623,
+      "url": "/en/guides/guides-setting-up-token-mismatches-35.html",
+    },
+    {
+      "score": 1.4623,
+      "url": "/en/guides/guides-setting-up-token-mismatches-43.html",
+    },
+  ],
+  "totalHits": 303,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-strict :: "boosts" 1`] = `
+{
+  "hits": [
+    {
+      "score": 1.207,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
+    },
+    {
+      "score": 1.207,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
+    },
+    {
+      "score": 1.207,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
+    },
+    {
+      "score": 1.207,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
+    },
+    {
+      "score": 1.207,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
+    },
+  ],
+  "totalHits": 150,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-strict :: "shardin" 1`] = `
+{
+  "hits": [
+    {
+      "score": 0.3241,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
+    },
+    {
+      "score": 0.3241,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
+    },
+    {
+      "score": 0.3241,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
+    },
+    {
+      "score": 0.3241,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
+    },
+    {
+      "score": 0.3241,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
+    },
+  ],
+  "totalHits": 37,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-strict :: "the" 1`] = `
+{
+  "hits": [
+    {
+      "score": 0.3261,
+      "url": "/en/guides/guides-setting-up-token-mismatches-11.html",
+    },
+    {
+      "score": 0.3261,
+      "url": "/en/guides/guides-setting-up-token-mismatches-19.html",
+    },
+    {
+      "score": 0.3261,
+      "url": "/en/guides/guides-setting-up-token-mismatches-27.html",
+    },
+    {
+      "score": 0.3261,
+      "url": "/en/guides/guides-setting-up-token-mismatches-35.html",
+    },
+    {
+      "score": 0.3261,
+      "url": "/en/guides/guides-setting-up-token-mismatches-43.html",
+    },
+  ],
+  "totalHits": 303,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > high-title-boost :: "boosts" 1`] = `
+{
+  "hits": [
+    {
+      "score": 1.1292,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
+    },
+    {
+      "score": 1.1292,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
+    },
+    {
+      "score": 1.1292,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
+    },
+    {
+      "score": 1.1292,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
+    },
+    {
+      "score": 1.1292,
+      "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
+    },
+  ],
+  "totalHits": 150,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > high-title-boost :: "shardin" 1`] = `
+{
+  "hits": [],
+  "totalHits": 0,
+}
+`;
+
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > high-title-boost :: "the" 1`] = `
+{
+  "hits": [
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-20.html",
+    },
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-60.html",
+    },
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-100.html",
+    },
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-140.html",
+    },
+    {
+      "score": 0.0026,
+      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-180.html",
+    },
+  ],
+  "totalHits": 303,
+}
+`;

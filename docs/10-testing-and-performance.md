@@ -61,14 +61,19 @@ Roadmap Phase 0):
   snapshot set, an i18n snapshot set, a synonyms snapshot set) so a
   reviewer looking at a diff immediately knows which subsystem moved.
 
-**Configuration testbed** (planned — [09-roadmap.md](09-roadmap.md#phased-build-plan) Phase 6):
+**Configuration testbed** (built — [09-roadmap.md](09-roadmap.md#phased-build-plan)
+Phase 6, [`packages/client/test/config-testbed.test.ts`](../packages/client/test/config-testbed.test.ts)):
 - The snapshot suite above pins one corpus built with one fixed
-  configuration. A testbed generalizes this to a *matrix*: build the
-  fixture corpus (or a caller-supplied one) once per configuration
-  variant — different `k1`/`b`, field boost weightings, `synonymWeight`/
-  `fuzzyWeight`, filters/facets enabled or not — and run the same fixed
-  query set against every combination, snapshotting per-combination
-  result sets/scores rather than just one.
+  configuration. The testbed generalizes this to a *matrix*: a
+  declared list of `{name, build: BuildIndexOptions, search:
+  SearchOptions}` variants — today, default field boosts, a per-query
+  title-boost override (field boosts resolve from the manifest at
+  query time, so this variant reuses one build rather than needing its
+  own), and fuzzy matching at a strict vs. lenient `fuzzyWeight` — each
+  built/queried against a shared slice of the
+  [`@csf/fixtures`](../packages/fixtures) CMS-2k corpus with the same
+  fixed query set, snapshotted per (variant, query) combination via
+  Vitest's `toMatchSnapshot()`.
 - The point isn't more coverage of the same thing — it's answering "does
   this tuning change help or hurt across the configurations people
   actually run in production," not just the one configuration the
@@ -76,12 +81,21 @@ Roadmap Phase 0):
   the default-config snapshot but regresses a high-field-boost
   configuration is exactly the kind of trade-off this is meant to
   surface, which a single fixed snapshot corpus structurally cannot.
-- Configuration variants are declared data (a list of `BuildIndexOptions`
-  + `SearchOptions` pairs), not code branches, so adding a new
-  configuration to test is a config-file edit, not a new test file —
-  keeps the "add a variant" cost low enough that it actually gets used
-  when someone proposes a tuning change, rather than becoming stale
-  documentation nobody updates.
+- Configuration variants are declared data (the `VARIANTS` array), not
+  code branches, so adding a new configuration to test is a data edit,
+  not a new test file — keeps the "add a variant" cost low enough that
+  it actually gets used when someone proposes a tuning change, rather
+  than becoming stale documentation nobody updates. Query-term choice
+  matters here: the "boosts" query was picked specifically because
+  some matching documents have it in their title and others only in
+  body prose from a different topic — a term that's title-only or
+  body-only everywhere it appears can't show a title-boost change
+  actually reordering anything.
+- BM25 `k1`/`b` variants and facets/filters-on-or-off variants aren't
+  in the matrix yet, and neither is a synonyms variant (the fixture's
+  prose has no deliberately paired synonym vocabulary the way
+  showcase/gallery-synonyms-data.ts does) — the framework supports all
+  three as straightforward additions to `VARIANTS`, not a redesign.
 - Reuses the existing fixture corpus and query set (Phase 0) and the
   existing per-feature-area snapshot organization above — this is an
   additional axis (configuration) crossed with what's already there
