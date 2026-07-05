@@ -61,6 +61,32 @@ Roadmap Phase 0):
   snapshot set, an i18n snapshot set, a synonyms snapshot set) so a
   reviewer looking at a diff immediately knows which subsystem moved.
 
+**Configuration testbed** (planned — [09-roadmap.md](09-roadmap.md#phased-build-plan) Phase 6):
+- The snapshot suite above pins one corpus built with one fixed
+  configuration. A testbed generalizes this to a *matrix*: build the
+  fixture corpus (or a caller-supplied one) once per configuration
+  variant — different `k1`/`b`, field boost weightings, `synonymWeight`/
+  `fuzzyWeight`, filters/facets enabled or not — and run the same fixed
+  query set against every combination, snapshotting per-combination
+  result sets/scores rather than just one.
+- The point isn't more coverage of the same thing — it's answering "does
+  this tuning change help or hurt across the configurations people
+  actually run in production," not just the one configuration the
+  existing snapshot corpus happens to use. A `k1` change that improves
+  the default-config snapshot but regresses a high-field-boost
+  configuration is exactly the kind of trade-off this is meant to
+  surface, which a single fixed snapshot corpus structurally cannot.
+- Configuration variants are declared data (a list of `BuildIndexOptions`
+  + `SearchOptions` pairs), not code branches, so adding a new
+  configuration to test is a config-file edit, not a new test file —
+  keeps the "add a variant" cost low enough that it actually gets used
+  when someone proposes a tuning change, rather than becoming stale
+  documentation nobody updates.
+- Reuses the existing fixture corpus and query set (Phase 0) and the
+  existing per-feature-area snapshot organization above — this is an
+  additional axis (configuration) crossed with what's already there
+  (corpus × queries), not a parallel test suite to maintain separately.
+
 ## 2. Performance test suite
 
 Kept separate from correctness CI because timing is noisy in shared CI

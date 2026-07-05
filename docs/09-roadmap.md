@@ -212,6 +212,14 @@ Phase 2 is now fully implemented.
 **Phase 6 — Modern features polish**
 - Streaming results, highlighting, offline/Service Worker plugin,
   bundle-size CI gate, accessibility pass, observability hooks.
+- Configuration testbed for regression testing
+  ([10-testing-and-performance.md](10-testing-and-performance.md#1-correctness-tests)):
+  generalizes the fixed-corpus regression snapshot to a matrix of
+  index/query-configuration combinations (BM25 `k1`/`b`, field boosts,
+  `synonymWeight`/`fuzzyWeight`, facets/filters on or off) declared as
+  data rather than one-off test code, so a tuning change can be checked
+  against every configuration people actually run, not just the one the
+  snapshot corpus happens to use.
 
 **Phase 7 — Scale options**
 - Binary tier codec (plus a Range-request-capable single-file postings
