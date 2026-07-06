@@ -507,6 +507,19 @@ function nearestTermsFor(
 }
 
 /**
+ * `"all"` is a reserved shard-prefix value (docs/02-index-format.md#term-shard-inverted-index)
+ * meaning "this shard holds the entire vocabulary for its language,"
+ * not a literal character prefix -- unlike every other prefix value,
+ * which *is* a real leading substring of every term inside it. Emitted
+ * by `writeIndex(built, outDir, { shardByPrefix: false })`
+ * (docs/14-reference-deployment-cms-2k.md's small-corpus mode) and by
+ * both independent reference generators
+ * (spec/examples/{python,typescript}/), so any conformant producer's
+ * output can use it, not just this project's own indexer.
+ */
+const UNSHARDED_TERM_SHARD_PREFIX = "all";
+
+/**
  * The term shard entries a query actually needs, out of every shard for
  * `language` (docs/02-index-format.md#term-shard-inverted-index): shards
  * partition the vocabulary disjointly by first-character (or, for an
@@ -515,11 +528,13 @@ function nearestTermsFor(
  * query (`term*`) only ever needs shards whose prefix *overlaps* the
  * query's prefix -- either is a prefix of the other, since the query
  * prefix and a shard's prefix can differ in length (a single-char query
- * prefix against two-char shards, or vice versa). Fetching only this
- * subset (rather than every shard for the language, regardless of which
- * terms a query actually mentions) is the whole point of prefix
- * sharding: first-query cost stays flat as the corpus grows instead of
- * scaling with total vocabulary size (docs/11-binary-vs-json-index.md).
+ * prefix against two-char shards, or vice versa). An `"all"` shard
+ * (`UNSHARDED_TERM_SHARD_PREFIX` above) always matches, since it's not
+ * a real prefix to test membership against. Fetching only this subset
+ * (rather than every shard for the language, regardless of which terms
+ * a query actually mentions) is the whole point of prefix sharding:
+ * first-query cost stays flat as the corpus grows instead of scaling
+ * with total vocabulary size (docs/11-binary-vs-json-index.md).
  */
 function shardEntriesForQuery(
   shardEntries: Manifest["shards"]["terms"],
@@ -527,6 +542,7 @@ function shardEntriesForQuery(
   prefixesNeeded: string[],
 ): Manifest["shards"]["terms"] {
   return shardEntries.filter((entry) => {
+    if (entry.prefix === UNSHARDED_TERM_SHARD_PREFIX) return true;
     for (const term of exactTermsNeeded) {
       if (term.startsWith(entry.prefix)) return true;
     }

@@ -36,7 +36,26 @@ reproducible in Python — languages are free to implement a
 `LanguageProfile` differently, and correctness there is about
 consistency *within* one implementation between index-time and
 query-time, not bit-identical tokenization across every possible
-implementation. The stronger "does a real index built by an independent
-generator load and query correctly through `@csf/client`" test is
-tracked in [docs/10-testing-and-performance.md](../../docs/10-testing-and-performance.md#1-correctness-tests)
-as a Phase 0/7 deliverable, not claimed as already done here.
+implementation.
+
+The stronger "does a real index built by an independent generator load
+and query correctly through `@csf/client`" claim
+([docs/10-testing-and-performance.md](../../docs/10-testing-and-performance.md#1-correctness-tests)'s
+"Cross-implementation conformance" bullet, a Phase 0/7 deliverable) is
+now built:
+[`packages/client/test/cross-implementation-conformance.test.ts`](../../packages/client/test/cross-implementation-conformance.test.ts)
+shells out to `python3 python/generate_index.py` as a subprocess,
+serves its output over real HTTP, and runs the same `SearchClient`
+query assertions against it as against a `@csf/indexer`-built index of
+the same `documents.json` fixture — same expected matching doc ids for
+the same query text (not identical scores; the two implementations'
+tokenization deliberately differs, per the note above). This fixture's
+text is deliberately chosen so its key query words (`"support"`,
+`"small"`, `"about"`) stem to themselves under `@csf/analysis`'s Porter
+stemmer, since `@csf/client`'s query analysis always applies the real
+stemmer regardless of which backend built the index being queried —
+a word that stems differently from its own surface form would produce
+a different lookup key against the Python generator's literal
+(unstemmed) term dictionary than against the real indexer's stemmed
+one, which is a tokenization-difference artifact, not a conformance
+failure.

@@ -52,6 +52,24 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   library buy-in — [`spec/examples/`](../spec/examples/)
   (Python + TypeScript), verified byte-for-byte structurally identical
   output and schema-valid against the files above.
+- ✅ Cross-implementation conformance (the stronger claim
+  [10-testing-and-performance.md](10-testing-and-performance.md#1-correctness-tests)'s
+  "Cross-implementation conformance" bullet describes, beyond the
+  structural-comparison bullet above):
+  [`packages/client/test/cross-implementation-conformance.test.ts`](../packages/client/test/cross-implementation-conformance.test.ts)
+  shells out to the Python reference generator as a subprocess, serves
+  its output over real HTTP, and runs the same `SearchClient` query
+  assertions against it as against a real `@csf/indexer`-built index of
+  the same fixture — proving an independent, non-TypeScript, non-
+  stemming producer's output actually loads and queries correctly
+  through this project's own client, not just that the on-disk bytes
+  look structurally similar. `spec/examples/documents.json`'s fixture
+  text was tuned so its key query words stem to themselves under the
+  real Porter stemmer, since `@csf/client`'s query analysis always
+  stems regardless of which backend built the index being queried — a
+  necessary accommodation for the two implementations' deliberately
+  different tokenization (see `spec/examples/README.md`), not a
+  weakening of the test.
 - ✅ Realistically-shaped fixture corpus grounded in
   [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md):
   [`@csf/fixtures`](../packages/fixtures) generates a deterministic,
@@ -714,15 +732,14 @@ Phase 2 is now fully implemented.
   [11-binary-vs-json-index.md](11-binary-vs-json-index.md) (the "should
   we, and when") and [spec-binary-format.md](spec-binary-format.md)
   (the physical layout, if/when the investigation says yes) — optional
-  WASM scoring core, federated multi-index search, and the independent
-  Python reference generator ([20-tech-stack.md](20-tech-stack.md#reference-index-generators-python-and-typescript),
-  [10-testing-and-performance.md](10-testing-and-performance.md)) to
-  prove the format is genuinely implementation-agnostic and not just
-  agnostic in principle, alongside the TypeScript reference indexer
-  already built in Phase 1. A query planner
-  ([spec-query-planner.md](spec-query-planner.md)) and storage
-  abstraction ([spec-storage-api.md](spec-storage-api.md)) are drafted
-  extensibility groundwork for this phase's scale work, not yet built.
+  WASM scoring core and federated multi-index search. (The independent
+  Python reference generator proving the format is genuinely
+  implementation-agnostic, previously listed here as not yet built, is
+  done — see Phase 0's "Cross-implementation conformance" bullet.) A
+  query planner ([spec-query-planner.md](spec-query-planner.md)) and
+  storage abstraction ([spec-storage-api.md](spec-storage-api.md)) are
+  drafted extensibility groundwork for this phase's scale work, not yet
+  built.
 
 **Phase 8 — Vector & hybrid search**
 - Embedding shard format, chunking, quantization (int8 default), brute-

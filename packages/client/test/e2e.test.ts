@@ -675,6 +675,61 @@ describe("prefix-sharded term shard fetching (docs/02-index-format.md#term-shard
   });
 });
 
+describe("shardByPrefix:false (docs/14-reference-deployment-cms-2k.md's small-corpus mode)", () => {
+  // The `prefix: "all"` sentinel (docs/02-index-format.md#term-shard-inverted-index)
+  // is not a real character prefix, so the shard-selection logic in
+  // shardEntriesForQuery() has to special-case it rather than test it
+  // with String.prototype.startsWith() like every other prefix value --
+  // this locks that in against the same query paths the sharded suite
+  // above exercises, using the same vocabulary spread across distinct
+  // leading characters.
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const unshardedSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/alpha",
+      html: `<html lang="en"><head><title>Alpha Page</title></head>
+        <body><main><p>alpha content here</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/bravo",
+      html: `<html lang="en"><head><title>Bravo Page</title></head>
+        <body><main><p>bravo content here</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-unsharded-"));
+    await writeIndex(buildIndex(unshardedSources), outDir, {
+      shardByPrefix: false,
+    });
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("still resolves an exact-term query against a single unsharded term shard", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("alpha");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("still resolves a multi-term query against a single unsharded term shard", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("content alpha");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+});
+
 describe('"quoted phrase" matching (position-adjacency, docs/04-query-ranking-boosts.md#phrase--proximity-queries)', () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

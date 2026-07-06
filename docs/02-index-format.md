@@ -121,6 +121,17 @@ adapts to corpus size at build time (single-char prefixes for small
 corpora, two-char for large ones, chosen so no shard exceeds a target
 byte budget, e.g. ~50KB gzipped).
 
+`prefix: "all"` is a **reserved sentinel**, not a literal character
+prefix: it marks a shard holding the *entire* vocabulary for its
+language, unsharded — the small-corpus-mode opt-out
+([14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale))
+and the shape both independent reference generators
+([`spec/examples/`](../spec/examples/)) emit. A client resolving which
+shard(s) a query needs must treat `"all"` as matching every term/prefix
+rather than testing it as a real prefix (`"widget".startsWith("all")`
+is false) — every other `prefix` value *is* a genuine leading substring
+of every term the shard contains, and can be tested that way.
+
 ```jsonc
 // terms/en/w.7f3c.json
 {
