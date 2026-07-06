@@ -18,6 +18,8 @@
     "typecheck": "pnpm -r --filter=./packages/* run typecheck && pnpm --filter showcase run typecheck",
     "presize": "pnpm build",
     "size": "pnpm --filter @csf/client run check:bundle-size",
+    "prebench": "pnpm build",
+    "bench": "pnpm --filter @csf/indexer run bench",
     "lint": "biome check .",
     "format": "biome format --write ."
   },

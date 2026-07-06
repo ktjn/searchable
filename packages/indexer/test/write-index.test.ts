@@ -44,6 +44,33 @@ describe("writeIndex", () => {
     expect(built.manifest).toEqual(before);
   });
 
+  it("emits exactly one term shard per language (prefix 'all'), not yet split by term prefix", async () => {
+    // Locks in a known, documented simplification, not a regression:
+    // docs/02-index-format.md's design shards term shards by language +
+    // first-character prefix (a "w" query only fetches the "w" shard),
+    // but that was never built past Phase 1's "single term shard...
+    // unsharded -- small corpus mode" (docs/09-roadmap.md's Phase 1
+    // section) -- every query today fetches and parses the *entire*
+    // per-language vocabulary regardless of corpus size, which is
+    // exactly the headline finding
+    // packages/indexer/bench/json-tier-scaling.mjs's JSON-tier scaling
+    // report (docs/11-binary-vs-json-index.md, docs/09-roadmap.md's
+    // Phase 7 investigation) exists to surface with real numbers. This
+    // test should start failing the moment real prefix sharding is
+    // built -- that's the point, since it means this comment (and the
+    // roadmap bullet it points at) need updating too.
+    const built = buildIndex([docA, docB]);
+    const outDir = await tempOutDir();
+    await writeIndex(built, outDir);
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.shards.terms).toEqual([
+      expect.objectContaining({ lang: "en", prefix: "all" }),
+    ]);
+  });
+
   it("produces byte-identical term and facet shards regardless of source document order", async () => {
     const outDir1 = await tempOutDir();
     const outDir2 = await tempOutDir();

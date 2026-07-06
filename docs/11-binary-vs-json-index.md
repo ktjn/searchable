@@ -166,3 +166,57 @@ on synthetic corpora via `@csf/fixtures`'s `generateCms2kCorpus()`),
 so the actual JSON-vs-binary tradeoff this doc discusses (bytes on the
 wire, client-side parse/decode time, producibility) remains exactly as
 analyzed above and is unaffected by the fix.
+
+**JSON-tier scaling baseline (measured)**: with the O(n²) fix in place,
+`packages/indexer/bench/json-tier-scaling.mjs` (`pnpm bench`) builds real
+corpora at 1k/10k/100k documents through the actual
+`buildIndex()`/`writeIndex()` pipeline and measures build/write time and
+term-shard raw/gzip size and `JSON.parse` time:
+
+| docs | build | en term shard raw | en term shard gzip | `JSON.parse` |
+|---|---|---|---|---|
+| 1,000 | 1.1s | 3.45 MB | 178.9 KB | 51 ms |
+| 10,000 | 9.9s | 34.79 MB | 1.57 MB | 566 ms |
+| 100,000 | 128.3s | 353.01 MB | 14.83 MB | 6,966 ms |
+
+Capped at 100k, not the 1M this doc's follow-up work above calls for:
+the 100k build alone uses several GB of resident memory in this
+reference (in-memory, non-streaming) indexer, and 1M would extrapolate
+past the ~15GB available in a typical CI/dev environment. That's a
+separate finding about the *reference indexer's* build model (a
+practical ceiling well before 1M docs, in-memory and non-streaming),
+not evidence about JSON vs. binary as a wire/shard format — a
+streaming or out-of-core build could reach 1M docs in either format.
+
+**This changes what "should we build binary" actually turns on.**
+Every row above is the *entire* per-language term shard, not one term's
+postings, because `writeIndex()` currently emits exactly one term shard
+per language (`terms/<lang>/all.json`, `prefix: "all"`) rather than the
+per-first-character-prefix sharding
+[02-index-format.md](02-index-format.md#term-shard-inverted-index)
+documents as the design — a known Phase 1 "small corpus mode"
+simplification (09's Phase 1 section), never revisited, not a new
+regression (see the Phase 7 bullet in
+[09-roadmap.md](09-roadmap.md#phase-7--scale-options), and the
+regression test in `packages/indexer/test/write-index.test.ts` that
+locks in current behavior and is designed to start failing once real
+prefix sharding lands). Concretely: at 100k docs, *every* query today
+fetches and parses a 14.83 MB gzip / 353 MB raw payload and pays ~7s of
+`JSON.parse`, regardless of which term was searched — not the "one
+small prefix shard" the sharding design assumes a query costs.
+
+That reframes the JSON-vs-binary question this doc analyzes: the
+~20-30%-to-~2x bytes-on-the-wire gap and parse-time gap discussed above
+are both *per-shard-fetched* comparisons, and today's JSON tier has no
+real per-term-prefix shard to compare against — it has one
+enormous per-language shard. Switching to binary encoding *without*
+first fixing prefix sharding would optimize the wrong axis: a binary
+`terms/<lang>/all.bin` is still an entire-vocabulary fetch per query.
+**Recommendation**: build real per-prefix term sharding first (a
+concrete, scoped Phase 7 follow-up — splitting `terms/<lang>/all.json`
+into `terms/<lang>/<prefix>.json` per 02's design), then re-run this
+benchmark with prefix-sharded shards as the binary-vs-JSON baseline,
+since that's the comparison 02's design and this investigation are
+actually premised on. Building the binary codec against today's
+unsharded baseline first would risk answering a question ("is binary
+worth it for a whole-vocabulary fetch") nobody is actually asking.

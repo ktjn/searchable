@@ -626,6 +626,44 @@ Phase 2 is now fully implemented.
   frequency) asserts an 8x corpus-size jump stays under a 12x time
   increase — true linear scaling lands near 8x, the fixed bug measured
   ~22x on this exact corpus shape.
+- ✅ JSON-tier scaling benchmark
+  (`packages/indexer/bench/json-tier-scaling.mjs`, run via `pnpm bench`):
+  builds real synthetic corpora (`@csf/fixtures`'s `generateCms2kCorpus()`)
+  at 1k/10k/100k documents through the actual `buildIndex()`/`writeIndex()`
+  pipeline and measures build/write time, on-disk shard sizes (raw and
+  gzip), and `JSON.parse` time on the English term shard. Capped at 100k,
+  not 1M — the 100k build alone uses several GB of resident memory in this
+  reference (in-memory, non-streaming) indexer, and 1M would extrapolate
+  past the ~15GB available on a typical CI/dev machine; that ceiling is
+  itself a finding (see [11-binary-vs-json-index.md](11-binary-vs-json-index.md)),
+  not something to push through by brute force. Measured results:
+
+  | docs | build | write | en term shard (raw / gzip) | en shard `JSON.parse` |
+  |---|---|---|---|---|
+  | 1,000 | 1.1s | 0.3s | 3.45 MB / 178.9 KB | 51 ms |
+  | 10,000 | 9.9s | 3.3s | 34.79 MB / 1.57 MB | 566 ms |
+  | 100,000 | 128.3s | 90.8s | 353.01 MB / 14.83 MB | 6,966 ms |
+
+  **Headline finding**: `writeIndex()` emits exactly *one* term shard per
+  language (`terms/<lang>/all.json`, `prefix: "all"`), not the
+  per-first-character-prefix sharding
+  [02-index-format.md](02-index-format.md#term-shard-inverted-index)
+  documents as the design — a known, already-recorded Phase 1 "small
+  corpus mode" simplification, never revisited (see this phase's
+  entry above and Phase 1's bullet), not a new regression. Locked in by
+  a regression test in `packages/indexer/test/write-index.test.ts`
+  (deliberately written to start failing the moment real prefix sharding
+  is built). Consequence, now measured rather than assumed: every query
+  today fetches and parses the *entire* per-language vocabulary
+  regardless of the term searched, so per-query bytes fetched and parse
+  time grow with corpus size exactly like the table above — the "flat
+  first-query cost as the corpus grows" property 02's sharding design
+  exists to guarantee does not currently hold at all for the JSON tier.
+  Real per-prefix term sharding (splitting `terms/<lang>/all.json` into
+  `terms/<lang>/<prefix>.json` per 02's design) is the concrete,
+  high-priority follow-up this finding points at — out of scope for this
+  benchmarking slice, since it's a real indexer feature change, not a
+  measurement.
 - Binary tier codec (plus a Range-request-capable single-file postings
   variant), benchmarked against JSON at 10k/100k/1M synthetic corpus
   sizes to empirically set the size/density threshold where it's worth

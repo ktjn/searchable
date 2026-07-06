@@ -13,7 +13,8 @@
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "bench": "node bench/json-tier-scaling.mjs"
   },
   "dependencies": {
     "@csf/analysis": "workspace:*",
