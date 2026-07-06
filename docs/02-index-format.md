@@ -209,6 +209,16 @@ Range facets (numeric) precompute bucket boundaries at build time
 client can also do arbitrary min/max range filters without a bucket
 matching exactly.
 
+No binary tier for facet shards: unlike term/fuzzy/doc-store shards
+(each read for only a handful of specific keys per query), a facet
+shard's `values` are usually decoded in *full* to compute aggregate
+facet-count results (`options.facets`, `facetValues()`) — the
+"lazy per-key decode" property that makes a binary tier a real win
+elsewhere doesn't cleanly apply here without its own design (a
+filter-only fast path vs. an aggregate-results full-decode path), so
+this is left JSON-only rather than building a binary format nobody's
+benchmarked in that whole-shard-read shape.
+
 ## Doc store shard
 
 Only fields marked `"stored": true` in the manifest are present here —
@@ -228,6 +238,20 @@ couple of small shards.
   }
 }
 ```
+
+**Implemented** (`writeIndex(built, outDir, { docStoreFormat: "binary" })`,
+`packages/indexer/src/binary-doc-store.ts` for the encoder,
+`packages/client/src/binary-doc-store.ts` for the decoder): a
+directory-based `docId -> (byte offset, byte length)` table (same shape
+as the term shard's `term -> (offset, length)` directory) followed by a
+records blob, so a query decodes only the specific hit ids on its result
+page. This one is motivated a bit differently than the term/fuzzy
+shards' "large dictionary, few keys" shape: there is (today) exactly
+*one* doc store shard for the whole corpus regardless of size
+(`write-index.ts` always emits one `docs/0.json`), so every query that
+needs even a single hit's stored fields currently pays the cost of
+fetching and parsing every document in the corpus — this format removes
+that cost by letting the client seek directly to just the ids it needs.
 
 Machine-checkable schemas for every shard type on this page live under
 [`spec/schema/`](../spec/schema/) (Phase 0 of

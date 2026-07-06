@@ -12,6 +12,14 @@ import type {
   VectorShard,
 } from "@csf/format";
 import {
+  decodeBinaryDocStoreDirectory,
+  decodeBinaryDocStoreEntry,
+} from "./binary-doc-store.js";
+import {
+  decodeBinaryFuzzyEntry,
+  decodeBinaryFuzzyShardDirectory,
+} from "./binary-fuzzy-shard.js";
+import {
   decodeBinaryTermEntry,
   decodeBinaryTermShardDirectory,
   termsWithBinaryPrefix,
@@ -475,13 +483,29 @@ function levenshteinDistance(a: string, b: string): number {
 }
 
 /**
+ * A fuzzy dictionary lookup, abstracting over whether the shard behind
+ * it is a plain JSON `FuzzyShard` (already fully in memory, `get()` is a
+ * direct property read) or a binary shard (`./binary-fuzzy-shard.js`,
+ * `get()` lazily decodes just the requested deletion-variant's entry
+ * from an already-fetched byte buffer) — every caller below only ever
+ * needs a handful of specific variant keys per query
+ * (`generateDeletes()`'s expansion of the query terms actually typed),
+ * never the whole dictionary, so this is the same "decode only what a
+ * query touches" property the binary term shard tier already relies on.
+ */
+interface FuzzyLookup {
+  maxEdits: 1 | 2;
+  get(variant: string): string[];
+}
+
+/**
  * Every real term discoverable from `term` via the deletion dictionary
  * (a fast candidate generator, not a distance oracle), each paired with
  * its true Levenshtein distance from `term`. Excludes `term` itself
  * (distance 0 — that's an exact match, not a fuzzy one). Deliberately
  * unfiltered by any maxEdits cutoff here (see `fuzzyMatchesFor` for
  * that) — the query-side deletion depth already matches
- * `fuzzyShard.maxEdits` (needed to find genuine matches at that
+ * `lookup.maxEdits` (needed to find genuine matches at that
  * distance at all, see `generateDeletes`'s doc comment), and the
  * symmetric-delete lookup can additionally surface occasional
  * true-distance-(maxEdits+1) hits too (e.g. an adjacent-character
@@ -490,13 +514,13 @@ function levenshteinDistance(a: string, b: string): number {
  */
 function fuzzyCandidatesFor(
   term: string,
-  fuzzyShard: FuzzyShard | undefined,
+  lookup: FuzzyLookup | undefined,
 ): { term: string; distance: number }[] {
-  if (!fuzzyShard) return [];
+  if (!lookup) return [];
   const candidates = new Set<string>();
-  for (const t of fuzzyShard.deletions[term] ?? []) candidates.add(t);
-  for (const deletion of generateDeletes(term, fuzzyShard.maxEdits)) {
-    for (const t of fuzzyShard.deletions[deletion] ?? []) candidates.add(t);
+  for (const t of lookup.get(term)) candidates.add(t);
+  for (const deletion of generateDeletes(term, lookup.maxEdits)) {
+    for (const t of lookup.get(deletion)) candidates.add(t);
   }
   const matches: { term: string; distance: number }[] = [];
   for (const candidate of candidates) {
@@ -533,11 +557,11 @@ function effectiveMaxEdits(term: string, shardMaxEdits: 1 | 2): number {
  */
 function fuzzyMatchesFor(
   term: string,
-  fuzzyShard: FuzzyShard | undefined,
+  lookup: FuzzyLookup | undefined,
 ): { term: string; distance: number }[] {
-  if (!fuzzyShard) return [];
-  const cap = effectiveMaxEdits(term, fuzzyShard.maxEdits);
-  return fuzzyCandidatesFor(term, fuzzyShard).filter(
+  if (!lookup) return [];
+  const cap = effectiveMaxEdits(term, lookup.maxEdits);
+  return fuzzyCandidatesFor(term, lookup).filter(
     (match) => match.distance <= cap,
   );
 }
@@ -552,13 +576,53 @@ function fuzzyMatchesFor(
  */
 function nearestTermsFor(
   term: string,
-  fuzzyShard: FuzzyShard | undefined,
+  lookup: FuzzyLookup | undefined,
   limit: number,
 ): string[] {
-  return fuzzyCandidatesFor(term, fuzzyShard)
+  return fuzzyCandidatesFor(term, lookup)
     .sort((a, b) => a.distance - b.distance || a.term.localeCompare(b.term))
     .slice(0, limit)
     .map((match) => match.term);
+}
+
+/**
+ * Resolves `language`'s fuzzy shard, if the manifest has one, into a
+ * `FuzzyLookup` -- a JSON shard is fetched and fully parsed up front (as
+ * before), a binary shard fetches+decodes only its directory here, then
+ * decodes individual deletion-variant entries lazily as `get()` is
+ * called during clause resolution below, from the same already-fetched
+ * byte buffer (`ShardCache` memoizes the fetch itself).
+ */
+async function loadFuzzyLookup(
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  language: string,
+): Promise<FuzzyLookup | undefined> {
+  const entry = manifest.fuzzy?.[language];
+  if (!entry) return undefined;
+  if (entry.format === "binary") {
+    const bytes = await cache.fetchArrayBuffer(resolve(baseUrl, entry.file));
+    const directory = decodeBinaryFuzzyShardDirectory(bytes);
+    return {
+      maxEdits: directory.maxEdits,
+      get: (variant) => {
+        const location = directory.index.get(variant);
+        return location
+          ? decodeBinaryFuzzyEntry(
+              bytes,
+              directory.directoryByteLength,
+              location.offset,
+            )
+          : [];
+      },
+    };
+  }
+  const shard = await cache.fetchJson<FuzzyShard>(resolve(baseUrl, entry.file));
+  return {
+    maxEdits: shard.maxEdits,
+    get: (variant) => shard.deletions[variant] ?? [],
+  };
 }
 
 /**
@@ -651,9 +715,8 @@ async function lexicalSearch(
     : undefined;
   const synonymWeight = options.synonymWeight ?? DEFAULT_SYNONYM_WEIGHT;
 
-  const fuzzyFile = options.fuzzy ? manifest.fuzzy?.[language] : undefined;
-  const fuzzyShard = fuzzyFile
-    ? await cache.fetchJson<FuzzyShard>(resolve(baseUrl, fuzzyFile))
+  const fuzzyLookup = options.fuzzy
+    ? await loadFuzzyLookup(manifest, cache, baseUrl, language)
     : undefined;
   const fuzzyWeight = options.fuzzyWeight ?? DEFAULT_FUZZY_WEIGHT;
 
@@ -672,7 +735,7 @@ async function lexicalSearch(
     for (const variant of synonymVariantsFor(qt.term, synonymShard)) {
       exactTermsNeeded.add(variant);
     }
-    for (const match of fuzzyMatchesFor(qt.term, fuzzyShard)) {
+    for (const match of fuzzyMatchesFor(qt.term, fuzzyLookup)) {
       exactTermsNeeded.add(match.term);
     }
   }
@@ -780,7 +843,7 @@ async function lexicalSearch(
           addedTerms.add(variant);
         }
       }
-      for (const match of fuzzyMatchesFor(qt.term, fuzzyShard)) {
+      for (const match of fuzzyMatchesFor(qt.term, fuzzyLookup)) {
         if (addedTerms.has(match.term)) continue;
         const fuzzyEntry = termLookup.get(match.term);
         if (fuzzyEntry) {
@@ -1026,22 +1089,12 @@ async function lexicalSearch(
     ...pinnedForDisplay.map((d) => d.id),
     ...rankedOrganic.map((r) => r.id),
   ];
-  const docShardEntries = manifest.shards.docs.filter((d) =>
-    allResultIds.some((id) => id >= d.idRange[0] && id <= d.idRange[1]),
+  const docLookup = await fetchDocStoreEntriesByIds(
+    manifest,
+    cache,
+    baseUrl,
+    allResultIds,
   );
-  const docShards = await Promise.all(
-    docShardEntries.map((entry) =>
-      cache.fetchJson<Record<string, DocStoreEntry>>(
-        resolve(baseUrl, entry.file),
-      ),
-    ),
-  );
-  const docLookup = new Map<number, DocStoreEntry>();
-  for (const shard of docShards) {
-    for (const [id, entry] of Object.entries(shard)) {
-      docLookup.set(Number(id), entry);
-    }
-  }
 
   // Highlighting matches raw stored text, so it needs each query term's
   // literal (lowercased-only) surface form, not the stemmed form used
@@ -1123,7 +1176,7 @@ async function lexicalSearch(
   let didYouMean: string[] | undefined;
   if (
     options.fuzzy &&
-    fuzzyShard &&
+    fuzzyLookup &&
     hits.length === 0 &&
     failedTerms.length > 0
   ) {
@@ -1131,7 +1184,7 @@ async function lexicalSearch(
     for (const term of failedTerms) {
       for (const candidate of nearestTermsFor(
         term,
-        fuzzyShard,
+        fuzzyLookup,
         MAX_SUGGESTIONS_PER_TERM,
       )) {
         suggestions.add(candidate);
@@ -1149,7 +1202,19 @@ async function lexicalSearch(
   };
 }
 
-/** Fetches doc-store entries for exactly the given ids, from whichever doc shard(s) cover them — the same lookup `lexicalSearch` does inline, factored out so vector/hybrid result assembly (which builds its hit list from a different candidate set) can reuse it. */
+/**
+ * Fetches doc-store entries for exactly the given ids, from whichever
+ * doc shard(s) cover them — shared by `lexicalSearch`'s inline hit
+ * assembly and vector/hybrid result assembly (which builds its hit list
+ * from a different candidate set). A binary-format shard
+ * (`./binary-doc-store.js`) decodes only the requested ids by seeking
+ * directly to each one's byte range, never the whole store — the only
+ * doc store shard today covers the *entire* corpus regardless of size
+ * (`write-index.ts` always emits one `docs/0.json`), so this is a real
+ * win any time a query's hit count is a small fraction of the corpus. A
+ * JSON-format shard still parses in full (as before), same as term
+ * shards' own JSON path — `JSON.parse` has no partial-decode option.
+ */
 async function fetchDocStoreEntriesByIds(
   manifest: Manifest,
   cache: ShardCache,
@@ -1159,19 +1224,37 @@ async function fetchDocStoreEntriesByIds(
   const docShardEntries = manifest.shards.docs.filter((d) =>
     ids.some((id) => id >= d.idRange[0] && id <= d.idRange[1]),
   );
-  const docShards = await Promise.all(
-    docShardEntries.map((entry) =>
-      cache.fetchJson<Record<string, DocStoreEntry>>(
-        resolve(baseUrl, entry.file),
-      ),
-    ),
-  );
+  const idSet = new Set(ids);
   const docLookup = new Map<number, DocStoreEntry>();
-  for (const shard of docShards) {
-    for (const [id, entry] of Object.entries(shard)) {
-      docLookup.set(Number(id), entry);
-    }
-  }
+  await Promise.all(
+    docShardEntries.map(async (entry) => {
+      if (entry.format === "binary") {
+        const bytes = await cache.fetchArrayBuffer(
+          resolve(baseUrl, entry.file),
+        );
+        const directory = decodeBinaryDocStoreDirectory(bytes);
+        for (const id of idSet) {
+          const location = directory.index.get(id);
+          if (!location) continue;
+          docLookup.set(
+            id,
+            decodeBinaryDocStoreEntry(
+              bytes,
+              directory.directoryByteLength,
+              location.offset,
+            ),
+          );
+        }
+      } else {
+        const shard = await cache.fetchJson<Record<string, DocStoreEntry>>(
+          resolve(baseUrl, entry.file),
+        );
+        for (const [id, docEntry] of Object.entries(shard)) {
+          docLookup.set(Number(id), docEntry);
+        }
+      }
+    }),
+  );
   return docLookup;
 }
 

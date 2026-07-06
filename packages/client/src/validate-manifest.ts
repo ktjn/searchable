@@ -147,6 +147,20 @@ export function validateManifest(
       checkShardFile(file, manifestUrl, allowCrossOrigin, `pins.${lang}`);
     }
   }
+  if (m.fuzzy !== undefined) {
+    if (typeof m.fuzzy !== "object" || m.fuzzy === null) {
+      fail("fuzzy must be an object keyed by language");
+    }
+    for (const [lang, descriptor] of Object.entries(
+      m.fuzzy as Record<string, unknown>,
+    )) {
+      if (typeof descriptor !== "object" || descriptor === null) {
+        fail(`fuzzy.${lang} must be an object`);
+      }
+      const file = (descriptor as Record<string, unknown>).file;
+      checkShardFile(file, manifestUrl, allowCrossOrigin, `fuzzy.${lang}`);
+    }
+  }
   if (m.vectors !== undefined) {
     if (typeof m.vectors !== "object" || m.vectors === null) {
       fail("vectors must be an object");

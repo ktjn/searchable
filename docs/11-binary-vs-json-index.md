@@ -366,8 +366,7 @@ now a real, opt-in feature, not just a benchmark prototype —
 `packages/client/src/binary-term-shard.ts`). Per-shard, not global
 (`format: "binary"` recorded on that specific shard's manifest entry,
 per `spec-binary-format.md`'s "a deployment may mix JSON and binary
-files" allowance), and deliberately term-shard-only — every other shard
-type stays JSON. `packages/client/test/binary-term-shard.test.ts`
+files" allowance). `packages/client/test/binary-term-shard.test.ts`
 builds the same corpus both ways and proves the same real-HTTP
 `SearchClient` query returns identical hit ids *and* identical scores
 across exact-term, prefix, multi-term AND, phrase, synonym-expanded,
@@ -378,3 +377,28 @@ directly rather than assumed. The directory-parse-scales-with-term-count
 follow-up flagged just above (true binary search against undecoded
 directory bytes, for shards with a much larger vocabulary than any
 tested here) remains open for a future slice.
+
+**Extended to fuzzy shards and the doc store**: the exact same
+directory-based, lazy-per-key-decode technique, applied after actually
+checking each remaining shard type's real access pattern in
+`packages/client/src/search.ts` rather than mechanically encoding every
+shard type — fuzzy shards (`fuzzyShardFormat: "binary"`,
+`binary-fuzzy-shard.ts`) share the term shard's exact shape (a
+dictionary that can be as large as the vocabulary, but only a handful of
+keys touched per query), so no separate benchmark was needed; the doc
+store (`docStoreFormat: "binary"`, `binary-doc-store.ts`) is
+differently motivated — there's only ever *one* doc store shard
+regardless of corpus size today, so every query previously decoded the
+*entire* store even for a handful of hits, which lazy per-id decode
+fixes directly. Facet shards were deliberately left out: `search.ts`
+usually decodes a facet shard's `values` in full (for aggregate
+facet-count results), the opposite of the "few keys touched" shape that
+makes lazy decode a win, so encoding it the same way could plausibly be
+a *regression* (per the whole-shard-decode finding earlier in this doc)
+without its own investigation — a real follow-up, not attempted here.
+Proven with the same rigor as the term shard's own test
+(`packages/client/test/binary-fuzzy-shard.test.ts`,
+`packages/client/test/binary-doc-store.test.ts`): identical hit ids for
+a fuzzy-matched typo query, identical "did you mean" suggestions, and
+identical `url`/stored `fields`/`score` (exercising the float64
+`csf-boost` round-trip) between formats built from the same corpus.

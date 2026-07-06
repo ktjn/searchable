@@ -28,7 +28,9 @@ bundle-size CI gate, result highlighting, observability hooks,
 `options.signal` cancellation, `searchStream()` streaming results,
 offline Service Worker caching, and an accessibility pass in the
 showcase's own widgets). Phase 7 (scale options) has an opt-in binary
-term-shard tier plus the benchmarking that validated its design. Phase 8
+tier for term, fuzzy, and doc store shards, plus the benchmarking that
+validated its design (facet/synonym/pins shards deliberately stay JSON —
+see below for why). Phase 8
 (vector & hybrid search) has its storage/similarity mechanics slice
 built and tested — chunking, quantization, brute-force cosine
 similarity, RRF hybrid fusion, an injectable query-embedding seam — with
@@ -817,20 +819,60 @@ Phase 2 is now fully implemented.
   design, now wired end-to-end. Per-shard, not global (`format:
   "binary"` on that shard's manifest entry, per
   [spec-binary-format.md](spec-binary-format.md#manifest-integration)'s
-  "a deployment may mix JSON and binary files" allowance) — every other
-  shard type (facets, doc store, pins, synonyms, fuzzy) stays JSON
-  regardless, matching this slice's deliberately term-shard-only scope.
+  "a deployment may mix JSON and binary files" allowance).
   `packages/client/test/binary-term-shard.test.ts` proves
   `spec-binary-format.md`'s success criterion directly: the same corpus
   built both ways returns identical hit ids *and* identical scores over
   real HTTP for exact-term, prefix (`term*`), multi-term AND, `"quoted
   phrase"`, synonym-expanded, fuzzy-matched, facet-filtered, and
   document-boosted queries — not just that both return non-empty
-  results. Still missing before this is a complete binary tier: a
+  results.
+- ✅ Binary tier codec — fuzzy shards and doc store
+  (`packages/indexer/src/binary-fuzzy-shard.ts` /
+  `binary-doc-store.ts` for the encoders,
+  `packages/client/src/binary-fuzzy-shard.ts` / `binary-doc-store.ts`
+  for the decoders, `writeIndex(built, outDir, { fuzzyShardFormat:
+  "binary", docStoreFormat: "binary" })`): extends the term shard's
+  directory-based, lazy-per-key-decode design to two more shard types,
+  chosen by re-checking each remaining shard type's actual access
+  pattern in `search.ts` rather than encoding everything uniformly —
+  fuzzy shards share the term shard's exact "large dictionary, few keys
+  touched per query" shape (a fuzzy dictionary can be as large as the
+  term vocabulary itself, but a query only looks up a handful of
+  specific deletion-variant keys), so the same design applies directly
+  without its own from-scratch benchmark; the doc store is motivated
+  differently — there is (today) exactly *one* doc store shard for the
+  whole corpus regardless of size, so *every* query previously fetched
+  and parsed every document in the corpus even for a handful of hits,
+  which the same lazy-decode-by-id technique fixes. Facet shards were
+  deliberately **not** given a binary tier in this slice: `search.ts`
+  usually decodes a facet shard's `values` in full to compute aggregate
+  facet-count results, the opposite access pattern from what makes lazy
+  per-key decode a win — building one properly would need its own
+  filter-only-vs-aggregate-results design, not a mechanical rename of
+  the term-shard technique (see
+  [02-index-format.md](02-index-format.md#facet-shard)). Synonym/pins
+  shards stay JSON too: both are small, author-curated data with no
+  demonstrated size problem to justify the added complexity. Also
+  extracted a shared `ByteWriter`/`ByteReader` (`packages/indexer/src/byte-writer.ts`,
+  `packages/client/src/byte-reader.ts`) once a third encoder/decoder
+  pair needed the exact same varint/string/float64 primitives, rather
+  than a fourth copy-paste. Proven with the same rigor as the term
+  shard's own equivalence test
+  (`packages/client/test/binary-fuzzy-shard.test.ts`,
+  `packages/client/test/binary-doc-store.test.ts`): identical hit ids
+  for a fuzzy-matched typo query, identical "did you mean" suggestions
+  (including a deliberately-constructed distance-2-via-symmetric-delete
+  case that fails strict fuzzy matching but still surfaces as a
+  suggestion), and identical `url`/stored `fields`/`score` — the last
+  exercising the float64 `csf-boost` round-trip — for both formats
+  built from the same corpus.
+- Still missing before this is a complete binary tier: a
   Range-request-capable single-file postings variant, an optional WASM
-  scoring core, federated multi-index search, and binary encodings for
-  the other shard types — see [11-binary-vs-json-index.md](11-binary-vs-json-index.md)
-  and [spec-binary-format.md](spec-binary-format.md) for what's left. A
+  scoring core, federated multi-index search, and a facet-shard binary
+  encoding with its own filter-vs-aggregate design — see
+  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) and
+  [spec-binary-format.md](spec-binary-format.md) for what's left. A
   query planner ([spec-query-planner.md](spec-query-planner.md)) and
   storage abstraction ([spec-storage-api.md](spec-storage-api.md)) are
   drafted extensibility groundwork for this phase's scale work, not yet

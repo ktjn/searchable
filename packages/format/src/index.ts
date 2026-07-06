@@ -48,14 +48,44 @@ export interface Manifest {
       format?: "json" | "binary";
     }>;
     facets?: Array<{ field: string; file: string }>;
-    docs: Array<{ shard: number; file: string; idRange: [number, number] }>;
+    docs: Array<{
+      shard: number;
+      file: string;
+      idRange: [number, number];
+      /**
+       * Per-shard physical encoding, same allowance and same meaning as
+       * the term shard entry's `format` field above
+       * (docs/spec-binary-format.md#manifest-integration) — a
+       * directory-based `docId -> (byte offset, byte length)` encoding
+       * (`packages/indexer/src/binary-doc-store.ts`,
+       * `packages/client/src/binary-doc-store.ts`) in place of the plain
+       * JSON `Record<docId, DocStoreEntry>` shape, so a query only ever
+       * decodes the specific hit ids it needs instead of the whole doc
+       * store.
+       */
+      format?: "json" | "binary";
+    }>;
   };
   /** lang -> pins shard file, only present for languages with at least one csf-pin. */
   pins?: Record<string, string>;
   /** lang -> synonyms shard file, only present for languages with an authored synonym set. */
   synonyms?: Record<string, string>;
-  /** lang -> fuzzy shard file, only present for languages with a built deletion dictionary. */
-  fuzzy?: Record<string, string>;
+  /**
+   * lang -> fuzzy shard, only present for languages with a built deletion
+   * dictionary. An object (not a bare file-string like `pins`/`synonyms`
+   * above) because `format` needs somewhere to live: a directory-based
+   * `deletionVariant -> (byte offset, byte length)` encoding
+   * (`packages/indexer/src/binary-fuzzy-shard.ts`,
+   * `packages/client/src/binary-fuzzy-shard.ts`) is available here, since
+   * a fuzzy dictionary can be as large as the term vocabulary itself
+   * (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching) but a query
+   * only ever looks up a handful of specific deletion-variant keys —
+   * the same "large dictionary, few keys touched per query" shape that
+   * already justified the term shard's binary tier. `pins`/`synonyms`
+   * stay plain file-strings above: both are small, author-curated data
+   * with no binary encoding built (or currently justified) for them.
+   */
+  fuzzy?: Record<string, { file: string; format?: "json" | "binary" }>;
   /**
    * Vector/hybrid search (docs/13-vector-and-hybrid-search.md), only
    * present for a corpus built with a `vectors` option. `dims` and

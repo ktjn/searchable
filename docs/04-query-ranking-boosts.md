@@ -148,6 +148,17 @@ feature.
 - Fuzzy results are always ranked below exact/prefix matches for the same
   term (a small score penalty proportional to edit distance) rather than
   mixed in undifferentiated.
+- **Binary tier** (opt-in, `writeIndex(built, outDir, { fuzzyShardFormat: "binary" })`,
+  `packages/indexer/src/binary-fuzzy-shard.ts` for the encoder,
+  `packages/client/src/binary-fuzzy-shard.ts` for the decoder — see
+  [09-roadmap.md](09-roadmap.md#phase-7--scale-options)): the same
+  directory-based, lazy-per-key-decode design as the term shard's binary
+  tier, applied to the deletion dictionary instead — a fuzzy shard can
+  be as large as the term vocabulary itself, but a query only ever looks
+  up a handful of specific deletion-variant keys, the same "large
+  dictionary, few keys touched per query" shape already validated for
+  term shards, so this reuses that design directly rather than needing
+  its own from-scratch benchmark.
 
 ## "Did you mean" / query suggestions
 

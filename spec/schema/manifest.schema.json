@@ -106,7 +106,8 @@
                 "items": { "type": "integer", "minimum": 0 },
                 "minItems": 2,
                 "maxItems": 2
-              }
+              },
+              "format": { "enum": ["json", "binary"] }
             }
           }
         }
@@ -123,10 +124,18 @@
       "additionalProperties": { "type": "string" }
     },
     "fuzzy": {
-      "description": "lang -> fuzzy-shard file, only present for languages with a built deletion dictionary. See fuzzy-shard.schema.json.",
+      "description": "lang -> fuzzy-shard descriptor, only present for languages with a built deletion dictionary. See fuzzy-shard.schema.json.",
       "type": "object",
       "propertyNames": { "type": "string" },
-      "additionalProperties": { "type": "string" }
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file"],
+        "properties": {
+          "file": { "type": "string" },
+          "format": { "enum": ["json", "binary"] }
+        }
+      }
     },
     "vectors": {
       "description": "Vector/hybrid search (docs/13-vector-and-hybrid-search.md), only present for a corpus built with a vectors option. See vector-shard.schema.json for the shard files themselves.",

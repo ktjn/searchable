@@ -405,10 +405,11 @@ describe("writeIndex", () => {
     const manifest = JSON.parse(
       await readFile(join(outDir, "manifest.json"), "utf8"),
     );
-    expect(manifest.fuzzy.en).toMatch(/^fuzzy\/en\.[0-9a-f]+\.json$/);
+    expect(manifest.fuzzy.en.file).toMatch(/^fuzzy\/en\.[0-9a-f]+\.json$/);
+    expect(manifest.fuzzy.en.format).toBeUndefined();
 
     const content = JSON.parse(
-      await readFile(join(outDir, manifest.fuzzy.en), "utf8"),
+      await readFile(join(outDir, manifest.fuzzy.en.file), "utf8"),
     );
     expect(content.maxEdits).toBe(1);
     // "widgets" stems to the real indexed term "widget"; "widge" (drop
@@ -424,5 +425,85 @@ describe("writeIndex", () => {
       await readFile(join(outDir, "manifest.json"), "utf8"),
     );
     expect(manifest.fuzzy).toBeUndefined();
+  });
+
+  it("writes a .bin fuzzy shard with format: 'binary' recorded when fuzzyShardFormat: 'binary'", async () => {
+    // Full decode-correctness is proven end-to-end in
+    // packages/client/test/binary-fuzzy-shard.test.ts -- same split of
+    // responsibility as the term shard's own structural-only test above.
+    const outDir = await tempOutDir();
+    const built = buildIndex([docA], "en", { fuzzy: true });
+    await writeIndex(built, outDir, { fuzzyShardFormat: "binary" });
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.fuzzy.en.format).toBe("binary");
+    expect(manifest.fuzzy.en.file).toMatch(/^fuzzy\/en\.[0-9a-f]+\.bin$/);
+  });
+
+  it("produces byte-identical binary fuzzy shards regardless of source document order", async () => {
+    const outDir1 = await tempOutDir();
+    const outDir2 = await tempOutDir();
+    await writeIndex(buildIndex([docA, docB], "en", { fuzzy: true }), outDir1, {
+      fuzzyShardFormat: "binary",
+    });
+    await writeIndex(buildIndex([docB, docA], "en", { fuzzy: true }), outDir2, {
+      fuzzyShardFormat: "binary",
+    });
+
+    const manifest1 = JSON.parse(
+      await readFile(join(outDir1, "manifest.json"), "utf8"),
+    );
+    const manifest2 = JSON.parse(
+      await readFile(join(outDir2, "manifest.json"), "utf8"),
+    );
+    expect(manifest1.fuzzy.en.file).toBe(manifest2.fuzzy.en.file);
+
+    const content1 = await readFile(join(outDir1, manifest1.fuzzy.en.file));
+    const content2 = await readFile(join(outDir2, manifest2.fuzzy.en.file));
+    expect(content1.equals(content2)).toBe(true);
+  });
+
+  it("writes a .bin doc store with format: 'binary' recorded when docStoreFormat: 'binary'", async () => {
+    // Full decode-correctness is proven end-to-end in
+    // packages/client/test/binary-doc-store.test.ts.
+    const outDir = await tempOutDir();
+    const built = buildIndex([docA, docB]);
+    await writeIndex(built, outDir, { docStoreFormat: "binary" });
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.shards.docs).toHaveLength(1);
+    expect(manifest.shards.docs[0].format).toBe("binary");
+    expect(manifest.shards.docs[0].file).toMatch(/^docs\/0\.[0-9a-f]+\.bin$/);
+  });
+
+  it("produces a byte-identical binary doc store regardless of source document order", async () => {
+    const outDir1 = await tempOutDir();
+    const outDir2 = await tempOutDir();
+    await writeIndex(buildIndex([docA, docB]), outDir1, {
+      docStoreFormat: "binary",
+    });
+    await writeIndex(buildIndex([docB, docA]), outDir2, {
+      docStoreFormat: "binary",
+    });
+
+    const manifest1 = JSON.parse(
+      await readFile(join(outDir1, "manifest.json"), "utf8"),
+    );
+    const manifest2 = JSON.parse(
+      await readFile(join(outDir2, "manifest.json"), "utf8"),
+    );
+    expect(manifest1.shards.docs[0].file).toBe(manifest2.shards.docs[0].file);
+
+    const content1 = await readFile(
+      join(outDir1, manifest1.shards.docs[0].file),
+    );
+    const content2 = await readFile(
+      join(outDir2, manifest2.shards.docs[0].file),
+    );
+    expect(content1.equals(content2)).toBe(true);
   });
 });

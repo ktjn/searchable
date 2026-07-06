@@ -1,14 +1,23 @@
 # Binary Index Format Specification
 
-Status: Draft, term shards implemented — see
+Status: Draft, term/fuzzy/doc-store shards implemented — see
 [09-roadmap.md](09-roadmap.md#phase-7--scale-options) and
 [11-binary-vs-json-index.md](11-binary-vs-json-index.md) for the shipped
 term-shard encoding (`writeIndex(built, outDir, { termShardFormat: "binary" })`,
 `packages/indexer/src/binary-term-shard.ts` +
 `packages/client/src/binary-term-shard.ts`) and the benchmarks that
 validated its directory-based, lazy-per-term-decode design before it was
-built. Facet, doc store, synonym, pins, and fuzzy shards remain JSON —
-this doc's design for those is still a draft, not yet implemented.
+built, plus the same design applied to fuzzy shards
+(`fuzzyShardFormat: "binary"`, `binary-fuzzy-shard.ts`) and a
+differently-motivated doc-id-directory encoding for the doc store
+(`docStoreFormat: "binary"`, `binary-doc-store.ts`). Facet, synonym, and
+pins shards remain JSON — facets deliberately so (see
+[02-index-format.md](02-index-format.md#facet-shard): they're usually
+decoded in full for aggregate results, the opposite of the access
+pattern that makes a binary tier a win elsewhere), synonym/pins because
+neither has a demonstrated size problem worth the complexity. This
+doc's design for facet/synonym/pins binary encoding is still a draft,
+not yet implemented.
 
 ## Purpose
 

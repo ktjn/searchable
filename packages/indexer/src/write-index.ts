@@ -2,6 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
 import type { Manifest, TermShard } from "@csf/format";
+import { encodeDocStoreBinary } from "./binary-doc-store.js";
+import { encodeFuzzyShardBinary } from "./binary-fuzzy-shard.js";
 import { encodeTermShardBinary } from "./binary-term-shard.js";
 import type { BuiltVectors } from "./build-vectors.js";
 import { contentHash } from "./hash.js";
@@ -206,6 +208,29 @@ export interface WriteIndexOptions {
    */
   termShardFormat?: "json" | "binary";
   /**
+   * `"binary"` writes the doc store with the directory-based
+   * `docId -> (byte offset, byte length)` encoding
+   * (`./binary-doc-store.js`) in place of the plain JSON
+   * `Record<docId, DocStoreEntry>` shape, so a query only decodes the
+   * specific hit ids it needs instead of the whole doc store — the only
+   * doc store shard today (`write-index.ts` always emits one
+   * `docs/0.json`) currently means *every* query pays the whole-store
+   * decode cost regardless of how few hits it actually returns.
+   * Defaults to `"json"`.
+   */
+  docStoreFormat?: "json" | "binary";
+  /**
+   * `"binary"` writes every language's fuzzy shard with the same
+   * directory-based encoding as term shards (`./binary-fuzzy-shard.js`)
+   * in place of the plain JSON `{maxEdits, deletions}` shape — a fuzzy
+   * dictionary can be as large as the term vocabulary itself
+   * (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching) but a query
+   * only ever looks up a handful of specific deletion-variant keys, the
+   * same shape that already justified the term shard's binary tier.
+   * Defaults to `"json"`.
+   */
+  fuzzyShardFormat?: "json" | "binary";
+  /**
    * Pre-built vector/hybrid search shards (docs/13-vector-and-hybrid-search.md),
    * from a separate `buildVectorShards()` call — kept as a distinct
    * argument rather than a `BuildIndexOptions` field since building
@@ -226,6 +251,8 @@ export async function writeIndex(
     options.maxShardGzipBytes ?? DEFAULT_MAX_TERM_SHARD_GZIP_BYTES;
   const shardByPrefix = options.shardByPrefix ?? true;
   const termShardFormat = options.termShardFormat ?? "json";
+  const docStoreFormat = options.docStoreFormat ?? "json";
+  const fuzzyShardFormat = options.fuzzyShardFormat ?? "json";
   const languages = Object.keys(built.termShards).sort();
   const terms = (
     await Promise.all(
@@ -265,8 +292,22 @@ export async function writeIndex(
     )
   ).flat();
 
-  const docsFile = await writeJson(outDir, "docs/0.json", built.docStore);
-  const docs = [{ shard: 0, file: docsFile, idRange: built.idRange }];
+  const docsFile =
+    docStoreFormat === "binary"
+      ? await writeBinary(
+          outDir,
+          "docs/0.bin",
+          encodeDocStoreBinary(built.docStore),
+        )
+      : await writeJson(outDir, "docs/0.json", built.docStore);
+  const docs = [
+    {
+      shard: 0,
+      file: docsFile,
+      idRange: built.idRange,
+      ...(docStoreFormat === "binary" ? { format: "binary" as const } : {}),
+    },
+  ];
 
   const facetFields = Object.keys(built.facetShards).sort();
   const facets = facetFields.length
@@ -325,15 +366,24 @@ export async function writeIndex(
         Object.keys(built.fuzzyShards[language]?.deletions ?? {}).length,
     )
     .sort();
-  let fuzzy: Record<string, string> | undefined;
+  let fuzzy: Manifest["fuzzy"] | undefined;
   if (fuzzyLanguages.length) {
     fuzzy = {};
     for (const language of fuzzyLanguages) {
-      fuzzy[language] = await writeJson(
-        outDir,
-        `fuzzy/${language}.json`,
-        built.fuzzyShards[language],
-      );
+      const shard = built.fuzzyShards[language];
+      if (!shard) continue;
+      const file =
+        fuzzyShardFormat === "binary"
+          ? await writeBinary(
+              outDir,
+              `fuzzy/${language}.bin`,
+              encodeFuzzyShardBinary(shard),
+            )
+          : await writeJson(outDir, `fuzzy/${language}.json`, shard);
+      fuzzy[language] = {
+        file,
+        ...(fuzzyShardFormat === "binary" ? { format: "binary" as const } : {}),
+      };
     }
   }
 
