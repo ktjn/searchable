@@ -1,5 +1,11 @@
 export { SearchClient } from "./client.js";
-export type { SearchClientEventMap, SearchClientOptions } from "./client.js";
+export type {
+  SearchClientEventMap,
+  SearchClientOptions,
+  SearchStreamOptions,
+} from "./client.js";
+export { registerOfflineCaching } from "./offline.js";
+export type { OfflineCacheOptions } from "./offline.js";
 export type { HighlightSpan, HighlightTerm } from "./highlight.js";
 export type {
   FacetResult,

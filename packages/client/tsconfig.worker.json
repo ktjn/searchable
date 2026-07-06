@@ -7,5 +7,5 @@
     "declarationMap": false,
     "sourceMap": false
   },
-  "include": ["src/worker.ts"]
+  "include": ["src/worker.ts", "src/sw.ts"]
 }

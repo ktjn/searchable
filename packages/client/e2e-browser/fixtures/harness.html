@@ -3,7 +3,7 @@
   <head><meta charset="utf-8" /><title>csf worker test harness</title></head>
   <body>
     <script type="module">
-      import { SearchClient } from "./index.js";
+      import { SearchClient, registerOfflineCaching } from "./index.js";
 
       window.__csfRunSearch = async (query, useWorker) => {
         const client = new SearchClient({
@@ -120,6 +120,41 @@
           return undefined;
         } catch (err) {
           return err && err.name;
+        }
+      };
+
+      window.__csfRegisterOffline = async (swPath, indexUrl, opts) => {
+        await registerOfflineCaching(
+          new URL(swPath, location.href),
+          new URL(indexUrl, location.href).href,
+          opts,
+        );
+        await navigator.serviceWorker.ready;
+      };
+
+      window.__csfOfflineCacheUrls = async () => {
+        const cache = await caches.open("csf-offline");
+        const keys = await cache.keys();
+        return keys.map((r) => r.url);
+      };
+
+      window.__csfManifestTermShardFiles = async (indexUrl) => {
+        const absIndexUrl = new URL(indexUrl, location.href).href;
+        const res = await fetch(absIndexUrl);
+        const manifest = await res.json();
+        const map = {};
+        for (const entry of manifest.shards.terms) {
+          map[entry.lang] = new URL(entry.file, absIndexUrl).href;
+        }
+        return map;
+      };
+
+      window.__csfFetchStatus = async (url) => {
+        try {
+          const res = await fetch(url);
+          return res.status;
+        } catch {
+          return "network-error";
         }
       };
 

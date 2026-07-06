@@ -19,11 +19,11 @@ remain pending — see below). Phase
 expansion, SymSpell fuzzy matching (distance-1 and opt-in distance-2)
 with a length-dependent maxEdits cap, and "did you mean" suggestions;
 `multiWord` phrase-level synonyms remain pending — see below). Phase 6
-is partially built (a configuration testbed, a
-bundle-size CI gate, a first slice of result highlighting, observability
-hooks, `options.signal` cancellation, `searchStream()` streaming
-results, and an accessibility pass in the showcase's own widgets; an
-offline/Service Worker plugin remains pending — see below). Phase 7+ remain design-only. The GitHub Pages showcase's
+is now fully built (a configuration testbed, a
+bundle-size CI gate, result highlighting, observability hooks,
+`options.signal` cancellation, `searchStream()` streaming results,
+offline Service Worker caching, and an accessibility pass in the
+showcase's own widgets). Phase 7+ remain design-only. The GitHub Pages showcase's
 first three stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stage 3 remains blocked on Phase 8.
@@ -393,7 +393,6 @@ Phase 2 is now fully implemented.
   and `didYouMean` presence/absence — not just unit tests in isolation.
 
 **Phase 6 — Modern features polish**
-- Offline/Service Worker plugin remains pending.
 - ✅ Cancellation
   ([docs/08-modern-features.md#instant-search--debouncing--cancellation](08-modern-features.md#instant-search--debouncing--cancellation),
   [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
@@ -440,6 +439,41 @@ Phase 2 is now fully implemented.
   end-to-end tests over real HTTP plus real-browser Playwright tests
   proving identical partial/final events whether `searchStream()`
   executed inside a Worker or on the main thread.
+- ✅ Offline/Service Worker caching
+  ([docs/08-modern-features.md#caching--offline-support](08-modern-features.md#caching--offline-support),
+  [docs/07-client-api.md#offline-caching](07-client-api.md#offline-caching),
+  [`packages/client/src/sw.ts`](../packages/client/src/sw.ts),
+  [`packages/client/src/offline.ts`](../packages/client/src/offline.ts)):
+  `registerOfflineCaching(swUrl, indexUrl, options)` registers a
+  Service Worker (a separate Vite library entry, `dist/sw.js`, same
+  pattern as `worker.js`) that precaches the manifest plus every shard
+  file on `install` — or, via `options.languages`, only the selected
+  languages' term/pins/synonym/fuzzy shards (facet and doc-store shards
+  aren't per-language, so they're always cached in full) — then serves
+  matching requests `"cache-first"` (default) or
+  `"stale-while-revalidate"` (`options.mode`) on every subsequent load,
+  including fully offline, since the index is 100% static files to
+  begin with. Built as a standalone opt-in module rather than gated
+  behind the generic plugin system in
+  [17-plugin-architecture.md](17-plugin-architecture.md) (still
+  design-only, no code yet) — building a whole plugin contract as a
+  prerequisite for one caching feature would have been the wrong
+  order. Only requests under the manifest's own directory are ever
+  intercepted, so this Service Worker's presence never adds latency to
+  unrelated page traffic. One flat, unversioned cache
+  (`"csf-offline"`) rather than one keyed by `manifest.buildId`: since
+  every shard file is already content-hashed
+  (docs/02-index-format.md#versioning--cache-strategy), a new build's
+  shard URLs simply differ from the old build's, and the only
+  non-hashed URL (the manifest itself) is naturally overwritten by
+  `cache.put()` on every install — old shard entries become
+  unreferenced dead weight, never served incorrectly. Pruning that dead
+  weight remains a known future improvement, not attempted here.
+  Verified with real-browser Playwright tests: full precache plus
+  working fully offline (`context.setOffline(true)`),
+  `options.languages` actually restricting which term shard gets
+  cached, and `"stale-while-revalidate"` mode also serving successfully
+  while offline.
 - ✅ Observability hooks, first slice
   ([docs/08-modern-features.md#observability-hooks](08-modern-features.md#observability-hooks),
   [`packages/client/src/client.ts`](../packages/client/src/client.ts)):

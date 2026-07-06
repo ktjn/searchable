@@ -94,13 +94,40 @@ choosing between "use the preset" or "configure everything from scratch."
   from the full offline Service Worker mode below — useful even for
   sites that don't need full offline capability, just faster warm
   starts.
-- **Service Worker / offline mode** (opt-in `plugin:offline`): registers
-  a Service Worker that precaches the manifest + all shards (or a
-  configurable subset, e.g. just the user's current language) so search
-  works fully offline in a PWA — a natural fit since the index is 100%
-  static files to begin with, this is "just" a caching strategy
-  (stale-while-revalidate or cache-first, configurable) on top of
-  artifacts that already exist.
+- **Service Worker / offline mode** — built, as a standalone opt-in
+  module rather than behind the generic plugin system in
+  [17-plugin-architecture.md](17-plugin-architecture.md) (still
+  design-only, no code yet — gating this behind it first would have
+  meant building a whole plugin contract as a prerequisite for one
+  caching feature). `registerOfflineCaching(swUrl, indexUrl, options)`
+  (`packages/client/src/offline.ts`) registers the Service Worker built
+  at `packages/client/src/sw.ts` → `dist/sw.js` (a separate Vite
+  library entry, like `worker.js`) against `indexUrl`. On `install`, it
+  precaches the manifest plus every shard file (or, via
+  `options.languages`, only the selected languages' term/pins/synonym/
+  fuzzy shards — facet and doc-store shards aren't per-language, so
+  they're always cached in full) into one Cache Storage cache
+  (`"csf-offline"`); on `fetch`, any request under the manifest's own
+  directory is served `"cache-first"` (default) or, via
+  `options.mode`, `"stale-while-revalidate"` — every other request on
+  the page passes straight through untouched, so this Service Worker's
+  presence never adds latency to traffic it has nothing to do with.
+  Config (`indexUrl`/`mode`/`languages`) travels as query params on the
+  Service Worker's own script URL, the standard way to pass data into a
+  registration since `register()` only takes a script URL. Deliberately
+  one flat, unversioned cache rather than one keyed by
+  `manifest.buildId`: every shard file is already content-hashed
+  (docs/02-index-format.md#versioning--cache-strategy), so a new
+  build's shard URLs simply differ from the old build's — the only
+  non-hashed URL, the manifest itself, is naturally overwritten by
+  `cache.put()` on every install, and old shard entries just become
+  unreferenced dead weight rather than ever being served incorrectly.
+  Pruning that dead weight (and the IndexedDB persistence layer above,
+  which is a different, smaller mechanism) remain future work. Verified
+  with real-browser Playwright tests: full precache + working fully
+  offline (`context.setOffline(true)`), `options.languages` actually
+  restricting which term shard gets cached, and `"stale-while-revalidate"`
+  mode also serving successfully while offline.
 
 ## Highlighting & snippets
 

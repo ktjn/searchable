@@ -276,6 +276,35 @@ Always call this when a `SearchClient` instance is no longer needed
 pending requests would otherwise never settle if the page keeps a
 stale reference around.
 
+### Offline caching
+
+```ts
+import { registerOfflineCaching } from "@csf/client";
+
+await registerOfflineCaching(
+  new URL("@csf/client/dist/sw.js", import.meta.url), // like workerUrl, not auto-resolved -- see below
+  "https://cdn.example.com/search-index/manifest.json",
+  {
+    mode: "cache-first",       // default; or "stale-while-revalidate"
+    languages: ["en"],         // optional -- omit to precache every language's shards
+  },
+);
+```
+
+A standalone function, not a `SearchClient` method — registering the
+Service Worker is a one-time, page-lifetime concern independent of any
+particular client instance. On `install`, the Service Worker precaches
+the manifest plus every shard file (or, with `languages`, only the
+selected languages' term/pins/synonym/fuzzy shards — facet and
+doc-store shards aren't per-language, so they're always cached in
+full); after that, search works fully offline, since the index is
+100% static files to begin with. `swUrl` isn't auto-resolved for the
+same reason `workerUrl` isn't above — every bundler has its own
+incompatible convention for referencing a sibling worker file from a
+library, so pass whatever URL your build/CDN actually serves `sw.js`
+at. See [08-modern-features.md#caching--offline-support](08-modern-features.md#caching--offline-support)
+for the caching-strategy details and cache-invalidation reasoning.
+
 ### Error handling & degradation (implemented)
 
 - A failed shard fetch throws a plain `Error` from the `search()` call
