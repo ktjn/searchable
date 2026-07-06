@@ -6,6 +6,8 @@ export interface QueryTerm {
   term: string;
   /** true for a trailing-`*` prefix query (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching). */
   prefix: boolean;
+  /** Lowercased but *not* stemmed surface form of this term (@csf/analysis's `Token.literal`) -- used for result highlighting, which matches raw stored text where a stemmed term wouldn't. */
+  literal: string;
 }
 
 /**
@@ -32,7 +34,11 @@ export function parseQueryTerms(
       const key = `${isPrefix ? "prefix:" : "exact:"}${token.term}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      result.push({ term: token.term, prefix: isPrefix });
+      result.push({
+        term: token.term,
+        prefix: isPrefix,
+        literal: token.literal,
+      });
     }
   }
 

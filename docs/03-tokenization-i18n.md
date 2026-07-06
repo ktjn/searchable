@@ -5,7 +5,8 @@ profiles (`english`, `german` — [`packages/analysis`](../packages/analysis)),
 and the indexer/client genuinely partition a multi-language corpus by
 each document's own declared language (not a single language forced
 onto the whole batch) — see [09-roadmap.md](09-roadmap.md#status).
-Still pending: real stemmers (both profiles are an identity pass),
+`english` now has a real stemmer (see [Stemming](#stemming) below);
+`german` is still an identity pass. Still pending: a German stemmer,
 CJK/Thai segmentation and bigram fallback, RTL-aware result rendering,
 and auto language detection.
 
@@ -96,9 +97,40 @@ Stopword removal is configurable per field (e.g. keep stopwords in a
 
 ## Stemming
 
-Ships **Snowball-algorithm stemmers** (compiled to small JS, one module
-per language, loaded only for languages actually present in the index —
-see the per-language plugin split in
+**Status**: `english` ships a real stemmer —
+[`packages/analysis/src/stemmer-en.ts`](../packages/analysis/src/stemmer-en.ts)
+implements the classic Porter algorithm (M.F. Porter, "An algorithm for
+suffix stripping", 1980): "running"/"runs" and "widget"/"widgets" index
+and query to the same term. Deliberately the *original* 1980 algorithm,
+not the later Snowball-framework "Porter2" English stemmer (a distinct,
+incompatible rule set with its own suffix tables) — the two are easy to
+conflate since Porter himself later built Snowball, but this module
+implements only the original, and a Porter2 upgrade would be a separate
+rewrite, not an incremental tweak, if ever undertaken. Verified against
+the standard 23,531-word public reference vocabulary
+(`packages/analysis/test/fixtures/porter-{input,output}.txt`) with zero
+mismatches — not just a hand-picked sample of example words. `german`
+remains an identity pass; a German stemmer is separate, comparably-sized
+work (different morphology, different rule set) rather than a port of
+the English one.
+
+**Interaction with fuzzy matching**: a query is stemmed *before* fuzzy
+candidate lookup, same as at index time. A typo of a real word is only
+guaranteed to surface through the strict `maxEdits:1` dictionary if
+it's edit-distance-1 from that word's *stemmed* form, not necessarily
+its surface form — stemming a non-word typo can itself shift character
+count in ways a naive "one edit away" typo doesn't survive (e.g.
+`"wireles"`, a one-character deletion of "wireless", stems to `"wirel"`
+via the ordinary plural-`s`-stripping rule, three edits from the
+stemmed-but-unchanged real term "wireless" — well past `maxEdits:1` —
+while `"wirelss"`, deleting a different character, stems to itself and
+remains a true one-edit match). This is an inherent consequence of
+combining stemming and fuzzy matching, not a bug in either.
+
+**Target design below is still not built.** The original plan called
+for ships-many-languages **Snowball-algorithm stemmers** (compiled to
+small JS, one module per language, loaded only for languages actually
+present in the index — see the per-language plugin split in
 [01-architecture.md](01-architecture.md#runtime-the-query-engine)) for:
 English, French, German, Spanish, Portuguese, Italian, Dutch, Russian,
 Swedish, Norwegian, Danish, Finnish, Hungarian, Romanian, Turkish.

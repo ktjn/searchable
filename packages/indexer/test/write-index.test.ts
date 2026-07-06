@@ -83,9 +83,10 @@ describe("writeIndex", () => {
         "utf8",
       ),
     );
-    expect(content.widgets.postings.map((p: { doc: number }) => p.doc)).toEqual(
-      [1, 2],
-    );
+    // "widgets" stems to "widget" (docs/03-tokenization-i18n.md#stemming).
+    expect(content.widget.postings.map((p: { doc: number }) => p.doc)).toEqual([
+      1, 2,
+    ]);
   });
 
   it("sorts facet value doc-id lists ascending, independent of processing order", async () => {
@@ -147,7 +148,7 @@ describe("writeIndex", () => {
     const content = JSON.parse(
       await readFile(join(outDir, manifest.synonyms.en), "utf8"),
     );
-    expect(content.equivalences).toEqual([["widgets", "gadgets"]]);
+    expect(content.equivalences).toEqual([["widget", "gadget"]]);
   });
 
   it("omits manifest.synonyms entirely when no synonym data was authored", async () => {
@@ -174,7 +175,9 @@ describe("writeIndex", () => {
       await readFile(join(outDir, manifest.fuzzy.en), "utf8"),
     );
     expect(content.maxEdits).toBe(1);
-    expect(content.deletions.widget).toContain("widgets");
+    // "widgets" stems to the real indexed term "widget"; "widge" (drop
+    // the trailing "t") is one of its one-character-deleted variants.
+    expect(content.deletions.widge).toContain("widget");
   });
 
   it("omits manifest.fuzzy entirely when fuzzy was not requested", async () => {

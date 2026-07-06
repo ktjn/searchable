@@ -6,27 +6,27 @@ describe("parseQueryTerms", () => {
   it("parses plain terms as non-prefix", () => {
     const terms = parseQueryTerms("gadgets gizmos", english);
     expect(terms).toEqual([
-      { term: "gadgets", prefix: false },
-      { term: "gizmos", prefix: false },
+      { term: "gadget", literal: "gadgets", prefix: false },
+      { term: "gizmo", literal: "gizmos", prefix: false },
     ]);
   });
 
   it("detects a trailing * as a prefix query and strips it", () => {
     const terms = parseQueryTerms("widg*", english);
-    expect(terms).toEqual([{ term: "widg", prefix: true }]);
+    expect(terms).toEqual([{ term: "widg", literal: "widg", prefix: true }]);
   });
 
   it("mixes exact and prefix terms in one query", () => {
     const terms = parseQueryTerms("gadgets widg*", english);
     expect(terms).toEqual([
-      { term: "gadgets", prefix: false },
-      { term: "widg", prefix: true },
+      { term: "gadget", literal: "gadgets", prefix: false },
+      { term: "widg", literal: "widg", prefix: true },
     ]);
   });
 
   it("lowercases a prefix term like any other term", () => {
     const terms = parseQueryTerms("WIDG*", english);
-    expect(terms).toEqual([{ term: "widg", prefix: true }]);
+    expect(terms).toEqual([{ term: "widg", literal: "widg", prefix: true }]);
   });
 
   it("does not treat a bare * as a prefix marker", () => {
@@ -36,14 +36,21 @@ describe("parseQueryTerms", () => {
 
   it("dedupes repeated terms of the same kind", () => {
     const terms = parseQueryTerms("widgets widgets", english);
-    expect(terms).toEqual([{ term: "widgets", prefix: false }]);
+    expect(terms).toEqual([
+      { term: "widget", literal: "widgets", prefix: false },
+    ]);
   });
 
   it("keeps an exact and a prefix form of the same text as distinct clauses", () => {
     const terms = parseQueryTerms("widget widget*", english);
     expect(terms).toEqual([
-      { term: "widget", prefix: false },
-      { term: "widget", prefix: true },
+      { term: "widget", literal: "widget", prefix: false },
+      { term: "widget", literal: "widget", prefix: true },
     ]);
+  });
+
+  it("preserves the literal (unstemmed) surface form separately from the stemmed term", () => {
+    const terms = parseQueryTerms("running", english);
+    expect(terms).toEqual([{ term: "run", literal: "running", prefix: false }]);
   });
 });

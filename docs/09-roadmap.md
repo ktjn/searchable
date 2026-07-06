@@ -10,9 +10,10 @@ pending item. Phase 3 is partially built (terms facets, range facet
 *filtering*, pins, and a filter-only `facetValues()` browsing call;
 hierarchical facets and aggregate range facet results remain pending —
 see below). Phase 4 is partially built (a
-second real LanguageProfile and true per-document-language corpus
-partitioning; additional stemmers and the CJK bigram fallback remain
-pending — see below). Phase 5 is mostly built (query-time synonym
+second real LanguageProfile, true per-document-language corpus
+partitioning, and a real classic-Porter English stemmer; a German
+stemmer and the CJK bigram fallback remain pending — see below). Phase
+5 is mostly built (query-time synonym
 expansion, plus SymSpell fuzzy matching and "did you mean"
 suggestions; `multiWord` phrase-level synonyms remain pending — see
 below). Phase 6 is partially built (a configuration testbed, a
@@ -202,8 +203,22 @@ Phase 2 is now fully implemented.
   `@csf/format`), which also fixed the two independent Phase 0 reference
   generators (`spec/examples/`) and re-verified they're still
   byte-for-byte identical and schema-valid after the change.
-- ⬜ Additional stemmers (Snowball or otherwise) — both shipped profiles
-  are still an identity pass, same status as Phase 1's English profile.
+- ✅ Real English stemmer
+  ([03-tokenization-i18n.md#stemming](03-tokenization-i18n.md#stemming),
+  [`packages/analysis/src/stemmer-en.ts`](../packages/analysis/src/stemmer-en.ts)):
+  the classic Porter algorithm (1980) — deliberately the original, not
+  the later incompatible Snowball-framework "Porter2" English stemmer —
+  verified against the standard 23,531-word public reference vocabulary
+  with zero mismatches (`packages/analysis/test/stemmer-en.test.ts`),
+  not just a hand-picked sample. Wired into `english.stem`
+  (`packages/analysis/src/language-profile.ts`); `german.stem` remains
+  an identity pass. Required threading a second, *unstemmed* "literal"
+  surface form through `Token`/`QueryTerm` alongside the stemmed one
+  (`packages/analysis/src/analyze.ts`, `packages/client/src/parse-query.ts`),
+  since result highlighting matches literal stored text and a stemmed
+  query term wouldn't `\b`-match a document's actual surface spelling.
+- ⬜ A German stemmer — separate, comparably-sized work (different
+  morphology, different rule set), not a port of the English one.
 - ⬜ CJK/Thai bigram fallback, `Intl.Segmenter`-unsupported-locale
   handling — no non-Latin-script profile exists yet.
 - All of the above verified with real end-to-end tests over real HTTP

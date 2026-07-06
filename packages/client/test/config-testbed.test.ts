@@ -65,14 +65,17 @@ const VARIANTS: ConfigVariant[] = [
  * different topic's paragraphs also happen to discuss boosts) --
  * exactly the split needed for a title-boost change to visibly
  * reorder results, unlike a term that's title-only or body-only
- * everywhere it appears. "shardin" is a genuine one-deletion typo of
- * "sharding" (true edit distance 1, unlike a transposition, which
- * lands at true distance 2 and would never surface through the
- * strict maxEdits:1 dictionary regardless of fuzzyWeight) --
- * findable only when a variant's search options enable fuzzy
- * matching. "the" is ubiquitous, a stable high-recall control query.
+ * everywhere it appears. "shar" is a genuine one-deletion typo of
+ * "shard" -- the classic-Porter-stemmed form "sharding" now indexes as
+ * (docs/03-tokenization-i18n.md#stemming), not the un-stemmed surface
+ * form itself, so the typo has to be a true edit distance 1 from the
+ * *stemmed* real term for the strict maxEdits:1 dictionary to ever
+ * find it (verified directly against the built fixture's fuzzy shard,
+ * not just assumed) -- findable only when a variant's search options
+ * enable fuzzy matching. "the" is ubiquitous, a stable high-recall
+ * control query.
  */
-const QUERY_SET = ["boosts", "shardin", "the"];
+const QUERY_SET = ["boosts", "shar", "the"];
 
 function round(score: number): number {
   return Math.round(score * 10000) / 10000;

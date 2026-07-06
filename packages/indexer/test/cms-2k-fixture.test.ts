@@ -59,8 +59,9 @@ describe("buildIndex against the CMS-2k reference fixture", () => {
     const sources = generateCms2kCorpus({ count: 400, languages: ["en"] });
     const built = buildIndex(sources);
 
+    // "pricing" stems to "price" (docs/03-tokenization-i18n.md#stemming); "contact" is unaffected.
     const pinsShard = built.pinsShards.en ?? {};
-    expect(pinsShard.pricing?.docs.length).toBeGreaterThan(0);
+    expect(pinsShard.price?.docs.length).toBeGreaterThan(0);
     expect(pinsShard.contact?.docs.length).toBeGreaterThan(0);
   });
 

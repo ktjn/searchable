@@ -572,10 +572,14 @@ describe("prefix matching (term*)", () => {
     expect((await client.search("zzz*")).hits).toEqual([]);
   });
 
-  it("falls back to an exact match when there's no trailing *", async () => {
+  it("falls back to an exact (post-stemming) match when there's no trailing *", async () => {
     const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
     const { hits } = await client.search("widget");
-    expect(hits.map((h) => h.id)).toEqual([1]); // not 2 or 3
+    // "widget" and "widgets" both stem to "widget" -- an exact clause is
+    // exact about the *stemmed* term, not the surface form, so both the
+    // singular and plural page match; "widgetry" stems differently
+    // ("widgetri") and correctly does not.
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
   });
 });
 

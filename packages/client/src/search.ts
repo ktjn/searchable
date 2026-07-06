@@ -10,7 +10,7 @@ import type {
   TermShard,
 } from "@csf/format";
 import type { ShardCache } from "./fetch-json.js";
-import type { HighlightSpan } from "./highlight.js";
+import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
 import { parseQueryTerms } from "./parse-query.js";
 import { scoreTermForDoc } from "./score.js";
@@ -662,6 +662,15 @@ export async function search(
     }
   }
 
+  // Highlighting matches raw stored text, so it needs each query term's
+  // literal (lowercased-only) surface form, not the stemmed form used
+  // for matching -- a stemmed "widget" wouldn't `\b`-match inside the
+  // literal stored text "Widgets".
+  const highlightTerms: HighlightTerm[] = queryTerms.map((qt) => ({
+    term: qt.literal,
+    prefix: qt.prefix,
+  }));
+
   function toHit(id: number, score: number, pinned: boolean): Hit {
     const doc = docLookup.get(id);
     const fields = doc?.fields ?? {};
@@ -669,7 +678,7 @@ export async function search(
       ? Object.fromEntries(
           Object.entries(fields).map(([field, text]) => [
             field,
-            highlightText(text, queryTerms),
+            highlightText(text, highlightTerms),
           ]),
         )
       : undefined;

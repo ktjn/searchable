@@ -4,23 +4,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 0.9892,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 0.9892,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 0.9892,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 0.9892,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 0.9892,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -28,7 +28,7 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 }
 `;
 
-exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > default :: "shardin" 1`] = `
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > default :: "shar" 1`] = `
 {
   "hits": [],
   "totalHits": 0,
@@ -67,23 +67,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.9694,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.9694,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.9694,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.9694,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.9694,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -91,31 +91,31 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 }
 `;
 
-exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-lenient :: "shardin" 1`] = `
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-lenient :: "shar" 1`] = `
 {
   "hits": [
     {
-      "score": 1.4587,
+      "score": 1.2099,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.4587,
+      "score": 1.2099,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.4587,
+      "score": 1.2099,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.4587,
+      "score": 1.2099,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.4587,
+      "score": 1.2099,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
-  "totalHits": 37,
+  "totalHits": 112,
 }
 `;
 
@@ -123,24 +123,24 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.4623,
-      "url": "/en/guides/guides-setting-up-token-mismatches-11.html",
+      "score": 1.7329,
+      "url": "/en/product/product-how-typo-tolerance-9.html",
     },
     {
-      "score": 1.4623,
-      "url": "/en/guides/guides-setting-up-token-mismatches-19.html",
+      "score": 1.7329,
+      "url": "/en/product/product-how-typo-tolerance-17.html",
     },
     {
-      "score": 1.4623,
-      "url": "/en/guides/guides-setting-up-token-mismatches-27.html",
+      "score": 1.7329,
+      "url": "/en/product/product-how-typo-tolerance-25.html",
     },
     {
-      "score": 1.4623,
-      "url": "/en/guides/guides-setting-up-token-mismatches-35.html",
+      "score": 1.7329,
+      "url": "/en/product/product-how-typo-tolerance-33.html",
     },
     {
-      "score": 1.4623,
-      "url": "/en/guides/guides-setting-up-token-mismatches-43.html",
+      "score": 1.7329,
+      "url": "/en/product/product-how-typo-tolerance-41.html",
     },
   ],
   "totalHits": 303,
@@ -151,23 +151,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.207,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.207,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.207,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.207,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.207,
+      "score": 1.0283,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -175,31 +175,31 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 }
 `;
 
-exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-strict :: "shardin" 1`] = `
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-strict :: "shar" 1`] = `
 {
   "hits": [
     {
-      "score": 0.3241,
+      "score": 0.2689,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 0.3241,
+      "score": 0.2689,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 0.3241,
+      "score": 0.2689,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 0.3241,
+      "score": 0.2689,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 0.3241,
+      "score": 0.2689,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
-  "totalHits": 37,
+  "totalHits": 112,
 }
 `;
 
@@ -207,24 +207,24 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 0.3261,
-      "url": "/en/guides/guides-setting-up-token-mismatches-11.html",
+      "score": 0.3862,
+      "url": "/en/product/product-how-typo-tolerance-9.html",
     },
     {
-      "score": 0.3261,
-      "url": "/en/guides/guides-setting-up-token-mismatches-19.html",
+      "score": 0.3862,
+      "url": "/en/product/product-how-typo-tolerance-17.html",
     },
     {
-      "score": 0.3261,
-      "url": "/en/guides/guides-setting-up-token-mismatches-27.html",
+      "score": 0.3862,
+      "url": "/en/product/product-how-typo-tolerance-25.html",
     },
     {
-      "score": 0.3261,
-      "url": "/en/guides/guides-setting-up-token-mismatches-35.html",
+      "score": 0.3862,
+      "url": "/en/product/product-how-typo-tolerance-33.html",
     },
     {
-      "score": 0.3261,
-      "url": "/en/guides/guides-setting-up-token-mismatches-43.html",
+      "score": 0.3862,
+      "url": "/en/product/product-how-typo-tolerance-41.html",
     },
   ],
   "totalHits": 303,
@@ -235,23 +235,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.1292,
+      "score": 1.1395,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.1292,
+      "score": 1.1395,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.1292,
+      "score": 1.1395,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.1292,
+      "score": 1.1395,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.1292,
+      "score": 1.1395,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -259,7 +259,7 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 }
 `;
 
-exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > high-title-boost :: "shardin" 1`] = `
+exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > high-title-boost :: "shar" 1`] = `
 {
   "hits": [],
   "totalHits": 0,

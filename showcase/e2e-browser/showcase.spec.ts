@@ -118,7 +118,15 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     page,
   }) => {
     await page.goto(`${baseUrl}gallery/products/index.html`);
-    await page.locator(".gallery-search-input").fill("wireles");
+    // "wireless" stems to itself unchanged (ends in "ss", protected from
+    // suffix-stripping); "wirelss" (drop the second "e") is a genuine
+    // one-edit-distance typo of it that *also* stems to itself
+    // unchanged, unlike "wireles" (drop one "s"), which the stemmer
+    // itself further reduces to "wirel" -- three edits from "wireless",
+    // well past the strict maxEdits:1 fuzzy dictionary regardless of
+    // the toggle (docs/03-tokenization-i18n.md#stemming interacting
+    // with docs/04-query-ranking-boosts.md#prefix--fuzzy-matching).
+    await page.locator(".gallery-search-input").fill("wirelss");
 
     await expect(page.locator(".gallery-empty")).toBeVisible();
 

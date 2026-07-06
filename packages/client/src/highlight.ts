@@ -5,6 +5,14 @@
  * `<mark>` (or any other) wrapper around `isMatch` spans without a
  * `dangerouslySetInnerHTML` step.
  *
+ * `HighlightTerm.term` here means the *literal* (lowercased-only,
+ * unstemmed) surface form a user typed -- `search.ts` deliberately
+ * passes `QueryTerm.literal`, not the stemmed `QueryTerm.term` used for
+ * matching, when building these. A stemmed term wouldn't reliably
+ * `\b`-match a document's actual stored spelling (e.g. a stemmed
+ * "widget" doesn't match inside the literal stored text "Widgets";
+ * docs/03-tokenization-i18n.md#stemming).
+ *
  * Scoped to literal terms only (prefix-aware for `term*`) -- a hit
  * that only matched via synonym expansion or fuzzy correction won't
  * have that expanded term highlighted, only whatever the user actually

@@ -33,20 +33,21 @@ describe("buildIndex", () => {
   it("indexes documents and produces correct postings", () => {
     const built = buildIndex(sources);
     expect(built.manifest.docCount.en).toBe(3); // draft excluded
-    expect(built.termShards.en?.widgets?.df).toBe(3);
+    // "widgets" stems to "widget" (docs/03-tokenization-i18n.md#stemming).
+    expect(built.termShards.en?.widget?.df).toBe(3);
     expect(
-      built.termShards.en?.widgets?.postings.map((p) => p.doc).sort(),
+      built.termShards.en?.widget?.postings.map((p) => p.doc).sort(),
     ).toEqual([1, 2, 4]);
-    expect(built.termShards.en?.gizmos?.df).toBe(1);
-    expect(built.termShards.en?.gizmos?.postings[0]?.doc).toBe(2);
+    expect(built.termShards.en?.gizmo?.df).toBe(1);
+    expect(built.termShards.en?.gizmo?.postings[0]?.doc).toBe(2);
   });
 
   it("sets posting-level boost from csf-boost, omitting it when default", () => {
     const built = buildIndex(sources);
-    const boosted = built.termShards.en?.widgets?.postings.find(
+    const boosted = built.termShards.en?.widget?.postings.find(
       (p) => p.doc === 4,
     );
-    const unboosted = built.termShards.en?.widgets?.postings.find(
+    const unboosted = built.termShards.en?.widget?.postings.find(
       (p) => p.doc === 1,
     );
     expect(boosted?.boost).toBe(2.0);
@@ -79,10 +80,10 @@ describe("buildIndex", () => {
 
   it("records per-field term frequency and positions", () => {
     const built = buildIndex(sources);
-    const posting = built.termShards.en?.widgets?.postings.find(
+    const posting = built.termShards.en?.widget?.postings.find(
       (p) => p.doc === 1,
     );
-    // doc 1's title is literally "Widgets", so it appears in both fields
+    // doc 1's title is literally "Widgets" (stemmed to "widget"), so it appears in both fields
     expect(posting?.fields.title).toEqual({ tf: 1, pos: [0], len: 1 });
     expect(posting?.fields.body).toEqual({ tf: 1, pos: [3], len: 6 });
   });
@@ -265,11 +266,10 @@ describe("buildIndex pins", () => {
           <body><main>x</main></body></html>`,
       },
     ]);
-    // Normalized the same way any other indexed term is (lowercased via
-    // the English profile) — the English profile has no stemmer yet, so
-    // this is just case-folding for now, but the same analyze() call
-    // any future stemmer would run through.
-    expect(built.pinsShards.en?.["pricing plans"]).toEqual({
+    // Normalized the same way any other indexed term is (lowercased and
+    // stemmed via the English profile) -- "pricing plans" stems to
+    // "price plan" (docs/03-tokenization-i18n.md#stemming).
+    expect(built.pinsShards.en?.["price plan"]).toEqual({
       mode: "exact",
       docs: [{ id: 1, priority: 0, exclusive: false }],
     });
@@ -335,11 +335,12 @@ describe("buildIndex pins", () => {
           <body><main>x</main></body></html>`,
       },
     ]);
-    expect(built.pinsShards.en?.pricing?.docs.map((d) => d.id)).toEqual([
+    // "pricing" stems to "price" (docs/03-tokenization-i18n.md#stemming).
+    expect(built.pinsShards.en?.price?.docs.map((d) => d.id)).toEqual([
       2, 3, 1,
     ]);
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('pin conflict: "pricing"'),
+      expect.stringContaining('pin conflict: "price"'),
     );
     warnSpy.mockRestore();
   });
@@ -396,15 +397,17 @@ describe("buildIndex multi-language corpora", () => {
 
   it("partitions each document into its own language's term shard", () => {
     const built = buildIndex(mixedSources);
-    expect(built.termShards.en?.widgets).toBeDefined();
-    expect(built.termShards.de?.widgets).toBeUndefined();
+    // "widgets" stems to "widget" (docs/03-tokenization-i18n.md#stemming).
+    expect(built.termShards.en?.widget).toBeDefined();
+    expect(built.termShards.de?.widget).toBeUndefined();
     expect(built.termShards.de?.preise).toBeDefined();
     expect(built.termShards.en?.preise).toBeUndefined();
   });
 
   it("falls back a document without <html lang> to the corpus's default language", () => {
     const built = buildIndex(mixedSources, "en");
-    expect(built.termShards.en?.untitled?.postings.map((p) => p.doc)).toEqual([
+    // "untitled" stems to "untitl".
+    expect(built.termShards.en?.untitl?.postings.map((p) => p.doc)).toEqual([
       4,
     ]);
     expect(built.termShards.de?.untitled).toBeUndefined();
@@ -500,8 +503,9 @@ describe("buildIndex synonyms", () => {
     const built = buildIndex(minimalSources, "en", {
       synonyms: { en: { equivalences: [["Sofa", "Couch", "Settee"]] } },
     });
+    // "Settee" stems to "sette" (docs/03-tokenization-i18n.md#stemming).
     expect(built.synonymShards.en?.equivalences).toEqual([
-      ["sofa", "couch", "settee"],
+      ["sofa", "couch", "sette"],
     ]);
   });
 
@@ -563,13 +567,15 @@ describe("buildIndex fuzzy dictionary", () => {
   it("builds a maxEdits:1 deletion dictionary per language when fuzzy:true", () => {
     const built = buildIndex(widgetSources, "en", { fuzzy: true });
     expect(built.fuzzyShards.en?.maxEdits).toBe(1);
-    // "widgets" with one character deleted includes "widget" (drop the trailing "s")
-    expect(built.fuzzyShards.en?.deletions.widget).toContain("widgets");
+    // "Widgets" stems to the real indexed term "widget"
+    // (docs/03-tokenization-i18n.md#stemming); "widge" (drop the
+    // trailing "t") is one of its one-character-deleted variants.
+    expect(built.fuzzyShards.en?.deletions.widge).toContain("widget");
   });
 
   it("maps a term's own identity (0 deletions) back to itself", () => {
     const built = buildIndex(widgetSources, "en", { fuzzy: true });
-    expect(built.fuzzyShards.en?.deletions.widgets).toContain("widgets");
+    expect(built.fuzzyShards.en?.deletions.widget).toContain("widget");
   });
 
   it("collapses multiple real terms that collide on the same deletion variant", () => {
@@ -578,17 +584,15 @@ describe("buildIndex fuzzy dictionary", () => {
         {
           id: 1,
           url: "/a",
-          html: `<html lang="en"><head><title>Cat Cats</title></head><body><main>x</main></body></html>`,
+          html: `<html lang="en"><head><title>Cat Car</title></head><body><main>x</main></body></html>`,
         },
       ],
       "en",
       { fuzzy: true },
     );
-    // deleting the trailing "s" from "cats" gives "cat" -- both "cat" and "cats" should map there
-    expect(built.fuzzyShards.en?.deletions.cat?.sort()).toEqual([
-      "cat",
-      "cats",
-    ]);
+    // Deleting the trailing letter from either "cat" or "car" gives "ca"
+    // -- both real (and here, already-stem-form) terms should map there.
+    expect(built.fuzzyShards.en?.deletions.ca?.sort()).toEqual(["car", "cat"]);
   });
 
   it("keeps fuzzy dictionaries separate per language", () => {
@@ -605,7 +609,7 @@ describe("buildIndex fuzzy dictionary", () => {
       { fuzzy: true },
     );
     expect(built.fuzzyShards.en?.deletions.katze).toBeUndefined();
-    expect(built.fuzzyShards.de?.deletions.widgets).toBeUndefined();
+    expect(built.fuzzyShards.de?.deletions.widget).toBeUndefined();
     expect(built.fuzzyShards.de?.deletions.katz).toContain("katze");
   });
 });

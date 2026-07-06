@@ -18,8 +18,13 @@ describe("analyze (english)", () => {
     expect(a).toEqual(b);
   });
 
-  it("does not stem or drop stopwords by default", () => {
+  it("stems English tokens via the classic Porter algorithm, but does not drop stopwords (empty list)", () => {
     const tokens = analyze("the running dogs", english);
-    expect(tokens.map((t) => t.term)).toEqual(["the", "running", "dogs"]);
+    expect(tokens.map((t) => t.term)).toEqual(["the", "run", "dog"]);
+  });
+
+  it("also exposes each token's lowercased-but-unstemmed literal surface form", () => {
+    const tokens = analyze("the running dogs", english);
+    expect(tokens.map((t) => t.literal)).toEqual(["the", "running", "dogs"]);
   });
 });

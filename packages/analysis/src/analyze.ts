@@ -3,6 +3,18 @@ import { type LanguageProfile, stripDiacritics } from "./language-profile.js";
 export interface Token {
   term: string;
   position: number;
+  /**
+   * The lowercased (and diacritic-folded, if the profile does that)
+   * surface form *before* stemming -- e.g. "widgets", where `term`
+   * would be the stemmed "widget". Exists for callers that need the
+   * literal text a user typed or a document actually contains,
+   * independent of whatever normalization matching itself applies —
+   * result highlighting (`packages/client/src/highlight.ts`) is the
+   * motivating case: it matches against raw stored field text, where a
+   * stemmed query term like "widget" wouldn't `\b`-match inside the
+   * literal text "Widgets".
+   */
+  literal: string;
 }
 
 /**
@@ -18,12 +30,12 @@ export function analyze(text: string, profile: LanguageProfile): Token[] {
   for (const span of profile.segment(normalized)) {
     if (!span.isWordLike) continue;
 
-    let term = span.text.toLocaleLowerCase(profile.code);
-    if (profile.foldDiacritics) term = stripDiacritics(term);
-    if (profile.stopwords.has(term)) continue;
+    let literal = span.text.toLocaleLowerCase(profile.code);
+    if (profile.foldDiacritics) literal = stripDiacritics(literal);
+    if (profile.stopwords.has(literal)) continue;
 
-    term = profile.stem(term);
-    tokens.push({ term, position });
+    const term = profile.stem(literal);
+    tokens.push({ term, position, literal });
     position++;
   }
 

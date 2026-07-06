@@ -1,3 +1,5 @@
+import { stemEnglish } from "./stemmer-en.js";
+
 export interface TokenSpan {
   text: string;
   isWordLike: boolean;
@@ -33,18 +35,26 @@ function stripDiacritics(term: string): string {
   return term.normalize("NFKD").replace(COMBINING_MARKS, "");
 }
 
-/** No stemming/stopword removal yet — identity pass, shape ready for both. */
+/**
+ * Real affix-stripping stemming (docs/03-tokenization-i18n.md#stemming)
+ * via the classic Porter algorithm (`./stemmer-en.ts`) — no stopword
+ * removal yet.
+ */
 export const english: LanguageProfile = {
   code: "en",
   segment: segmentWithIntl("en"),
   foldDiacritics: false,
   stopwords: new Set(),
-  stem: (term) => term,
+  stem: stemEnglish,
 };
 
 /**
- * No stemming/stopword removal yet, same as `english` above — this
- * profile's job right now is proving the LanguageProfile abstraction
+ * No stemming/stopword removal yet — a real German stemmer is a
+ * separate, comparably-sized piece of work to `english`'s (German's
+ * agglutinative-leaning morphology needs its own affix-stripping rule
+ * set, not a port of the English one), and remains pending
+ * (docs/03-tokenization-i18n.md#stemming, docs/09-roadmap.md). This
+ * profile's job today is proving the `LanguageProfile` abstraction
  * actually varies per language (Intl.Segmenter locale, diacritic
  * folding default), not shipping full German linguistic analysis.
  * `foldDiacritics: false` per docs/03-tokenization-i18n.md#case-folding--diacritics:
