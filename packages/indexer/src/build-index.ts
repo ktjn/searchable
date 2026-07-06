@@ -57,6 +57,19 @@ export interface BuildIndexOptions {
    * value.
    */
   hierarchicalFacets?: Record<string, { separator?: string }>;
+  /**
+   * Per-field override of the number of equal-width aggregate buckets
+   * computed for a range facet's histogram results
+   * (docs/06-faceted-search.md#facet-index-structure). Defaults to
+   * `RANGE_FACET_BUCKET_COUNT` (5) for any range field not listed here.
+   * Only affects aggregate *results* (`FacetShard.values`) — range
+   * *filtering* (the sorted-array scan) is bucket-count-independent and
+   * unaffected either way. Must be a positive integer; anything else
+   * throws at build time rather than silently producing a nonsensical
+   * histogram (a single degenerate bucket, or worse, an infinite/NaN
+   * bucket width).
+   */
+  rangeFacetBuckets?: Record<string, number>;
 }
 
 const DEFAULT_HIERARCHY_SEPARATOR = ">";
@@ -268,7 +281,7 @@ function addRangeFacetValues(
   }
 }
 
-/** Number of equal-width buckets computed for a range facet's aggregate results (docs/06-faceted-search.md#facet-index-structure). */
+/** Default number of equal-width buckets computed for a range facet's aggregate results (docs/06-faceted-search.md#facet-index-structure), for any field not given its own count via BuildIndexOptions.rangeFacetBuckets. */
 const RANGE_FACET_BUCKET_COUNT = 5;
 
 /** Formats a bucket boundary without a trailing ".00" for whole numbers. */
@@ -292,15 +305,18 @@ function formatBucketBound(n: number): string {
  * client-side changes are needed at all. Must run after `shard.sorted`
  * is fully populated and sorted (every document processed).
  */
-function computeRangeFacetBuckets(shard: FacetShard): void {
+function computeRangeFacetBuckets(
+  shard: FacetShard,
+  bucketCount: number,
+): void {
   const sorted = shard.sorted ?? [];
   if (sorted.length === 0) return;
   const min = sorted[0]?.value as number;
   const max = sorted[sorted.length - 1]?.value as number;
 
   if (min === max) {
-    // A single distinct value: one bucket, not RANGE_FACET_BUCKET_COUNT
-    // degenerate zero-width ones.
+    // A single distinct value: one bucket, not `bucketCount` degenerate
+    // zero-width ones.
     shard.values[formatBucketBound(min)] = {
       count: sorted.length,
       docs: sorted.map((entry) => entry.doc),
@@ -308,20 +324,17 @@ function computeRangeFacetBuckets(shard: FacetShard): void {
     return;
   }
 
-  const width = (max - min) / RANGE_FACET_BUCKET_COUNT;
-  const labels = Array.from({ length: RANGE_FACET_BUCKET_COUNT }, (_, i) => {
+  const width = (max - min) / bucketCount;
+  const labels = Array.from({ length: bucketCount }, (_, i) => {
     const lo = min + i * width;
     const hi = min + (i + 1) * width;
-    return i === RANGE_FACET_BUCKET_COUNT - 1
+    return i === bucketCount - 1
       ? `${formatBucketBound(lo)}+`
       : `${formatBucketBound(lo)}-${formatBucketBound(hi)}`;
   });
 
   for (const { value, doc } of sorted) {
-    const index = Math.min(
-      RANGE_FACET_BUCKET_COUNT - 1,
-      Math.floor((value - min) / width),
-    );
+    const index = Math.min(bucketCount - 1, Math.floor((value - min) / width));
     const label = labels[index] as string;
     let entry = shard.values[label];
     if (!entry) {
@@ -445,6 +458,14 @@ export function buildIndex(
   validateSourceIds(sources);
   const fieldBoosts = { ...DEFAULT_FIELD_BOOSTS, ...options.fieldBoosts };
   const hierarchicalFacets = options.hierarchicalFacets ?? {};
+  const rangeFacetBuckets = options.rangeFacetBuckets ?? {};
+  for (const [field, count] of Object.entries(rangeFacetBuckets)) {
+    if (!Number.isInteger(count) || count < 1) {
+      throw new Error(
+        `buildIndex: invalid rangeFacetBuckets count ${JSON.stringify(count)} for field "${field}" — must be a positive integer`,
+      );
+    }
+  }
 
   const termShards: Record<string, TermShard> = {};
   const docStore: DocStoreShard = {};
@@ -540,7 +561,7 @@ export function buildIndex(
       entry.postings.sort((a, b) => a.doc - b.doc);
     }
   }
-  for (const facetShard of Object.values(facetShards)) {
+  for (const [field, facetShard] of Object.entries(facetShards)) {
     // doc id as tiebreaker for documents sharing the same value, so
     // output is deterministic regardless of corpus feed order (same
     // REVIEW.md#10 reasoning as postings/facet-value docs above).
@@ -548,7 +569,12 @@ export function buildIndex(
     // Needs the full, sorted `sorted` array above -- must run before
     // the values.docs sort below populates and sorts the buckets this
     // computes.
-    if (facetShard.type === "range") computeRangeFacetBuckets(facetShard);
+    if (facetShard.type === "range") {
+      computeRangeFacetBuckets(
+        facetShard,
+        rangeFacetBuckets[field] ?? RANGE_FACET_BUCKET_COUNT,
+      );
+    }
   }
   for (const facetShard of Object.values(facetShards)) {
     for (const entry of Object.values(facetShard.values)) {

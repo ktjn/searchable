@@ -148,18 +148,21 @@ Phase 2 is now fully implemented.
   which was built separately above):
   `computeRangeFacetBuckets()` in
   [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)
-  computes 5 equal-width buckets spanning the corpus's observed
+  computes equal-width buckets spanning the corpus's observed
   `[min, max]` once every document has been processed, populating
   `FacetShard.values` with the same `{count, docs}` shape terms facets
   already use, keyed by a label like `"10-20"` or `"80+"` for the
   open-ended last bucket (a single distinct value collapses to one
-  bucket instead of 5 degenerate zero-width ones). That shape reuse is
+  bucket instead of N degenerate zero-width ones). That shape reuse is
   the entire feature: `packages/client/src/search.ts`'s `search()` and
   `facetValues()` already iterate `shard.values` generically regardless
   of facet type, so **no client-side code changed at all** to surface
-  these — only the indexer needed new code. Bucket count is a fixed
-  constant (`RANGE_FACET_BUCKET_COUNT = 5`) for now, not yet an
-  author-configurable build option.
+  these — only the indexer needed new code. Bucket count defaults to 5
+  but is now an author-configurable build option too,
+  `BuildIndexOptions.rangeFacetBuckets: Record<field, count>` — a
+  non-positive-integer count throws at build time. Bucket *boundaries*
+  (arbitrary author-chosen cut points, as opposed to the count of
+  equal-width buckets) remain design-only.
 - ✅ Hierarchical facets
   ([06-faceted-search.md#facet-types](06-faceted-search.md#facet-types),
   [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)):

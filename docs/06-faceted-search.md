@@ -13,19 +13,26 @@ extraction, a shard storing every `(value, doc)` pair sorted ascending
 — `FacetShard.sorted` — and `search(query, {filters: {field: {min?,
 max?}}})` resolving an arbitrary min/max via a scan of that sorted
 array) and **aggregate results** (`packages/indexer/src/build-index.ts`'s
-`computeRangeFacetBuckets()` computes 5 equal-width buckets over the
-corpus's observed `[min, max]` after every document is processed,
-populating `FacetShard.values` with the exact same `{count, docs}`
-shape terms facets use, keyed by a human-readable label like `"10-20"`
-or `"80+"` for the open-ended last bucket — deliberately reusing that
-shape meant `search()`/`facetValues()` needed *zero* client-side
-changes to surface them, since their contextual-count aggregation
-already iterates `shard.values` generically regardless of facet type).
-Not built yet: precomputed-bucket-based filtering (the sorted-array
-scan used for filtering is correct today, just not the fastest possible
-at very large shard sizes) and author-configurable bucket
-count/boundaries (5 equal-width buckets is a fixed default, not yet
-tunable). A `facetValues()` filter-only browsing call with no
+`computeRangeFacetBuckets()` computes equal-width buckets — 5 by
+default, or a different count per field via `buildIndex(sources, lang,
+{ rangeFacetBuckets: { price: 10 } })` — over the corpus's observed
+`[min, max]` after every document is processed, populating
+`FacetShard.values` with the exact same `{count, docs}` shape terms
+facets use, keyed by a human-readable label like `"10-20"` or `"80+"`
+for the open-ended last bucket — deliberately reusing that shape meant
+`search()`/`facetValues()` needed *zero* client-side changes to
+surface them, since their contextual-count aggregation already
+iterates `shard.values` generically regardless of facet type). A
+`rangeFacetBuckets` count of anything other than a positive integer
+(`0`, negative, or non-integer) throws at build time rather than
+silently producing a nonsensical histogram. Not built yet:
+precomputed-bucket-based filtering (the sorted-array scan used for
+filtering is correct today, just not the fastest possible at very
+large shard sizes) and author-configurable bucket *boundaries*
+(bucket count is now tunable per field; the boundaries themselves are
+always equal-width across the observed `[min, max]`, not
+author-chosen cut points). A `facetValues()` filter-only browsing call
+with no
 free-text query is also built (docs/07-client-api.md#facet-only-queries) —
 same contextual-count convention as `search()`'s `facets` option, and
 now the same aggregate-bucket results for a range field too.
@@ -101,16 +108,18 @@ a linear scan rather than binary search for *filtering* (correct either
 way, since the array is sorted; negligible cost difference at "small
 corpus" JSON-tier scale — see
 [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale)),
-plus precomputed buckets in `values` for *aggregate results* — 5
-equal-width buckets spanning the corpus's observed `[min, max]`,
-computed once after every document is processed
-(`computeRangeFacetBuckets()` in
+plus precomputed buckets in `values` for *aggregate results* —
+equal-width buckets spanning the corpus's observed `[min, max]` (5 per
+field by default, author-configurable via `BuildIndexOptions.
+rangeFacetBuckets: Record<field, count>`), computed once after every
+document is processed (`computeRangeFacetBuckets()` in
 [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)).
 A single distinct value across the whole corpus collapses to one
-bucket labeled with that value, rather than 5 degenerate zero-width
-ones. Still design-only: author-configurable bucket count/boundaries
-(the bucket count is a fixed constant, `RANGE_FACET_BUCKET_COUNT`, not
-a build option yet) and the binary tier's delta-encoding.
+bucket labeled with that value, rather than N degenerate zero-width
+ones, regardless of the configured count. Still design-only:
+author-configurable bucket *boundaries* (arbitrary, non-equal-width
+cut points chosen by the author — count alone is tunable today, shape
+isn't) and the binary tier's delta-encoding.
 
 ## Filtering
 

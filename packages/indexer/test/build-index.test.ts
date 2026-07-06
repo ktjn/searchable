@@ -303,6 +303,95 @@ describe("buildIndex range facets", () => {
       "80+": { count: 1, docs: [5] },
     });
   });
+
+  it("honors a per-field rangeFacetBuckets override instead of the default 5", () => {
+    const evenlySpread: SourceDocument[] = [0, 25, 50, 75, 100].map(
+      (value, i) => ({
+        id: i + 1,
+        url: `/${i}`,
+        html: `<html lang="en"><head><title>Doc ${i}</title>
+          <meta name="csf-facet-range-score" content="${value}"></head>
+          <body><main>x</main></body></html>`,
+      }),
+    );
+    const built = buildIndex(evenlySpread, "en", {
+      rangeFacetBuckets: { score: 2 },
+    });
+    expect(built.facetShards.score?.values).toEqual({
+      "0-50": { count: 2, docs: [1, 2] },
+      "50+": { count: 3, docs: [3, 4, 5] },
+    });
+  });
+
+  it("defaults an unconfigured range field to 5 buckets even when a different field is overridden", () => {
+    // Five evenly-spread values per field so every one of the default
+    // 5 buckets actually gets a doc (an empty bucket never gets a
+    // shard.values entry at all -- see the "single distinct value"
+    // test above -- so a sparser fixture couldn't distinguish "5
+    // buckets" from "however many happened to be populated").
+    const built = buildIndex(
+      [0, 25, 50, 75, 100].map((value, i) => ({
+        id: i + 1,
+        url: `/${i}`,
+        html: `<html lang="en"><head><title>Doc ${i}</title>
+          <meta name="csf-facet-range-price" content="${value}">
+          <meta name="csf-facet-range-score" content="${value}"></head>
+          <body><main>x</main></body></html>`,
+      })),
+      "en",
+      { rangeFacetBuckets: { price: 2 } },
+    );
+    expect(Object.keys(built.facetShards.price?.values ?? {})).toEqual([
+      "0-50",
+      "50+",
+    ]);
+    expect(Object.keys(built.facetShards.score?.values ?? {})).toEqual([
+      "0-20",
+      "20-40",
+      "40-60",
+      "60-80",
+      "80+",
+    ]);
+  });
+
+  it("treats a bucket count of 1 as a single overall bucket, distinct from the single-distinct-value collapse", () => {
+    const evenlySpread: SourceDocument[] = [0, 25, 50, 75, 100].map(
+      (value, i) => ({
+        id: i + 1,
+        url: `/${i}`,
+        html: `<html lang="en"><head><title>Doc ${i}</title>
+          <meta name="csf-facet-range-score" content="${value}"></head>
+          <body><main>x</main></body></html>`,
+      }),
+    );
+    const built = buildIndex(evenlySpread, "en", {
+      rangeFacetBuckets: { score: 1 },
+    });
+    expect(built.facetShards.score?.values).toEqual({
+      "0+": { count: 5, docs: [1, 2, 3, 4, 5] },
+    });
+  });
+
+  it("throws for a non-positive or non-integer rangeFacetBuckets count", () => {
+    const source: SourceDocument[] = [
+      {
+        id: 1,
+        url: "/a",
+        html: `<html lang="en"><head><title>A</title>
+          <meta name="csf-facet-range-price" content="10"></head>
+          <body><main>a</main></body></html>`,
+      },
+    ];
+    expect(() =>
+      buildIndex(source, "en", { rangeFacetBuckets: { price: 0 } }),
+    ).toThrow(/positive integer/);
+    expect(() =>
+      buildIndex(source, "en", { rangeFacetBuckets: { price: -1 } }),
+    ).toThrow(/positive integer/);
+    expect(() =>
+      buildIndex(source, "en", { rangeFacetBuckets: { price: 2.5 } }),
+    ).toThrow(/positive integer/);
+  });
 });
 
 describe("buildIndex hierarchical facets", () => {
