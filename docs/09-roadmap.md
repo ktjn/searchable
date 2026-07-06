@@ -148,7 +148,7 @@ Phase 2 is now fully implemented.
 - ✅ Aggregate range facet *results* (a histogram/bucket breakdown in
   `SearchResult.facets`/`facetValues()`, as opposed to filtering,
   which was built separately above):
-  `computeRangeFacetBuckets()` in
+  `computeRangeFacetBucketsEqualWidth()` in
   [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)
   computes equal-width buckets spanning the corpus's observed
   `[min, max]` once every document has been processed, populating
@@ -161,10 +161,19 @@ Phase 2 is now fully implemented.
   of facet type, so **no client-side code changed at all** to surface
   these — only the indexer needed new code. Bucket count defaults to 5
   but is now an author-configurable build option too,
-  `BuildIndexOptions.rangeFacetBuckets: Record<field, count>` — a
-  non-positive-integer count throws at build time. Bucket *boundaries*
-  (arbitrary author-chosen cut points, as opposed to the count of
-  equal-width buckets) remain design-only.
+  `BuildIndexOptions.rangeFacetBuckets: Record<field, number>` — a
+  non-positive-integer count throws at build time. Author-configurable
+  bucket *boundaries* are built too: passing a `number[]` of
+  strictly-ascending cut points instead of a count (e.g. `{ price:
+  [25, 50, 100, 250] }`) switches to
+  `computeRangeFacetBucketsExplicit()`, producing fixed brackets
+  (`"<25"`, `"25-50"`, ..., `"250+"`) independent of the corpus's
+  observed `[min, max]`, for real-world tiers an equal-width split
+  would never land on — deliberately with no "single distinct value
+  collapses" special case, since a fixed bucket is meaningful
+  regardless of how many distinct values exist. An empty,
+  non-finite, or non-strictly-ascending boundaries array throws at
+  build time, same as an invalid count.
 - ✅ Hierarchical facets
   ([06-faceted-search.md#facet-types](06-faceted-search.md#facet-types),
   [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)):

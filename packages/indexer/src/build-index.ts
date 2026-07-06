@@ -72,18 +72,25 @@ export interface BuildIndexOptions {
    */
   hierarchicalFacets?: Record<string, { separator?: string }>;
   /**
-   * Per-field override of the number of equal-width aggregate buckets
-   * computed for a range facet's histogram results
-   * (docs/06-faceted-search.md#facet-index-structure). Defaults to
-   * `RANGE_FACET_BUCKET_COUNT` (5) for any range field not listed here.
+   * Per-field override of a range facet's histogram results
+   * (docs/06-faceted-search.md#facet-index-structure), for any range
+   * field not listed here defaulting to `RANGE_FACET_BUCKET_COUNT` (5)
+   * equal-width buckets. Two shapes:
+   *  - a `number`: that many equal-width buckets spanning the corpus's
+   *    observed `[min, max]` (must be a positive integer) — the same
+   *    behavior as the default, just a different count.
+   *  - a `number[]`: explicit ascending cut points, independent of the
+   *    observed data range, for fixed real-world brackets an equal-width
+   *    split would never land on (e.g. `[25, 50, 100, 250]` for pricing
+   *    tiers "under $25" / "$25-50" / "$50-100" / "$100-250" /
+   *    "$250+") — must have at least one boundary, strictly ascending,
+   *    all finite.
    * Only affects aggregate *results* (`FacetShard.values`) — range
-   * *filtering* (the sorted-array scan) is bucket-count-independent and
-   * unaffected either way. Must be a positive integer; anything else
-   * throws at build time rather than silently producing a nonsensical
-   * histogram (a single degenerate bucket, or worse, an infinite/NaN
-   * bucket width).
+   * *filtering* (the sorted-array scan) is bucket-shape-independent and
+   * unaffected either way. An invalid count or boundary array throws at
+   * build time rather than silently producing a nonsensical histogram.
    */
-  rangeFacetBuckets?: Record<string, number>;
+  rangeFacetBuckets?: Record<string, number | number[]>;
 }
 
 const DEFAULT_HIERARCHY_SEPARATOR = ">";
@@ -298,7 +305,8 @@ function addFacetValues(
  * directly against this sorted array (sorted once, after every
  * document is processed) rather than being limited to precomputed
  * bucket boundaries. `values` is populated separately, after all docs
- * are processed, by `computeRangeFacetBuckets()` below -- aggregate
+ * are processed, by `computeRangeFacetBucketsEqualWidth()`/
+ * `computeRangeFacetBucketsExplicit()` below -- aggregate
  * *results* (the display-side histogram/bucket breakdown) and
  * filtering are two independent capabilities on the same shard.
  */
@@ -327,6 +335,17 @@ function formatBucketBound(n: number): string {
   return Number(n.toFixed(2)).toString();
 }
 
+/** Adds `doc` to `shard.values[label]`, creating the entry on first use — shared by both bucket-computation strategies below. */
+function addToBucket(shard: FacetShard, label: string, doc: number): void {
+  let entry = shard.values[label];
+  if (!entry) {
+    entry = { count: 0, docs: [] };
+    shard.values[label] = entry;
+  }
+  entry.docs.push(doc);
+  entry.count++;
+}
+
 /**
  * Populates a range facet shard's `values` with equal-width aggregate
  * buckets computed over the corpus's full observed [min, max] --
@@ -343,7 +362,7 @@ function formatBucketBound(n: number): string {
  * client-side changes are needed at all. Must run after `shard.sorted`
  * is fully populated and sorted (every document processed).
  */
-function computeRangeFacetBuckets(
+function computeRangeFacetBucketsEqualWidth(
   shard: FacetShard,
   bucketCount: number,
 ): void {
@@ -373,14 +392,42 @@ function computeRangeFacetBuckets(
 
   for (const { value, doc } of sorted) {
     const index = Math.min(bucketCount - 1, Math.floor((value - min) / width));
-    const label = labels[index] as string;
-    let entry = shard.values[label];
-    if (!entry) {
-      entry = { count: 0, docs: [] };
-      shard.values[label] = entry;
-    }
-    entry.docs.push(doc);
-    entry.count++;
+    addToBucket(shard, labels[index] as string, doc);
+  }
+}
+
+/**
+ * Populates a range facet shard's `values` with buckets at
+ * author-chosen cut points (`boundaries`, ascending), independent of
+ * the corpus's observed `[min, max]` — for fixed real-world brackets
+ * (e.g. pricing tiers) an equal-width split would never land on.
+ * Standard faceted-search convention (below the first boundary, each
+ * `[boundaries[i-1], boundaries[i])` range, at-or-above the last
+ * boundary), not tied to the data's own spread the way the equal-width
+ * strategy above is — so there's no "single distinct value" special
+ * case here: a fixed bucket a value falls into is meaningful
+ * regardless of how many other distinct values exist.
+ */
+function computeRangeFacetBucketsExplicit(
+  shard: FacetShard,
+  boundaries: number[],
+): void {
+  const sorted = shard.sorted ?? [];
+  if (sorted.length === 0) return;
+
+  const labels = boundaries.map((b, i) =>
+    i === 0
+      ? `<${formatBucketBound(b)}`
+      : `${formatBucketBound(boundaries[i - 1] as number)}-${formatBucketBound(b)}`,
+  );
+  labels.push(
+    `${formatBucketBound(boundaries[boundaries.length - 1] as number)}+`,
+  );
+
+  for (const { value, doc } of sorted) {
+    let index = boundaries.findIndex((b) => value < b);
+    if (index === -1) index = boundaries.length;
+    addToBucket(shard, labels[index] as string, doc);
   }
 }
 
@@ -497,10 +544,23 @@ export function buildIndex(
   const fieldBoosts = { ...DEFAULT_FIELD_BOOSTS, ...options.fieldBoosts };
   const hierarchicalFacets = options.hierarchicalFacets ?? {};
   const rangeFacetBuckets = options.rangeFacetBuckets ?? {};
-  for (const [field, count] of Object.entries(rangeFacetBuckets)) {
-    if (!Number.isInteger(count) || count < 1) {
+  for (const [field, config] of Object.entries(rangeFacetBuckets)) {
+    if (Array.isArray(config)) {
+      if (config.length < 1 || !config.every((n) => Number.isFinite(n))) {
+        throw new Error(
+          `buildIndex: invalid rangeFacetBuckets boundaries ${JSON.stringify(config)} for field "${field}" — must be a non-empty array of finite numbers`,
+        );
+      }
+      for (let i = 1; i < config.length; i++) {
+        if ((config[i] as number) <= (config[i - 1] as number)) {
+          throw new Error(
+            `buildIndex: invalid rangeFacetBuckets boundaries ${JSON.stringify(config)} for field "${field}" — must be strictly ascending`,
+          );
+        }
+      }
+    } else if (!Number.isInteger(config) || config < 1) {
       throw new Error(
-        `buildIndex: invalid rangeFacetBuckets count ${JSON.stringify(count)} for field "${field}" — must be a positive integer`,
+        `buildIndex: invalid rangeFacetBuckets count ${JSON.stringify(config)} for field "${field}" — must be a positive integer`,
       );
     }
   }
@@ -614,10 +674,12 @@ export function buildIndex(
     // the values.docs sort below populates and sorts the buckets this
     // computes.
     if (facetShard.type === "range") {
-      computeRangeFacetBuckets(
-        facetShard,
-        rangeFacetBuckets[field] ?? RANGE_FACET_BUCKET_COUNT,
-      );
+      const config = rangeFacetBuckets[field] ?? RANGE_FACET_BUCKET_COUNT;
+      if (Array.isArray(config)) {
+        computeRangeFacetBucketsExplicit(facetShard, config);
+      } else {
+        computeRangeFacetBucketsEqualWidth(facetShard, config);
+      }
     }
   }
   for (const facetShard of Object.values(facetShards)) {

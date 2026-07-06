@@ -78,11 +78,14 @@ transparent: a matching pin is spliced into `result.hits` automatically
 API below. `signal` *is* implemented — see Cancellation below.
 `synonyms`, `fuzzy`, and `highlight` *are* implemented — see below. A
 range facet's aggregate results (a histogram/bucket breakdown in
-`result.facets`) *are* also implemented — equal-width buckets over the
-corpus's observed `[min, max]` (5 per field by default, configurable
-at build time via `buildIndex(sources, lang, { rangeFacetBuckets: {
-price: 10 } })`), same as range *filtering* (the `{min, max}` shape
-above).
+`result.facets`) *are* also implemented — either equal-width buckets
+over the corpus's observed `[min, max]` (5 per field by default,
+configurable at build time via `buildIndex(sources, lang, {
+rangeFacetBuckets: { price: 10 } })`), or fixed, author-chosen
+brackets via an ascending-boundaries array (`{ rangeFacetBuckets: {
+price: [25, 50, 100, 250] } }`, producing `"<25"`/`"25-50"`/.../`"250+"`
+buckets independent of the observed data range) — same as range
+*filtering* (the `{min, max}` shape above).
 
 ### Hierarchical facets
 

@@ -392,6 +392,100 @@ describe("buildIndex range facets", () => {
       buildIndex(source, "en", { rangeFacetBuckets: { price: 2.5 } }),
     ).toThrow(/positive integer/);
   });
+
+  it("honors explicit ascending boundaries instead of equal-width buckets", () => {
+    const priceSources: SourceDocument[] = [10, 30, 60, 150, 300].map(
+      (value, i) => ({
+        id: i + 1,
+        url: `/${i}`,
+        html: `<html lang="en"><head><title>Doc ${i}</title>
+        <meta name="csf-facet-range-price" content="${value}"></head>
+        <body><main>x</main></body></html>`,
+      }),
+    );
+    const built = buildIndex(priceSources, "en", {
+      rangeFacetBuckets: { price: [25, 50, 100, 250] },
+    });
+    // 10 -> <25; 30 -> 25-50; 60 -> 50-100; 150 -> 100-250; 300 -> 250+
+    expect(built.facetShards.price?.values).toEqual({
+      "<25": { count: 1, docs: [1] },
+      "25-50": { count: 1, docs: [2] },
+      "50-100": { count: 1, docs: [3] },
+      "100-250": { count: 1, docs: [4] },
+      "250+": { count: 1, docs: [5] },
+    });
+  });
+
+  it("groups multiple values into the same explicit-boundary bucket", () => {
+    const priceSources: SourceDocument[] = [5, 10, 15, 40].map((value, i) => ({
+      id: i + 1,
+      url: `/${i}`,
+      html: `<html lang="en"><head><title>Doc ${i}</title>
+          <meta name="csf-facet-range-price" content="${value}"></head>
+          <body><main>x</main></body></html>`,
+    }));
+    const built = buildIndex(priceSources, "en", {
+      rangeFacetBuckets: { price: [25] },
+    });
+    expect(built.facetShards.price?.values).toEqual({
+      "<25": { count: 3, docs: [1, 2, 3] },
+      "25+": { count: 1, docs: [4] },
+    });
+  });
+
+  it("does not collapse a single-distinct-value corpus into one bucket under explicit boundaries (unlike equal-width)", () => {
+    const built = buildIndex(
+      [
+        {
+          id: 1,
+          url: "/a",
+          html: `<html lang="en"><head><title>A</title>
+            <meta name="csf-facet-range-price" content="42"></head>
+            <body><main>a</main></body></html>`,
+        },
+        {
+          id: 2,
+          url: "/b",
+          html: `<html lang="en"><head><title>B</title>
+            <meta name="csf-facet-range-price" content="42"></head>
+            <body><main>b</main></body></html>`,
+        },
+      ],
+      "en",
+      { rangeFacetBuckets: { price: [25, 50] } },
+    );
+    // Every value is the same (42), but the fixed brackets still apply
+    // -- 42 falls in "25-50", not a single degenerate bucket labeled "42".
+    expect(built.facetShards.price?.values).toEqual({
+      "25-50": { count: 2, docs: [1, 2] },
+    });
+  });
+
+  it("throws for an empty, non-finite, or non-ascending boundaries array", () => {
+    const source: SourceDocument[] = [
+      {
+        id: 1,
+        url: "/a",
+        html: `<html lang="en"><head><title>A</title>
+          <meta name="csf-facet-range-price" content="10"></head>
+          <body><main>a</main></body></html>`,
+      },
+    ];
+    expect(() =>
+      buildIndex(source, "en", { rangeFacetBuckets: { price: [] } }),
+    ).toThrow(/non-empty array/);
+    expect(() =>
+      buildIndex(source, "en", {
+        rangeFacetBuckets: { price: [Number.NaN] },
+      }),
+    ).toThrow(/non-empty array/);
+    expect(() =>
+      buildIndex(source, "en", { rangeFacetBuckets: { price: [50, 25] } }),
+    ).toThrow(/strictly ascending/);
+    expect(() =>
+      buildIndex(source, "en", { rangeFacetBuckets: { price: [25, 25] } }),
+    ).toThrow(/strictly ascending/);
+  });
 });
 
 describe("buildIndex hierarchical facets", () => {

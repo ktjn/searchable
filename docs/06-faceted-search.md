@@ -13,25 +13,29 @@ extraction, a shard storing every `(value, doc)` pair sorted ascending
 — `FacetShard.sorted` — and `search(query, {filters: {field: {min?,
 max?}}})` resolving an arbitrary min/max via a scan of that sorted
 array) and **aggregate results** (`packages/indexer/src/build-index.ts`'s
-`computeRangeFacetBuckets()` computes equal-width buckets — 5 by
-default, or a different count per field via `buildIndex(sources, lang,
-{ rangeFacetBuckets: { price: 10 } })` — over the corpus's observed
-`[min, max]` after every document is processed, populating
+`computeRangeFacetBucketsEqualWidth()` computes equal-width buckets — 5
+by default, or a different count per field via `buildIndex(sources,
+lang, { rangeFacetBuckets: { price: 10 } })` — over the corpus's
+observed `[min, max]` after every document is processed, populating
 `FacetShard.values` with the exact same `{count, docs}` shape terms
 facets use, keyed by a human-readable label like `"10-20"` or `"80+"`
 for the open-ended last bucket — deliberately reusing that shape meant
 `search()`/`facetValues()` needed *zero* client-side changes to
 surface them, since their contextual-count aggregation already
-iterates `shard.values` generically regardless of facet type). A
-`rangeFacetBuckets` count of anything other than a positive integer
-(`0`, negative, or non-integer) throws at build time rather than
-silently producing a nonsensical histogram. Not built yet:
+iterates `shard.values` generically regardless of facet type).
+Author-configurable bucket *boundaries* are now built too:
+`rangeFacetBuckets` accepts either a `number` (equal-width count, as
+above) or a `number[]` of strictly-ascending cut points (e.g.
+`{ price: [25, 50, 100, 250] }`), which `computeRangeFacetBucketsExplicit()`
+turns into fixed brackets independent of the corpus's observed
+`[min, max]` — `"<25"`, `"25-50"`, ..., `"250+"` — for real-world tiers
+an equal-width split would never land on. A `rangeFacetBuckets` count
+of anything other than a positive integer, or a boundaries array that's
+empty, non-finite, or not strictly ascending, throws at build time
+rather than silently producing a nonsensical histogram. Not built yet:
 precomputed-bucket-based filtering (the sorted-array scan used for
 filtering is correct today, just not the fastest possible at very
-large shard sizes) and author-configurable bucket *boundaries*
-(bucket count is now tunable per field; the boundaries themselves are
-always equal-width across the observed `[min, max]`, not
-author-chosen cut points). A `facetValues()` filter-only browsing call
+large shard sizes). A `facetValues()` filter-only browsing call
 with no
 free-text query is also built (docs/07-client-api.md#facet-only-queries) —
 same contextual-count convention as `search()`'s `facets` option, and
@@ -108,18 +112,26 @@ a linear scan rather than binary search for *filtering* (correct either
 way, since the array is sorted; negligible cost difference at "small
 corpus" JSON-tier scale — see
 [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale)),
-plus precomputed buckets in `values` for *aggregate results* —
-equal-width buckets spanning the corpus's observed `[min, max]` (5 per
-field by default, author-configurable via `BuildIndexOptions.
-rangeFacetBuckets: Record<field, count>`), computed once after every
-document is processed (`computeRangeFacetBuckets()` in
-[`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)).
-A single distinct value across the whole corpus collapses to one
-bucket labeled with that value, rather than N degenerate zero-width
-ones, regardless of the configured count. Still design-only:
-author-configurable bucket *boundaries* (arbitrary, non-equal-width
-cut points chosen by the author — count alone is tunable today, shape
-isn't) and the binary tier's delta-encoding.
+plus precomputed buckets in `values` for *aggregate results*, in one of
+two author-configurable shapes (`BuildIndexOptions.rangeFacetBuckets:
+Record<field, number | number[]>`), computed once after every document
+is processed
+([`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)):
+- a `number` — equal-width buckets spanning the corpus's observed
+  `[min, max]` (5 per field by default), via
+  `computeRangeFacetBucketsEqualWidth()`. A single distinct value
+  across the whole corpus collapses to one bucket labeled with that
+  value, rather than N degenerate zero-width ones, regardless of the
+  configured count.
+- a `number[]` of strictly-ascending cut points, via
+  `computeRangeFacetBucketsExplicit()` — fixed brackets independent of
+  the observed data range (`"<25"`, `"25-50"`, ..., `"250+"`), for
+  real-world tiers (pricing, etc.) an equal-width split would never
+  land on. No "single distinct value" collapse here: a fixed bucket a
+  value falls into is meaningful regardless of how many other distinct
+  values exist in the corpus.
+
+Still design-only: the binary tier's delta-encoding.
 
 ## Filtering
 
