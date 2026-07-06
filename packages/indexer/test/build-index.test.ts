@@ -719,6 +719,45 @@ describe("buildIndex multi-language corpora", () => {
   });
 });
 
+describe("buildIndex CJK bigram fallback (docs/03-tokenization-i18n.md#segmentation)", () => {
+  const cjkSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/zh/nlp",
+      html: `<html lang="zh"><head><title>自然語言處理</title></head>
+        <body><main><p>自然語言處理是電腦科學的一個領域。</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/zh/cooking",
+      html: `<html lang="zh"><head><title>中式烹飪</title></head>
+        <body><main><p>中式烹飪注重色香味俱全。</p></main></body></html>`,
+    },
+  ];
+
+  it("indexes a CJK document's title/body as overlapping bigrams under that document's own language shard", () => {
+    const built = buildIndex(cjkSources, "zh");
+    // "自然語言處理" (title) -> bigrams 自然/然語/語言/言處/處理, each a
+    // real term-shard key -- no word-boundary dictionary needed.
+    expect(built.termShards.zh?.自然).toBeDefined();
+    expect(built.termShards.zh?.語言).toBeDefined();
+    expect(built.termShards.zh?.處理).toBeDefined();
+  });
+
+  it("does not put a bigram from one document into an unrelated document's postings", () => {
+    const built = buildIndex(cjkSources, "zh");
+    // "語言" (from doc 1's title) never appears in doc 2's cooking content.
+    expect(built.termShards.zh?.語言?.postings.map((p) => p.doc)).toEqual([1]);
+    expect(built.termShards.zh?.中式?.postings.map((p) => p.doc)).toEqual([2]);
+  });
+
+  it("computes docCount/avgFieldLength for the zh partition like any other language", () => {
+    const built = buildIndex(cjkSources, "zh");
+    expect(built.manifest.docCount.zh).toBe(2);
+    expect(built.manifest.avgFieldLength.zh?.title).toBeGreaterThan(0);
+  });
+});
+
 describe("buildIndex source id validation", () => {
   const page = (id: number, url: string): SourceDocument => ({
     id,

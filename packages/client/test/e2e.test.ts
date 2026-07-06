@@ -1319,6 +1319,65 @@ describe("multi-language corpora", () => {
   });
 });
 
+describe("CJK bigram fallback segmentation (docs/03-tokenization-i18n.md#segmentation)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const cjkSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/zh/nlp",
+      html: `<html lang="zh"><head><title>自然語言處理</title></head>
+        <body><main><p>自然語言處理是電腦科學的一個領域。獨 處 也很好。</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/zh/cooking",
+      html: `<html lang="zh"><head><title>中式烹飪</title></head>
+        <body><main><p>中式烹飪注重色香味俱全。</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-cjk-"));
+    await writeIndex(buildIndex(cjkSources, "zh"), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("finds a document via a single 2-character bigram query", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("語言");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("finds a document via a longer query that expands into multiple AND-ed bigrams, all of which appear as a contiguous run", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("自然語言");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("finds a document via a lone single CJK character query (the 1-gram fallback)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("處");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("does not match a bigram that only appears in a different, unrelated document", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("中式");
+    expect(hits.map((h) => h.id)).toEqual([2]);
+    expect((await client.search("語言")).hits.map((h) => h.id)).toEqual([1]);
+  });
+});
+
 describe("synonym expansion (csf synonyms)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

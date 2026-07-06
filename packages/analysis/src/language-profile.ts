@@ -1,3 +1,4 @@
+import { segmentCjkBigram } from "./segment-cjk.js";
 import { stemGerman } from "./stemmer-de.js";
 import { stemEnglish } from "./stemmer-en.js";
 
@@ -70,6 +71,38 @@ export const german: LanguageProfile = {
   foldDiacritics: false,
   stopwords: new Set(),
   stem: stemGerman,
+};
+
+/**
+ * Bigram (n-gram) fallback segmentation (`./segment-cjk.ts`) rather
+ * than dictionary-based `Intl.Segmenter("zh"|"ja")` word segmentation
+ * (docs/03-tokenization-i18n.md#segmentation) — guarantees correct
+ * substring matching in any environment without a bundled dictionary,
+ * at the cost of index size (overlapping bigrams) and some relevance
+ * precision (no real word boundaries), a documented, accepted
+ * tradeoff. `stem` is the identity function: Chinese and Japanese
+ * don't have Indo-European-style inflectional morphology that
+ * affix-stripping stemming targets, matching every other
+ * non-affix-stripping language this project documents as a stemming
+ * no-op. `foldDiacritics` is meaningless for these scripts (no
+ * diacritics), left `false` for consistency with every profile that
+ * isn't specifically opting in.
+ */
+export const chinese: LanguageProfile = {
+  code: "zh",
+  segment: segmentCjkBigram,
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: (term) => term,
+};
+
+/** Same bigram-fallback segmentation as `chinese` above -- the fallback mechanism doesn't depend on which CJK language the text is in, only its script (docs/03-tokenization-i18n.md#segmentation). */
+export const japanese: LanguageProfile = {
+  code: "ja",
+  segment: segmentCjkBigram,
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: (term) => term,
 };
 
 export { stripDiacritics };

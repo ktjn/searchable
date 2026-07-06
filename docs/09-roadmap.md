@@ -11,9 +11,10 @@ pending item. Phase 3 is now fully built (terms facets, range facets
 pins, and a filter-only `facetValues()` browsing call — see below).
 Phase 4 is partially built (a
 second real LanguageProfile, true per-document-language corpus
-partitioning, and real stemmers for both English (classic Porter) and
-German (Snowball); the CJK bigram fallback remains pending — see
-below). Phase
+partitioning, real stemmers for both English (classic Porter) and
+German (Snowball), and a CJK bigram-fallback `LanguageProfile` for
+Chinese/Japanese; RTL-aware rendering and auto language detection
+remain pending — see below). Phase
 5 is mostly built (query-time synonym
 expansion, plus SymSpell fuzzy matching and "did you mean"
 suggestions; `multiWord` phrase-level synonyms remain pending — see
@@ -277,8 +278,31 @@ Phase 2 is now fully implemented.
   Wired into `german.stem`; the multi-language corpus showcase demo and
   its test were updated to match
   ([19-github-pages-showcase.md](19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)).
-- ⬜ CJK/Thai bigram fallback, `Intl.Segmenter`-unsupported-locale
-  handling — no non-Latin-script profile exists yet.
+- ✅ CJK bigram-fallback segmentation
+  ([03-tokenization-i18n.md#segmentation](03-tokenization-i18n.md#segmentation),
+  [`packages/analysis/src/segment-cjk.ts`](../packages/analysis/src/segment-cjk.ts)):
+  two new `LanguageProfile`s, `chinese` (`"zh"`) and `japanese`
+  (`"ja"`), both using the same bigram segmenter — a run of consecutive
+  Han/hiragana/katakana characters is split into overlapping
+  2-character windows (`"自然語言"` -> `"自然"`, `"然語"`, `"語言"`),
+  guaranteeing correct substring matching in any environment without a
+  bundled word-boundary dictionary, at the cost of some index size and
+  relevance precision versus true dictionary segmentation. A lone
+  single-character CJK run is indexed as that one character rather
+  than dropped, so single-character words stay searchable. A run of
+  non-CJK characters (Latin words, digits, punctuation, whitespace —
+  common in real CJK text, e.g. product codes or English loanwords) is
+  segmented normally via `Intl.Segmenter`, exactly like the
+  space-delimited-language profiles. `stem` is the identity function
+  for both, matching the documented "no good affix-stripping stemmer"
+  no-op rule. Deliberately built as the *only* segmentation strategy
+  for these two profiles rather than gated behind detecting "incomplete
+  `Intl.Segmenter` support" (unreliable to detect portably across the
+  arbitrary browsers/Node versions this runtime targets) — the
+  higher-precision `Intl.Segmenter("zh"|"ja")` dictionary-based path
+  the original design called for remains a documented future upgrade,
+  not built here. Thai/Khmer/Lao remain pending — a separate script
+  range, not a mechanical extension of this one.
 - All of the above verified with real end-to-end tests over real HTTP
   proving cross-language query isolation (a term never matches the
   wrong language's partition) and per-language BM25 stats, not just
@@ -322,8 +346,12 @@ Phase 2 is now fully implemented.
   `didYouMean` with the nearest real term(s), including
   structurally-discoverable true-distance-2 matches (e.g. adjacent
   transpositions) that the strict matcher correctly excludes from
-  scoring. Distance-2 dictionaries, length/language-dependent maxEdits,
-  and the CJK bigram fallback remain design-only.
+  scoring. Distance-2 dictionaries and length/language-dependent
+  maxEdits remain design-only. Fuzzy matching's *interaction* with the
+  CJK bigram profiles (03-tokenization-i18n.md#segmentation) — whether
+  edit-distance-1 typo tolerance even makes sense over 2-character
+  bigram terms rather than real words — is untested and unaddressed;
+  segmentation itself is built, this specific interaction isn't.
 - Verified with real end-to-end tests over real HTTP: equivalence-class
   symmetry, directional one-way expansion, reduced-weight ranking,
   custom `synonymWeight`/`fuzzyWeight`, off-by-default behavior for both

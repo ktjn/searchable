@@ -1,14 +1,18 @@
 # Tokenization & Internationalization
 
-**Status**: The `LanguageProfile` abstraction is built with two real
-profiles (`english`, `german` — [`packages/analysis`](../packages/analysis)),
-and the indexer/client genuinely partition a multi-language corpus by
-each document's own declared language (not a single language forced
-onto the whole batch) — see [09-roadmap.md](09-roadmap.md#status).
-Both `english` and `german` now have real stemmers (see
-[Stemming](#stemming) below). Still pending: CJK/Thai segmentation and
-bigram fallback, RTL-aware result rendering, and auto language
-detection.
+**Status**: The `LanguageProfile` abstraction is built with four real
+profiles (`english`, `german`, `chinese`, `japanese` —
+[`packages/analysis`](../packages/analysis)), and the indexer/client
+genuinely partition a multi-language corpus by each document's own
+declared language (not a single language forced onto the whole batch)
+— see [09-roadmap.md](09-roadmap.md#status). `english` and `german`
+have real stemmers (see [Stemming](#stemming) below); `chinese` and
+`japanese` use bigram-fallback segmentation (see
+[Segmentation](#segmentation) below) with identity stemming, matching
+the documented no-op rule for languages without inflectional
+morphology. Still pending: Thai/Khmer/Lao segmentation, the
+higher-precision `Intl.Segmenter`-dictionary path for `chinese`/
+`japanese`, RTL-aware result rendering, and auto language detection.
 
 The single hardest correctness requirement: **the exact same analysis
 pipeline must run at index time and at query time**, per language,
@@ -54,12 +58,26 @@ register a custom profile for anything unsupported.
   Node ≥ 16 for the indexer — no bundled segmentation tables needed for
   this group.
 - **CJK (Chinese, Japanese)**: no whitespace between words, so naive
-  word segmentation is wrong. Use `Intl.Segmenter` with locale `ja`/`zh`
-  (both browsers and Node support dictionary-based segmentation for these
-  locales), falling back to **n-gram (bigram) indexing** as a robustness
-  net for locales/environments where `Intl.Segmenter` support is
-  incomplete — bigram indexing trades some precision for guaranteed
-  correctness without a bundled dictionary.
+  word segmentation is wrong. **Status**: the `chinese`/`japanese`
+  `LanguageProfile`s (`packages/analysis/src/segment-cjk.ts`) ship the
+  **n-gram (bigram) fallback** outright — a run of consecutive
+  Han/hiragana/katakana characters splits into overlapping
+  2-character windows (`"自然語言"` -> `"自然"`, `"然語"`, `"語言"`),
+  guaranteeing correct substring matching in any environment without a
+  bundled dictionary, at the cost of some index size and relevance
+  precision versus true word-boundary segmentation. A lone
+  single-character run indexes as that one character rather than
+  being dropped. A run of non-CJK characters (Latin words, digits,
+  punctuation, whitespace — common inline in real CJK text) segments
+  normally via `Intl.Segmenter`. The originally-planned primary path,
+  dictionary-based `Intl.Segmenter` word segmentation with locale
+  `ja`/`zh` (both browsers and Node support it for these locales) and
+  the bigram approach only as a *fallback* for environments where that
+  support is incomplete, remains a documented future upgrade — reliably
+  detecting "incomplete `Intl.Segmenter` support" portably across the
+  arbitrary browsers/Node versions this runtime targets isn't
+  straightforward, so the guaranteed-correct bigram path is what ships
+  today, unconditionally, rather than gated behind that detection.
 - **Korean**: whitespace-delimited at the word (eojeol) level, but
   agglutinative morphology means stemming matters more than segmentation;
   segmentation uses `Intl.Segmenter`, morphological analysis is a

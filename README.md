@@ -11,10 +11,12 @@ zero-backend deployment."
 **Status**: Phases 0, 1, and 2 of the roadmap have working code, Phase
 3 is fully built, and Phases 4 and 5 are partially built —
 [`packages/analysis`](packages/analysis)
-(shared tokenizer, two `LanguageProfile`s: English + German, each with
-a real stemmer verified against its own public reference vocabulary —
-classic Porter for English (23,531 words), Snowball for German
-(35,053 words)),
+(shared tokenizer, four `LanguageProfile`s — English + German, each
+with a real stemmer verified against its own public reference
+vocabulary (classic Porter for English, 23,531 words; Snowball for
+German, 35,053 words), plus Chinese + Japanese, both using a bigram
+n-gram fallback segmenter for guaranteed-correct CJK substring
+matching without a bundled word-boundary dictionary),
 [`packages/format`](packages/format) (shared manifest/shard types),
 [`packages/indexer`](packages/indexer) (rendered HTML → manifest +
 shards, per-document-language corpus partitioning, configurable field
@@ -32,7 +34,7 @@ fuzzy matching with "did you mean" suggestions + opt-in result
 highlighting (literal query terms only) + observability hooks
 (`client.on("query" | "result", ...)`) + `AbortSignal` query
 cancellation, all proven in a real browser via Playwright, no
-CJK/multi-word-synonyms/synonym-or-fuzzy-variant-highlighting yet), and
+multi-word-synonyms/synonym-or-fuzzy-variant-highlighting yet), and
 [`packages/fixtures`](packages/fixtures) (a realistically-shaped,
 deterministic CMS-export-style corpus generator for real-scale
 correctness testing, per
@@ -50,7 +52,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 253 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 272 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 27 Playwright tests in real Chromium (Worker execution, lifecycle, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically
