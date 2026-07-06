@@ -1716,6 +1716,16 @@ describe("multi-language corpora", () => {
       [],
     );
   });
+
+  it("SearchResult.language reports the resolved language, defaulted or explicit", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    expect((await client.search("widgets")).language).toBe("en");
+    expect((await client.search("preise", { language: "de" })).language).toBe(
+      "de",
+    );
+    // Still reported even for a query with zero query terms/phrases.
+    expect((await client.search("")).language).toBe("en");
+  });
 });
 
 describe("CJK bigram fallback segmentation (docs/03-tokenization-i18n.md#segmentation)", () => {

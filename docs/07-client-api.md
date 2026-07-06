@@ -66,6 +66,7 @@ const result = await client.search("wireless keyboard", {
 result.hits;        // Hit[] -- id, url, score, stored fields, pinned?, highlights? (see Highlighting below)
 result.facets;      // Record<field, FacetResult> -- only for fields requested via `facets`
 result.totalHits;
+result.language;    // the resolved language this result set came from (options.language ?? manifest.defaultLanguage)
 ```
 
 Prefix queries (a trailing `*`, e.g. `"widg*"`) and `"quoted phrase"`
@@ -90,6 +91,14 @@ brackets via an ascending-boundaries array (`{ rangeFacetBuckets: {
 price: [25, 50, 100, 250] } }`, producing `"<25"`/`"25-50"`/.../`"250+"`
 buckets independent of the observed data range) — same as range
 *filtering* (the `{min, max}` shape above).
+
+`result.language` combined with the separately-exported
+`isRtlLanguage(code)` (re-exported from `@csf/analysis`,
+docs/03-tokenization-i18n.md#segmentation) is enough for a consuming app
+to set `dir="rtl"` on its results container without re-deriving either
+fact itself — `isRtlLanguage(result.language)`. The actual RTL layout
+work stays a consuming-app concern
+([08-modern-features.md](08-modern-features.md#accessibility)).
 
 ### Hierarchical facets
 

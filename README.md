@@ -22,7 +22,9 @@ with a real stemmer verified against its own public reference
 vocabulary (classic Porter for English, 23,531 words; Snowball for
 German, 35,053 words), plus Chinese + Japanese, both using a bigram
 n-gram fallback segmenter for guaranteed-correct CJK substring
-matching without a bundled word-boundary dictionary),
+matching without a bundled word-boundary dictionary, plus a
+zero-bundled-model auto language detector used as an `<html lang>`-less
+fallback and an `isRtlLanguage()` primitive),
 [`packages/format`](packages/format) (shared manifest/shard types),
 [`packages/indexer`](packages/indexer) (rendered HTML → manifest +
 shards, per-document-language corpus partitioning, configurable field
@@ -46,8 +48,9 @@ only) + observability hooks (`client.on("query" | "result", ...)`) +
 streaming/incremental results + `registerOfflineCaching()` offline
 Service Worker caching + opt-in `mode: "vector" | "hybrid"` search
 (brute-force cosine similarity, Reciprocal Rank Fusion, an injectable
-`embedQuery` seam), all proven in a real browser via Playwright, no
-synonym-or-fuzzy-variant-highlighting yet), and
+`embedQuery` seam) + `SearchResult.language`, all proven in a real
+browser via Playwright, no synonym-or-fuzzy-variant-highlighting yet),
+and
 [`packages/fixtures`](packages/fixtures) (a realistically-shaped,
 deterministic CMS-export-style corpus generator for real-scale
 correctness testing, per
@@ -65,7 +68,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 387 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 406 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 34 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

@@ -1,3 +1,4 @@
+import { detectLanguage, getRegisteredLanguageCodes } from "@csf/analysis";
 import { parse } from "node-html-parser";
 
 export interface PinDeclaration {
@@ -58,8 +59,10 @@ export function extractDocument(
     root.querySelector("title")?.structuredText ?? "",
   );
 
-  const language =
-    root.querySelector("html")?.getAttribute("lang")?.trim() || defaultLanguage;
+  const declaredLanguage = root
+    .querySelector("html")
+    ?.getAttribute("lang")
+    ?.trim();
 
   const canonical = root
     .querySelector('link[rel="canonical"]')
@@ -83,6 +86,19 @@ export function extractDocument(
   }
 
   const body = collapseWhitespace(bodyRoot?.structuredText ?? "");
+
+  // Explicit <html lang> always wins; detectLanguage() is only a
+  // fallback for pages that declare none (docs/03-tokenization-i18n.md,
+  // docs/09-roadmap.md's "Auto language detection accuracy" open
+  // question) -- a deterministic, zero-bundled-model heuristic, not a
+  // substitute for authoring real language metadata. Falls back to
+  // defaultLanguage when detection itself has no confident signal
+  // (e.g. too little text, or a language with no detection heuristic),
+  // exactly the prior behavior for an undeclared page.
+  const language =
+    declaredLanguage ||
+    detectLanguage(`${title} ${body}`, getRegisteredLanguageCodes()) ||
+    defaultLanguage;
 
   const boostAttr = root
     .querySelector('meta[name="csf-boost"]')

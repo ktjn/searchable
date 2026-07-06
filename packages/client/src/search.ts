@@ -76,6 +76,20 @@ export interface SearchResult {
   facets?: Record<string, FacetResult>;
   totalHits: number;
   /**
+   * The language this result set was actually resolved against
+   * (`options.language ?? manifest.defaultLanguage`) — every hit in one
+   * `SearchResult` comes from that single language's partition (terms
+   * are sharded per-language, docs/03-tokenization-i18n.md#mixed-language-corpora--queries),
+   * so this is one value for the whole result, not per-hit. Lets a
+   * consumer combine it with `@csf/analysis`'s `isRtlLanguage()`
+   * (re-exported from this package) to set `dir="rtl"` on a results
+   * container without duplicating its own language-resolution logic —
+   * see docs/08-modern-features.md#accessibility. The actual RTL
+   * *layout* stays a consuming-app concern; this is just the one fact
+   * the library already knows.
+   */
+  language: string;
+  /**
    * Nearest real term(s) in the corpus for a query term that failed to
    * match at all, byproduct of the fuzzy dictionary
    * (docs/04-query-ranking-boosts.md#did-you-mean--query-suggestions).
@@ -619,7 +633,7 @@ async function lexicalSearch(
   const parsedQuery = parseQuery(query, profile);
   const queryTerms = parsedQuery.terms;
   if (queryTerms.length === 0 && parsedQuery.phrases.length === 0) {
-    return { hits: [], totalHits: 0 };
+    return { hits: [], totalHits: 0, language };
   }
 
   const shardEntries = manifest.shards.terms.filter((s) => s.lang === language);
@@ -1130,6 +1144,7 @@ async function lexicalSearch(
     hits,
     ...(facets ? { facets } : {}),
     totalHits,
+    language,
     ...(didYouMean ? { didYouMean } : {}),
   };
 }
@@ -1222,7 +1237,7 @@ async function vectorOnlySearch(
   const hits = vectorHits.map((v) =>
     docStoreEntryToHit(v.docId, v.score, docLookup.get(v.docId)),
   );
-  return { hits, totalHits: hits.length };
+  return { hits, totalHits: hits.length, language };
 }
 
 /** `(v - min) / (max - min)` over `values`, clamped to a constant `1` when every value is identical (nothing to distinguish, and avoids a divide-by-zero) -- used to bring BM25F scores and cosine similarities onto a comparable `[0, 1]` scale before a weighted combination, since only RRF's rank-based default is calibration-free. */
@@ -1319,6 +1334,7 @@ async function fuseHybridResult(
     hits,
     ...(lexicalResult.facets ? { facets: lexicalResult.facets } : {}),
     totalHits,
+    language: lexicalResult.language,
     ...(lexicalResult.didYouMean
       ? { didYouMean: lexicalResult.didYouMean }
       : {}),

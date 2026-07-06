@@ -169,4 +169,28 @@ describe("extractDocument", () => {
       </head><body>x</body></html>`;
     expect(extractDocument(html, "/x").pins[0]?.mode).toBe("exact");
   });
+
+  it("auto-detects the language from title+body text when <html> declares no lang", () => {
+    const germanHtml = `<html><head><title>Über uns</title></head>
+      <body><main><p>Der schnelle braune Fuchs springt über den faulen Hund
+      und das ist ein Test für den Detektor, nicht wahr?</p></main></body></html>`;
+    expect(extractDocument(germanHtml, "/ueber-uns", "en").language).toBe("de");
+
+    const englishHtml = `<html><head><title>About us</title></head>
+      <body><main><p>The quick brown fox jumps over the lazy dog and this is
+      a test of the detector for this page.</p></main></body></html>`;
+    expect(extractDocument(englishHtml, "/about", "de").language).toBe("en");
+  });
+
+  it("prefers an explicit <html lang> over auto-detection even when the text suggests otherwise", () => {
+    const html = `<html lang="fr"><head><title>Über uns</title></head>
+      <body><main><p>Der schnelle braune Fuchs springt über den faulen Hund.</p></main></body></html>`;
+    expect(extractDocument(html, "/x").language).toBe("fr");
+  });
+
+  it("falls back to defaultLanguage when detection has no confident signal, same as before auto-detection existed", () => {
+    const html =
+      "<html><head><title>Ohne Lang</title></head><body>x y z</body></html>";
+    expect(extractDocument(html, "/x", "de").language).toBe("de");
+  });
 });

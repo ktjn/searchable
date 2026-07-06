@@ -10,9 +10,11 @@ have real stemmers (see [Stemming](#stemming) below); `chinese` and
 `japanese` use bigram-fallback segmentation (see
 [Segmentation](#segmentation) below) with identity stemming, matching
 the documented no-op rule for languages without inflectional
-morphology. Still pending: Thai/Khmer/Lao segmentation, the
-higher-precision `Intl.Segmenter`-dictionary path for `chinese`/
-`japanese`, RTL-aware result rendering, and auto language detection.
+morphology. Auto language detection (`@csf/analysis`'s
+`detectLanguage()`) and an `isRtlLanguage()` primitive are now built too
+— see their own paragraphs below for exact scope. Still pending:
+Thai/Khmer/Lao segmentation and the higher-precision
+`Intl.Segmenter`-dictionary path for `chinese`/`japanese`.
 
 The single hardest correctness requirement: **the exact same analysis
 pipeline must run at index time and at query time**, per language,
@@ -88,9 +90,57 @@ register a custom profile for anything unsupported.
   plugin for higher precision if the corpus is Thai-heavy.
 - **Right-to-left (Arabic, Hebrew)**: segmentation is whitespace-based
   like Latin scripts; the interesting work is script-specific stemming
-  (see below) and making sure the *rendering* layer (result highlighting,
-  snippet display) respects `dir="rtl"` — a UI concern flagged in
-  [08-modern-features.md](08-modern-features.md).
+  (see below, no `LanguageProfile` built yet for either) and making sure
+  the *rendering* layer (result highlighting, snippet display) respects
+  `dir="rtl"` — a UI concern flagged in
+  [08-modern-features.md](08-modern-features.md). **Implemented**:
+  `@csf/analysis`'s `isRtlLanguage(code)` (re-exported from
+  `@csf/client`) is the one small, stable fact the core library hands
+  over for this — a BCP-47-primary-subtag check against the common RTL
+  language codes (`ar`, `he`, `fa`, `ur`, ...), independent of whether a
+  `LanguageProfile` is registered for that code. Combined with
+  `SearchResult.language` (the resolved language a result set came
+  from — every hit in one result is from the same language partition,
+  docs/07-client-api.md), a consuming app can set `dir="rtl"` on its
+  results container without re-deriving either fact itself. The actual
+  RTL *layout* (DOM/CSS) stays a consuming-app responsibility, per
+  [08-modern-features.md](08-modern-features.md#accessibility) — this
+  isn't a step toward building a UI framework, just the one primitive
+  the core library is positioned to provide.
+
+## Auto language detection
+
+**Implemented** (`packages/analysis/src/detect-language.ts`'s
+`detectLanguage()`), used as a fallback inside
+`packages/indexer/src/extract.ts` only when a source document declares
+no `<html lang>` attribute at all — an explicit `lang` attribute (or an
+explicitly-passed `defaultLanguage` when detection itself has no
+confident signal) always wins. Deliberately not a bundled ML model,
+resolving the roadmap's own open question ("how much bundled model size
+is worth it for higher detection accuracy vs. just requiring explicit
+`language` tagging") in favor of a zero-bundle-cost heuristic for the
+common case instead:
+
+- **Script-based detection for CJK**: unambiguous and needs no data
+  table — a meaningful fraction of Han/Hiragana/Katakana characters
+  (≥30%, guarding against one stray CJK character in an otherwise-Latin
+  page) classifies the text as Chinese or Japanese; presence of any
+  Hiragana/Katakana at all picks Japanese over Chinese, since real
+  Chinese text essentially never contains kana.
+- **Small curated function-word lists for Latin-script languages**
+  (English, German — the two Latin-script `LanguageProfile`s that
+  exist): counts occurrences of each language's list against the text
+  and picks the language with a strictly higher count; a tie (including
+  0-0) returns no detection. Deliberately independent of
+  `LanguageProfile.stopwords` (which stays empty everywhere today — "no
+  stopword removal yet") — this is purely a detection signal, not a
+  change to the indexing pipeline.
+- Only ever chooses among the language codes actually passed in as
+  candidates (in practice, every code `@csf/analysis`'s registry has a
+  profile for) — a hypothetical future Latin-script `LanguageProfile`
+  with no word list added to this module simply can't be detected,
+  callers keep falling back to `defaultLanguage` exactly as if this
+  function didn't exist, not a regression.
 
 ## Case folding & diacritics
 

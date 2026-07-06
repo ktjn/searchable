@@ -23,8 +23,12 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           allowCrossOriginShards: msg.allowCrossOriginShards ?? false,
         }),
       );
-      await manifestPromise;
-      post({ type: "result", id: msg.id, result: { hits: [], totalHits: 0 } });
+      const manifest = await manifestPromise;
+      post({
+        type: "result",
+        id: msg.id,
+        result: { hits: [], totalHits: 0, language: manifest.defaultLanguage },
+      });
       return;
     }
 

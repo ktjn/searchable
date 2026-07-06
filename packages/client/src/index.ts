@@ -1,3 +1,4 @@
+export { isRtlLanguage } from "@csf/analysis";
 export { SearchClient } from "./client.js";
 export type {
   SearchClientEventMap,

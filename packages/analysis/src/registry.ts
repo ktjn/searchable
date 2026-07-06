@@ -20,3 +20,8 @@ export function getLanguageProfile(code: string): LanguageProfile {
   }
   return profile;
 }
+
+/** Every language code with a registered `LanguageProfile` -- the candidate set `detectLanguage()` chooses among when a document declares none of its own (`packages/indexer/src/extract.ts`). */
+export function getRegisteredLanguageCodes(): string[] {
+  return Object.keys(PROFILES);
+}

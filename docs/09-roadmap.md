@@ -12,9 +12,13 @@ pins, and a filter-only `facetValues()` browsing call — see below).
 Phase 4 is partially built (a
 second real LanguageProfile, true per-document-language corpus
 partitioning, real stemmers for both English (classic Porter) and
-German (Snowball), and a CJK bigram-fallback `LanguageProfile` for
-Chinese/Japanese; RTL-aware rendering and auto language detection
-remain pending — see below). Phase
+German (Snowball), a CJK bigram-fallback `LanguageProfile` for
+Chinese/Japanese, deterministic zero-bundled-model auto language
+detection as an `<html lang>`-less fallback, and an `isRtlLanguage()`
+primitive plus `SearchResult.language` so a consuming app can set
+`dir="rtl"` without re-deriving either fact itself; Thai/Khmer/Lao
+segmentation and the higher-precision `Intl.Segmenter`-dictionary path
+for Chinese/Japanese remain pending — see below). Phase
 5 is now fully built (query-time synonym
 expansion including `multiWord` phrase-level synonyms, SymSpell fuzzy
 matching (distance-1 and opt-in distance-2) with a length-dependent
@@ -360,6 +364,35 @@ Phase 2 is now fully implemented.
   the original design called for remains a documented future upgrade,
   not built here. Thai/Khmer/Lao remain pending — a separate script
   range, not a mechanical extension of this one.
+- ✅ Auto language detection + an RTL primitive
+  ([03-tokenization-i18n.md](03-tokenization-i18n.md#auto-language-detection),
+  `packages/analysis/src/detect-language.ts`'s `detectLanguage()`,
+  `packages/analysis/src/is-rtl.ts`'s `isRtlLanguage()`): a
+  deterministic, zero-bundled-model fallback wired into
+  `extractDocument()` for pages with no `<html lang>` — script-range
+  detection for CJK (unambiguous), small curated function-word lists for
+  the two Latin-script profiles that exist (English, German), deliberately
+  independent of `LanguageProfile.stopwords` (still empty everywhere,
+  unrelated). An explicit `<html lang>` always wins; a low-confidence
+  detection still falls back to `defaultLanguage`, exactly the prior
+  behavior. `isRtlLanguage(code)` (re-exported from `@csf/client`) plus
+  the new `SearchResult.language` field (below) give a consuming app
+  the two facts it needs to set `dir="rtl"` on a results container
+  without re-deriving either itself — RTL *layout* stays a
+  consuming-app concern
+  ([08-modern-features.md](08-modern-features.md#accessibility)), no
+  Arabic/Hebrew `LanguageProfile` is built (a separate, much larger
+  undertaking — real stemming/segmentation for those scripts), and no
+  future `@csf/react` package exists yet to consume any of this — this
+  slice is the one small, stable, deterministic primitive the core
+  library is actually positioned to hand over today.
+- ✅ `SearchResult.language` (`packages/client/src/search.ts`): the
+  resolved language a result set was actually computed against
+  (`options.language ?? manifest.defaultLanguage`) — every hit in one
+  result comes from that single language's partition, so this is one
+  value per result, not per-hit. Populated identically across
+  `mode: "lexical"` (default), `"vector"`, and `"hybrid"` — see
+  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md).
 - All of the above verified with real end-to-end tests over real HTTP
   proving cross-language query isolation (a term never matches the
   wrong language's partition) and per-language BM25 stats, not just
@@ -918,9 +951,17 @@ sequencing for incremental value, not a waterfall gate.
   for deployments that enable `plugin:vector`, or whether the remote-API
   escape hatch ends up being the common case in practice — needs real
   deployments to answer, not speculation.
-- **Auto language detection accuracy.** How much bundled model size is
-  worth it for higher detection accuracy vs. just requiring explicit
-  `language` tagging for anything beyond a few high-resource languages?
+- ~~**Auto language detection accuracy.**~~ Resolved in favor of the
+  zero-bundled-model side of the tradeoff: `detectLanguage()`
+  (docs/03-tokenization-i18n.md#auto-language-detection, Phase 4 above)
+  answers "how much bundled model size" with "none" — script-based
+  detection for CJK plus curated function-word lists for Latin-script
+  profiles, only ever as a fallback when `<html lang>` is absent.
+  Genuinely lower accuracy than a trained model for languages without a
+  word list added, or for short/mixed-language text — an accepted
+  tradeoff, not a claim of matching dedicated langid libraries, and
+  explicit tagging remains strictly preferred whenever a deployment can
+  provide it.
 - **Cross-index score normalization** (federated search,
   [07-client-api.md](07-client-api.md#federated-multi-index-search)) —
   min-max vs z-score vs learned normalization; needs empirical testing

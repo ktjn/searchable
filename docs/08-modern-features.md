@@ -236,7 +236,14 @@ was requested there's nothing to expand, so only one pass runs and
   [03-tokenization-i18n.md](03-tokenization-i18n.md#segmentation)) are
   consuming-app responsibilities, but example components (in a future
   `@csf/react` package) will be built to WAI-ARIA combobox/listbox
-  patterns out of the box.
+  patterns out of the box. **Implemented**: the core library now hands
+  over the two facts an app needs to make that RTL layout decision
+  itself — `SearchResult.language` (the resolved language a result set
+  came from) and `isRtlLanguage(code)` (re-exported from
+  `@csf/analysis`) — so `isRtlLanguage(result.language)` answers
+  "should this results container be `dir="rtl"`?" without an app
+  re-deriving either fact on its own. The actual DOM/CSS RTL layout
+  itself is still not built anywhere in this repo.
 
 **Status**: the showcase's own widgets (`showcase/src/search-widget.ts`,
 `showcase/src/gallery-widget.ts`) demonstrate the documented pattern
