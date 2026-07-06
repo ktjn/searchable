@@ -42,9 +42,23 @@ export interface BuildIndexOptions {
    * typo-tolerant fuzzy matching at query time. Off by default: the
    * dictionary adds real index size (roughly proportional to total
    * term length across the vocabulary) that not every deployment wants
-   * to pay for. Only distance-1 deletions are generated.
+   * to pay for.
    */
   fuzzy?: boolean;
+  /**
+   * How many deletions deep the SymSpell dictionary goes: 1 (default)
+   * generates only single-code-point-deletion variants, guaranteeing
+   * distance-1 typo coverage; 2 additionally generates every
+   * deletion-of-a-deletion variant, guaranteeing real distance-2
+   * coverage too (not just the distance-1 dictionary's *occasional*
+   * distance-2 hits via symmetric-delete coincidences, e.g. an
+   * adjacent-character transposition — see
+   * `packages/client/src/search.ts`'s `fuzzyCandidatesFor()`). Doubles
+   * or more the dictionary's size for a typical vocabulary, so it's an
+   * explicit opt-in, not the default, even when `fuzzy: true`. Only
+   * meaningful when `fuzzy: true`; ignored otherwise.
+   */
+  fuzzyMaxEdits?: 1 | 2;
   /**
    * Facet fields to build as hierarchical (docs/06-faceted-search.md#facet-types),
    * keyed by field name. A build-time decision, not a per-page csf-*
@@ -96,27 +110,51 @@ function expandHierarchyPaths(fullPath: string, separator: string): string[] {
   return paths;
 }
 
-/** Unique strings reachable by deleting exactly one Unicode code point from `term` (plus `term` itself, 0 deletions). */
-function generateDeletes(term: string): string[] {
-  const chars = [...term];
-  const variants = new Set<string>([term]);
-  for (let i = 0; i < chars.length; i++) {
-    variants.add(chars.slice(0, i).join("") + chars.slice(i + 1).join(""));
+/**
+ * Every string reachable by deleting up to `maxEdits` Unicode code
+ * points from `term` (plus `term` itself, 0 deletions) — a breadth-
+ * first expansion, one deletion-level at a time, so `maxEdits: 2` also
+ * includes every deletion-of-a-deletion, not just direct 2-character
+ * removals. Going a level deeper is what lets a *genuine* distance-2
+ * typo be found (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching)
+ * rather than only the distance-1 dictionary's occasional distance-2
+ * hits via symmetric-delete coincidences (e.g. an adjacent-character
+ * transposition).
+ */
+function generateDeletes(term: string, maxEdits: 1 | 2): string[] {
+  let frontier = new Set<string>([term]);
+  const all = new Set<string>(frontier);
+  for (let depth = 0; depth < maxEdits; depth++) {
+    const next = new Set<string>();
+    for (const variant of frontier) {
+      const chars = [...variant];
+      for (let i = 0; i < chars.length; i++) {
+        next.add(chars.slice(0, i).join("") + chars.slice(i + 1).join(""));
+      }
+    }
+    for (const v of next) all.add(v);
+    frontier = next;
   }
-  return [...variants];
+  return [...all];
 }
 
 /**
- * Builds a distance-1 SymSpell deletion dictionary from a language's
- * term-shard vocabulary: every deletion-variant of every real term maps
- * back to the term(s) that produced it. This is purely derived from
- * what's already indexed (unlike synonyms/pins, there's nothing to
- * author) — it's regenerated fresh from `termShard`'s own keys.
+ * Builds a SymSpell deletion dictionary from a language's term-shard
+ * vocabulary: every deletion-variant (up to `maxEdits` deletions deep)
+ * of every real term maps back to the term(s) that produced it. This
+ * is purely derived from what's already indexed (unlike synonyms/pins,
+ * there's nothing to author) — it's regenerated fresh from
+ * `termShard`'s own keys. Guaranteeing distance-2 coverage (as opposed
+ * to the distance-1 dictionary's occasional lucky distance-2 hits)
+ * requires the *query* side to also generate depth-2 deletions at
+ * lookup time — see `packages/client/src/search.ts`'s
+ * `fuzzyCandidatesFor()`, which reads `maxEdits` back off this shard
+ * rather than assuming depth-1.
  */
-function buildFuzzyShard(termShard: TermShard): FuzzyShard {
+function buildFuzzyShard(termShard: TermShard, maxEdits: 1 | 2): FuzzyShard {
   const deletionSets: Record<string, Set<string>> = {};
   for (const term of Object.keys(termShard)) {
-    for (const variant of generateDeletes(term)) {
+    for (const variant of generateDeletes(term, maxEdits)) {
       if (!deletionSets[variant]) deletionSets[variant] = new Set();
       deletionSets[variant].add(term);
     }
@@ -125,7 +163,7 @@ function buildFuzzyShard(termShard: TermShard): FuzzyShard {
   for (const [variant, terms] of Object.entries(deletionSets)) {
     deletions[variant] = [...terms].sort();
   }
-  return { maxEdits: 1, deletions };
+  return { maxEdits, deletions };
 }
 
 /**
@@ -466,6 +504,12 @@ export function buildIndex(
       );
     }
   }
+  const fuzzyMaxEdits = options.fuzzyMaxEdits ?? 1;
+  if (fuzzyMaxEdits !== 1 && fuzzyMaxEdits !== 2) {
+    throw new Error(
+      `buildIndex: invalid fuzzyMaxEdits ${JSON.stringify(fuzzyMaxEdits)} — must be 1 or 2`,
+    );
+  }
 
   const termShards: Record<string, TermShard> = {};
   const docStore: DocStoreShard = {};
@@ -603,7 +647,7 @@ export function buildIndex(
   const fuzzyShards: Record<string, FuzzyShard> = {};
   if (options.fuzzy) {
     for (const [language, termShard] of Object.entries(termShards)) {
-      fuzzyShards[language] = buildFuzzyShard(termShard);
+      fuzzyShards[language] = buildFuzzyShard(termShard, fuzzyMaxEdits);
     }
   }
 

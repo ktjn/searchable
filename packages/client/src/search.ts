@@ -300,22 +300,38 @@ function synonymVariantsFor(
 }
 
 /**
- * Unique strings reachable by deleting exactly one Unicode code point
- * from `term` (plus `term` itself, 0 deletions) — the query-side half
- * of the SymSpell candidate lookup. Deliberately duplicated from the
- * indexer's identical helper (build-index.ts) rather than shared:
- * it's a ~6-line pure function with exactly two callers across two
- * packages that must never share a runtime dependency (the browser
- * bundle can't pull in indexer code), the same reasoning already
- * applied to the e2e-browser serve-dir.ts duplication.
+ * Every string reachable by deleting up to `maxEdits` Unicode code
+ * points from `term` (plus `term` itself, 0 deletions) — the
+ * query-side half of the SymSpell candidate lookup, breadth-first one
+ * deletion-level at a time so `maxEdits: 2` also includes every
+ * deletion-of-a-deletion. Deliberately duplicated from the indexer's
+ * near-identical helper (build-index.ts) rather than shared: it's a
+ * small pure function with exactly two callers across two packages
+ * that must never share a runtime dependency (the browser bundle can't
+ * pull in indexer code), the same reasoning already applied to the
+ * e2e-browser serve-dir.ts duplication. The query side must go exactly
+ * as deep as the *dictionary* was built (`fuzzyShard.maxEdits`,
+ * docs/04-query-ranking-boosts.md#prefix--fuzzy-matching) — a distance-2
+ * pair found only via, say, a substitution (not a pure one-sided
+ * deletion) requires both the indexed term's build-time deletions and
+ * the query term's lookup-time deletions to reach the same depth
+ * before they can meet at a common shorter string.
  */
-function generateDeletes(term: string): string[] {
-  const chars = [...term];
-  const variants = new Set<string>([term]);
-  for (let i = 0; i < chars.length; i++) {
-    variants.add(chars.slice(0, i).join("") + chars.slice(i + 1).join(""));
+function generateDeletes(term: string, maxEdits: 1 | 2): string[] {
+  let frontier = new Set<string>([term]);
+  const all = new Set<string>(frontier);
+  for (let depth = 0; depth < maxEdits; depth++) {
+    const next = new Set<string>();
+    for (const variant of frontier) {
+      const chars = [...variant];
+      for (let i = 0; i < chars.length; i++) {
+        next.add(chars.slice(0, i).join("") + chars.slice(i + 1).join(""));
+      }
+    }
+    for (const v of next) all.add(v);
+    frontier = next;
   }
-  return [...variants];
+  return [...all];
 }
 
 /** Levenshtein edit distance, code-point aware. */
@@ -345,12 +361,14 @@ function levenshteinDistance(a: string, b: string): number {
  * (a fast candidate generator, not a distance oracle), each paired with
  * its true Levenshtein distance from `term`. Excludes `term` itself
  * (distance 0 — that's an exact match, not a fuzzy one). Deliberately
- * unfiltered by `fuzzyShard.maxEdits`: the symmetric-delete lookup can
- * surface true-distance-2 candidates too (e.g. an adjacent-character
- * transposition, where query and real term each delete a different
- * character and land on the same shorter string) even though the
- * dictionary was only built to guarantee distance-1 coverage. Callers
- * decide how strict to be.
+ * unfiltered by any maxEdits cutoff here (see `fuzzyMatchesFor` for
+ * that) — the query-side deletion depth already matches
+ * `fuzzyShard.maxEdits` (needed to find genuine matches at that
+ * distance at all, see `generateDeletes`'s doc comment), and the
+ * symmetric-delete lookup can additionally surface occasional
+ * true-distance-(maxEdits+1) hits too (e.g. an adjacent-character
+ * transposition landing one delete short on each side). Callers decide
+ * how strict to be.
  */
 function fuzzyCandidatesFor(
   term: string,
@@ -359,7 +377,7 @@ function fuzzyCandidatesFor(
   if (!fuzzyShard) return [];
   const candidates = new Set<string>();
   for (const t of fuzzyShard.deletions[term] ?? []) candidates.add(t);
-  for (const deletion of generateDeletes(term)) {
+  for (const deletion of generateDeletes(term, fuzzyShard.maxEdits)) {
     for (const t of fuzzyShard.deletions[deletion] ?? []) candidates.add(t);
   }
   const matches: { term: string; distance: number }[] = [];
@@ -374,16 +392,35 @@ function fuzzyCandidatesFor(
 }
 
 /**
- * Real terms within `fuzzyShard.maxEdits` of `term` — the strict subset
- * of `fuzzyCandidatesFor` used for query expansion (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching).
+ * The maximum edit distance to accept as a genuine fuzzy match for
+ * `term`, capping `shardMaxEdits` down for short terms
+ * (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching: fuzzy
+ * matching is "length- and language-dependent"). A term of 3 code
+ * points or fewer is too short for a distance-2 match to mean much —
+ * almost any other short term is within 2 edits of it — so it's capped
+ * at distance-1 regardless of what the dictionary itself supports.
+ * This same length rule doubles as the "language-dependent" half: CJK
+ * bigram-indexed languages (docs/03-tokenization-i18n.md#segmentation)
+ * index every term as a 1- or 2-character bigram, so this cap already
+ * restricts them to distance-1 fuzzy matching with no CJK-specific
+ * logic needed.
+ */
+function effectiveMaxEdits(term: string, shardMaxEdits: 1 | 2): number {
+  return [...term].length <= 3 ? Math.min(1, shardMaxEdits) : shardMaxEdits;
+}
+
+/**
+ * Real terms within `term`'s effective maxEdits (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching)
+ * — the strict subset of `fuzzyCandidatesFor` used for query expansion.
  */
 function fuzzyMatchesFor(
   term: string,
   fuzzyShard: FuzzyShard | undefined,
 ): { term: string; distance: number }[] {
   if (!fuzzyShard) return [];
+  const cap = effectiveMaxEdits(term, fuzzyShard.maxEdits);
   return fuzzyCandidatesFor(term, fuzzyShard).filter(
-    (match) => match.distance <= fuzzyShard.maxEdits,
+    (match) => match.distance <= cap,
   );
 }
 

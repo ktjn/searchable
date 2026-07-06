@@ -922,4 +922,37 @@ describe("buildIndex fuzzy dictionary", () => {
     expect(built.fuzzyShards.de?.deletions.widget).toBeUndefined();
     expect(built.fuzzyShards.de?.deletions.katz).toContain("katz");
   });
+
+  it("defaults to maxEdits:1 when fuzzyMaxEdits is not given", () => {
+    const built = buildIndex(widgetSources, "en", { fuzzy: true });
+    expect(built.fuzzyShards.en?.maxEdits).toBe(1);
+  });
+
+  it("builds deletion-of-a-deletion variants too when fuzzyMaxEdits: 2", () => {
+    const built = buildIndex(widgetSources, "en", {
+      fuzzy: true,
+      fuzzyMaxEdits: 2,
+    });
+    expect(built.fuzzyShards.en?.maxEdits).toBe(2);
+    // "widg" is "widget" with both trailing characters ("e","t") deleted
+    // -- only reachable by deleting from an already-deleted variant
+    // (e.g. "widge" -> "widg"), not a direct single deletion of
+    // "widget" itself.
+    expect(built.fuzzyShards.en?.deletions.widg).toContain("widget");
+  });
+
+  it("does not build depth-2 variants when fuzzyMaxEdits is left at the default 1", () => {
+    const built = buildIndex(widgetSources, "en", { fuzzy: true });
+    expect(built.fuzzyShards.en?.deletions.widg).toBeUndefined();
+  });
+
+  it("throws for a fuzzyMaxEdits value other than 1 or 2", () => {
+    expect(() =>
+      buildIndex(widgetSources, "en", {
+        fuzzy: true,
+        // @ts-expect-error -- deliberately an invalid runtime value
+        fuzzyMaxEdits: 3,
+      }),
+    ).toThrow(/must be 1 or 2/);
+  });
 });

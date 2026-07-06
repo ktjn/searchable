@@ -1542,6 +1542,14 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
     expect(didYouMean).toContain("widget");
   });
 
+  it("does not fuzzy-match a genuine distance-2 substitution typo either, at the default maxEdits:1", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // "widkat" substitutes two characters in "widget" (g->k, e->a) --
+    // true edit distance 2, unrelated to this corpus's other terms.
+    const { hits } = await client.search("widkat", { fuzzy: true });
+    expect(hits).toEqual([]);
+  });
+
   it("omits didYouMean when fuzzy is not enabled", async () => {
     const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
     const { hits, didYouMean } = await client.search("wigdet");
@@ -1556,6 +1564,74 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
     });
     expect(hits).toEqual([]); // boolean AND: the nonsense term fails the whole query
     expect(didYouMean).toBeUndefined(); // no hits, but only because zzzznotaword has no near match either
+  });
+});
+
+describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const distance2Sources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widget",
+      html: `<html lang="en"><head><title>Widget Page</title></head>
+        <body><main><p>All about the widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/cat",
+      html: `<html lang="en"><head><title>Cat Page</title></head>
+        <body><main><p>All about the cat.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-fuzzy2-"));
+    const built = buildIndex(distance2Sources, "en", {
+      fuzzy: true,
+      fuzzyMaxEdits: 2,
+    });
+    await writeIndex(built, outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("finds a genuine distance-2 substitution typo of a long word when the index was built with fuzzyMaxEdits: 2", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // "widkat" substitutes two characters in "widget" (g->k, e->a) --
+    // true edit distance 2. Finding this genuinely requires generating
+    // deletions two levels deep on *both* the dictionary (build time)
+    // and the query (lookup time) sides -- a direct single-sided
+    // lookup at either depth never meets in the middle for a
+    // substitution-type (as opposed to pure-deletion) distance-2 pair.
+    const { hits } = await client.search("widkat", { fuzzy: true });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("still caps a short (<=3 code point) query term's fuzzy matching at distance 1, even though the dictionary supports distance 2", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // "cop" is a genuine distance-2 substitution typo of "cat"
+    // (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching:
+    // fuzzy matching is "length- and language-dependent") -- a
+    // 3-character term is too short for a distance-2 match to mean
+    // anything, so it's rejected even though the same dictionary just
+    // found "widkat" (6 characters) as a genuine distance-2 match above.
+    const { hits } = await client.search("cop", { fuzzy: true });
+    expect(hits).toEqual([]);
+  });
+
+  it("still fuzzy-matches a short term's own distance-1 typo (the length cap doesn't disable fuzzy matching entirely)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("cot", { fuzzy: true }); // distance 1 from "cat"
+    expect(hits.map((h) => h.id)).toEqual([2]);
   });
 });
 

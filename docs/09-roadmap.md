@@ -16,9 +16,10 @@ German (Snowball), and a CJK bigram-fallback `LanguageProfile` for
 Chinese/Japanese; RTL-aware rendering and auto language detection
 remain pending — see below). Phase
 5 is mostly built (query-time synonym
-expansion, plus SymSpell fuzzy matching and "did you mean"
-suggestions; `multiWord` phrase-level synonyms remain pending — see
-below). Phase 6 is partially built (a configuration testbed, a
+expansion, SymSpell fuzzy matching (distance-1 and opt-in distance-2)
+with a length-dependent maxEdits cap, and "did you mean" suggestions;
+`multiWord` phrase-level synonyms remain pending — see below). Phase 6
+is partially built (a configuration testbed, a
 bundle-size CI gate, a first slice of result highlighting, observability
 hooks, `options.signal` cancellation, and an accessibility pass in the
 showcase's own widgets; `searchStream()` and an offline/Service Worker
@@ -346,12 +347,36 @@ Phase 2 is now fully implemented.
   `didYouMean` with the nearest real term(s), including
   structurally-discoverable true-distance-2 matches (e.g. adjacent
   transpositions) that the strict matcher correctly excludes from
-  scoring. Distance-2 dictionaries and length/language-dependent
-  maxEdits remain design-only. Fuzzy matching's *interaction* with the
-  CJK bigram profiles (03-tokenization-i18n.md#segmentation) — whether
-  edit-distance-1 typo tolerance even makes sense over 2-character
-  bigram terms rather than real words — is untested and unaddressed;
-  segmentation itself is built, this specific interaction isn't.
+  scoring.
+- ✅ Distance-2 dictionaries and a length-dependent maxEdits cap
+  ([04-query-ranking-boosts.md#prefix--fuzzy-matching](04-query-ranking-boosts.md#prefix--fuzzy-matching)):
+  `buildIndex(sources, lang, { fuzzy: true, fuzzyMaxEdits: 2 })`
+  generates every deletion-of-a-deletion variant too, not just direct
+  single deletions — a genuine breadth-first expansion
+  (`generateDeletes()` in `packages/indexer/src/build-index.ts`), so a
+  real distance-2 typo is guaranteed findable rather than only
+  discoverable by the distance-1 dictionary's occasional
+  symmetric-delete coincidences. Guaranteeing this requires the
+  *query* side to generate deletions exactly as deep as the shard was
+  built (`packages/client/src/search.ts` reads `FuzzyShard.maxEdits`
+  back off the fetched shard) — a substitution-type distance-2 pair
+  (as opposed to a pure two-character deletion) only meets in the
+  middle if both the indexed term and the query term reach the same
+  deletion depth. Separately, a query term of 3 code points or fewer
+  is capped at accepting only distance-1 matches for actual query
+  expansion regardless of what the dictionary supports
+  (`effectiveMaxEdits()`) — this is also the answer to fuzzy
+  matching's interaction with the CJK bigram profiles
+  ([03-tokenization-i18n.md#segmentation](03-tokenization-i18n.md#segmentation)):
+  bigram terms are always 1-2 characters, so the length cap already
+  restricts them to distance-1 fuzzy matching with no CJK-specific
+  code needed. "Did you mean" deliberately ignores this cap (same
+  reasoning as it already ignores the dictionary's own maxEdits
+  cutoff). The originally-planned *different* CJK mechanism — fuzzy
+  tolerance "for free" via partial bigram overlap instead of edit
+  distance — remains unbuilt; it would need `search()`'s
+  boolean-AND-across-terms matching relaxed to a minimum-overlap-ratio
+  scheme, a separate, larger change to the query engine itself.
 - Verified with real end-to-end tests over real HTTP: equivalence-class
   symmetry, directional one-way expansion, reduced-weight ranking,
   custom `synonymWeight`/`fuzzyWeight`, off-by-default behavior for both

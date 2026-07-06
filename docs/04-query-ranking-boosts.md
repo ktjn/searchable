@@ -85,28 +85,59 @@ idf(term) = ln( 1 + (N - df(term) + 0.5) / (df(term) + 0.5) )
 
 ## Prefix & fuzzy matching
 
-**Status**: Prefix matching and a distance-1 SymSpell fuzzy dictionary
-(plus "did you mean") are built and tested — see
-[09-roadmap.md](09-roadmap.md#status). Distance-2 dictionaries, the
-length/language-dependent maxEdits policy, and the CJK bigram fallback
-remain design-only.
+**Status**: Prefix matching, distance-1 SymSpell fuzzy dictionaries
+(built by default), opt-in distance-2 dictionaries, a length-dependent
+maxEdits cap, and "did you mean" are all built and tested — see
+[09-roadmap.md](09-roadmap.md#status). The originally-planned
+CJK-specific mechanism — bigram-indexed languages getting fuzzy
+tolerance "for free" via partial bigram overlap, as an alternative to
+edit distance — remains design-only; what's built instead is narrower:
+the length cap (below) happens to restrict CJK bigram terms
+(docs/03-tokenization-i18n.md#segmentation, always 1-2 characters) to
+ordinary distance-1 edit-distance fuzzy matching, not a different
+overlap-based mechanism. Building genuine overlap-based relevance for
+bigram languages would mean relaxing `search()`'s boolean-AND-across-terms
+matching to a minimum-overlap-ratio scheme — a separate, larger,
+not-yet-attempted change to the query engine itself, not a fuzzy-plugin
+feature.
 
 - **Prefix matching** (`term*`, and implicitly for the last token of an
   in-progress instant-search query) is resolved directly against the
   sorted term dictionary in a shard — since terms are already sorted for
   the binary tier (and shardable by prefix for the JSON tier), a prefix
   query is a contiguous range scan, not a linear scan.
-- **Fuzzy/typo-tolerant matching** (edit distance ≤ 1 or 2, length- and
-  language-dependent — e.g. CJK bigram-indexed languages get fuzzy
-  matching "for free" via bigram overlap rather than edit distance)
-  uses a **SymSpell-style precomputed deletion dictionary** built at
-  index time: for each indexed term, store its distance-1 (and
-  optionally distance-2) deletion variants mapping back to the real term.
-  This turns fuzzy lookup into an O(1)-ish dictionary hit instead of
-  computing edit distance against every term in a shard, which matters
-  because fuzzy is the expensive feature and needs to stay fast enough
-  for instant-search. Shipped as `plugin:fuzzy` since it adds index size
-  (the deletion-variant table) that not every deployment wants to pay for.
+- **Fuzzy/typo-tolerant matching** uses a **SymSpell-style precomputed
+  deletion dictionary** built at index time: for each indexed term,
+  store its deletion variants (`packages/indexer/src/build-index.ts`'s
+  `generateDeletes()`) mapping back to the real term. `buildIndex(sources,
+  lang, { fuzzy: true })` builds distance-1 coverage by default;
+  `fuzzyMaxEdits: 2` additionally generates every deletion-of-a-deletion
+  variant, guaranteeing real distance-2 coverage (not just the
+  distance-1 dictionary's occasional distance-2 hits via
+  symmetric-delete coincidences, e.g. an adjacent-character
+  transposition). Guaranteeing distance-2 matches requires the *query*
+  side to generate deletions exactly as deep as the dictionary was
+  built — `packages/client/src/search.ts` reads `FuzzyShard.maxEdits`
+  back off the fetched shard rather than assuming depth-1, since a
+  substitution-type (as opposed to pure-deletion) distance-2 pair only
+  meets in the middle if both sides reach the same depth. This turns
+  fuzzy lookup into an O(1)-ish dictionary hit instead of computing edit
+  distance against every term in a shard, which matters because fuzzy is
+  the expensive feature and needs to stay fast enough for instant-search.
+  Off by default (`fuzzy: false`) since it adds index size (the
+  deletion-variant table, roughly doubling or more at `fuzzyMaxEdits: 2`)
+  that not every deployment wants to pay for.
+- **Length-dependent maxEdits cap**: regardless of what a dictionary
+  was built to support, a query term of 3 code points or fewer is
+  capped at accepting only distance-1 matches for actual query
+  expansion (`effectiveMaxEdits()` in `packages/client/src/search.ts`)
+  — a short term is too close to *everything* for a distance-2 match to
+  mean anything (almost any other 3-character term is within 2 edits of
+  it). "Did you mean" suggestions deliberately ignore this cap (and the
+  dictionary's own maxEdits cutoff) — a term that already failed strict
+  fuzzy matching is a suggestion candidate precisely because it's
+  further away, so cutting off *suggestions* at the same threshold that
+  already rejected it as a match would be self-defeating.
 - Fuzzy results are always ranked below exact/prefix matches for the same
   term (a small score penalty proportional to edit distance) rather than
   mixed in undifferentiated.
