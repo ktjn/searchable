@@ -22,7 +22,7 @@ body of a few hundred to ~1,000 words):
 
 **Everything above comfortably fits in a single HTTP round trip per
 artifact type.** This is the concrete driver for the "small corpus
-mode" flagged as a roadmap consideration (not yet adopted) in
+mode" described in
 [12-competitive-landscape.md](12-competitive-landscape.md#explicitly-not-cherry-picking):
 at this scale, prefix-based term sharding
 ([02-index-format.md](02-index-format.md#term-shard-inverted-index))
@@ -30,11 +30,12 @@ is solving a problem that doesn't exist yet.
 
 ## What to simplify at this scale
 
-- **Skip prefix sharding.** Configure the indexer for a single term
-  shard per language (still the same shard *format* — a degenerate case
-  of the general design, not a different code path) rather than
-  splitting by first-character prefix. There's no meaningful fetch-size
-  problem to solve by splitting a ~1MB file into 26 pieces.
+- **Skip prefix sharding.** Pass `writeIndex(built, outDir, { shardByPrefix: false })`
+  to get a single term shard per language (still the same shard
+  *format* — a degenerate case of the general design, not a different
+  code path) rather than splitting by first-character prefix. There's
+  no meaningful fetch-size problem to solve by splitting a ~1MB file
+  into 26 pieces.
 - **Skip the binary tier entirely.** The whole point of
   [11-binary-vs-json-index.md](11-binary-vs-json-index.md)'s binary tier
   is avoiding whole-shard JSON parse cost and enabling Range-request

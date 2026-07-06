@@ -171,13 +171,24 @@ analyzed above and is unaffected by the fix.
 `packages/indexer/bench/json-tier-scaling.mjs` (`pnpm bench`) builds real
 corpora at 1k/10k/100k documents through the actual
 `buildIndex()`/`writeIndex()` pipeline and measures build/write time and
-term-shard raw/gzip size and `JSON.parse` time:
+the size/parse time of the shard a query would actually have to fetch.
 
-| docs | build | en term shard raw | en term shard gzip | `JSON.parse` |
-|---|---|---|---|---|
-| 1,000 | 1.1s | 3.45 MB | 178.9 KB | 51 ms |
-| 10,000 | 9.9s | 34.79 MB | 1.57 MB | 566 ms |
-| 100,000 | 128.3s | 353.01 MB | 14.83 MB | 6,966 ms |
+This benchmark's *first* run found that `writeIndex()` had no real
+prefix sharding — every query fetched and parsed the entire per-language
+term shard regardless of which term was searched, so per-query cost grew
+with total corpus vocabulary instead of staying flat. That's now fixed
+(real per-first-character-prefix sharding, auto-widening for over-large
+buckets — see the Phase 7 bullet in
+[09-roadmap.md](09-roadmap.md#phase-7--scale-options) for the
+implementation). Re-running the same benchmark against the fix gives the
+real before/after this investigation's "should we build binary" question
+actually turns on:
+
+| docs | before: whole-vocab shard (gzip / parse) | after: largest single prefix shard (gzip / parse) |
+|---|---|---|
+| 1,000 | 178.9 KB / 51 ms | 19.9 KB / 4.9 ms |
+| 10,000 | 1.57 MB / 566 ms | 46.8 KB / 12.2 ms |
+| 100,000 | 14.83 MB / 6,966 ms | 197.1 KB / 54.5 ms |
 
 Capped at 100k, not the 1M this doc's follow-up work above calls for:
 the 100k build alone uses several GB of resident memory in this
@@ -188,35 +199,25 @@ practical ceiling well before 1M docs, in-memory and non-streaming),
 not evidence about JSON vs. binary as a wire/shard format — a
 streaming or out-of-core build could reach 1M docs in either format.
 
-**This changes what "should we build binary" actually turns on.**
-Every row above is the *entire* per-language term shard, not one term's
-postings, because `writeIndex()` currently emits exactly one term shard
-per language (`terms/<lang>/all.json`, `prefix: "all"`) rather than the
-per-first-character-prefix sharding
-[02-index-format.md](02-index-format.md#term-shard-inverted-index)
-documents as the design — a known Phase 1 "small corpus mode"
-simplification (09's Phase 1 section), never revisited, not a new
-regression (see the Phase 7 bullet in
-[09-roadmap.md](09-roadmap.md#phase-7--scale-options), and the
-regression test in `packages/indexer/test/write-index.test.ts` that
-locks in current behavior and is designed to start failing once real
-prefix sharding lands). Concretely: at 100k docs, *every* query today
-fetches and parses a 14.83 MB gzip / 353 MB raw payload and pays ~7s of
-`JSON.parse`, regardless of which term was searched — not the "one
-small prefix shard" the sharding design assumes a query costs.
-
-That reframes the JSON-vs-binary question this doc analyzes: the
-~20-30%-to-~2x bytes-on-the-wire gap and parse-time gap discussed above
-are both *per-shard-fetched* comparisons, and today's JSON tier has no
-real per-term-prefix shard to compare against — it has one
-enormous per-language shard. Switching to binary encoding *without*
-first fixing prefix sharding would optimize the wrong axis: a binary
-`terms/<lang>/all.bin` is still an entire-vocabulary fetch per query.
-**Recommendation**: build real per-prefix term sharding first (a
-concrete, scoped Phase 7 follow-up — splitting `terms/<lang>/all.json`
-into `terms/<lang>/<prefix>.json` per 02's design), then re-run this
-benchmark with prefix-sharded shards as the binary-vs-JSON baseline,
-since that's the comparison 02's design and this investigation are
-actually premised on. Building the binary codec against today's
-unsharded baseline first would risk answering a question ("is binary
-worth it for a whole-vocabulary fetch") nobody is actually asking.
+**This is now the right baseline for the JSON-vs-binary question.**
+With real prefix sharding, the ~20-30%-to-~2x bytes-on-the-wire gap and
+parse-time gap discussed above (both *per-shard-fetched* comparisons)
+can be evaluated against what a query actually fetches today — a
+~20-200KB gzip prefix shard, not an entire multi-MB vocabulary. At that
+size, JSON.parse is already single-digit-to-low-double-digit
+milliseconds (4.9-54.5ms across 1k-100k above), well inside "the whole
+point of the binary tier is avoiding whole-shard JSON parse cost"
+territory this doc's own [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md)
+cross-reference already argues doesn't matter below ~1MB. The remaining
+open question the binary tier would answer is narrower than it looked
+before this fix: not "avoid parsing the whole vocabulary" (prefix
+sharding already does that) but "shrink the *largest* prefix shard
+further, for the handful of very common/dense terms whose own posting
+lists dominate a shard's size regardless of how finely it's prefixed" —
+exactly the residual growth the 1k→100k row above still shows (19.9KB→
+197.1KB, ~10x for a 100x corpus increase: real, but far smaller than the
+~83x the unsharded vocabulary grew). Building the binary codec should be
+benchmarked against *this* baseline (prefix-sharded JSON, largest-shard
+numbers above), not the pre-fix unsharded one — the original 10k/100k/1M
+benchmarking plan in the roadmap's Phase 7 bullet still stands, just
+against the corrected reference point.

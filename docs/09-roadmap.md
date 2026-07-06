@@ -631,39 +631,82 @@ Phase 2 is now fully implemented.
   builds real synthetic corpora (`@csf/fixtures`'s `generateCms2kCorpus()`)
   at 1k/10k/100k documents through the actual `buildIndex()`/`writeIndex()`
   pipeline and measures build/write time, on-disk shard sizes (raw and
-  gzip), and `JSON.parse` time on the English term shard. Capped at 100k,
-  not 1M — the 100k build alone uses several GB of resident memory in this
-  reference (in-memory, non-streaming) indexer, and 1M would extrapolate
-  past the ~15GB available on a typical CI/dev machine; that ceiling is
-  itself a finding (see [11-binary-vs-json-index.md](11-binary-vs-json-index.md)),
-  not something to push through by brute force. Measured results:
-
-  | docs | build | write | en term shard (raw / gzip) | en shard `JSON.parse` |
-  |---|---|---|---|---|
-  | 1,000 | 1.1s | 0.3s | 3.45 MB / 178.9 KB | 51 ms |
-  | 10,000 | 9.9s | 3.3s | 34.79 MB / 1.57 MB | 566 ms |
-  | 100,000 | 128.3s | 90.8s | 353.01 MB / 14.83 MB | 6,966 ms |
-
-  **Headline finding**: `writeIndex()` emits exactly *one* term shard per
-  language (`terms/<lang>/all.json`, `prefix: "all"`), not the
-  per-first-character-prefix sharding
+  gzip), and `JSON.parse` time on the shard(s) a query would actually
+  fetch. Capped at 100k, not 1M — the 100k build alone uses several GB of
+  resident memory in this reference (in-memory, non-streaming) indexer,
+  and 1M would extrapolate past the ~15GB available on a typical CI/dev
+  machine; that ceiling is itself a finding (see
+  [11-binary-vs-json-index.md](11-binary-vs-json-index.md)), not
+  something to push through by brute force. This benchmark's first run
+  surfaced the headline finding below (`writeIndex()` had no real prefix
+  sharding), which is now fixed; the table compares the two.
+- ✅ Real per-first-character-prefix term sharding
+  (`packages/indexer/src/write-index.ts`'s `shardTermsByPrefix()`,
+  `packages/client/src/search.ts`'s `shardEntriesForQuery()`): the
+  benchmark above initially found that `writeIndex()` emitted exactly
+  *one* term shard per language (`terms/<lang>/all.json`, `prefix:
+  "all"`), not the per-first-character-prefix sharding
   [02-index-format.md](02-index-format.md#term-shard-inverted-index)
   documents as the design — a known, already-recorded Phase 1 "small
-  corpus mode" simplification, never revisited (see this phase's
-  entry above and Phase 1's bullet), not a new regression. Locked in by
-  a regression test in `packages/indexer/test/write-index.test.ts`
-  (deliberately written to start failing the moment real prefix sharding
-  is built). Consequence, now measured rather than assumed: every query
-  today fetches and parses the *entire* per-language vocabulary
-  regardless of the term searched, so per-query bytes fetched and parse
-  time grow with corpus size exactly like the table above — the "flat
-  first-query cost as the corpus grows" property 02's sharding design
-  exists to guarantee does not currently hold at all for the JSON tier.
-  Real per-prefix term sharding (splitting `terms/<lang>/all.json` into
-  `terms/<lang>/<prefix>.json` per 02's design) is the concrete,
-  high-priority follow-up this finding points at — out of scope for this
-  benchmarking slice, since it's a real indexer feature change, not a
-  measurement.
+  corpus mode" simplification, never revisited (Phase 1's bullet above),
+  not a regression — with the measured consequence that every query
+  fetched and parsed the *entire* per-language vocabulary regardless of
+  the term searched, so per-query bytes/parse time grew with corpus size
+  instead of staying flat. Fixed on both ends:
+  - **Indexer**: `writeIndex()` now splits each language's term shard
+    into one-character-prefix buckets by default, auto-widening any
+    bucket whose gzip size still exceeds a configurable budget (default
+    50KB, `docs/02`'s own number) one prefix character at a time,
+    recursively, until it fits, its terms stop separating further (every
+    remaining term already shares that whole prefix), or an 8-character
+    safety cap is hit — the latter two log a warning and ship the
+    oversized shard as-is rather than fail the build, since a single
+    term whose own posting list alone exceeds the budget (a real,
+    observed case at 100k docs: `docs/02`'s per-prefix sharding narrows
+    *which terms* are in a shard, but can't shrink one term's own
+    already-huge posting list) is exactly the kind of density the binary
+    tier ([11-binary-vs-json-index.md](11-binary-vs-json-index.md)) is
+    for, not further JSON prefix recursion. A `{ shardByPrefix: false }`
+    option (docs/14's already-recommended small-corpus-mode) opts back
+    into the single-shard-per-language behavior when a corpus is small
+    enough that sharding solves a problem that doesn't exist yet.
+  - **Client**: `search()` no longer fetches every term shard for the
+    query's language — it computes the exact set of terms a query needs
+    (literal terms, plus every synonym/fuzzy candidate variant, plus
+    phrase words, resolved *before* any term shard is fetched) and every
+    prefix a `term*` prefix-query clause could overlap, then fetches
+    only the shard(s) actually covering that set. Proven with new
+    real-HTTP e2e tests
+    (`packages/client/test/e2e.test.ts`'s "prefix-sharded term shard
+    fetching" suite) asserting the shards requested from the static
+    server for a query never include an unrelated-prefix shard, not just
+    that results are still correct.
+
+  Measured before/after (en, per-query worst-case fetch = the *entire*
+  vocabulary before, the *largest single shard* after — the honest
+  worst case any one query could actually trigger):
+
+  | docs | before: shard (gzip / parse) | after: largest shard (gzip / parse), shard count |
+  |---|---|---|
+  | 1,000 | 178.9 KB / 51 ms | 19.9 KB / 4.9 ms (25 shards) |
+  | 10,000 | 1.57 MB / 566 ms | 46.8 KB / 12.2 ms (129 shards) |
+  | 100,000 | 14.83 MB / 6,966 ms | 197.1 KB / 54.5 ms (425 shards) |
+
+  At 100k docs the worst-case per-query fetch drops ~75x in bytes and
+  ~128x in parse time — and, more importantly than any single ratio, the
+  *growth curve* flattens dramatically: a 100x corpus-size increase
+  (1k→100k) now only grows the worst-case shard ~10x (19.9KB→197.1KB),
+  not the ~83x the unsharded vocabulary grew (178.9KB→14.83MB) — much
+  closer to (not perfectly) the "flat first-query cost as the corpus
+  grows" property `docs/02`'s sharding design exists to guarantee; the
+  residual growth is the honest remainder of a few very common terms'
+  own posting lists growing with corpus size, which prefix granularity
+  alone can't bound (see the binary-tier note above). This *does* cost
+  something on the write side: `writeIndex()`'s 100k run went from ~91s
+  to ~209s, since real sharding now runs a gzip-based size check per
+  candidate prefix bucket (recursively, for any over-budget one) instead
+  of writing one shard outright — a one-time build-time cost, paid once
+  per deploy, traded for the query-time win above.
 - Binary tier codec (plus a Range-request-capable single-file postings
   variant), benchmarked against JSON at 10k/100k/1M synthetic corpus
   sizes to empirically set the size/density threshold where it's worth

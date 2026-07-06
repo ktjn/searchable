@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { Manifest } from "@csf/format";
+import { gzipSync } from "node:zlib";
+import type { Manifest, TermShard } from "@csf/format";
 import { contentHash } from "./hash.js";
 import type { BuiltIndex } from "./types.js";
 
@@ -40,6 +41,115 @@ async function writeJson(
   return hashedRelPath;
 }
 
+/** Default per docs/02-index-format.md#size-targets--sharding-tuning ("e.g. ~50KB gzipped"). */
+export const DEFAULT_MAX_TERM_SHARD_GZIP_BYTES = 50 * 1024;
+
+function groupByPrefixLength(
+  termShard: TermShard,
+  prefixLength: number,
+): Map<string, TermShard> {
+  const groups = new Map<string, TermShard>();
+  for (const [term, entry] of Object.entries(termShard)) {
+    const prefix = term.slice(0, prefixLength);
+    let group = groups.get(prefix);
+    if (!group) {
+      group = {};
+      groups.set(prefix, group);
+    }
+    group[term] = entry;
+  }
+  return groups;
+}
+
+function gzipByteSize(termShard: TermShard): number {
+  return gzipSync(JSON.stringify(canonicalize(termShard))).length;
+}
+
+/** A prefix length past which auto-splitting gives up even if still over budget -- a safety net against runaway recursion, not a limit expected to bind in practice (docs/02's own examples never go past two characters). */
+const MAX_PREFIX_LENGTH = 8;
+
+/**
+ * Splits one bucket further by one more prefix character, recursing into
+ * any resulting sub-bucket that's *still* over `maxGzipBytes` -- docs/02's
+ * "auto-increases prefix length ... for over-large shards" is not capped
+ * at two characters: a sufficiently dense leading substring (common in
+ * agglutinative/compounding languages like German at real corpus scale)
+ * can still be too large even after one split, so this keeps widening
+ * per over-large sub-bucket until it fits, terms stop separating further
+ * (`subBuckets.size <= 1` -- can't split a bucket by prefix if every term
+ * in it already shares that whole prefix), or `MAX_PREFIX_LENGTH` is hit,
+ * whichever comes first -- the latter two both emit a warning rather
+ * than fail the build, since a corpus dense enough to hit either in
+ * practice needs the binary tier this shard format is deliberately
+ * staying open-and-simple ahead of (docs/11-binary-vs-json-index.md),
+ * not open-ended JSON prefix recursion.
+ */
+function splitOversizedBucket(
+  prefix: string,
+  group: TermShard,
+  prefixLength: number,
+  language: string,
+  maxGzipBytes: number,
+  result: Map<string, TermShard>,
+): void {
+  const size = gzipByteSize(group);
+  if (size <= maxGzipBytes) {
+    result.set(prefix, group);
+    return;
+  }
+  const termCount = Object.keys(group).length;
+  if (termCount <= 1 || prefixLength >= MAX_PREFIX_LENGTH) {
+    const reason =
+      termCount <= 1
+        ? "only one term left"
+        : `hit the ${MAX_PREFIX_LENGTH}-character prefix-length cap`;
+    console.warn(
+      `[csf-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget and cannot be split further (${reason}) -- see docs/02-index-format.md#size-targets--sharding-tuning.`,
+    );
+    result.set(prefix, group);
+    return;
+  }
+  const subBuckets = groupByPrefixLength(group, prefixLength + 1);
+  if (subBuckets.size <= 1) {
+    console.warn(
+      `[csf-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget, but every term in it shares the same prefix so it cannot be split further -- see docs/02-index-format.md#size-targets--sharding-tuning.`,
+    );
+    result.set(prefix, group);
+    return;
+  }
+  for (const [subPrefix, subGroup] of subBuckets) {
+    splitOversizedBucket(
+      subPrefix,
+      subGroup,
+      prefixLength + 1,
+      language,
+      maxGzipBytes,
+      result,
+    );
+  }
+}
+
+/**
+ * Splits one language's term shard into prefix buckets
+ * (docs/02-index-format.md#term-shard-inverted-index): single-character
+ * prefix by default, so a query for "widget" only ever needs the "w"
+ * bucket, regardless of how many other terms exist. A bucket that would
+ * still exceed `maxGzipBytes` after gzip is widened one character at a
+ * time (`splitOversizedBucket` above) rather than left as one oversized
+ * fetch every one-character-prefix query would have to pay for.
+ */
+function shardTermsByPrefix(
+  termShard: TermShard,
+  language: string,
+  maxGzipBytes: number,
+): Map<string, TermShard> {
+  const result = new Map<string, TermShard>();
+  for (const [prefix, group] of groupByPrefixLength(termShard, 1)) {
+    splitOversizedBucket(prefix, group, 1, language, maxGzipBytes, result);
+  }
+  return result;
+}
+
 /**
  * Serializes a BuiltIndex to content-hashed shard files plus a plain
  * (unhashed) manifest.json — the full hashed-manifest + alias-pointer
@@ -54,22 +164,54 @@ async function writeJson(
  * shouldn't see it silently change shape out from under them just
  * because they also called `writeIndex()` (REVIEW.md#9).
  */
+export interface WriteIndexOptions {
+  /** See `DEFAULT_MAX_TERM_SHARD_GZIP_BYTES` and `shardTermsByPrefix()` above. */
+  maxShardGzipBytes?: number;
+  /**
+   * `false` writes exactly one term shard per language (`prefix: "all"`)
+   * instead of splitting by first-character prefix -- the same shard
+   * *format* either way, just configured with one shard instead of many.
+   * Real per-prefix sharding is solving a fetch-size problem that
+   * doesn't exist yet for a small enough corpus
+   * (docs/14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale).
+   * Defaults to `true` (real prefix sharding, the general-case default).
+   */
+  shardByPrefix?: boolean;
+}
+
 export async function writeIndex(
   built: BuiltIndex,
   outDir: string,
+  options: WriteIndexOptions = {},
 ): Promise<void> {
+  const maxGzipBytes =
+    options.maxShardGzipBytes ?? DEFAULT_MAX_TERM_SHARD_GZIP_BYTES;
+  const shardByPrefix = options.shardByPrefix ?? true;
   const languages = Object.keys(built.termShards).sort();
-  const terms = await Promise.all(
-    languages.map(async (language) => {
-      const termShard = built.termShards[language] ?? {};
-      return {
-        lang: language,
-        prefix: "all",
-        file: await writeJson(outDir, `terms/${language}/all.json`, termShard),
-        termCount: Object.keys(termShard).length,
-      };
-    }),
-  );
+  const terms = (
+    await Promise.all(
+      languages.map(async (language) => {
+        const termShard = built.termShards[language] ?? {};
+        const buckets = shardByPrefix
+          ? [...shardTermsByPrefix(termShard, language, maxGzipBytes)].sort(
+              ([a], [b]) => a.localeCompare(b),
+            )
+          : ([["all", termShard]] as [string, TermShard][]);
+        return Promise.all(
+          buckets.map(async ([prefix, group]) => ({
+            lang: language,
+            prefix,
+            file: await writeJson(
+              outDir,
+              `terms/${language}/${prefix}.json`,
+              group,
+            ),
+            termCount: Object.keys(group).length,
+          })),
+        );
+      }),
+    )
+  ).flat();
 
   const docsFile = await writeJson(outDir, "docs/0.json", built.docStore);
   const docs = [{ shard: 0, file: docsFile, idRange: built.idRange }];

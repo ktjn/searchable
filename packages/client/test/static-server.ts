@@ -11,11 +11,16 @@ import { join } from "node:path";
  * fetch doesn't support file:// URLs, so a real (if tiny) HTTP server
  * is the honest way to exercise that path, not a shortcut around it.
  */
-export async function serveStatic(
-  rootDir: string,
-): Promise<{ baseUrl: string; close: () => Promise<void> }> {
+export async function serveStatic(rootDir: string): Promise<{
+  baseUrl: string;
+  close: () => Promise<void>;
+  /** Every request path served so far, in order -- lets a test assert exactly which shards a query actually fetched. */
+  requestedPaths: string[];
+}> {
+  const requestedPaths: string[] = [];
   const server: Server = createServer((req, res) => {
     const path = decodeURIComponent((req.url ?? "/").split("?")[0] ?? "/");
+    requestedPaths.push(path);
     readFile(join(rootDir, path))
       .then((data) => {
         res.writeHead(200, { "content-type": "application/json" });
@@ -36,5 +41,6 @@ export async function serveStatic(
   return {
     baseUrl: `http://127.0.0.1:${address.port}/`,
     close: () => new Promise((resolve) => server.close(() => resolve())),
+    requestedPaths,
   };
 }

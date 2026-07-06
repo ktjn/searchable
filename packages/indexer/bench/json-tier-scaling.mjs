@@ -13,12 +13,13 @@ import { buildIndex, writeIndex } from "../dist/index.js";
  * buildIndex()/writeIndex() pipeline (not a simulation) and reports the
  * concrete metrics that investigation's "should we, and when" question
  * turns on -- build time, on-disk shard sizes (raw and gzip), and the
- * size of the *single* term shard a query today must fetch (see the
- * finding below). Deliberately a plain Node script against the built
- * `dist/`, not a Vitest bench file -- this is a one-shot corpus-scaling
- * report meant to be read, not a statistically-repeated micro-benchmark
- * (docs/10-testing-and-performance.md's micro-benchmark category is a
- * different, smaller-scoped thing). Run via `pnpm --filter @csf/indexer bench`.
+ * size of the *largest single term shard* a query could have to fetch
+ * (see below, now that real per-prefix sharding exists). Deliberately a
+ * plain Node script against the built `dist/`, not a Vitest bench file --
+ * this is a one-shot corpus-scaling report meant to be read, not a
+ * statistically-repeated micro-benchmark (docs/10-testing-and-performance.md's
+ * micro-benchmark category is a different, smaller-scoped thing). Run
+ * via `pnpm --filter @csf/indexer bench`.
  *
  * Capped at 100k documents, not the 1M docs/11's follow-up note
  * mentions: the 100k build alone uses several GB of resident memory in
@@ -30,21 +31,20 @@ import { buildIndex, writeIndex } from "../dist/index.js";
  * actually about) rather than something to push through by brute
  * force here.
  *
- * Headline finding this script exists to surface with real numbers,
- * not just describe: `writeIndex()` currently emits exactly *one*
- * term shard per language (`terms/<lang>/all.json`, `prefix: "all"`),
- * not the per-first-character-prefix sharding
- * docs/02-index-format.md#term-shard-inverted-index describes as the
- * design ("a query for 'widget' only ever fetches the `w` shard").
- * This was Phase 1's documented "small corpus mode" simplification
- * (docs/09-roadmap.md's Phase 1 section), never revisited -- so today,
- * literally every query fetches and parses the *entire* per-language
- * vocabulary, regardless of corpus size. That means the core
- * "first-query cost stays roughly flat as the corpus grows" claim
- * docs/02's sharding design exists to guarantee does not currently
- * hold at all -- this script's own numbers below are the "per-query
- * bytes fetched" column, unqualified, since there's only one term
- * shard to fetch either way.
+ * `writeIndex()` now shards each language's term shard by
+ * first-character prefix (auto-widening to two characters for any
+ * over-large bucket, per docs/02-index-format.md#term-shard-inverted-index
+ * and #size-targets--sharding-tuning) -- real prefix sharding, not the
+ * single unsharded `terms/<lang>/all.json` Phase 1 originally shipped
+ * (see the fixed Phase 7 bullet in docs/09-roadmap.md for that history).
+ * So the per-query fetch cost this script now reports is the size of
+ * *one* prefix shard -- the largest one that exists for a language is
+ * the honest worst case, since any single query term only ever needs
+ * exactly one (or, for a prefix query overlapping more than one bucket,
+ * a small handful of) shard(s), never the whole vocabulary. Tracking
+ * how that largest-shard size grows with corpus size (rather than
+ * assuming it stays flat) is the actual empirical answer to docs/02's
+ * "first-query cost stays roughly flat as the corpus grows" claim.
  */
 
 const SIZES = process.env.CSF_BENCH_SIZES
@@ -85,6 +85,50 @@ async function dirSizes(rootDir) {
   return { totalRaw, totalGzip, files };
 }
 
+function median(sortedNums) {
+  const mid = Math.floor(sortedNums.length / 2);
+  return sortedNums.length % 2 !== 0
+    ? sortedNums[mid]
+    : ((sortedNums[mid - 1] ?? 0) + (sortedNums[mid] ?? 0)) / 2;
+}
+
+/** Per-language shard-size distribution stats, plus a real JSON.parse timing on the single largest shard -- the honest worst-case per-query cost now that shards are prefix-sharded rather than one-per-language. */
+async function termShardStatsForLanguage(outDir, entries) {
+  const perShard = [];
+  for (const entry of entries) {
+    const raw = await readFile(join(outDir, entry.file), "utf8");
+    perShard.push({
+      prefix: entry.prefix,
+      termCount: entry.termCount,
+      rawBytes: Buffer.byteLength(raw, "utf8"),
+      gzipBytes: gzipSync(raw, { level: 9 }).length,
+      raw,
+    });
+  }
+  perShard.sort((a, b) => b.gzipBytes - a.gzipBytes);
+  const largest = perShard[0];
+  let largestParseMs;
+  if (largest) {
+    const parseStart = performance.now();
+    JSON.parse(largest.raw);
+    largestParseMs = performance.now() - parseStart;
+  }
+  const gzipSizes = perShard.map((s) => s.gzipBytes).sort((a, b) => a - b);
+  return {
+    lang: entries[0]?.lang,
+    shardCount: perShard.length,
+    totalGzipBytes: gzipSizes.reduce((a, b) => a + b, 0),
+    minGzipBytes: gzipSizes[0],
+    medianGzipBytes: median(gzipSizes),
+    maxGzipBytes: gzipSizes[gzipSizes.length - 1],
+    largestShardPrefix: largest?.prefix,
+    largestShardTermCount: largest?.termCount,
+    largestShardRawBytes: largest?.rawBytes,
+    largestShardGzipBytes: largest?.gzipBytes,
+    largestShardParseMs: largestParseMs,
+  };
+}
+
 async function benchOne(count) {
   const sources = generateCms2kCorpus({ count });
 
@@ -102,24 +146,13 @@ async function benchOne(count) {
   const manifest = JSON.parse(
     await readFile(join(outDir, "manifest.json"), "utf8"),
   );
-  const termShardEntries = manifest.shards.terms; // today: exactly one per language, prefix "all"
-  const termShardStats = [];
-  for (const entry of termShardEntries) {
-    const path = join(outDir, entry.file);
-    const raw = await readFile(path, "utf8");
-    const rawBytes = Buffer.byteLength(raw, "utf8");
-    const gzipBytes = gzipSync(raw, { level: 9 }).length;
-    const parseStart = performance.now();
-    JSON.parse(raw);
-    const parseMs = performance.now() - parseStart;
-    termShardStats.push({
-      lang: entry.lang,
-      prefix: entry.prefix,
-      termCount: entry.termCount,
-      rawBytes,
-      gzipBytes,
-      parseMs,
-    });
+  const languages = [
+    ...new Set(manifest.shards.terms.map((s) => s.lang)),
+  ].sort();
+  const termShardStatsByLang = [];
+  for (const lang of languages) {
+    const entries = manifest.shards.terms.filter((s) => s.lang === lang);
+    termShardStatsByLang.push(await termShardStatsForLanguage(outDir, entries));
   }
 
   await rm(outDir, { recursive: true, force: true });
@@ -131,7 +164,7 @@ async function benchOne(count) {
     totalRaw,
     totalGzip,
     fileCount: files.length,
-    termShardStats,
+    termShardStatsByLang,
   };
 }
 
@@ -146,21 +179,26 @@ async function main() {
     console.log(
       `total index size: ${formatBytes(result.totalRaw)} raw, ${formatBytes(result.totalGzip)} gzip, ${result.fileCount} files`,
     );
-    for (const s of result.termShardStats) {
+    for (const s of result.termShardStatsByLang) {
       console.log(
-        `  term shard [${s.lang}] (${s.termCount} terms): ${formatBytes(s.rawBytes)} raw, ${formatBytes(s.gzipBytes)} gzip, JSON.parse ${s.parseMs.toFixed(1)} ms -- fetched+parsed by EVERY query, regardless of term`,
+        `  [${s.lang}] ${s.shardCount} term shards, gzip sizes ${formatBytes(s.minGzipBytes)}..${formatBytes(s.maxGzipBytes)} (median ${formatBytes(s.medianGzipBytes)}), total ${formatBytes(s.totalGzipBytes)}`,
+      );
+      console.log(
+        `    largest single shard [prefix "${s.largestShardPrefix}", ${s.largestShardTermCount} terms]: ${formatBytes(s.largestShardRawBytes)} raw, ${formatBytes(s.largestShardGzipBytes)} gzip, JSON.parse ${s.largestShardParseMs.toFixed(1)} ms -- the worst case any single query could actually fetch+parse`,
       );
     }
   }
 
   console.log(
-    "\n=== Summary (per-query bytes fetched today = the single term shard above) ===",
+    "\n=== Summary (per-query bytes fetched today = the largest single prefix shard for the language, per docs/02's sharding design) ===",
   );
-  console.log("docs\tbuildMs\ttermShardGzipBytes(en)\ttermShardParseMs(en)");
+  console.log(
+    "docs\tbuildMs\tenShardCount\tlargestShardGzipBytes(en)\tlargestShardParseMs(en)",
+  );
   for (const r of results) {
-    const en = r.termShardStats.find((s) => s.lang === "en");
+    const en = r.termShardStatsByLang.find((s) => s.lang === "en");
     console.log(
-      `${r.count}\t${r.buildMs.toFixed(0)}\t${en?.gzipBytes ?? "n/a"}\t${en?.parseMs.toFixed(1) ?? "n/a"}`,
+      `${r.count}\t${r.buildMs.toFixed(0)}\t${en?.shardCount ?? "n/a"}\t${en?.largestShardGzipBytes ?? "n/a"}\t${en?.largestShardParseMs?.toFixed(1) ?? "n/a"}`,
     );
   }
 

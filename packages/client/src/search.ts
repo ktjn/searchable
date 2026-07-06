@@ -507,13 +507,45 @@ function nearestTermsFor(
 }
 
 /**
+ * The term shard entries a query actually needs, out of every shard for
+ * `language` (docs/02-index-format.md#term-shard-inverted-index): shards
+ * partition the vocabulary disjointly by first-character (or, for an
+ * over-large bucket, first-two-character) prefix, so an exact term only
+ * ever lives in the one shard whose prefix it starts with, and a prefix
+ * query (`term*`) only ever needs shards whose prefix *overlaps* the
+ * query's prefix -- either is a prefix of the other, since the query
+ * prefix and a shard's prefix can differ in length (a single-char query
+ * prefix against two-char shards, or vice versa). Fetching only this
+ * subset (rather than every shard for the language, regardless of which
+ * terms a query actually mentions) is the whole point of prefix
+ * sharding: first-query cost stays flat as the corpus grows instead of
+ * scaling with total vocabulary size (docs/11-binary-vs-json-index.md).
+ */
+function shardEntriesForQuery(
+  shardEntries: Manifest["shards"]["terms"],
+  exactTermsNeeded: Set<string>,
+  prefixesNeeded: string[],
+): Manifest["shards"]["terms"] {
+  return shardEntries.filter((entry) => {
+    for (const term of exactTermsNeeded) {
+      if (term.startsWith(entry.prefix)) return true;
+    }
+    for (const p of prefixesNeeded) {
+      if (entry.prefix.startsWith(p) || p.startsWith(entry.prefix)) return true;
+    }
+    return false;
+  });
+}
+
+/**
  * Boolean-AND query evaluation over the shards a query actually needs
  * (docs/01-architecture.md#data-flow-for-a-query): analyze the query
  * with the same LanguageProfile the indexer used, fetch only the term
- * shard(s) covering the matched language, intersect posting doc-id
- * sets across every query term, score the intersection with BM25F, and
- * fetch doc-store data for only the final top-N hits. Facet filters
- * narrow the candidate set before scoring; pins are resolved
+ * shard(s) covering the matched language *and* the specific terms/prefixes
+ * this query touches (`shardEntriesForQuery` above), intersect posting
+ * doc-id sets across every query term, score the intersection with
+ * BM25F, and fetch doc-store data for only the final top-N hits. Facet
+ * filters narrow the candidate set before scoring; pins are resolved
  * independently of the organic query and spliced onto the front of the
  * result (docs/16-term-to-page-pinning.md).
  */
@@ -534,22 +566,12 @@ export async function search(
   }
 
   const shardEntries = manifest.shards.terms.filter((s) => s.lang === language);
-  const shards = await Promise.all(
-    shardEntries.map((entry) =>
-      cache.fetchJson<TermShard>(resolve(baseUrl, entry.file)),
-    ),
-  );
 
-  const termLookup = new Map<string, TermEntry>();
-  for (const shard of shards) {
-    for (const [term, entry] of Object.entries(shard)) {
-      termLookup.set(term, entry);
-    }
-  }
-
-  // Fetched up front (not lazily inside the clause loop below) because
-  // every non-prefix clause needs it to resolve variants before the
-  // organic-match/no-match decision is made for that clause.
+  // synonym/fuzzy shards are independent of term-shard sharding (they're
+  // one shard per language, not per prefix), so they're fetched first --
+  // resolving them now (rather than lazily inside the clause loop below)
+  // lets their variant/candidate terms feed the term-shard *selection*
+  // below, not just clause resolution afterwards.
   const synonymsFile = options.synonyms
     ? manifest.synonyms?.[language]
     : undefined;
@@ -563,6 +585,56 @@ export async function search(
     ? await cache.fetchJson<FuzzyShard>(resolve(baseUrl, fuzzyFile))
     : undefined;
   const fuzzyWeight = options.fuzzyWeight ?? DEFAULT_FUZZY_WEIGHT;
+
+  // Every exact term (and every synonym/fuzzy candidate variant of one)
+  // and every prefix-query prefix this query could possibly need a
+  // dictionary lookup for -- computed before any term shard is fetched,
+  // so only the shards actually covering them get fetched at all.
+  const exactTermsNeeded = new Set<string>();
+  const prefixesNeeded: string[] = [];
+  for (const qt of queryTerms) {
+    if (qt.prefix) {
+      prefixesNeeded.push(qt.term);
+      continue;
+    }
+    exactTermsNeeded.add(qt.term);
+    for (const variant of synonymVariantsFor(qt.term, synonymShard)) {
+      exactTermsNeeded.add(variant);
+    }
+    for (const match of fuzzyMatchesFor(qt.term, fuzzyShard)) {
+      exactTermsNeeded.add(match.term);
+    }
+  }
+  for (const phrase of parsedQuery.phrases) {
+    const literalWords = phrase.terms.map((qt) => qt.term);
+    for (const word of literalWords) exactTermsNeeded.add(word);
+    if (options.synonyms && synonymShard) {
+      for (const variant of multiWordVariantsFor(
+        literalWords.join(" "),
+        synonymShard,
+      )) {
+        for (const word of variant.split(" ")) exactTermsNeeded.add(word);
+      }
+    }
+  }
+
+  const neededShardEntries = shardEntriesForQuery(
+    shardEntries,
+    exactTermsNeeded,
+    prefixesNeeded,
+  );
+  const shards = await Promise.all(
+    neededShardEntries.map((entry) =>
+      cache.fetchJson<TermShard>(resolve(baseUrl, entry.file)),
+    ),
+  );
+
+  const termLookup = new Map<string, TermEntry>();
+  for (const shard of shards) {
+    for (const [term, entry] of Object.entries(shard)) {
+      termLookup.set(term, entry);
+    }
+  }
 
   // Each query term becomes a clause: an exact term matches at most one
   // TermEntry (plus, when synonyms/fuzzy are enabled, any equivalence/

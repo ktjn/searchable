@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildIndex, writeIndex } from "@csf/indexer";
@@ -580,6 +580,98 @@ describe("prefix matching (term*)", () => {
     // singular and plural page match; "widgetry" stems differently
     // ("widgetri") and correctly does not.
     expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
+  });
+});
+
+describe("prefix-sharded term shard fetching (docs/02-index-format.md#term-shard-inverted-index)", () => {
+  // A vocabulary spread across distinct leading characters -- with the
+  // default sharding budget this produces one tiny term shard per
+  // character, exactly the scenario prefix sharding exists for: a query
+  // should fetch only the shard(s) covering the terms it actually
+  // mentions, not every term shard for the language (the pre-sharding
+  // behavior packages/indexer/test/write-index.test.ts used to lock in
+  // as "prefix: 'all'").
+  const shardedSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/alpha",
+      html: `<html lang="en"><head><title>Alpha Page</title></head>
+        <body><main><p>alpha content here</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/bravo",
+      html: `<html lang="en"><head><title>Bravo Page</title></head>
+        <body><main><p>bravo content here</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/charlie",
+      html: `<html lang="en"><head><title>Charlie Page</title></head>
+        <body><main><p>charlie content here</p></main></body></html>`,
+    },
+  ];
+
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let requestedPaths: string[];
+  let outDir: string;
+  let manifest: {
+    shards: { terms: { lang: string; prefix: string; file: string }[] };
+  };
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-prefix-shard-"));
+    await writeIndex(buildIndex(shardedSources), outDir);
+    manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+    requestedPaths = server.requestedPaths;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  function shardFileFor(prefix: string): string {
+    const entry = manifest.shards.terms.find(
+      (s) => s.lang === "en" && s.prefix === prefix,
+    );
+    if (!entry) throw new Error(`no shard for prefix ${prefix}`);
+    return `/${entry.file}`;
+  }
+
+  it("fetches only the term shard covering an exact query term's prefix", async () => {
+    requestedPaths.length = 0;
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("alpha");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+
+    const termShardRequests = requestedPaths.filter((p) =>
+      p.startsWith("/terms/"),
+    );
+    expect(termShardRequests).toEqual([shardFileFor("a")]);
+    expect(termShardRequests).not.toContain(shardFileFor("b"));
+    expect(termShardRequests).not.toContain(shardFileFor("c"));
+  });
+
+  it("fetches only the shards covering every clause in a multi-term query", async () => {
+    requestedPaths.length = 0;
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("content alpha");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+
+    const termShardRequests = requestedPaths.filter((p) =>
+      p.startsWith("/terms/"),
+    );
+    expect(new Set(termShardRequests)).toEqual(
+      new Set([shardFileFor("a"), shardFileFor("c")]), // "content" stems under prefix "c"
+    );
+    expect(termShardRequests).not.toContain(shardFileFor("b"));
   });
 });
 

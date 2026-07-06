@@ -132,11 +132,14 @@ this design* rather than just "that library is good":
 - **Orama's/Pagefind's "load-everything-into-WASM-at-init" pattern for
   small sites** isn't wrong, but it's the opposite of this design's core
   bet (lazy shard fetch) — for genuinely small corpora, the sharding
-  overhead may not pay for itself either, which is a reason a "small
-  corpus mode" (single unsharded index, still same format) might be
-  worth a manifest flag rather than a reason to abandon sharding as the
-  default. This now has a concrete driver rather than being purely
-  hypothetical: see
+  overhead may not pay for itself either, which is why "small corpus
+  mode" (single unsharded index, still same format) is a
+  `writeIndex(built, outDir, { shardByPrefix: false })` opt-out flag
+  rather than a reason to abandon sharding as the default (real
+  per-first-character-prefix sharding, per
+  [02-index-format.md](02-index-format.md#term-shard-inverted-index),
+  is what `writeIndex()` does by default now). This has a concrete
+  driver rather than being purely hypothetical: see
   [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md),
   which recommends exactly this (single term shard per language, no
   binary tier, no vector clustering) for a ~2,000-document CMS-sourced

@@ -4,6 +4,7 @@ export { discoverHtmlDocuments } from "./discover.js";
 export { extractDocument } from "./extract.js";
 export type { ExtractedDocument, PinDeclaration } from "./extract.js";
 export { writeIndex } from "./write-index.js";
+export type { WriteIndexOptions } from "./write-index.js";
 export type {
   BuiltIndex,
   DocStoreEntry,
