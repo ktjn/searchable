@@ -29,7 +29,32 @@ tunable). A `facetValues()` filter-only browsing call with no
 free-text query is also built (docs/07-client-api.md#facet-only-queries) —
 same contextual-count convention as `search()`'s `facets` option, and
 now the same aggregate-bucket results for a range field too.
-Hierarchical facets remain design-only for now.
+Hierarchical facets are now built too: a build-time option,
+`buildIndex(sources, lang, { hierarchicalFacets: { category: {
+separator?: ">" } } })`, marks a `csf-facet-<field>` field as
+path-structured — each authored value (e.g.
+`"electronics>audio>headphones"`) is split on that field's separator
+and every ancestor prefix is indexed as its own addressable entry
+(`"electronics"`, `"electronics>audio"`,
+`"electronics>audio>headphones"`), reusing the exact same `{count,
+docs}` shape terms facets use (see "Facet index structure" below) — the
+same "zero client-side changes to surface it" design already used for
+range aggregate results, since `search()`/`facetValues()` already
+iterate `shard.values` generically. The one genuinely new client-side
+surface is `FacetResult.separator`, populated only for a
+hierarchy-type field, so a consumer can split a path into its segments
+without hardcoding a delimiter. A doc that declares two sibling paths
+sharing an ancestor (e.g. `"electronics>audio>headphones"` and
+`"electronics>video>tv"` on the same page) is still counted only once
+at that shared ancestor, not once per sibling. Which field is
+hierarchical is a corpus-wide build decision (like field boosts or
+synonyms), not a per-page `csf-*` meta tag — a page still authors a
+plain string value, it's `buildIndex()`'s options that decide how to
+interpret it. Not built yet: reconstructing/rendering the tree shape
+itself is left to the consuming UI (splitting each returned `value` on
+`separator`), and there's no author-configurable minimum/maximum depth
+or lazy per-branch shard splitting yet — every level lives in one
+shard, same as an ordinary terms facet.
 
 ## Facet types
 
@@ -136,9 +161,15 @@ anything), so:
   can be prefetched alongside the manifest (configurable "prefetch"
   list) so the facet UI isn't empty on first paint.
   the search box, since they scope to *this* query.
-- Deep hierarchical levels are fetched lazily (only when a user expands
-  a branch) rather than the whole tree up front, to keep facet shard size
-  independent of taxonomy depth/breadth.
+- Deep hierarchical levels fetched lazily (only when a user expands a
+  branch) rather than the whole tree up front, to keep facet shard size
+  independent of taxonomy depth/breadth, is still design-only — today's
+  hierarchical facet shard holds every level in one file, same as an
+  ordinary terms facet (see "Facet types" above); a taxonomy deep/wide
+  enough to make that worth splitting is a real but so-far-unencountered
+  scale problem, not something the current reference deployment
+  ([14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md))
+  needs.
 
 ## Interaction with faceting UI patterns
 

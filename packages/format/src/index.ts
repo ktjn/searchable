@@ -96,7 +96,6 @@ export interface RangeFacetValue {
 }
 
 export interface FacetShard {
-  /** Hierarchy remains design-only (docs/09-roadmap.md). */
   type: "terms" | "range" | "hierarchy";
   separator?: string;
   /** Precomputed values for "terms"/"hierarchy" (per-value doc set + count); for "range", 5 equal-width buckets spanning the corpus's observed [min, max], keyed by a label like "10-20" or "80+" for the open-ended last bucket (docs/06-faceted-search.md#facet-index-structure). */

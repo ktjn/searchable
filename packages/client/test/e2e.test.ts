@@ -708,6 +708,179 @@ describe("facet filtering and contextual counts", () => {
   });
 });
 
+describe("hierarchical facet filtering and contextual counts (over real HTTP)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  // All four organically match "device"; category is a hierarchical
+  // facet (docs/06-faceted-search.md#facet-types) three levels deep for
+  // three of them, and a bare top-level value (no separator) for the
+  // fourth, to prove both shapes coexist in one shard.
+  const hierarchySources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/headphones",
+      html: `<html lang="en"><head><title>Headphones</title>
+        <meta name="csf-facet-category" content="electronics>audio>headphones"></head>
+        <body><main><p>A wireless device.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/speakers",
+      html: `<html lang="en"><head><title>Speakers</title>
+        <meta name="csf-facet-category" content="electronics>audio>speakers"></head>
+        <body><main><p>A bluetooth device.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/tv",
+      html: `<html lang="en"><head><title>TV</title>
+        <meta name="csf-facet-category" content="electronics>video>tv"></head>
+        <body><main><p>A smart device.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/novel",
+      html: `<html lang="en"><head><title>Novel</title>
+        <meta name="csf-facet-category" content="books"></head>
+        <body><main><p>A great read, nothing electronic about it.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-hierarchy-"));
+    await writeIndex(
+      buildIndex(hierarchySources, "en", {
+        hierarchicalFacets: { category: {} },
+      }),
+      outDir,
+    );
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("filtering by a top-level ancestor path matches every descendant leaf", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("device", {
+      filters: { category: "electronics" },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("filtering by a mid-level path matches only that branch's leaves", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("device", {
+      filters: { category: "electronics>audio" },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
+  });
+
+  it("filtering by a full leaf path matches only that one document", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("device", {
+      filters: { category: "electronics>audio>headphones" },
+    });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("reports every path level as its own facet value, with the shard's separator", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { facets } = await client.search("device", {
+      facets: ["category"],
+    });
+    expect(facets?.category?.separator).toBe(">");
+    const values = facets?.category?.values.sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+    expect(values).toEqual([
+      { value: "books", count: 0, selected: false },
+      { value: "electronics", count: 3, selected: false },
+      { value: "electronics>audio", count: 2, selected: false },
+      { value: "electronics>audio>headphones", count: 1, selected: false },
+      { value: "electronics>audio>speakers", count: 1, selected: false },
+      { value: "electronics>video", count: 1, selected: false },
+      { value: "electronics>video>tv", count: 1, selected: false },
+    ]);
+  });
+
+  it("marks the active ancestor-level filter's own value as selected", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { facets } = await client.search("device", {
+      filters: { category: "electronics>audio" },
+      facets: ["category"],
+    });
+    const audio = facets?.category?.values.find(
+      (v) => v.value === "electronics>audio",
+    );
+    expect(audio).toEqual({
+      value: "electronics>audio",
+      count: 2,
+      selected: true,
+    });
+  });
+
+  it("facetValues() (no free-text query) returns the same tree and separator", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values, separator } = await client.facetValues("category");
+    expect(separator).toBe(">");
+    expect(values.find((v) => v.value === "electronics")).toEqual({
+      value: "electronics",
+      count: 3,
+      selected: false,
+    });
+    expect(values.find((v) => v.value === "books")).toEqual({
+      value: "books",
+      count: 1,
+      selected: false,
+    });
+  });
+
+  it("does not surface a separator for an ordinary (non-hierarchical) facet field", async () => {
+    // Reuses the plain "facet filtering and contextual counts" corpus's
+    // shape via a fresh small index, confirming the new field is opt-in
+    // per buildIndex() call, not a global default.
+    const plainOutDir = await mkdtemp(join(tmpdir(), "csf-e2e-plain-facet-"));
+    try {
+      await writeIndex(
+        buildIndex([
+          {
+            id: 1,
+            url: "/a",
+            html: `<html lang="en"><head><title>A</title>
+              <meta name="csf-facet-category" content="electronics>audio>headphones"></head>
+              <body><main><p>device</p></main></body></html>`,
+          },
+        ]),
+        plainOutDir,
+      );
+      const server = await serveStatic(plainOutDir);
+      try {
+        const client = new SearchClient({
+          indexUrl: `${server.baseUrl}manifest.json`,
+        });
+        const { facets } = await client.search("device", {
+          facets: ["category"],
+        });
+        expect(facets?.category?.separator).toBeUndefined();
+        expect(facets?.category?.values).toEqual([
+          { value: "electronics>audio>headphones", count: 1, selected: false },
+        ]);
+      } finally {
+        await server.close();
+      }
+    } finally {
+      await rm(plainOutDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("facetValues() -- filter-only facet queries with no free-text search", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

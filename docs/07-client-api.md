@@ -82,6 +82,31 @@ range facet's aggregate results (a histogram/bucket breakdown in
 the corpus's observed `[min, max]`, same as range *filtering* (the
 `{min, max}` shape above).
 
+### Hierarchical facets
+
+```ts
+const result = await client.search("headphones", {
+  filters: { category: "electronics>audio" },   // matches this branch AND everything under it
+  facets: ["category"],
+});
+
+result.facets?.category?.separator;   // ">" -- only present for a hierarchy-type field
+result.facets?.category?.values;      // one flat entry per path level: "electronics", "electronics>audio", "electronics>audio>headphones", ...
+```
+
+A field built with `buildIndex(sources, lang, { hierarchicalFacets: {
+category: { separator?: ">" } } })`
+([06-faceted-search.md](06-faceted-search.md#facet-index-structure))
+stores every ancestor path as its own addressable entry, so filtering
+by `"electronics"` matches every doc under that whole subtree and
+filtering by `"electronics>audio"` matches only that branch — an exact
+string match against whichever level you pass, same `filters`/`facets`
+option shapes as an ordinary terms facet. The only thing to reach for
+that's specific to a hierarchical field is `FacetResult.separator`,
+which lets a consumer split a returned `value` into its path segments
+without hardcoding the delimiter; reconstructing a tree widget from
+those flat, separator-delimited entries is left to the consumer.
+
 ### Synonyms
 
 ```ts
@@ -154,8 +179,10 @@ anything. Counts are contextual against every *other* active filter,
 same convention as `search()`'s `facets` option: a field's own active
 filter is excluded from its own count computation, so switching between
 its own values shows real per-value counts. A range-type field returns
-aggregate bucket values the same way `search()`'s `facets` option does
-(see above); an unknown field returns an empty `values` array.
+aggregate bucket values, and a hierarchy-type field returns `separator`
+alongside its flat per-level `values`, the same way `search()`'s
+`facets` option does for both (see above); an unknown field returns an
+empty `values` array.
 
 ### Observability hooks
 

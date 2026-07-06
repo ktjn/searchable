@@ -305,6 +305,134 @@ describe("buildIndex range facets", () => {
   });
 });
 
+describe("buildIndex hierarchical facets", () => {
+  const hierarchySources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/headphones",
+      html: `<html lang="en"><head><title>Headphones</title>
+        <meta name="csf-facet-category" content="electronics>audio>headphones"></head>
+        <body><main>a</main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/speakers",
+      html: `<html lang="en"><head><title>Speakers</title>
+        <meta name="csf-facet-category" content="electronics>audio>speakers"></head>
+        <body><main>b</main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/tv",
+      html: `<html lang="en"><head><title>TV</title>
+        <meta name="csf-facet-category" content="electronics>video>tv"></head>
+        <body><main>c</main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/books",
+      html: `<html lang="en"><head><title>Books</title>
+        <meta name="csf-facet-category" content="books"></head>
+        <body><main>d</main></body></html>`,
+    },
+  ];
+
+  it("tags the shard as type: hierarchy with the default '>' separator when configured", () => {
+    const built = buildIndex(hierarchySources, "en", {
+      hierarchicalFacets: { category: {} },
+    });
+    expect(built.facetShards.category?.type).toBe("hierarchy");
+    expect(built.facetShards.category?.separator).toBe(">");
+  });
+
+  it("indexes every ancestor path plus the leaf as its own addressable entry", () => {
+    const built = buildIndex(hierarchySources, "en", {
+      hierarchicalFacets: { category: {} },
+    });
+    expect(built.facetShards.category?.values).toEqual({
+      electronics: { count: 3, docs: [1, 2, 3] },
+      "electronics>audio": { count: 2, docs: [1, 2] },
+      "electronics>audio>headphones": { count: 1, docs: [1] },
+      "electronics>audio>speakers": { count: 1, docs: [2] },
+      "electronics>video": { count: 1, docs: [3] },
+      "electronics>video>tv": { count: 1, docs: [3] },
+      books: { count: 1, docs: [4] },
+    });
+  });
+
+  it("counts a doc only once at a shared ancestor level even when the doc has two paths under it", () => {
+    const built = buildIndex(
+      [
+        {
+          id: 1,
+          url: "/a",
+          html: `<html lang="en"><head><title>A</title>
+            <meta name="csf-facet-category" content="electronics>audio>headphones">
+            <meta name="csf-facet-category" content="electronics>video>tv"></head>
+            <body><main>a</main></body></html>`,
+        },
+      ],
+      "en",
+      { hierarchicalFacets: { category: {} } },
+    );
+    // Doc 1 declares two distinct leaf paths sharing the "electronics"
+    // ancestor -- that ancestor must still count doc 1 exactly once,
+    // not twice, since it's the same document appearing under it.
+    expect(built.facetShards.category?.values.electronics).toEqual({
+      count: 1,
+      docs: [1],
+    });
+  });
+
+  it("honors a custom per-field separator", () => {
+    const built = buildIndex(
+      [
+        {
+          id: 1,
+          url: "/a",
+          html: `<html lang="en"><head><title>A</title>
+            <meta name="csf-facet-category" content="electronics/audio/headphones"></head>
+            <body><main>a</main></body></html>`,
+        },
+      ],
+      "en",
+      { hierarchicalFacets: { category: { separator: "/" } } },
+    );
+    expect(built.facetShards.category?.separator).toBe("/");
+    expect(built.facetShards.category?.values).toEqual({
+      electronics: { count: 1, docs: [1] },
+      "electronics/audio": { count: 1, docs: [1] },
+      "electronics/audio/headphones": { count: 1, docs: [1] },
+    });
+  });
+
+  it("treats a value with no separator in it as a single top-level entry", () => {
+    const built = buildIndex(hierarchySources, "en", {
+      hierarchicalFacets: { category: {} },
+    });
+    expect(built.facetShards.category?.values.books).toEqual({
+      count: 1,
+      docs: [4],
+    });
+  });
+
+  it("builds an ordinary terms facet, unaffected, for a field not listed in hierarchicalFacets", () => {
+    const built = buildIndex(hierarchySources); // no hierarchicalFacets option at all
+    expect(built.facetShards.category?.type).toBe("terms");
+    expect(
+      built.facetShards.category?.values["electronics>audio>headphones"],
+    ).toEqual({ count: 1, docs: [1] });
+    expect(built.facetShards.category?.values.electronics).toBeUndefined();
+  });
+
+  it("lists a hierarchical facet field on the manifest same as any other facet field", () => {
+    const built = buildIndex(hierarchySources, "en", {
+      hierarchicalFacets: { category: {} },
+    });
+    expect(built.manifest.facetFields).toEqual(["category"]);
+  });
+});
+
 describe("buildIndex pins", () => {
   it("keys the pins shard by the normalized (analyzed) phrase", () => {
     const built = buildIndex([

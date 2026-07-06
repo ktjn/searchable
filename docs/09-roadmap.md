@@ -6,10 +6,10 @@ Phases 0, 1, and 2 have working code in this repo (`packages/`,
 `spec/`), not just design docs — see each phase below for what's
 actually implemented vs. still pending. Phase 0 is now fully built,
 including the realistically-shaped fixture corpus that was its last
-pending item. Phase 3 is partially built (terms facets, range facets
-(both *filtering* and aggregate bucket *results*), pins, and a
-filter-only `facetValues()` browsing call; hierarchical facets remain
-pending — see below). Phase 4 is partially built (a
+pending item. Phase 3 is now fully built (terms facets, range facets
+(both *filtering* and aggregate bucket *results*), hierarchical facets,
+pins, and a filter-only `facetValues()` browsing call — see below).
+Phase 4 is partially built (a
 second real LanguageProfile, true per-document-language corpus
 partitioning, and a real classic-Porter English stemmer; a German
 stemmer and the CJK bigram fallback remain pending — see below). Phase
@@ -158,10 +158,32 @@ Phase 2 is now fully implemented.
   of facet type, so **no client-side code changed at all** to surface
   these — only the indexer needed new code. Bucket count is a fixed
   constant (`RANGE_FACET_BUCKET_COUNT = 5`) for now, not yet an
-  author-configurable build option. Hierarchical facets remain
-  pending — the shard format ([06-faceted-search.md](06-faceted-search.md))
-  supports `type: "hierarchy"` but has no builder/query-time
-  implementation yet.
+  author-configurable build option.
+- ✅ Hierarchical facets
+  ([06-faceted-search.md#facet-types](06-faceted-search.md#facet-types),
+  [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)):
+  a build-time option, `buildIndex(sources, lang, {
+  hierarchicalFacets: { category: { separator?: ">" } } })`, marks a
+  `csf-facet-<field>` field as path-structured — each authored value
+  (e.g. `"electronics>audio>headphones"`) expands into every ancestor
+  prefix (`"electronics"`, `"electronics>audio"`,
+  `"electronics>audio>headphones"`), each indexed as its own
+  addressable `{count, docs}` entry, the exact shape terms facets
+  already use — the same "reuse the existing generic shape, zero
+  client-side code changes" design as the aggregate range facet
+  results bullet above, since `search()`/`facetValues()` already
+  iterate `shard.values` without caring what facet type produced them.
+  A doc that declares two sibling paths sharing an ancestor is still
+  counted once at that ancestor, not once per sibling (a `Set` of
+  expanded paths per document, not a raw per-value loop). The one
+  genuinely new client-side surface is `FacetResult.separator`,
+  populated only for a hierarchy-type field so a consumer can split a
+  path into segments without hardcoding a delimiter — reconstructing
+  the tree shape itself from those flat, separator-delimited entries
+  is left to the consumer, per the original design doc. Not built:
+  per-branch lazy shard fetching (every level still lives in one
+  shard, same as an ordinary terms facet) and author-configurable
+  min/max depth.
 - ✅ Term-to-page pinning ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)):
   extraction of `csf-pin`/`csf-pin-mode`/`csf-pin-priority`/
   `csf-pin-exclusive`, a pins shard keyed by the same normalized-phrase
@@ -186,9 +208,10 @@ Phase 2 is now fully implemented.
   `entry.docs.length` — a small optimization justified by the build-time
   invariant that the two are always incremented together
   (`packages/indexer/src/build-index.ts`'s `addFacetValues`). A
-  range-type field returns aggregate bucket values the same way
-  `search()`'s `facets` option does (see the range facets bullet
-  above).
+  range-type field returns aggregate bucket values, and a
+  hierarchy-type field returns `separator` alongside its flat
+  per-level `values`, the same way `search()`'s `facets` option does
+  for both (see the range/hierarchical facets bullets above).
 - All of the above verified with real end-to-end tests over real HTTP
   (`packages/indexer/test/{extract,build-index}.test.ts`,
   `packages/client/test/e2e.test.ts`), not just unit tests in isolation.

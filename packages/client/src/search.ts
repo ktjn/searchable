@@ -40,6 +40,15 @@ export interface FacetResultValue {
 
 export interface FacetResult {
   values: FacetResultValue[];
+  /**
+   * Only present for a hierarchical facet field (docs/06-faceted-search.md#facet-types):
+   * the path separator joining segments within each `value` (e.g.
+   * `"electronics>audio"` with separator `">"`), so a consumer can
+   * reconstruct the tree by splitting on it rather than hardcoding a
+   * delimiter. `values` already contains one flat entry per path level
+   * (every ancestor plus each leaf), not just leaves.
+   */
+  separator?: string;
 }
 
 /** Inclusive bounds for a range-facet filter (docs/06-faceted-search.md#filtering). Omit either end for an open-ended range. */
@@ -727,6 +736,9 @@ export async function search(
           count: entry.docs.filter((id) => baseSet.has(id)).length,
           selected: selectedValues.has(value),
         })),
+        ...(shard.type === "hierarchy"
+          ? { separator: shard.separator ?? ">" }
+          : {}),
       };
     }
   }
@@ -789,11 +801,11 @@ export interface FacetValuesOptions {
  * used directly instead of re-deriving it from `entry.docs.length`;
  * when another filter *is* active, the count is a live intersection of
  * `entry.docs` against that filter's matching doc-id set, just like
- * search()'s facets. A range-type `field` naturally returns an empty
- * `values` array (`shard.values` is always `{}` for range facets today)
- * — aggregate range-facet histogram results remain unimplemented
- * (docs/09-roadmap.md), the same scoping already applied to search()'s
- * `facets` option for a range field.
+ * search()'s facets. A range-type `field` returns its precomputed
+ * aggregate buckets the same way search()'s `facets` option does
+ * (docs/06-faceted-search.md#facet-index-structure); a hierarchy-type
+ * `field` returns `separator` alongside `values` the same way
+ * search()'s `facets` option does too (see FacetResult).
  */
 export async function facetValues(
   field: string,
@@ -834,5 +846,8 @@ export async function facetValues(
         : entry.count,
       selected: selectedValues.has(value),
     })),
+    ...(shard.type === "hierarchy"
+      ? { separator: shard.separator ?? ">" }
+      : {}),
   };
 }

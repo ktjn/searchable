@@ -45,6 +45,42 @@ export interface BuildIndexOptions {
    * to pay for. Only distance-1 deletions are generated.
    */
   fuzzy?: boolean;
+  /**
+   * Facet fields to build as hierarchical (docs/06-faceted-search.md#facet-types),
+   * keyed by field name. A build-time decision, not a per-page csf-*
+   * meta tag, like fieldBoosts/synonyms/fuzzy above — hierarchy-vs-terms
+   * is a corpus-wide schema property of a field, not something one page
+   * declares for itself. Each `csf-facet-<field>` value for a
+   * hierarchical field is still authored as a single string, but read as
+   * a full path (e.g. `"electronics>audio>headphones"`, split on that
+   * field's `separator`, default `">"`) rather than an opaque leaf
+   * value.
+   */
+  hierarchicalFacets?: Record<string, { separator?: string }>;
+}
+
+const DEFAULT_HIERARCHY_SEPARATOR = ">";
+
+/**
+ * Expands a hierarchical facet value into every ancestor path plus
+ * itself, e.g. `"a>b>c"` -> `["a", "a>b", "a>b>c"]` — so each level is
+ * its own addressable terms-shaped entry in `FacetShard.values`
+ * (docs/06-faceted-search.md#facet-index-structure), and a client can
+ * filter/count at any depth via a direct lookup rather than a runtime
+ * tree-walk. A value with no separator in it (a bare top-level path
+ * segment) expands to just itself.
+ */
+function expandHierarchyPaths(fullPath: string, separator: string): string[] {
+  const segments = fullPath
+    .split(separator)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (segments.length === 0) return [fullPath];
+  const paths: string[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    paths.push(segments.slice(0, i + 1).join(separator));
+  }
+  return paths;
 }
 
 /** Unique strings reachable by deleting exactly one Unicode code point from `term` (plus `term` itself, 0 deletions). */
@@ -158,20 +194,46 @@ function addFacetValues(
   facetShards: Record<string, FacetShard>,
   facets: Record<string, string[]>,
   docId: number,
+  hierarchicalFacets: Record<string, { separator?: string }>,
 ): void {
   for (const [field, values] of Object.entries(facets)) {
+    const hierarchyConfig = hierarchicalFacets[field];
     let shard = facetShards[field];
     if (!shard) {
-      shard = { type: "terms", values: {} };
+      shard = hierarchyConfig
+        ? {
+            type: "hierarchy",
+            separator: hierarchyConfig.separator ?? DEFAULT_HIERARCHY_SEPARATOR,
+            values: {},
+          }
+        : { type: "terms", values: {} };
       facetShards[field] = shard;
-    } else if (shard.type !== "terms") {
+    } else if (shard.type !== "terms" && shard.type !== "hierarchy") {
       continue; // same field also declared as a range facet elsewhere -- first declaration wins
     }
+    // A doc's own distinct values can still overlap at an ancestor
+    // level once expanded (e.g. "a>b" and "a>c" both expand through
+    // "a") -- union into a Set first so that shared ancestor is only
+    // counted once for this document, not once per value that produced
+    // it.
+    const paths = new Set<string>();
     for (const value of values) {
-      let entry = shard.values[value];
+      if (shard.type === "hierarchy") {
+        for (const path of expandHierarchyPaths(
+          value,
+          shard.separator ?? DEFAULT_HIERARCHY_SEPARATOR,
+        )) {
+          paths.add(path);
+        }
+      } else {
+        paths.add(value);
+      }
+    }
+    for (const path of paths) {
+      let entry = shard.values[path];
       if (!entry) {
         entry = { count: 0, docs: [] };
-        shard.values[value] = entry;
+        shard.values[path] = entry;
       }
       entry.docs.push(docId);
       entry.count++;
@@ -382,6 +444,7 @@ export function buildIndex(
 ): BuiltIndex {
   validateSourceIds(sources);
   const fieldBoosts = { ...DEFAULT_FIELD_BOOSTS, ...options.fieldBoosts };
+  const hierarchicalFacets = options.hierarchicalFacets ?? {};
 
   const termShards: Record<string, TermShard> = {};
   const docStore: DocStoreShard = {};
@@ -418,7 +481,12 @@ export function buildIndex(
     }
     addPostings(termShard, "title", source.id, extracted.boost, titleTokens);
     addPostings(termShard, "body", source.id, extracted.boost, bodyTokens);
-    addFacetValues(facetShards, extracted.facets, source.id);
+    addFacetValues(
+      facetShards,
+      extracted.facets,
+      source.id,
+      hierarchicalFacets,
+    );
     addRangeFacetValues(facetShards, extracted.rangeFacets, source.id);
 
     if (extracted.pins.length > 0) {
