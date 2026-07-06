@@ -1,14 +1,17 @@
 # Synonyms
 
-**Status**: Query-time expansion of single-word equivalence classes and
-directional maps is built — author-supplied synonym data (there's no
-`csf-*` meta tag for this; see ["Authoring workflow"](#authoring-workflow)),
-a `synonyms/<lang>.json` shard, and `search(query, {synonyms: true})`
-expanding each non-prefix query term into its variants at a reduced
-score weight (default 0.5×, overridable) — see
-[09-roadmap.md](09-roadmap.md#status). `multiWord` phrase-level
-synonyms, index-time expansion, and the `csf synonyms suggest`
-authoring tool remain design-only.
+**Status**: Query-time expansion of both single-word equivalence
+classes/directional maps *and* `multiWord` phrase-level synonyms is
+built — author-supplied synonym data (there's no `csf-*` meta tag for
+this; see ["Authoring workflow"](#authoring-workflow)), a
+`synonyms/<lang>.json` shard, and `search(query, {synonyms: true})`
+expanding each non-prefix query term into its variants (and each
+`"quoted phrase"` clause into every other phrase in its `multiWord`
+group,
+[04-query-ranking-boosts.md#phrase--proximity-queries](04-query-ranking-boosts.md#phrase--proximity-queries))
+at a reduced score weight (default 0.5×, overridable) — see
+[09-roadmap.md](09-roadmap.md#status). Index-time expansion and the
+`csf synonyms suggest` authoring tool remain design-only.
 
 ## Goals
 
@@ -72,14 +75,29 @@ optional directional map for one-way expansions:
   "broader term also matches narrower term" cases where the reverse
   would be too aggressive (querying "notebook" shouldn't necessarily
   surface every generic "laptop" doc).
-- **Multi-word/phrase synonyms**: matched before tokenization/stemming
-  splits them apart, since "new york" and "nyc" don't share a stem.
+- **Multi-word/phrase synonyms**: symmetric only (no directional
+  `multiWord` form) — any phrase in a group expands a matching
+  `"quoted phrase"` query clause to every other phrase in the group.
 
-Synonyms are applied **after** stemming for single-word entries (so the
-synonym file can be authored with stems or surface forms; the loader
-stems entries at load time using the same language profile) and applied
-as a phrase-level rewrite pass before tokenization for multi-word
-entries.
+Synonyms are applied **after** stemming for both single-word and
+multi-word entries — the indexer's `buildSynonymShards()` normalizes
+each authored phrase as a whole unit via the same `normalizePhrase()`
+helper pins use (space-joined analyzed terms, e.g. `"New York"` →
+`"new york"`), so it matches whatever exact string a query-time
+`"quoted phrase"` clause's own analyzed words produce. This is *not* a
+pre-tokenization text-rewrite pass: at query time, `search()` resolves
+a `multiWord` variant exactly like the literal phrase itself — exact
+dictionary lookup of the variant's own words plus real
+position-adjacency verification against a candidate document's stored
+token positions
+([04-query-ranking-boosts.md#phrase--proximity-queries](04-query-ranking-boosts.md#phrase--proximity-queries)) —
+so `"new york"` finding a document that only contains the adjacent
+phrase "big apple" requires that document to genuinely contain "big"
+immediately followed by "apple" in some field, not merely both words
+present anywhere. A variant phrase with a word missing from the
+dictionary is silently skipped (same tolerance a missing single-word
+synonym variant already gets) rather than failing the whole clause;
+only the literal phrase's own missing words feed "did you mean."
 
 ## Per-language synonym sets
 
@@ -118,4 +136,8 @@ query terms are first checked against the synonym table (exact lookup),
 *then* whatever terms remain (or all expanded variants) are eligible for
 fuzzy matching if enabled. This avoids fuzzy-matching accidentally
 "discovering" a synonym relationship by coincidence of edit distance
-(e.g. "cat"/"car") and mislabeling it as intentional.
+(e.g. "cat"/"car") and mislabeling it as intentional. A `"quoted
+phrase"` clause's words (literal or `multiWord`-expanded) are never
+fuzzy-matched — phrase-word lookup is exact-dictionary only, out of
+scope for the first slice that built exact phrase matching
+([04-query-ranking-boosts.md#phrase--proximity-queries](04-query-ranking-boosts.md#phrase--proximity-queries)).

@@ -128,9 +128,14 @@ const result = await client.search("sofa", {
 Expands each non-prefix query term through the manifest's synonym
 shard for the resolved language, if the index has one
 ([05-synonyms.md](05-synonyms.md)) — equivalence classes and
-directional maps only; multi-word phrase synonyms aren't implemented
-yet. A term with no synonym data, or a manifest with no synonym shard
-at all, behaves exactly as if `synonyms` were omitted.
+directional maps. A `"quoted phrase"` clause is expanded the same way
+via the shard's `multiWord` groups (e.g. `"new york"` also matching a
+document containing the adjacent phrase "nyc" or "big apple"), reusing
+the same real position-adjacency verification a literal phrase uses,
+not a text-substitution shortcut — see
+[04-query-ranking-boosts.md#phrase--proximity-queries](04-query-ranking-boosts.md#phrase--proximity-queries).
+A term (or phrase) with no synonym data, or a manifest with no synonym
+shard at all, behaves exactly as if `synonyms` were omitted.
 
 ### Fuzzy matching & did-you-mean
 

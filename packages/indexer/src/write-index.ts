@@ -108,7 +108,8 @@ export async function writeIndex(
       const shard = built.synonymShards[language];
       return (
         (shard?.equivalences?.length ?? 0) > 0 ||
-        Object.keys(shard?.directional ?? {}).length > 0
+        Object.keys(shard?.directional ?? {}).length > 0 ||
+        (shard?.multiWord?.length ?? 0) > 0
       );
     })
     .sort();

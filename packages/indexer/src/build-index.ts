@@ -32,10 +32,17 @@ export interface BuildIndexOptions {
    * (surface form or already-stemmed, either works); buildIndex
    * normalizes each one through that language's analysis pipeline so
    * lookups at query time match however the term is actually stored.
-   * `multiWord` phrase synonyms aren't accepted here yet (see
-   * SynonymShard).
+   * `multiWord` entries are whole phrases (e.g. `["new york", "nyc",
+   * "big apple"]`) rather than single words -- each phrase is
+   * normalized as a unit (space-joined analyzed terms, matching
+   * `normalizePhrase()`'s shape) so it can be matched against a
+   * `"quoted phrase"` query clause's own real position-adjacency
+   * verification, not a text-substitution shortcut.
    */
-  synonyms?: Record<string, Pick<SynonymShard, "equivalences" | "directional">>;
+  synonyms?: Record<
+    string,
+    Pick<SynonymShard, "equivalences" | "directional" | "multiWord">
+  >;
   /**
    * Build a SymSpell-style deletion dictionary (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching)
    * from each language's own indexed term vocabulary, enabling
@@ -207,9 +214,20 @@ function buildSynonymShards(
       directional[normalizedKey] = normalizedTargets;
     }
 
+    // Each phrase is normalized as a whole unit via the same
+    // normalizePhrase() call equivalences/directional use above --
+    // it already space-joins every analyzed token in the phrase, so
+    // "New York" and "new york" both normalize identically, matching
+    // the exact string a query-time "quoted phrase" clause computes
+    // from its own analyzed words (packages/client/src/search.ts).
+    const multiWord = (source.multiWord ?? [])
+      .map((group) => [...new Set(group.map(normalize).filter(Boolean))])
+      .filter((group) => group.length >= 2);
+
     const shard: SynonymShard = {};
     if (equivalences.length) shard.equivalences = equivalences;
     if (Object.keys(directional).length) shard.directional = directional;
+    if (multiWord.length) shard.multiWord = multiWord;
     synonymShards[language] = shard;
   }
 

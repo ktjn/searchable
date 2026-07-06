@@ -949,6 +949,49 @@ describe("buildIndex synonyms", () => {
     expect(built.synonymShards.en?.equivalences).toEqual([["sofa", "couch"]]);
     expect(built.synonymShards.de?.equivalences).toEqual([["sofa", "couch"]]);
   });
+
+  it("normalizes multiWord phrase groups as whole units, not per-word", () => {
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: {
+        en: { multiWord: [["New York", "NYC", "Big Apple"]] },
+      },
+    });
+    // "Big Apple" -> "big appl" (space-joined, each word stemmed
+    // independently but the phrase kept as one normalized string).
+    expect(built.synonymShards.en?.multiWord).toEqual([
+      ["new york", "nyc", "big appl"],
+    ]);
+  });
+
+  it("drops a multiWord group left with fewer than two distinct members after normalizing", () => {
+    // Both entries normalize to the same phrase, so nothing is left to expand to.
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: { en: { multiWord: [["New York", "new york"]] } },
+    });
+    expect(built.synonymShards.en?.multiWord).toBeUndefined();
+  });
+
+  it("omits multiWord entirely when empty, alongside equivalences/directional", () => {
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: { en: { multiWord: [] } },
+    });
+    expect(built.synonymShards.en).toEqual({});
+  });
+
+  it("keeps multiWord data alongside equivalences/directional in the same shard", () => {
+    const built = buildIndex(minimalSources, "en", {
+      synonyms: {
+        en: {
+          equivalences: [["sofa", "couch"]],
+          multiWord: [["new york", "nyc"]],
+        },
+      },
+    });
+    expect(built.synonymShards.en).toEqual({
+      equivalences: [["sofa", "couch"]],
+      multiWord: [["new york", "nyc"]],
+    });
+  });
 });
 
 describe("buildIndex fuzzy dictionary", () => {

@@ -117,18 +117,26 @@ export interface PinEntry {
 
 export type PinsShard = Record<string, PinEntry>;
 
-/**
- * Single-word synonym data only (docs/05-synonyms.md) — `multiWord`
- * phrase-level synonyms are part of the design (and the JSON Schema)
- * but need a different, pre-tokenization matching path than the
- * single-term equivalence/directional lookups implemented so far, so
- * they're intentionally not produced or consumed yet.
- */
+/** Synonym data (docs/05-synonyms.md), both single-word and phrase-level. */
 export interface SynonymShard {
   /** Symmetric equivalence classes: any term in a group expands the query to every other member. */
   equivalences?: string[][];
   /** Asymmetric: querying the key also matches the listed terms, but not vice versa. */
   directional?: Record<string, string[]>;
+  /**
+   * Symmetric phrase-level equivalence classes (docs/05-synonyms.md#synonym-file-format):
+   * any normalized phrase in a group (space-joined analyzed terms, the
+   * same shape `normalizePhrase()` produces) expands a matching
+   * `"quoted phrase"` query clause to every other phrase in the
+   * group — e.g. `[["new york", "nyc", "big apple"]]` lets a `"new
+   * york"` query also match a document containing the adjacent phrase
+   * "big apple". Matched via the same real position-adjacency
+   * verification a literal quoted phrase uses
+   * (docs/04-query-ranking-boosts.md#phrase--proximity-queries), not a
+   * text-substitution shortcut. No directional (asymmetric) multiWord
+   * form is defined — every group member expands to every other.
+   */
+  multiWord?: string[][];
 }
 
 /**

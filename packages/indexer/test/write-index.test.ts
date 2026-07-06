@@ -161,6 +161,24 @@ describe("writeIndex", () => {
     expect(manifest.synonyms).toBeUndefined();
   });
 
+  it("writes a synonyms shard for a language with only multiWord data (not just equivalences/directional)", async () => {
+    const outDir = await tempOutDir();
+    const built = buildIndex([docA], "en", {
+      synonyms: { en: { multiWord: [["new york", "nyc"]] } },
+    });
+    await writeIndex(built, outDir);
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.synonyms.en).toMatch(/^synonyms\/en\.[0-9a-f]+\.json$/);
+
+    const content = JSON.parse(
+      await readFile(join(outDir, manifest.synonyms.en), "utf8"),
+    );
+    expect(content.multiWord).toEqual([["new york", "nyc"]]);
+  });
+
   it("writes a fuzzy shard and records it in the manifest when fuzzy:true", async () => {
     const outDir = await tempOutDir();
     const built = buildIndex([docA], "en", { fuzzy: true });

@@ -15,10 +15,10 @@ partitioning, real stemmers for both English (classic Porter) and
 German (Snowball), and a CJK bigram-fallback `LanguageProfile` for
 Chinese/Japanese; RTL-aware rendering and auto language detection
 remain pending — see below). Phase
-5 is mostly built (query-time synonym
-expansion, SymSpell fuzzy matching (distance-1 and opt-in distance-2)
-with a length-dependent maxEdits cap, and "did you mean" suggestions;
-`multiWord` phrase-level synonyms remain pending — see below). Phase 6
+5 is now fully built (query-time synonym
+expansion including `multiWord` phrase-level synonyms, SymSpell fuzzy
+matching (distance-1 and opt-in distance-2) with a length-dependent
+maxEdits cap, and "did you mean" suggestions — see below). Phase 6
 is now fully built (a configuration testbed, a
 bundle-size CI gate, result highlighting, observability hooks,
 `options.signal` cancellation, `searchStream()` streaming results,
@@ -353,16 +353,37 @@ Phase 2 is now fully implemented.
   `synonymWeight`) so a literal match still outranks a synonym-only
   one. Off by default (opt-in per query, matching the option's original
   design in [07-client-api.md](07-client-api.md)).
-- ⬜ `multiWord` phrase-level synonyms — the shard format
-  (`spec/schema/synonym-shard.schema.json`) supports them, and Phase
-  2's exact-phrase-query work above now gives the client a genuine
-  position-adjacency matching path they could be built on (the
+- ✅ `multiWord` phrase-level synonyms
+  ([05-synonyms.md](05-synonyms.md#synonym-file-format)): built on top
+  of Phase 2's exact-phrase-query work above, which supplied the
+  genuine position-adjacency matching path this needed (the
   originally-cited blocker — "no phrase-matching path exists at
-  all" — no longer applies), but the actual query-time expansion (a
-  phrase in the query text triggering an OR-style match against a
-  *different* phrase in the corpus, the way single-word synonym
-  expansion already does) isn't wired up yet on either the indexer or
-  client side.
+  all" — is what got resolved there). `SynonymShard.multiWord?:
+  string[][]` holds symmetric phrase equivalence groups (e.g. `[["new
+  york", "nyc", "big apple"]]`), each phrase normalized as a whole unit
+  via the same `normalizePhrase()` call equivalences/directional
+  already use, so it matches whatever a query-time `"quoted phrase"`
+  clause's own analyzed words produce. `search(query, { synonyms: true
+  })` resolves a phrase clause as one or more "attempts" — the literal
+  phrase (weight 1.0) plus every other phrase in its `multiWord` group
+  (`synonymWeight`, same reduced-weight convention as single-word
+  synonyms) — each independently verified via real position-adjacency,
+  not a text-substitution shortcut; a doc that only matched through a
+  lower-weight variant is scored using that variant's own (postings-filtered)
+  contribution, not the literal phrase's, so a lower-weight match can't
+  smuggle in full-weight credit. An attempt with a word missing from
+  the dictionary is silently skipped (same tolerance a missing
+  single-word synonym variant gets); only the literal phrase's own
+  missing words feed "did you mean." `writeIndex()`'s
+  language-has-synonym-data filter was fixed alongside this to also
+  check `multiWord` (previously a language with *only* `multiWord`
+  data would have been silently skipped and never gotten a synonym
+  shard written at all). Verified with real end-to-end tests over real
+  HTTP: default (no cross-match), full expansion, literal-outranks-expanded
+  ordering, a custom `synonymWeight`, a single quoted word participating
+  in a `multiWord` group, highlighting only the literal phrase's words,
+  and a variant still matching even when the literal phrase's own words
+  don't exist anywhere in the corpus.
 - ✅ SymSpell fuzzy plugin, "did you mean"
   ([04-query-ranking-boosts.md](04-query-ranking-boosts.md#prefix--fuzzy-matching)):
   a precomputed deletion dictionary (`spec/schema/fuzzy-shard.schema.json`,

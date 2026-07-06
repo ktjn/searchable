@@ -9,7 +9,7 @@ Think "Algolia/Typesense-grade query features, Pagefind/lunr-style
 zero-backend deployment."
 
 **Status**: Phases 0, 1, and 2 of the roadmap have working code, Phases
-3 and 6 are fully built, and Phases 4 and 5 are partially built —
+3, 5, and 6 are fully built, and Phase 4 is partially built —
 [`packages/analysis`](packages/analysis)
 (shared tokenizer, four `LanguageProfile`s — English + German, each
 with a real stemmer verified against its own public reference
@@ -30,14 +30,14 @@ matching + exact `"quoted phrase"` matching (real position-adjacency,
 not just a bare AND of the words) + Web Worker execution + terms, range, and hierarchical facets
 (filtering + aggregate bucket results) with contextual counts + a
 filter-only `facetValues()` browsing call + term-to-page pinning +
-multi-language query isolation + opt-in synonym expansion + opt-in
-fuzzy matching with "did you mean" suggestions + opt-in result
-highlighting (literal query terms only) + observability hooks
-(`client.on("query" | "result", ...)`) + `AbortSignal` query
-cancellation + `searchStream()` streaming/incremental results +
-`registerOfflineCaching()` offline Service Worker caching, all
-proven in a real browser via Playwright, no
-multi-word-synonyms/synonym-or-fuzzy-variant-highlighting yet), and
+multi-language query isolation + opt-in synonym expansion (single-word
+and `multiWord` phrase-level) + opt-in fuzzy matching with "did you
+mean" suggestions + opt-in result highlighting (literal query terms
+only) + observability hooks (`client.on("query" | "result", ...)`) +
+`AbortSignal` query cancellation + `searchStream()`
+streaming/incremental results + `registerOfflineCaching()` offline
+Service Worker caching, all proven in a real browser via Playwright, no
+synonym-or-fuzzy-variant-highlighting yet), and
 [`packages/fixtures`](packages/fixtures) (a realistically-shaped,
 deterministic CMS-export-style corpus generator for real-scale
 correctness testing, per
@@ -55,7 +55,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 304 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 317 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 32 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

@@ -690,6 +690,151 @@ describe('"quoted phrase" matching (position-adjacency, docs/04-query-ranking-bo
   });
 });
 
+describe("multiWord phrase-level synonym expansion (csf synonyms, docs/05-synonyms.md#synonym-file-format)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const cityGuideSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/nyc",
+      html: `<html lang="en"><head><title>NYC Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/new-york",
+      html: `<html lang="en"><head><title>New York Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/big-apple",
+      html: `<html lang="en"><head><title>Big Apple Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/paris",
+      html: `<html lang="en"><head><title>Paris Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-multiword-synonym-"));
+    const built = buildIndex(cityGuideSources, "en", {
+      synonyms: { en: { multiWord: [["new york", "nyc", "big apple"]] } },
+    });
+    await writeIndex(built, outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("does not cross-match multiWord synonym phrases by default (synonyms option off)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"');
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("expands a quoted phrase to every other phrase in its multiWord group when synonyms:true", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', { synonyms: true });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+    expect(hits.some((h) => h.id === 4)).toBe(false);
+  });
+
+  it("ranks the literal phrase match above synonym-expanded phrase matches", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', { synonyms: true });
+    expect(hits[0]?.id).toBe(2); // literal "new york" match
+    for (const hit of hits.slice(1)) {
+      expect(hit.score).toBeLessThan(hits[0]?.score ?? Number.NaN);
+    }
+  });
+
+  it("respects a custom synonymWeight for phrase expansion, same as single-word synonyms", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', {
+      synonyms: true,
+      synonymWeight: 0.01,
+    });
+    const literal = hits.find((h) => h.id === 2);
+    const expanded = hits.find((h) => h.id === 1);
+    expect(expanded?.score).toBeLessThan((literal?.score ?? Number.NaN) * 0.1);
+  });
+
+  it("a single quoted word can also participate in a multiWord group", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"nyc"', { synonyms: true });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("does not highlight a synonym-matched variant's words, only the literal phrase actually typed", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', {
+      synonyms: true,
+      highlight: true,
+    });
+    const nycHit = hits.find((h) => h.id === 1);
+    const spans = nycHit?.highlights?.title ?? [];
+    expect(spans.some((s) => s.isMatch)).toBe(false);
+  });
+});
+
+describe("multiWord phrase-level synonyms: literal phrase absent from the corpus entirely", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  // Only "nyc" appears anywhere in this corpus -- "new" and "york" are
+  // not real terms in any document, verifying the literal phrase's own
+  // missing words don't block a synonym variant from still matching.
+  const nycOnlySources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/nyc",
+      html: `<html lang="en"><head><title>NYC Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-multiword-synonym-absent-"));
+    const built = buildIndex(nycOnlySources, "en", {
+      synonyms: { en: { multiWord: [["new york", "nyc"]] } },
+    });
+    await writeIndex(built, outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("still matches via a synonym variant even though the literal phrase's words don't exist in the corpus", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', { synonyms: true });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("fails without synonyms enabled, since the literal phrase's words don't exist at all", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"');
+    expect(hits).toEqual([]);
+  });
+});
+
 describe("facet filtering and contextual counts", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

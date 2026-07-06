@@ -340,6 +340,29 @@ function synonymVariantsFor(
 }
 
 /**
+ * Every other normalized phrase `normalizedPhrase` expands to via the
+ * synonym shard's `multiWord` equivalence classes
+ * (docs/05-synonyms.md#synonym-file-format) — symmetric only, no
+ * directional multiWord form is defined. `normalizedPhrase` must
+ * already be in the same space-joined-analyzed-terms shape
+ * `normalizePhrase()`/the indexer's `buildSynonymShards()` produce.
+ */
+function multiWordVariantsFor(
+  normalizedPhrase: string,
+  synonymShard: SynonymShard | undefined,
+): string[] {
+  if (!synonymShard) return [];
+  const variants = new Set<string>();
+  for (const group of synonymShard.multiWord ?? []) {
+    if (!group.includes(normalizedPhrase)) continue;
+    for (const variant of group) {
+      if (variant !== normalizedPhrase) variants.add(variant);
+    }
+  }
+  return [...variants];
+}
+
+/**
  * Every string reachable by deleting up to `maxEdits` Unicode code
  * points from `term` (plus `term` itself, 0 deletions) — the
  * query-side half of the SymSpell candidate lookup, breadth-first one
@@ -606,64 +629,96 @@ export async function search(
   }
 
   // Each `"quoted phrase"` clause resolves independently of the plain
-  // terms above: every constituent word must exist in the dictionary
-  // (exact lookup only -- no prefix/synonym/fuzzy expansion inside a
-  // phrase, out of scope for this first slice) *and* appear at
-  // consecutive positions, in order, within some shared field of a
-  // candidate document (`hasConsecutivePositions()`) -- not merely be
-  // independently present the way a bare AND of the same words already
-  // requires. A phrase word missing from the dictionary entirely fails
-  // the whole clause the same way a missing plain term does, and also
-  // feeds `failedTerms` for "did you mean"; a phrase whose words all
-  // exist but never appear adjacently fails the clause too, but isn't a
-  // "did you mean" candidate -- there's no single missing term to
-  // suggest a replacement for.
+  // terms above, as one or more "attempts": the literal phrase itself
+  // (weight 1.0), plus -- when options.synonyms is on and a matching
+  // `multiWord` equivalence group exists (docs/05-synonyms.md#synonym-file-format) --
+  // every other phrase in that group, each at `synonymWeight`, exactly
+  // mirroring how a single-word synonym variant is an extra,
+  // reduced-weight attempt alongside the literal term. Every attempt's
+  // words must exist in the dictionary (exact lookup only -- no
+  // prefix/fuzzy expansion inside a phrase, out of scope for this
+  // slice) *and* appear at consecutive positions, in order, within some
+  // shared field of a candidate document (`hasConsecutivePositions()`)
+  // -- not merely be independently present the way a bare AND of the
+  // same words already requires. An attempt with a word missing from
+  // the dictionary is silently skipped (same tolerance single-word
+  // synonym variants get); only the *literal* phrase's own missing
+  // words feed `failedTerms` for "did you mean" -- a missing word
+  // inside a synonym-variant phrase isn't a real query-term typo to
+  // suggest a fix for. The whole clause fails only if every attempt
+  // (literal and every variant) found zero matching documents.
   const termClauseCount = clauses.length; // boundary before any phrase-derived entries are appended below
   const phraseMatchedDocSets: Set<number>[] = [];
   for (const phrase of parsedQuery.phrases) {
-    const phraseEntries: TermEntry[] = [];
-    let allWordsFound = true;
-    for (const word of phrase.terms) {
-      const entry = termLookup.get(word.term);
-      if (entry) {
-        phraseEntries.push(entry);
-      } else {
-        allWordsFound = false;
-        if (!failedTerms.includes(word.term)) failedTerms.push(word.term);
+    const literalWords = phrase.terms.map((qt) => qt.term);
+    const attempts: { words: string[]; weight: number }[] = [
+      { words: literalWords, weight: 1.0 },
+    ];
+    if (options.synonyms && synonymShard) {
+      for (const variant of multiWordVariantsFor(
+        literalWords.join(" "),
+        synonymShard,
+      )) {
+        attempts.push({ words: variant.split(" "), weight: synonymWeight });
       }
     }
-    if (!allWordsFound) {
-      anyClauseFailed = true;
-      continue;
-    }
-    const wordDocSets = phraseEntries.map(
-      (entry) => new Set(entry.postings.map((p) => p.doc)),
-    );
-    const [firstWordDocs, ...restWordDocs] = wordDocSets;
-    const commonDocIds = [...(firstWordDocs ?? [])].filter((id) =>
-      restWordDocs.every((set) => set.has(id)),
-    );
-    const matchedDocs = new Set<number>();
-    for (const docId of commonDocIds) {
-      const docPostings = phraseEntries.map((entry) =>
-        entry.postings.find((p) => p.doc === docId),
+
+    const totalMatchedDocs = new Set<number>();
+    for (const attempt of attempts) {
+      const attemptEntries: TermEntry[] = [];
+      let allWordsFound = true;
+      for (const word of attempt.words) {
+        const entry = termLookup.get(word);
+        if (entry) {
+          attemptEntries.push(entry);
+        } else {
+          allWordsFound = false;
+          if (attempt.weight === 1.0 && !failedTerms.includes(word)) {
+            failedTerms.push(word);
+          }
+        }
+      }
+      if (!allWordsFound) continue;
+
+      const wordDocSets = attemptEntries.map(
+        (entry) => new Set(entry.postings.map((p) => p.doc)),
       );
-      if (hasConsecutivePositions(docPostings)) matchedDocs.add(docId);
+      const [firstWordDocs, ...restWordDocs] = wordDocSets;
+      const commonDocIds = [...(firstWordDocs ?? [])].filter((id) =>
+        restWordDocs.every((set) => set.has(id)),
+      );
+      const attemptMatchedDocs = new Set<number>();
+      for (const docId of commonDocIds) {
+        const docPostings = attemptEntries.map((entry) =>
+          entry.postings.find((p) => p.doc === docId),
+        );
+        if (hasConsecutivePositions(docPostings)) attemptMatchedDocs.add(docId);
+      }
+      for (const docId of attemptMatchedDocs) totalMatchedDocs.add(docId);
+
+      // Each attempt's words contribute to scoring/highlighting like an
+      // ordinary literal term clause, but restricted (via a postings
+      // filter, not just relying on the outer candidateSet gate) to the
+      // docs *this specific attempt* adjacency-matched -- required now
+      // that a phrase clause can succeed via more than one attempt: a
+      // doc that only matched through a lower-weight synonym variant
+      // must not also get scored as if the literal phrase matched there.
+      for (const [i, word] of attempt.words.entries()) {
+        const entry = attemptEntries[i];
+        if (!entry) continue;
+        const restrictedEntry: TermEntry = {
+          df: entry.df,
+          postings: entry.postings.filter((p) => attemptMatchedDocs.has(p.doc)),
+        };
+        clauses.push({
+          term: word,
+          entries: [{ entry: restrictedEntry, weight: attempt.weight }],
+        });
+      }
     }
-    if (matchedDocs.size === 0) anyClauseFailed = true;
-    phraseMatchedDocSets.push(matchedDocs);
-    // Each phrase word also contributes to scoring, exactly like an
-    // ordinary literal term clause, but only for docs the phrase
-    // adjacency check above actually passed -- appending here (after
-    // organicCandidateIds below is computed from phraseMatchedDocSets,
-    // not from `clauses`) means these entries are picked up by the
-    // scoring loop further down without it needing any phrase-specific
-    // logic of its own.
-    for (const [i, word] of phrase.terms.entries()) {
-      const entry = phraseEntries[i];
-      if (entry)
-        clauses.push({ term: word.term, entries: [{ entry, weight: 1.0 }] });
-    }
+
+    if (totalMatchedDocs.size === 0) anyClauseFailed = true;
+    phraseMatchedDocSets.push(totalMatchedDocs);
   }
 
   const organicMatched = !anyClauseFailed;
