@@ -14,11 +14,16 @@
  *     language in turn returns that language's own doc only -- proof
  *     the partitioning is real, not just "different words happen not
  *     to collide."
- *   - Diacritics are not folded (docs/03-tokenization-i18n.md): German
+ *   - Umlaut folding happens in the stemmer, not before it
+ *     (docs/03-tokenization-i18n.md#case-folding--diacritics): German
  *     "schon" (already) and "schön" (beautiful) are different words
- *     that happen to differ only by an umlaut -- foldDiacritics:false
- *     keeps them distinct, so the schon/schoen pair below never
- *     cross-match.
+ *     that happen to differ only by an umlaut. `foldDiacritics: false`
+ *     keeps them as distinct strings going *into* stemGerman(), but its
+ *     final step folds any remaining umlaut to a plain vowel regardless
+ *     -- so the schon/schoen pair below both stem to "schon" and a
+ *     search for either one now surfaces both pages, a real,
+ *     spec-conforming property of the Snowball German stemmer rather
+ *     than a bug.
  */
 
 export interface I18nDoc {

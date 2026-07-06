@@ -42,10 +42,12 @@ function renderI18nIndexPage(): string {
         identically in both languages: pick a language below and search it
         to see that each language's index only ever returns its own
         page, not the other's. German's "schon" (already) and "schön"
-        (beautiful) differ only by an umlaut and are deliberately never
-        folded together (<a href="../../docs/03-tokenization-i18n.html">
-        tokenization &amp; i18n</a>) -- searching one never finds the
-        other.</p>
+        (beautiful) differ only by an umlaut -- searching either now finds
+        both pages, since the real German stemmer's own final step folds
+        any remaining umlaut back to a plain vowel
+        (<a href="../../docs/03-tokenization-i18n.html">tokenization
+        &amp; i18n</a>), even though it reaches the stemmer as two
+        distinct strings.</p>
         <div
           data-gallery-root
           data-index-path="gallery/i18n/search-index/manifest.json"

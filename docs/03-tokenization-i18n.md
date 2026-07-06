@@ -5,10 +5,10 @@ profiles (`english`, `german` — [`packages/analysis`](../packages/analysis)),
 and the indexer/client genuinely partition a multi-language corpus by
 each document's own declared language (not a single language forced
 onto the whole batch) — see [09-roadmap.md](09-roadmap.md#status).
-`english` now has a real stemmer (see [Stemming](#stemming) below);
-`german` is still an identity pass. Still pending: a German stemmer,
-CJK/Thai segmentation and bigram fallback, RTL-aware result rendering,
-and auto language detection.
+Both `english` and `german` now have real stemmers (see
+[Stemming](#stemming) below). Still pending: CJK/Thai segmentation and
+bigram fallback, RTL-aware result rendering, and auto language
+detection.
 
 The single hardest correctness requirement: **the exact same analysis
 pipeline must run at index time and at query time**, per language,
@@ -86,6 +86,17 @@ register a custom profile for anything unsupported.
   defaults per-language based on established IR practice (on for
   French/Spanish/Portuguese, off for German/Vietnamese/Turkish/Nordic
   languages) and is always overridable per index config.
+- **This flag only controls folding *before* analysis runs** — it says
+  nothing about what a language's `stem()` does afterward. German's
+  real stemmer ([Stemming](#stemming) below) unconditionally folds any
+  *remaining* ä/ö/ü to a/o/u as its own last step (standard,
+  spec-correct Snowball behavior, not a bug), so `schon` and `schön`
+  reach `stem()` as the distinct strings `foldDiacritics: false`
+  promises, but both still end up stemmed to `"schon"`. The flag's
+  value held completely before a real German stemmer existed (identity
+  passthrough meant nothing downstream could re-fold anything); once
+  stemming is real, "distinct going in" and "distinct coming out" are
+  two different guarantees, and this project only makes the first one.
 
 ## Stopwords
 
@@ -110,9 +121,24 @@ rewrite, not an incremental tweak, if ever undertaken. Verified against
 the standard 23,531-word public reference vocabulary
 (`packages/analysis/test/fixtures/porter-{input,output}.txt`) with zero
 mismatches — not just a hand-picked sample of example words. `german`
-remains an identity pass; a German stemmer is separate, comparably-sized
-work (different morphology, different rule set) rather than a port of
-the English one.
+now also ships a real stemmer —
+[`packages/analysis/src/stemmer-de.ts`](../packages/analysis/src/stemmer-de.ts)
+implements the Snowball German algorithm (a from-scratch port; unlike
+English, there's no pre-Snowball "classic" German stemmer to implement
+instead), verified against the standard 35,053-word public reference
+vocabulary
+(`packages/analysis/test/fixtures/german-{input,output}.txt`) with
+zero mismatches. Its rule set is a genuinely different shape from
+English's: region-based (`R1`/`R2`, computed once per word — the same
+"first vowel-then-non-vowel transition" recipe Porter2-family stemmers
+use, plus a German-specific "R1 starts at index ≥ 3" minimum) rather
+than measure-based, four ordered suffix-stripping passes rather than
+English's numbered steps, and a prelude/postlude pair that folds
+ß→"ss" and ae/oe/ue→ä/ö/ü going in, then folds any *remaining*
+umlaut back down to a plain vowel (ä→a, ö→o, ü→u) coming back out —
+which means `schon` and `schön` (docs/03-tokenization-i18n.md#case-folding--diacritics)
+now both stem to `"schon"`, an accepted tradeoff of shipping the real,
+spec-conforming algorithm rather than the earlier identity passthrough.
 
 **Interaction with fuzzy matching**: a query is stemmed *before* fuzzy
 candidate lookup, same as at index time. A typo of a real word is only
@@ -127,13 +153,16 @@ while `"wirelss"`, deleting a different character, stems to itself and
 remains a true one-edit match). This is an inherent consequence of
 combining stemming and fuzzy matching, not a bug in either.
 
-**Target design below is still not built.** The original plan called
-for ships-many-languages **Snowball-algorithm stemmers** (compiled to
-small JS, one module per language, loaded only for languages actually
-present in the index — see the per-language plugin split in
-[01-architecture.md](01-architecture.md#runtime-the-query-engine)) for:
-English, French, German, Spanish, Portuguese, Italian, Dutch, Russian,
-Swedish, Norwegian, Danish, Finnish, Hungarian, Romanian, Turkish.
+**Target design below is still mostly not built.** The original plan
+called for ships-many-languages **Snowball-algorithm stemmers**
+(compiled to small JS, one module per language, loaded only for
+languages actually present in the index — see the per-language plugin
+split in [01-architecture.md](01-architecture.md#runtime-the-query-engine))
+for: English, French, German, Spanish, Portuguese, Italian, Dutch,
+Russian, Swedish, Norwegian, Danish, Finnish, Hungarian, Romanian,
+Turkish. German is now built (above); the rest of this list remains
+pending, and each is its own from-scratch rule set/reference-vocabulary
+verification, not a mechanical repeat of German's.
 
 For languages without a good affix-stripping stemmer (Chinese, Japanese,
 Korean, Thai), stemming is a no-op — segmentation/n-gram matching plus
@@ -161,8 +190,12 @@ dictionaries (size cost) — left as an optional plugin, not default.
     languages" mode unions all partitions (costs more shard fetches, but
     is opt-in).
 - Script-aware query analysis means a query "café" against a French
-  index and "cafe" both resolve to the same stemmed/folded token, but a
-  German index correctly keeps `schön` distinct from `schon`.
+  index and "cafe" both resolve to the same stemmed/folded token. A
+  German index does *not* keep `schön` distinct from `schon` (see the
+  "Case folding & diacritics" status note above) — both are real,
+  different German words that happen to collide once the real stemmer's
+  umlaut-fold runs, an accepted tradeoff of shipping a real stemmer
+  rather than the earlier identity passthrough.
 
 ## Testing strategy
 

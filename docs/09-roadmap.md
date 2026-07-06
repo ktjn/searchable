@@ -11,8 +11,9 @@ pending item. Phase 3 is now fully built (terms facets, range facets
 pins, and a filter-only `facetValues()` browsing call — see below).
 Phase 4 is partially built (a
 second real LanguageProfile, true per-document-language corpus
-partitioning, and a real classic-Porter English stemmer; a German
-stemmer and the CJK bigram fallback remain pending — see below). Phase
+partitioning, and real stemmers for both English (classic Porter) and
+German (Snowball); the CJK bigram fallback remains pending — see
+below). Phase
 5 is mostly built (query-time synonym
 expansion, plus SymSpell fuzzy matching and "did you mean"
 suggestions; `multiWord` phrase-level synonyms remain pending — see
@@ -245,14 +246,34 @@ Phase 2 is now fully implemented.
   verified against the standard 23,531-word public reference vocabulary
   with zero mismatches (`packages/analysis/test/stemmer-en.test.ts`),
   not just a hand-picked sample. Wired into `english.stem`
-  (`packages/analysis/src/language-profile.ts`); `german.stem` remains
-  an identity pass. Required threading a second, *unstemmed* "literal"
-  surface form through `Token`/`QueryTerm` alongside the stemmed one
-  (`packages/analysis/src/analyze.ts`, `packages/client/src/parse-query.ts`),
-  since result highlighting matches literal stored text and a stemmed
-  query term wouldn't `\b`-match a document's actual surface spelling.
-- ⬜ A German stemmer — separate, comparably-sized work (different
-  morphology, different rule set), not a port of the English one.
+  (`packages/analysis/src/language-profile.ts`). Required threading a
+  second, *unstemmed* "literal" surface form through `Token`/`QueryTerm`
+  alongside the stemmed one (`packages/analysis/src/analyze.ts`,
+  `packages/client/src/parse-query.ts`), since result highlighting
+  matches literal stored text and a stemmed query term wouldn't
+  `\b`-match a document's actual surface spelling.
+- ✅ Real German stemmer
+  ([03-tokenization-i18n.md#stemming](03-tokenization-i18n.md#stemming),
+  [`packages/analysis/src/stemmer-de.ts`](../packages/analysis/src/stemmer-de.ts)):
+  the Snowball German algorithm — a from-scratch port, not a variant of
+  the English one, since German has no pre-Snowball "classic" stemmer
+  to implement instead — verified against the standard 35,053-word
+  public reference vocabulary with zero mismatches
+  (`packages/analysis/test/stemmer-de.test.ts`). Region-based (`R1`/`R2`)
+  rather than measure-based, with its own longest-match-wins suffix
+  resolution (the same control-flow pattern already fixed for English's
+  `applyRules()`, since several German suffix alternatives are literal
+  suffixes of each other too, e.g. `"es"` of `"s"`) and a
+  prelude/postlude pair that folds `ß`/`ae`/`oe`/`ue` going in and any
+  *remaining* umlaut back to a plain vowel coming back out. That last
+  fold means `schon`/`schön` (previously kept distinct only because
+  German had no real stemmer at all) now both stem to `"schon"`, an
+  accepted tradeoff of a real, spec-conforming stemmer over the earlier
+  identity passthrough — see
+  [03-tokenization-i18n.md#case-folding--diacritics](03-tokenization-i18n.md#case-folding--diacritics).
+  Wired into `german.stem`; the multi-language corpus showcase demo and
+  its test were updated to match
+  ([19-github-pages-showcase.md](19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)).
 - ⬜ CJK/Thai bigram fallback, `Intl.Segmenter`-unsupported-locale
   handling — no non-Latin-script profile exists yet.
 - All of the above verified with real end-to-end tests over real HTTP

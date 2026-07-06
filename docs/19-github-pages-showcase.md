@@ -93,7 +93,7 @@ live, editable example:
 | Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `csf-boost` (7 "featured" products score-boosted), a `csf-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../showcase/gallery-data.ts), live at `gallery/products/index.html` |
 | Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," a checkbox toggle on the same page so the value is visible by comparison (same query, fuzzy off vs. on) | ✅ built — same demo, `data-fuzzy-toggle` on [`showcase/src/gallery-widget.ts`](../showcase/src/gallery-widget.ts) |
 | Synonym playground | 6 docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query, plus an unrelated control and a directional pair) | Synonym expansion, visibly labeled in the UI ("Synonym match" badge) so the mechanism is legible, not just "it worked" | ✅ built — [`showcase/build-gallery-synonyms.ts`](../showcase/build-gallery-synonyms.ts), [`showcase/gallery-synonyms-data.ts`](../showcase/gallery-synonyms-data.ts), live at `gallery/synonyms/index.html` |
-| Multi-language corpus | 6 short parallel articles, English + German only (docs/09-roadmap.md#status — the two LanguageProfiles that actually exist; Japanese/Arabic aren't built) | Language partitioning ("espresso," spelled identically in both languages, returns only the selected language's page) and diacritic-sensitive matching (`schon` vs. `schön` never cross-match) | ✅ built — [`showcase/build-gallery-i18n.ts`](../showcase/build-gallery-i18n.ts), [`showcase/gallery-i18n-data.ts`](../showcase/gallery-i18n-data.ts), live at `gallery/i18n/index.html`. `Intl.Segmenter` CJK handling, RTL rendering, and per-language stemming differences remain unbuilt (blocked on Phase 4, not just this demo) |
+| Multi-language corpus | 6 short parallel articles, English + German only (docs/09-roadmap.md#status — the two LanguageProfiles that actually exist; Japanese/Arabic aren't built) | Language partitioning ("espresso," spelled identically in both languages, returns only the selected language's page) and the German stemmer's own umlaut-fold (`schon` vs. `schön` now both surface each other, despite reaching the stemmer as distinct strings) | ✅ built — [`showcase/build-gallery-i18n.ts`](../showcase/build-gallery-i18n.ts), [`showcase/gallery-i18n-data.ts`](../showcase/gallery-i18n-data.ts), live at `gallery/i18n/index.html`. `Intl.Segmenter` CJK handling and RTL rendering remain unbuilt |
 
 A `gallery/index.html` hub page ([`showcase/build-gallery-index.ts`](../showcase/build-gallery-index.ts)) links every built demo; the docs site header's "Feature gallery" link points there rather than at any one demo directly.
 
@@ -148,9 +148,13 @@ spelled identically in the English and German source text, and
 switching the language selector while searching it swaps which single
 page comes back, never both. The corpus's `schon`/`schön` pair (see
 [03-tokenization-i18n.md](03-tokenization-i18n.md#case-folding--diacritics))
-demonstrates the complementary point — two *different* German words
-that a naive diacritic-folding scheme would incorrectly conflate stay
-correctly distinct.
+demonstrates the complementary, more nuanced point — `foldDiacritics:
+false` keeps these two *different* German words as distinct strings
+going into the stemmer, but the real Snowball German stemmer's own
+final step still folds any remaining umlaut to a plain vowel, so
+searching either "schon" or "schön" now surfaces both pages: a
+deliberate, spec-conforming property of a real stemmer, not something
+either flag or a bug controls.
 
 ## Stage 3 — Vector/hybrid search (needs Phase 8)
 

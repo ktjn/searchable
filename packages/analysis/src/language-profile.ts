@@ -1,3 +1,4 @@
+import { stemGerman } from "./stemmer-de.js";
 import { stemEnglish } from "./stemmer-en.js";
 
 export interface TokenSpan {
@@ -49,23 +50,26 @@ export const english: LanguageProfile = {
 };
 
 /**
- * No stemming/stopword removal yet — a real German stemmer is a
- * separate, comparably-sized piece of work to `english`'s (German's
- * agglutinative-leaning morphology needs its own affix-stripping rule
- * set, not a port of the English one), and remains pending
- * (docs/03-tokenization-i18n.md#stemming, docs/09-roadmap.md). This
- * profile's job today is proving the `LanguageProfile` abstraction
- * actually varies per language (Intl.Segmenter locale, diacritic
- * folding default), not shipping full German linguistic analysis.
- * `foldDiacritics: false` per docs/03-tokenization-i18n.md#case-folding--diacritics:
- * folding ü→u would collapse distinct German words (schon/schön).
+ * Real affix-stripping stemming via the Snowball German algorithm
+ * (`./stemmer-de.ts`) — no stopword removal yet. `foldDiacritics:
+ * false` below is a *separate* concern that no longer fully delivers
+ * on its original promise now that stemming is real: that flag only
+ * controls whether raw, *unstemmed* text folds diacritics before
+ * analysis; it says nothing about what the stemmer itself does
+ * afterward. The Snowball algorithm's own final step unconditionally
+ * folds any remaining ä/ö/ü to a/o/u — standard, spec-correct behavior
+ * (matches Lucene's and PyStemmer's German stemmers too) — so `schon`
+ * and `schön` now both stem to `"schon"` even though `foldDiacritics:
+ * false` keeps them distinct going *into* `stem()`. See
+ * docs/03-tokenization-i18n.md#case-folding--diacritics for the full
+ * writeup of this tradeoff.
  */
 export const german: LanguageProfile = {
   code: "de",
   segment: segmentWithIntl("de"),
   foldDiacritics: false,
   stopwords: new Set(),
-  stem: (term) => term,
+  stem: stemGerman,
 };
 
 export { stripDiacritics };

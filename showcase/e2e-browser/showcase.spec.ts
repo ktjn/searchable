@@ -296,22 +296,39 @@ test.describe("feature gallery: multi-language corpus demo (real browser)", () =
     );
   });
 
-  test("diacritics are not folded: schon and schön never cross-match", async ({
+  test("the German stemmer's own umlaut-fold surfaces both schon and schön for either query (docs/03-tokenization-i18n.md#case-folding--diacritics)", async ({
     page,
   }) => {
     await page.goto(`${baseUrl}gallery/i18n/index.html`);
     await page.locator(".gallery-language-select").selectOption("de");
 
+    // foldDiacritics:false keeps "schon" and "schön" distinct going
+    // into the stemmer, but the real Snowball German stemmer's own
+    // final step folds any remaining umlaut to a plain vowel -- both
+    // words stem to "schon", so either query now surfaces both pages
+    // rather than only its own literal match.
     await page.locator(".gallery-search-input").fill("schon");
-    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
-    await expect(page.locator(".gallery-hit-title")).toContainText(
-      "Schon unterwegs",
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(2);
+    const titlesForSchon = await page
+      .locator(".gallery-hit-title")
+      .allTextContents();
+    expect(titlesForSchon.some((t) => t.includes("Schon unterwegs"))).toBe(
+      true,
+    );
+    expect(titlesForSchon.some((t) => t.includes("Schöne Aussicht"))).toBe(
+      true,
     );
 
     await page.locator(".gallery-search-input").fill("schön");
-    await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
-    await expect(page.locator(".gallery-hit-title")).toContainText(
-      "Schöne Aussicht",
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(2);
+    const titlesForSchoen = await page
+      .locator(".gallery-hit-title")
+      .allTextContents();
+    expect(titlesForSchoen.some((t) => t.includes("Schon unterwegs"))).toBe(
+      true,
+    );
+    expect(titlesForSchoen.some((t) => t.includes("Schöne Aussicht"))).toBe(
+      true,
     );
   });
 });

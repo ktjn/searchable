@@ -575,11 +575,12 @@ describe("buildIndex multi-language corpora", () => {
 
   it("partitions each document into its own language's term shard", () => {
     const built = buildIndex(mixedSources);
-    // "widgets" stems to "widget" (docs/03-tokenization-i18n.md#stemming).
+    // "widgets" stems to "widget" (English); "Preise" stems to "preis"
+    // (German) -- both real stemmers, docs/03-tokenization-i18n.md#stemming.
     expect(built.termShards.en?.widget).toBeDefined();
     expect(built.termShards.de?.widget).toBeUndefined();
-    expect(built.termShards.de?.preise).toBeDefined();
-    expect(built.termShards.en?.preise).toBeUndefined();
+    expect(built.termShards.de?.preis).toBeDefined();
+    expect(built.termShards.en?.preis).toBeUndefined();
   });
 
   it("falls back a document without <html lang> to the corpus's default language", () => {
@@ -786,8 +787,11 @@ describe("buildIndex fuzzy dictionary", () => {
       "en",
       { fuzzy: true },
     );
-    expect(built.fuzzyShards.en?.deletions.katze).toBeUndefined();
+    // "Katze" stems to "katz" (docs/03-tokenization-i18n.md#stemming),
+    // so that's the real indexed term the deletion dictionary is built
+    // from -- "katz" itself is one of its own 0-deletion variants.
+    expect(built.fuzzyShards.en?.deletions.katz).toBeUndefined();
     expect(built.fuzzyShards.de?.deletions.widget).toBeUndefined();
-    expect(built.fuzzyShards.de?.deletions.katz).toContain("katze");
+    expect(built.fuzzyShards.de?.deletions.katz).toContain("katz");
   });
 });
