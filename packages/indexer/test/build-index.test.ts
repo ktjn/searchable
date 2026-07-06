@@ -187,10 +187,16 @@ describe("buildIndex range facets", () => {
     },
   ];
 
-  it("tags the shard as type: range with an empty precomputed-bucket values object", () => {
+  it("tags the shard as type: range and computes aggregate bucket values from the observed [min, max]", () => {
     const built = buildIndex(rangeSources);
     expect(built.facetShards.price?.type).toBe("range");
-    expect(built.facetShards.price?.values).toEqual({});
+    // min=9.5, max=150 -> 5 equal-width buckets of width 28.1 each;
+    // 9.5 and 29.99 both fall in the first ("9.5-37.6"), 150 falls in
+    // the last, open-ended bucket ("121.9+").
+    expect(built.facetShards.price?.values).toEqual({
+      "9.5-37.6": { count: 2, docs: [1, 2] },
+      "121.9+": { count: 1, docs: [3] },
+    });
   });
 
   it("stores every (value, doc) pair sorted ascending by value, independent of processing order", () => {
@@ -252,6 +258,50 @@ describe("buildIndex range facets", () => {
       },
     ]);
     expect(built.facetShards.price?.type).toBe("terms");
+  });
+
+  it("computes a single bucket labeled with the value itself when every doc shares the same range value", () => {
+    const built = buildIndex([
+      {
+        id: 1,
+        url: "/a",
+        html: `<html lang="en"><head><title>A</title>
+          <meta name="csf-facet-range-price" content="42"></head>
+          <body><main>a</main></body></html>`,
+      },
+      {
+        id: 2,
+        url: "/b",
+        html: `<html lang="en"><head><title>B</title>
+          <meta name="csf-facet-range-price" content="42"></head>
+          <body><main>b</main></body></html>`,
+      },
+    ]);
+    // A zero-width [min, max] would otherwise produce 5 degenerate,
+    // identically-labeled buckets -- one real bucket is correct instead.
+    expect(built.facetShards.price?.values).toEqual({
+      "42": { count: 2, docs: [1, 2] },
+    });
+  });
+
+  it("distributes values across all 5 equal-width buckets, sorting each bucket's docs ascending independent of feed order", () => {
+    const evenlySpread: SourceDocument[] = [0, 25, 50, 75, 100].map(
+      (value, i) => ({
+        id: i + 1,
+        url: `/${i}`,
+        html: `<html lang="en"><head><title>Doc ${i}</title>
+          <meta name="csf-facet-range-score" content="${value}"></head>
+          <body><main>x</main></body></html>`,
+      }),
+    );
+    const built = buildIndex([...evenlySpread].reverse());
+    expect(built.facetShards.score?.values).toEqual({
+      "0-20": { count: 1, docs: [1] },
+      "20-40": { count: 1, docs: [2] },
+      "40-60": { count: 1, docs: [3] },
+      "60-80": { count: 1, docs: [4] },
+      "80+": { count: 1, docs: [5] },
+    });
   });
 });
 

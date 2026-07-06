@@ -181,13 +181,13 @@ function addFacetValues(
 
 /**
  * Range facets (docs/06-faceted-search.md#facet-index-structure) store
- * every (value, doc) pair rather than precomputed buckets -- an
- * arbitrary min/max filter can be resolved directly against the sorted
- * array (sorted once, after every document is processed) without
- * bucket boundaries chosen ahead of time. `values` stays `{}`;
- * precomputed buckets are a documented future optimization layer, not
- * required for correctness at "small corpus" scale
- * (docs/14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale).
+ * every (value, doc) pair -- an arbitrary min/max *filter* is resolved
+ * directly against this sorted array (sorted once, after every
+ * document is processed) rather than being limited to precomputed
+ * bucket boundaries. `values` is populated separately, after all docs
+ * are processed, by `computeRangeFacetBuckets()` below -- aggregate
+ * *results* (the display-side histogram/bucket breakdown) and
+ * filtering are two independent capabilities on the same shard.
  */
 function addRangeFacetValues(
   facetShards: Record<string, FacetShard>,
@@ -203,6 +203,71 @@ function addRangeFacetValues(
       continue; // same field also declared as a terms facet elsewhere -- first declaration wins
     }
     shard.sorted?.push({ value, doc: docId });
+  }
+}
+
+/** Number of equal-width buckets computed for a range facet's aggregate results (docs/06-faceted-search.md#facet-index-structure). */
+const RANGE_FACET_BUCKET_COUNT = 5;
+
+/** Formats a bucket boundary without a trailing ".00" for whole numbers. */
+function formatBucketBound(n: number): string {
+  return Number(n.toFixed(2)).toString();
+}
+
+/**
+ * Populates a range facet shard's `values` with equal-width aggregate
+ * buckets computed over the corpus's full observed [min, max] --
+ * docs/06-faceted-search.md#facet-index-structure's aggregate range
+ * *results*, as opposed to filtering (which resolves directly against
+ * `sorted` and doesn't need buckets at all). Reuses the exact same
+ * `FacetValueEntry` shape (`{count, docs}`) terms facets use, keyed by
+ * a human-readable bucket label (`"10-20"`, or `"40+"` for the
+ * open-ended last bucket) -- deliberately so: the client's existing
+ * contextual-count aggregation (`packages/client/src/search.ts`'s
+ * `search()`/`facetValues()`) already iterates `shard.values`
+ * generically regardless of facet type, so populating this object here
+ * is the *entire* implementation of aggregate range results -- no
+ * client-side changes are needed at all. Must run after `shard.sorted`
+ * is fully populated and sorted (every document processed).
+ */
+function computeRangeFacetBuckets(shard: FacetShard): void {
+  const sorted = shard.sorted ?? [];
+  if (sorted.length === 0) return;
+  const min = sorted[0]?.value as number;
+  const max = sorted[sorted.length - 1]?.value as number;
+
+  if (min === max) {
+    // A single distinct value: one bucket, not RANGE_FACET_BUCKET_COUNT
+    // degenerate zero-width ones.
+    shard.values[formatBucketBound(min)] = {
+      count: sorted.length,
+      docs: sorted.map((entry) => entry.doc),
+    };
+    return;
+  }
+
+  const width = (max - min) / RANGE_FACET_BUCKET_COUNT;
+  const labels = Array.from({ length: RANGE_FACET_BUCKET_COUNT }, (_, i) => {
+    const lo = min + i * width;
+    const hi = min + (i + 1) * width;
+    return i === RANGE_FACET_BUCKET_COUNT - 1
+      ? `${formatBucketBound(lo)}+`
+      : `${formatBucketBound(lo)}-${formatBucketBound(hi)}`;
+  });
+
+  for (const { value, doc } of sorted) {
+    const index = Math.min(
+      RANGE_FACET_BUCKET_COUNT - 1,
+      Math.floor((value - min) / width),
+    );
+    const label = labels[index] as string;
+    let entry = shard.values[label];
+    if (!entry) {
+      entry = { count: 0, docs: [] };
+      shard.values[label] = entry;
+    }
+    entry.docs.push(doc);
+    entry.count++;
   }
 }
 
@@ -408,13 +473,19 @@ export function buildIndex(
     }
   }
   for (const facetShard of Object.values(facetShards)) {
-    for (const entry of Object.values(facetShard.values)) {
-      entry.docs.sort((a, b) => a - b);
-    }
     // doc id as tiebreaker for documents sharing the same value, so
     // output is deterministic regardless of corpus feed order (same
     // REVIEW.md#10 reasoning as postings/facet-value docs above).
     facetShard.sorted?.sort((a, b) => a.value - b.value || a.doc - b.doc);
+    // Needs the full, sorted `sorted` array above -- must run before
+    // the values.docs sort below populates and sorts the buckets this
+    // computes.
+    if (facetShard.type === "range") computeRangeFacetBuckets(facetShard);
+  }
+  for (const facetShard of Object.values(facetShards)) {
+    for (const entry of Object.values(facetShard.values)) {
+      entry.docs.sort((a, b) => a - b);
+    }
   }
 
   const facetFields = Object.keys(facetShards).sort();

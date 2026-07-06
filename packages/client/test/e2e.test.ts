@@ -795,10 +795,15 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
     expect(values).toEqual([]);
   });
 
-  it("returns an empty values array for a range-type facet field (aggregate range results not yet implemented)", async () => {
+  it("returns aggregate bucket values for a range-type facet field", async () => {
     const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
     const { values } = await client.facetValues("price");
-    expect(values).toEqual([]);
+    // min=10 (doc 1), max=20 (doc 2) -> 5 equal-width buckets of width 2;
+    // 10 falls in the first ("10-12"), 20 in the last, open-ended one ("18+").
+    expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
+      { value: "10-12", count: 1, selected: false },
+      { value: "18+", count: 1, selected: false },
+    ]);
   });
 });
 
@@ -898,6 +903,18 @@ describe("range facet filtering", () => {
       filters: { price: { min: 0, max: 1000 } },
     });
     expect(totalHits).toBe(3); // every priced widget, excluding the unpriced one
+  });
+
+  it("search()'s facets option also returns aggregate bucket values for a range field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { facets } = await client.search("widget", { facets: ["price"] });
+    const priceValues = facets?.price?.values ?? [];
+    // Exact bucket boundaries are covered by the indexer's own tests
+    // (packages/indexer/test/build-index.test.ts) -- this just proves
+    // search() surfaces them at all, reusing the same generic
+    // shard.values aggregation terms facets already use.
+    expect(priceValues.length).toBeGreaterThan(0);
+    expect(priceValues.reduce((sum, v) => sum + v.count, 0)).toBe(3); // every priced widget, excluding the unpriced one
   });
 });
 

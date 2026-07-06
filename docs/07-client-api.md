@@ -75,12 +75,12 @@ transparent: a matching pin is spliced into `result.hits` automatically
 (marked `pinned: true`), no separate call needed.
 
 `page`/`sort` and `result.tookMs` are **not implemented** — see Target
-API below. A range facet's aggregate results (a histogram/bucket
-breakdown in `result.facets`) aren't implemented either — a range
-field always reports an empty `values` array there; range *filtering*
-(the `{min, max}` shape above) works today regardless. `signal` *is*
-implemented — see Cancellation below.
-`synonyms`, `fuzzy`, and `highlight` *are* implemented — see below.
+API below. `signal` *is* implemented — see Cancellation below.
+`synonyms`, `fuzzy`, and `highlight` *are* implemented — see below. A
+range facet's aggregate results (a histogram/bucket breakdown in
+`result.facets`) *are* also implemented — 5 equal-width buckets over
+the corpus's observed `[min, max]`, same as range *filtering* (the
+`{min, max}` shape above).
 
 ### Synonyms
 
@@ -153,9 +153,9 @@ facet panel on a category landing page before a visitor has typed
 anything. Counts are contextual against every *other* active filter,
 same convention as `search()`'s `facets` option: a field's own active
 filter is excluded from its own count computation, so switching between
-its own values shows real per-value counts. An unknown field, or a
-range-type field (aggregate range results aren't implemented, see
-above), returns an empty `values` array.
+its own values shows real per-value counts. A range-type field returns
+aggregate bucket values the same way `search()`'s `facets` option does
+(see above); an unknown field returns an empty `values` array.
 
 ### Observability hooks
 

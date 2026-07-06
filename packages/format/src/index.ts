@@ -99,7 +99,7 @@ export interface FacetShard {
   /** Hierarchy remains design-only (docs/09-roadmap.md). */
   type: "terms" | "range" | "hierarchy";
   separator?: string;
-  /** Precomputed buckets for "terms"/"hierarchy"; always {} for "range" today -- precomputed range buckets are a documented future optimization, not required for correctness (docs/06-faceted-search.md#facet-index-structure). */
+  /** Precomputed values for "terms"/"hierarchy" (per-value doc set + count); for "range", 5 equal-width buckets spanning the corpus's observed [min, max], keyed by a label like "10-20" or "80+" for the open-ended last bucket (docs/06-faceted-search.md#facet-index-structure). */
   values: Record<string, FacetValueEntry>;
   /** Only present for type: "range" -- every (value, doc) pair sorted ascending by value, so an arbitrary min/max filter can be resolved directly. */
   sorted?: RangeFacetValue[];

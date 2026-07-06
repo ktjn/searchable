@@ -6,10 +6,10 @@ Phases 0, 1, and 2 have working code in this repo (`packages/`,
 `spec/`), not just design docs — see each phase below for what's
 actually implemented vs. still pending. Phase 0 is now fully built,
 including the realistically-shaped fixture corpus that was its last
-pending item. Phase 3 is partially built (terms facets, range facet
-*filtering*, pins, and a filter-only `facetValues()` browsing call;
-hierarchical facets and aggregate range facet results remain pending —
-see below). Phase 4 is partially built (a
+pending item. Phase 3 is partially built (terms facets, range facets
+(both *filtering* and aggregate bucket *results*), pins, and a
+filter-only `facetValues()` browsing call; hierarchical facets remain
+pending — see below). Phase 4 is partially built (a
 second real LanguageProfile, true per-document-language corpus
 partitioning, and a real classic-Porter English stemmer; a German
 stemmer and the CJK bigram fallback remain pending — see below). Phase
@@ -137,19 +137,31 @@ Phase 2 is now fully implemented.
 - ✅ Range facet *filtering*: `csf-facet-range-<field>` extraction (one
   numeric value per doc, unlike terms facets' multi-value), a `type:
   "range"` shard storing every `(value, doc)` pair sorted ascending
-  (`FacetShard.sorted`; `values` stays `{}` — precomputed buckets are a
-  documented future optimization, not required for correctness at
-  "small corpus" scale, [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale)),
-  and `search(query, {filters: {field: {min?, max?}}})` resolving an
-  arbitrary min/max via a scan of that array (linear, not
-  binary-search — correct either way given the array's already
-  sorted). Closes the gap the product-catalog showcase demo's
+  (`FacetShard.sorted`), and `search(query, {filters: {field: {min?,
+  max?}}})` resolving an arbitrary min/max via a scan of that array
+  (linear, not binary-search — correct either way given the array's
+  already sorted). Closes the gap the product-catalog showcase demo's
   bucketed-price terms facet was working around.
-- ⬜ Aggregate range facet *results* (a histogram/bucket breakdown in
-  `SearchResult.facets` for a range field, as opposed to filtering,
-  which is built) and hierarchical facets — the shard format
-  ([06-faceted-search.md](06-faceted-search.md)) supports `type:
-  "hierarchy"` but has no builder/query-time implementation yet.
+- ✅ Aggregate range facet *results* (a histogram/bucket breakdown in
+  `SearchResult.facets`/`facetValues()`, as opposed to filtering,
+  which was built separately above):
+  `computeRangeFacetBuckets()` in
+  [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)
+  computes 5 equal-width buckets spanning the corpus's observed
+  `[min, max]` once every document has been processed, populating
+  `FacetShard.values` with the same `{count, docs}` shape terms facets
+  already use, keyed by a label like `"10-20"` or `"80+"` for the
+  open-ended last bucket (a single distinct value collapses to one
+  bucket instead of 5 degenerate zero-width ones). That shape reuse is
+  the entire feature: `packages/client/src/search.ts`'s `search()` and
+  `facetValues()` already iterate `shard.values` generically regardless
+  of facet type, so **no client-side code changed at all** to surface
+  these — only the indexer needed new code. Bucket count is a fixed
+  constant (`RANGE_FACET_BUCKET_COUNT = 5`) for now, not yet an
+  author-configurable build option. Hierarchical facets remain
+  pending — the shard format ([06-faceted-search.md](06-faceted-search.md))
+  supports `type: "hierarchy"` but has no builder/query-time
+  implementation yet.
 - ✅ Term-to-page pinning ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)):
   extraction of `csf-pin`/`csf-pin-mode`/`csf-pin-priority`/
   `csf-pin-exclusive`, a pins shard keyed by the same normalized-phrase
@@ -174,10 +186,9 @@ Phase 2 is now fully implemented.
   `entry.docs.length` — a small optimization justified by the build-time
   invariant that the two are always incremented together
   (`packages/indexer/src/build-index.ts`'s `addFacetValues`). A
-  range-type field naturally returns an empty `values` array (same
-  scoping as `search()`'s `facets` option for a range field), since
-  aggregate range-facet histogram results remain a separate, still
-  pending, item (below).
+  range-type field returns aggregate bucket values the same way
+  `search()`'s `facets` option does (see the range facets bullet
+  above).
 - All of the above verified with real end-to-end tests over real HTTP
   (`packages/indexer/test/{extract,build-index}.test.ts`,
   `packages/client/test/e2e.test.ts`), not just unit tests in isolation.
