@@ -5,6 +5,7 @@ import type {
   FuzzyShard,
   Manifest,
   PinsShard,
+  Posting,
   SynonymShard,
   TermEntry,
   TermShard,
@@ -12,7 +13,7 @@ import type {
 import type { ShardCache } from "./fetch-json.js";
 import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
-import { parseQueryTerms } from "./parse-query.js";
+import { parseQuery } from "./parse-query.js";
 import { scoreTermForDoc } from "./score.js";
 
 export interface Hit {
@@ -192,6 +193,45 @@ function containsPhrase(
   }
   for (let i = 0; i <= queryTokens.length - phraseTokens.length; i++) {
     if (phraseTokens.every((t, j) => queryTokens[i + j] === t)) return true;
+  }
+  return false;
+}
+
+/**
+ * True if `docPostings` (one per phrase term, in order, all for the
+ * same document) contain, for at least one shared field, a run of
+ * consecutive positions matching that order -- i.e. the words
+ * genuinely appear as an adjacent phrase in that field, not just
+ * independently somewhere in the document
+ * (docs/04-query-ranking-boosts.md#phrase--proximity-queries). A
+ * missing posting for any term (shouldn't happen -- callers only pass
+ * doc ids already confirmed present in every term's postings) makes
+ * this vacuously false rather than throwing.
+ */
+function hasConsecutivePositions(
+  docPostings: (Posting | undefined)[],
+): boolean {
+  if (docPostings.length === 0 || docPostings.some((p) => !p)) return false;
+  const first = docPostings[0];
+  if (!first) return false;
+  for (const field of Object.keys(first.fields)) {
+    const positionSets = docPostings.map((p) => {
+      const positions = p?.fields[field]?.pos;
+      return positions ? new Set(positions) : undefined;
+    });
+    if (positionSets.some((s) => !s)) continue; // this field doesn't carry every term
+    const startPositions = positionSets[0];
+    if (!startPositions) continue;
+    for (const start of startPositions) {
+      let matched = true;
+      for (let i = 1; i < positionSets.length; i++) {
+        if (!positionSets[i]?.has(start + i)) {
+          matched = false;
+          break;
+        }
+      }
+      if (matched) return true;
+    }
   }
   return false;
 }
@@ -464,8 +504,11 @@ export async function search(
   const language = options.language ?? manifest.defaultLanguage;
   const profile = getLanguageProfile(language);
 
-  const queryTerms = parseQueryTerms(query, profile);
-  if (queryTerms.length === 0) return { hits: [], totalHits: 0 };
+  const parsedQuery = parseQuery(query, profile);
+  const queryTerms = parsedQuery.terms;
+  if (queryTerms.length === 0 && parsedQuery.phrases.length === 0) {
+    return { hits: [], totalHits: 0 };
+  }
 
   const shardEntries = manifest.shards.terms.filter((s) => s.lang === language);
   const shards = await Promise.all(
@@ -561,18 +604,83 @@ export async function search(
       clauses.push({ term: qt.term, entries: clauseEntries });
     }
   }
+
+  // Each `"quoted phrase"` clause resolves independently of the plain
+  // terms above: every constituent word must exist in the dictionary
+  // (exact lookup only -- no prefix/synonym/fuzzy expansion inside a
+  // phrase, out of scope for this first slice) *and* appear at
+  // consecutive positions, in order, within some shared field of a
+  // candidate document (`hasConsecutivePositions()`) -- not merely be
+  // independently present the way a bare AND of the same words already
+  // requires. A phrase word missing from the dictionary entirely fails
+  // the whole clause the same way a missing plain term does, and also
+  // feeds `failedTerms` for "did you mean"; a phrase whose words all
+  // exist but never appear adjacently fails the clause too, but isn't a
+  // "did you mean" candidate -- there's no single missing term to
+  // suggest a replacement for.
+  const termClauseCount = clauses.length; // boundary before any phrase-derived entries are appended below
+  const phraseMatchedDocSets: Set<number>[] = [];
+  for (const phrase of parsedQuery.phrases) {
+    const phraseEntries: TermEntry[] = [];
+    let allWordsFound = true;
+    for (const word of phrase.terms) {
+      const entry = termLookup.get(word.term);
+      if (entry) {
+        phraseEntries.push(entry);
+      } else {
+        allWordsFound = false;
+        if (!failedTerms.includes(word.term)) failedTerms.push(word.term);
+      }
+    }
+    if (!allWordsFound) {
+      anyClauseFailed = true;
+      continue;
+    }
+    const wordDocSets = phraseEntries.map(
+      (entry) => new Set(entry.postings.map((p) => p.doc)),
+    );
+    const [firstWordDocs, ...restWordDocs] = wordDocSets;
+    const commonDocIds = [...(firstWordDocs ?? [])].filter((id) =>
+      restWordDocs.every((set) => set.has(id)),
+    );
+    const matchedDocs = new Set<number>();
+    for (const docId of commonDocIds) {
+      const docPostings = phraseEntries.map((entry) =>
+        entry.postings.find((p) => p.doc === docId),
+      );
+      if (hasConsecutivePositions(docPostings)) matchedDocs.add(docId);
+    }
+    if (matchedDocs.size === 0) anyClauseFailed = true;
+    phraseMatchedDocSets.push(matchedDocs);
+    // Each phrase word also contributes to scoring, exactly like an
+    // ordinary literal term clause, but only for docs the phrase
+    // adjacency check above actually passed -- appending here (after
+    // organicCandidateIds below is computed from phraseMatchedDocSets,
+    // not from `clauses`) means these entries are picked up by the
+    // scoring loop further down without it needing any phrase-specific
+    // logic of its own.
+    for (const [i, word] of phrase.terms.entries()) {
+      const entry = phraseEntries[i];
+      if (entry)
+        clauses.push({ term: word.term, entries: [{ entry, weight: 1.0 }] });
+    }
+  }
+
   const organicMatched = !anyClauseFailed;
 
   let organicCandidateIds: number[] = [];
   if (organicMatched) {
-    const docIdSets = clauses.map((clause) => {
-      const ids = new Set<number>();
-      for (const { entry } of clause.entries) {
-        for (const posting of entry.postings) ids.add(posting.doc);
-      }
-      return ids;
-    });
-    const [first, ...rest] = docIdSets;
+    const termClauseDocSets = clauses
+      .slice(0, termClauseCount)
+      .map((clause) => {
+        const ids = new Set<number>();
+        for (const { entry } of clause.entries) {
+          for (const posting of entry.postings) ids.add(posting.doc);
+        }
+        return ids;
+      });
+    const allDocSets = [...termClauseDocSets, ...phraseMatchedDocSets];
+    const [first, ...rest] = allDocSets;
     organicCandidateIds = [...(first ?? [])].filter((id) =>
       rest.every((set) => set.has(id)),
     );
@@ -712,10 +820,12 @@ export async function search(
   // literal (lowercased-only) surface form, not the stemmed form used
   // for matching -- a stemmed "widget" wouldn't `\b`-match inside the
   // literal stored text "Widgets".
-  const highlightTerms: HighlightTerm[] = queryTerms.map((qt) => ({
-    term: qt.literal,
-    prefix: qt.prefix,
-  }));
+  const highlightTerms: HighlightTerm[] = [
+    ...queryTerms.map((qt) => ({ term: qt.literal, prefix: qt.prefix })),
+    ...parsedQuery.phrases.flatMap((phrase) =>
+      phrase.terms.map((qt) => ({ term: qt.literal, prefix: false })),
+    ),
+  ];
 
   function toHit(id: number, score: number, pinned: boolean): Hit {
     const doc = docLookup.get(id);

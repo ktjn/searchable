@@ -2,7 +2,14 @@
 
 ## Query input forms
 
-Two levels are supported so simple integrations stay simple:
+Two levels are designed so simple integrations stay simple. **Status**
+of the plain-string grammar below: space-separated AND and
+`"quoted phrase"` adjacency are built (`packages/client/src/parse-query.ts`,
+[phrase status detail below](#phrase--proximity-queries)); `-term`
+exclusion, OR mode, and `field:term` field-restriction remain
+design-only. The structured query object below is entirely design-only
+(`search()`'s real, implemented options are documented in
+[07-client-api.md](07-client-api.md), not this interface).
 
 1. **Plain string** (typical search box input): `wireless keyboard -bluetooth "exact phrase"`
    - space-separated terms are ANDed by default (configurable to OR),
@@ -151,13 +158,41 @@ suggestion index needed, it's a byproduct of the fuzzy plugin.
 
 ## Phrase & proximity queries
 
+**Status**: Exact phrase queries are built — `"quoted phrase"` syntax
+in the query string, and real position-adjacency verification against
+postings, not just a bare AND of the words. Proximity/slop remains
+design-only.
+
 Postings retain per-field token **positions**
 ([02-index-format.md](02-index-format.md#term-shard-inverted-index)), so:
 - Phrase queries (`"exact phrase"`) require consecutive positions across
-  the matched terms in the same field.
+  the matched terms in the same field. `packages/client/src/parse-query.ts`'s
+  `parseQuery()` extracts every `"..."` segment from the raw query
+  string into its own clause (`ParsedQuery.phrases`), separate from the
+  plain space-separated terms parsed from what's left — so
+  `wireless "noise cancelling" headphones` becomes the ordinary terms
+  `wireless`/`headphones` ANDed against the phrase clause
+  `["noise", "cancelling"]`. `search()` resolves a phrase clause by
+  exact (non-prefix, non-synonym, non-fuzzy — out of scope for this
+  first slice) dictionary lookup of every constituent word, then
+  `hasConsecutivePositions()` verifies, for each doc where every word's
+  postings are present, that some *one* field carries a run of
+  positions `p, p+1, p+2, ...` in the phrase's exact word order — a doc
+  where the words appear in the wrong order, aren't adjacent, or are
+  each in a different field fails the clause even though it would
+  satisfy a bare AND of the same words. A missing constituent word
+  fails the whole clause (boolean AND, same as an ordinary term) and
+  also feeds "did you mean"; words that all exist but never appear
+  adjacently fail the clause without a "did you mean" entry, since
+  there's no single missing term to suggest a replacement for. Each
+  phrase word still contributes to BM25F scoring and highlighting like
+  an ordinary literal term match, just restricted to the docs the
+  adjacency check already passed — no phrase-specific score bonus is
+  applied in this first slice.
 - An optional proximity/slop parameter relaxes "consecutive" to "within
   N positions," contributing a proximity boost (closer = higher score)
-  rather than a hard requirement — useful for "should" clauses.
+  rather than a hard requirement — useful for "should" clauses. Still
+  design-only.
 
 ## Combining with filters/facets
 

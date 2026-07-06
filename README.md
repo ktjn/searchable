@@ -26,7 +26,8 @@ hierarchical (path-structured, every ancestor level its own
 addressable entry), authored synonym equivalence/directional data, a
 SymSpell fuzzy/typo-tolerance dictionary), [`packages/client`](packages/client)
 (fetch + boolean AND + BM25F + field/term/document boosts + prefix
-matching + Web Worker execution + terms, range, and hierarchical facets
+matching + exact `"quoted phrase"` matching (real position-adjacency,
+not just a bare AND of the words) + Web Worker execution + terms, range, and hierarchical facets
 (filtering + aggregate bucket results) with contextual counts + a
 filter-only `facetValues()` browsing call + term-to-page pinning +
 multi-language query isolation + opt-in synonym expansion + opt-in
@@ -54,7 +55,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 290 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 304 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 32 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

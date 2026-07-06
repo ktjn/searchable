@@ -68,8 +68,12 @@ result.facets;      // Record<field, FacetResult> -- only for fields requested v
 result.totalHits;
 ```
 
-Prefix queries (a trailing `*`, e.g. `"widg*"`) are written directly in
-the query string, not a separate option. Term-to-page pinning
+Prefix queries (a trailing `*`, e.g. `"widg*"`) and `"quoted phrase"`
+queries (requiring the words to appear adjacent, in order, in the same
+field — see [04-query-ranking-boosts.md#phrase--proximity-queries](04-query-ranking-boosts.md#phrase--proximity-queries))
+are both written directly in the query string, not a separate option.
+`-term` exclusion, OR mode, and `field:term` field-restriction remain
+design-only (see that doc's status note). Term-to-page pinning
 ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)) is
 transparent: a matching pin is spliced into `result.hits` automatically
 (marked `pinned: true`), no separate call needed.

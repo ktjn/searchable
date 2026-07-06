@@ -583,6 +583,113 @@ describe("prefix matching (term*)", () => {
   });
 });
 
+describe('"quoted phrase" matching (position-adjacency, docs/04-query-ranking-boosts.md#phrase--proximity-queries)', () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const phraseSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/adjacent",
+      html: `<html lang="en"><head><title>Noise Cancelling Headphones</title></head>
+        <body><main><p>Great for travel.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/reversed",
+      html: `<html lang="en"><head><title>Cancelling Noise Headphones</title></head>
+        <body><main><p>Great for travel.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/not-adjacent",
+      html: `<html lang="en"><head><title>Noise Great Cancelling Technology</title></head>
+        <body><main><p>Great for travel.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/split-fields",
+      html: `<html lang="en"><head><title>Noise</title></head>
+        <body><main><p>Cancelling technology inside.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-phrase-"));
+    await writeIndex(buildIndex(phraseSources), outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("matches a document where the phrase words appear adjacent, in order, in the same field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"');
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("does not match when the same words appear in reverse order", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"');
+    expect(hits.some((h) => h.id === 2)).toBe(false);
+  });
+
+  it("does not match when the words are present in the same field but not adjacent", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"');
+    expect(hits.some((h) => h.id === 3)).toBe(false);
+  });
+
+  it("does not match when the words are each in a different field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"');
+    expect(hits.some((h) => h.id === 4)).toBe(false);
+  });
+
+  it("ANDs a phrase clause against a plain term clause", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling" headphones');
+    // doc 2 also has "headphones" but fails the phrase's word order.
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("a single-word quoted phrase behaves identically to the same unquoted term", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const quoted = await client.search('"noise"');
+    const unquoted = await client.search("noise");
+    expect(quoted.hits.map((h) => h.id).sort()).toEqual(
+      unquoted.hits.map((h) => h.id).sort(),
+    );
+    expect(quoted.hits.map((h) => h.id).sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  it("returns zero hits when one phrase word doesn't exist anywhere in the corpus", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise zzzznotaword"');
+    expect(hits).toEqual([]);
+  });
+
+  it("highlights each phrase word in the matching result", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"', {
+      highlight: true,
+    });
+    const titleSpans = hits[0]?.highlights?.title ?? [];
+    const matchedText = titleSpans
+      .filter((s) => s.isMatch)
+      .map((s) => s.text.toLowerCase())
+      .join(" ");
+    expect(matchedText).toContain("noise");
+    expect(matchedText).toContain("cancelling");
+  });
+});
+
 describe("facet filtering and contextual counts", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

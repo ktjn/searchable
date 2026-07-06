@@ -44,3 +44,54 @@ export function parseQueryTerms(
 
   return result;
 }
+
+/**
+ * A `"quoted phrase"` clause (docs/04-query-ranking-boosts.md#phrase--proximity-queries):
+ * every term must appear at consecutive positions, in this exact
+ * order, within the same field of a matching document — not merely
+ * present independently, the way a bare space-separated AND of the
+ * same words would already be satisfied.
+ */
+export interface PhraseTerm {
+  terms: QueryTerm[];
+}
+
+export interface ParsedQuery {
+  /** Every non-phrase term (existing single-term/prefix behavior, unaffected by any phrases in the same query). */
+  terms: QueryTerm[];
+  /** Every quoted phrase clause, in the order encountered. */
+  phrases: PhraseTerm[];
+}
+
+/**
+ * Splits `"quoted phrases"` out of the raw query string before the
+ * existing space-separated term/prefix parsing runs on what's left —
+ * e.g. `wireless "noise cancelling" headphones` becomes the phrase
+ * clause `["noise", "cancelling"]` plus the ordinary terms `wireless`
+ * and `headphones`. An unterminated quote or an empty `""` is silently
+ * ignored (falls through to plain term parsing, where the tokenizer
+ * already drops bare punctuation like a lone `"`), matching the
+ * parser's existing tolerance for odd input elsewhere (e.g. a stray
+ * trailing `*`).
+ */
+export function parseQuery(
+  query: string,
+  profile: LanguageProfile,
+): ParsedQuery {
+  const phrases: PhraseTerm[] = [];
+  const remainder = query.replace(/"([^"]+)"/g, (_match, inner: string) => {
+    const phraseTerms: QueryTerm[] = [];
+    for (const raw of inner.trim().split(/\s+/).filter(Boolean)) {
+      for (const token of analyze(raw, profile)) {
+        phraseTerms.push({
+          term: token.term,
+          prefix: false,
+          literal: token.literal,
+        });
+      }
+    }
+    if (phraseTerms.length > 0) phrases.push({ terms: phraseTerms });
+    return " ";
+  });
+  return { terms: parseQueryTerms(remainder, profile), phrases };
+}

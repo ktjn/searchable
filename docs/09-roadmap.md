@@ -105,6 +105,27 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
 - ✅ Prefix matching (`term*`): query parsing splits on raw whitespace
   before analysis (so a trailing `*` survives tokenization), then
   expands against the already-fetched term dictionary.
+- ✅ Exact phrase queries (`"quoted phrase"`,
+  [04-query-ranking-boosts.md#phrase--proximity-queries](04-query-ranking-boosts.md#phrase--proximity-queries)):
+  `parse-query.ts`'s `parseQuery()` extracts every `"..."` segment from
+  the raw query string into its own clause before the existing
+  space-separated term parsing runs on what's left; `search()` resolves
+  a phrase clause by exact dictionary lookup of every constituent word
+  (no prefix/synonym/fuzzy expansion inside a phrase, out of scope for
+  this first slice) plus a real position-adjacency check
+  (`hasConsecutivePositions()`) against the stored per-field token
+  positions ([02-index-format.md](02-index-format.md#term-shard-inverted-index)) —
+  a document where the words are present but in the wrong order,
+  non-adjacent, or split across different fields correctly fails the
+  clause even though it would satisfy a bare AND of the same words.
+  Proximity/slop (relaxing "consecutive" to "within N positions")
+  remains design-only. Verified with real end-to-end tests over real
+  HTTP: adjacent-in-order match, reversed order rejected, same-field
+  non-adjacent rejected, split-across-fields rejected, AND-ing against
+  a plain term clause, a single-quoted word behaving identically to an
+  unquoted term, a missing constituent word both failing the query and
+  feeding "did you mean," and highlighting each phrase word in the
+  matched result.
 - ✅ Web Worker execution: `worker.ts` runs the same `search()` code the
   main thread does, via a minimal hand-rolled request/response protocol
   (`worker-protocol.ts`) — not Comlink, since the whole message surface
@@ -333,10 +354,15 @@ Phase 2 is now fully implemented.
   one. Off by default (opt-in per query, matching the option's original
   design in [07-client-api.md](07-client-api.md)).
 - ⬜ `multiWord` phrase-level synonyms — the shard format
-  (`spec/schema/synonym-shard.schema.json`) supports them, but they
-  need a different, pre-tokenization phrase-matching path than the
-  single-term lookups implemented so far, so neither the indexer nor
-  the client produce/consume them yet.
+  (`spec/schema/synonym-shard.schema.json`) supports them, and Phase
+  2's exact-phrase-query work above now gives the client a genuine
+  position-adjacency matching path they could be built on (the
+  originally-cited blocker — "no phrase-matching path exists at
+  all" — no longer applies), but the actual query-time expansion (a
+  phrase in the query text triggering an OR-style match against a
+  *different* phrase in the corpus, the way single-word synonym
+  expansion already does) isn't wired up yet on either the indexer or
+  client side.
 - ✅ SymSpell fuzzy plugin, "did you mean"
   ([04-query-ranking-boosts.md](04-query-ranking-boosts.md#prefix--fuzzy-matching)):
   a precomputed deletion dictionary (`spec/schema/fuzzy-shard.schema.json`,
