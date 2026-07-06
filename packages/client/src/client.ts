@@ -1,6 +1,6 @@
 import type { Manifest } from "@csf/format";
 import { ShardCache } from "./fetch-json.js";
-import { facetValues, search } from "./search.js";
+import { facetValues, search, searchStream } from "./search.js";
 import type {
   FacetResult,
   FacetValuesOptions,
@@ -106,6 +106,21 @@ export interface SearchClientOptions {
 interface PendingRequest {
   resolve: (result: SearchResult | FacetResult) => void;
   reject: (err: Error) => void;
+  /** Only set for a searchStream() request -- see #handleWorkerMessage. */
+  onPartial?: (result: SearchResult) => void;
+}
+
+export interface SearchStreamOptions extends SearchOptions {
+  /**
+   * Invoked once with the fast literal/prefix-only pass's result,
+   * before the returned promise resolves to the final,
+   * synonym/fuzzy-expanded result (docs/07-client-api.md#streamingincremental-results).
+   * Only fires when `synonyms` and/or `fuzzy` was requested -- see
+   * `searchStream()` in packages/client/src/search.ts. Never invoked
+   * once `signal` has already fired, matching `search()`'s "nothing is
+   * delivered to a caller who already aborted" cancellation semantics.
+   */
+  onPartial?: (partial: SearchResult) => void;
 }
 
 /**
@@ -233,6 +248,58 @@ export class SearchClient {
   }
 
   /**
+   * Streaming/incremental variant of search()
+   * (docs/07-client-api.md#streamingincremental-results): resolves to
+   * the same final `SearchResult` `search()` would, but -- whenever
+   * `synonyms`/`fuzzy` was requested -- calls `options.onPartial` with
+   * the fast literal/prefix-only pass first, so a keystroke-driven UI
+   * can render exact matches before the (potentially slower)
+   * synonym/fuzzy-expanded pass lands. `onPartial` is guarded against
+   * firing after `signal` has already aborted, matching `search()`'s
+   * "nothing is delivered to an aborted caller" cancellation semantics
+   * -- the underlying passes still run to completion regardless (same
+   * "abort only cancels waiting, not the work itself" rule as
+   * `search()`).
+   */
+  async searchStream(
+    query: string,
+    options: SearchStreamOptions = {},
+  ): Promise<SearchResult> {
+    if (this.#fatalError) throw this.#fatalError;
+    throwIfAborted(options.signal);
+    await this.#ready;
+    if (this.#fatalError) throw this.#fatalError;
+    throwIfAborted(options.signal);
+    this.#emit("query", { query, options });
+    const { signal, onPartial, ...rest } = options;
+    const guardedOnPartial = onPartial
+      ? (partial: SearchResult) => {
+          if (!signal?.aborted) onPartial(partial);
+        }
+      : undefined;
+    const work = this.#worker
+      ? this.#sendToWorker<SearchResult>(
+          { type: "searchStream", query, options: rest },
+          guardedOnPartial,
+        )
+      : (async () => {
+          // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
+          const manifest = await this.#manifest!;
+          return searchStream(
+            query,
+            manifest,
+            this.#cache,
+            this.#indexUrl,
+            rest,
+            guardedOnPartial,
+          );
+        })();
+    const result = await raceAbort(work, signal);
+    this.#emit("result", { query, options, result });
+    return result;
+  }
+
+  /**
    * Subscribe to a lifecycle event (docs/08-modern-features.md#observability-hooks).
    * Returns an unsubscribe function rather than requiring a separate
    * `off()` call — the caller already has the one reference it needs to
@@ -337,6 +404,7 @@ export class SearchClient {
 
   #sendToWorker<T extends SearchResult | FacetResult>(
     message: WorkerRequestPayload,
+    onPartial?: (result: SearchResult) => void,
   ): Promise<T> {
     if (this.#fatalError) {
       return Promise.reject(this.#fatalError);
@@ -346,6 +414,7 @@ export class SearchClient {
       this.#pendingRequests.set(id, {
         resolve: resolve as (result: SearchResult | FacetResult) => void,
         reject,
+        ...(onPartial ? { onPartial } : {}),
       });
       // biome-ignore lint/style/noNonNullAssertion: only called when #worker was constructed and not yet disposed
       this.#worker!.postMessage({ ...message, id });
@@ -355,6 +424,12 @@ export class SearchClient {
   #handleWorkerMessage(message: WorkerResponse): void {
     const pending = this.#pendingRequests.get(message.id);
     if (!pending) return;
+    // A "partial" message doesn't settle the request -- the final
+    // "result"/"error" message for the same id still follows.
+    if (message.type === "partial") {
+      pending.onPartial?.(message.result);
+      return;
+    }
     this.#pendingRequests.delete(message.id);
     if (message.type === "error") {
       pending.reject(new Error(message.message));

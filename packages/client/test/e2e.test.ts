@@ -1635,6 +1635,115 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
   });
 });
 
+describe("searchStream() (streaming/incremental results)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  const streamSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widget",
+      html: `<html lang="en"><head><title>Widget Page</title></head>
+        <body><main><p>All about the widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/widgit-literal",
+      html: `<html lang="en"><head><title>Widgit Literal</title></head>
+        <body><main><p>This page literally says widgit, on purpose.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-searchstream-"));
+    const built = buildIndex(streamSources, "en", { fuzzy: true });
+    await writeIndex(built, outDir);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("delivers the literal-only pass via onPartial before resolving to the fuzzy-expanded final result", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const partials: number[][] = [];
+    const final = await client.searchStream("widgit", {
+      fuzzy: true,
+      onPartial: (partial) => partials.push(partial.hits.map((h) => h.id)),
+    });
+    expect(partials).toEqual([[2]]); // literal "widgit" doc only, before fuzzy expansion
+    expect(final.hits.map((h) => h.id)).toEqual([2, 1]); // literal outranks fuzzy-matched "widget"
+  });
+
+  it("resolves to the same result search() would for the same query/options", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const viaStream = await client.searchStream("widgit", { fuzzy: true });
+    const viaSearch = await client.search("widgit", { fuzzy: true });
+    expect(viaStream).toEqual(viaSearch);
+  });
+
+  it("never invokes onPartial when neither synonyms nor fuzzy was requested", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    let partialCalls = 0;
+    const final = await client.searchStream("widget", {
+      onPartial: () => {
+        partialCalls++;
+      },
+    });
+    expect(partialCalls).toBe(0);
+    expect(final.hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("emits 'query' then 'result' events, same as search()", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const events: string[] = [];
+    client.on("query", () => events.push("query"));
+    client.on("result", () => events.push("result"));
+    await client.searchStream("widgit", { fuzzy: true });
+    expect(events).toEqual(["query", "result"]);
+  });
+
+  it("aborting the signal from inside onPartial still rejects the returned promise with AbortError", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const controller = new AbortController();
+    let partialCalls = 0;
+    await expect(
+      client.searchStream("widgit", {
+        fuzzy: true,
+        signal: controller.signal,
+        onPartial: () => {
+          partialCalls++;
+          controller.abort();
+        },
+      }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(partialCalls).toBe(1);
+  });
+
+  it("does not invoke onPartial when the signal is already aborted before the call starts", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    client.ready().catch(() => {});
+    const controller = new AbortController();
+    controller.abort();
+    let partialCalls = 0;
+    await expect(
+      client.searchStream("widgit", {
+        fuzzy: true,
+        signal: controller.signal,
+        onPartial: () => {
+          partialCalls++;
+        },
+      }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(partialCalls).toBe(0);
+  });
+});
+
 describe("result highlighting (options.highlight)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;

@@ -33,8 +33,10 @@ multi-language query isolation + opt-in synonym expansion + opt-in
 fuzzy matching with "did you mean" suggestions + opt-in result
 highlighting (literal query terms only) + observability hooks
 (`client.on("query" | "result", ...)`) + `AbortSignal` query
-cancellation, all proven in a real browser via Playwright, no
-multi-word-synonyms/synonym-or-fuzzy-variant-highlighting yet), and
+cancellation + `searchStream()` streaming/incremental results, all
+proven in a real browser via Playwright, no
+multi-word-synonyms/synonym-or-fuzzy-variant-highlighting or offline
+Service Worker plugin yet), and
 [`packages/fixtures`](packages/fixtures) (a realistically-shaped,
 deterministic CMS-export-style corpus generator for real-scale
 correctness testing, per
@@ -52,8 +54,8 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 284 Vitest tests across all packages, including real-HTTP e2e tests
-pnpm test:browser             # 27 Playwright tests in real Chromium (Worker execution, lifecycle, showcase, feature gallery)
+pnpm test                     # 290 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test:browser             # 29 Playwright tests in real Chromium (Worker execution, lifecycle, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically
 ```

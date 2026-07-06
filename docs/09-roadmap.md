@@ -21,9 +21,9 @@ with a length-dependent maxEdits cap, and "did you mean" suggestions;
 `multiWord` phrase-level synonyms remain pending — see below). Phase 6
 is partially built (a configuration testbed, a
 bundle-size CI gate, a first slice of result highlighting, observability
-hooks, `options.signal` cancellation, and an accessibility pass in the
-showcase's own widgets; `searchStream()` and an offline/Service Worker
-plugin remain pending — see below). Phase 7+ remain design-only. The GitHub Pages showcase's
+hooks, `options.signal` cancellation, `searchStream()` streaming
+results, and an accessibility pass in the showcase's own widgets; an
+offline/Service Worker plugin remains pending — see below). Phase 7+ remain design-only. The GitHub Pages showcase's
 first three stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stage 3 remains blocked on Phase 8.
@@ -393,7 +393,7 @@ Phase 2 is now fully implemented.
   and `didYouMean` presence/absence — not just unit tests in isolation.
 
 **Phase 6 — Modern features polish**
-- Streaming results (`searchStream()`), offline/Service Worker plugin.
+- Offline/Service Worker plugin remains pending.
 - ✅ Cancellation
   ([docs/08-modern-features.md#instant-search--debouncing--cancellation](08-modern-features.md#instant-search--debouncing--cancellation),
   [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
@@ -411,11 +411,35 @@ Phase 2 is now fully implemented.
   the background and warms the cache for the *next* query. Verified
   with real end-to-end tests over real HTTP plus a real-browser
   Playwright test proving identical behavior whether the aborted query
-  executed inside a Worker or on the main thread. `searchStream()`
-  itself remains unbuilt and is a separate, larger piece of work — it
-  needs `search()`'s clause-scoring loop restructured into two
-  sequential passes (literal-first, then fuzzy/synonym-expanded), not
-  just this cancellation primitive underneath it.
+  executed inside a Worker or on the main thread.
+- ✅ Streaming/incremental results
+  ([docs/07-client-api.md#streamingincremental-results](07-client-api.md#streamingincremental-results),
+  [`packages/client/src/search.ts`](../packages/client/src/search.ts),
+  [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
+  `SearchClient.searchStream(query, { onPartial, ... })` resolves to the
+  same final `SearchResult` `search()` would, but — only when the
+  caller opted into `synonyms` and/or `fuzzy` — first invokes
+  `onPartial` with the fast literal/prefix-only pass, so a
+  keystroke-driven UI can render exact matches before the (potentially
+  slower) expanded pass lands. Implemented by calling `search()` itself
+  up to twice rather than restructuring its clause-scoring loop into a
+  genuinely shared two-phase pass, as originally envisioned above:
+  `ShardCache` already memoizes the term-shard fetches both passes
+  need, so the only repeated work is the cheap, in-memory
+  clause/scoring loop, negligible next to the correctness risk of
+  threading a partial-emission callback through that loop's
+  single-pass control flow. Works in both direct-execution and
+  real-Worker mode — the worker protocol gained a `"partial"` response
+  message, sent before the final `"result"` message for the same
+  request id, that doesn't settle the pending request. `onPartial` is
+  guarded to never fire once `options.signal` has already aborted,
+  matching `search()`'s "nothing is delivered to an aborted caller"
+  rule from the cancellation primitive above, even though (same as
+  `search()`) an abort only cancels the caller's *wait*, not the
+  underlying passes still running in the background. Verified with real
+  end-to-end tests over real HTTP plus real-browser Playwright tests
+  proving identical partial/final events whether `searchStream()`
+  executed inside a Worker or on the main thread.
 - ✅ Observability hooks, first slice
   ([docs/08-modern-features.md#observability-hooks](08-modern-features.md#observability-hooks),
   [`packages/client/src/client.ts`](../packages/client/src/client.ts)):

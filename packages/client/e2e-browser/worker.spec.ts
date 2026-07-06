@@ -36,6 +36,11 @@ declare global {
       manifestUrl: string,
     ) => Promise<string | undefined>;
     __csfTestAbortSearch?: (useWorker: boolean) => Promise<string | undefined>;
+    __csfRunSearchStream?: (
+      query: string,
+      useWorker: boolean,
+      opts?: Record<string, unknown>,
+    ) => Promise<{ partials: number[][]; final: number[] }>;
   }
 }
 
@@ -285,5 +290,88 @@ test.describe("SearchClient lifecycle (real browser)", () => {
       "./bad-manifest.json",
     );
     expect(message).toContain("invalid manifest");
+  });
+});
+
+test.describe("searchStream() (real browser)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let rootDir: string;
+
+  const streamSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widget",
+      html: `<html lang="en"><head><title>Widget Page</title></head>
+        <body><main><p>All about the widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/widgit-literal",
+      html: `<html lang="en"><head><title>Widgit Literal</title></head>
+        <body><main><p>This page literally says widgit, on purpose.</p></main></body></html>`,
+    },
+  ];
+
+  test.beforeAll(async () => {
+    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-searchstream-"));
+    await cp(clientDist, rootDir, { recursive: true });
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
+    await writeIndex(buildIndex(streamSources, "en", { fuzzy: true }), rootDir);
+
+    const server = await serveDir(rootDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  test("delivers the literal-only pass via onPartial before resolving to the fuzzy-expanded final result, via a real Worker", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const result = await page.evaluate(
+      ([query, useWorker, opts]) =>
+        window.__csfRunSearchStream?.(
+          query as string,
+          useWorker as boolean,
+          opts as Record<string, unknown>,
+        ),
+      ["widgit", true, { fuzzy: true }] as [
+        string,
+        boolean,
+        Record<string, unknown>,
+      ],
+    );
+
+    expect(result?.partials).toEqual([[2]]);
+    expect(result?.final).toEqual([2, 1]);
+  });
+
+  test("worker:true and worker:false deliver identical partial/final events", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfRunSearchStream?.("widgit", true, {
+        fuzzy: true,
+      });
+      const m = await window.__csfRunSearchStream?.("widgit", false, {
+        fuzzy: true,
+      });
+      return [w, m];
+    });
+
+    expect(withWorker).toEqual(withoutWorker);
   });
 });

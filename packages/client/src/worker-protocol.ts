@@ -19,10 +19,19 @@ import type {
 export type WorkerRequestPayload =
   | { type: "init"; indexUrl: string; allowCrossOriginShards?: boolean }
   | { type: "search"; query: string; options: SearchOptions }
+  | { type: "searchStream"; query: string; options: SearchOptions }
   | { type: "facetValues"; field: string; options: FacetValuesOptions };
 
 export type WorkerRequest = WorkerRequestPayload & { id: number };
 
 export type WorkerResponse =
   | { type: "result"; id: number; result: SearchResult | FacetResult }
+  /**
+   * The literal/prefix-only pass of a `searchStream` request
+   * (docs/07-client-api.md#streamingincremental-results) -- sent
+   * *in addition to*, and always before, the final `"result"` message
+   * for the same `id`. The pending request stays open after this
+   * arrives; only `"result"`/`"error"` settle it.
+   */
+  | { type: "partial"; id: number; result: SearchResult }
   | { type: "error"; id: number; message: string };

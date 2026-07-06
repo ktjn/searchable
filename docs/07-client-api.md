@@ -235,6 +235,36 @@ and warms the cache for the next query; it just never resolves for the
 caller who aborted. Fires/rejects identically whether the query is
 running on the main thread or inside a Worker.
 
+### Streaming/incremental results
+
+For instant-search UX, a callback-based variant avoids waiting for the
+slowest sub-step (fuzzy/synonym expansion) to show the fast path:
+
+```ts
+const final = await client.searchStream("wigdet", {
+  fuzzy: true,
+  onPartial: (partial) => renderResults(partial), // fires with exact/prefix matches first, only when synonyms/fuzzy was requested
+  signal: abortController.signal,
+});
+renderResults(final); // resolves to the same final SearchResult search() would
+```
+
+`searchStream()` resolves to the exact same `SearchResult` `search()`
+would for the same `query`/options; the only difference is that when
+`synonyms` and/or `fuzzy` was requested, `options.onPartial` fires once
+with the fast literal/prefix-only pass before the returned promise
+resolves to the synonym/fuzzy-expanded final pass — so
+`client.search(query, opts)` is equivalent to `client.searchStream(query,
+opts)` with `onPartial` simply not read. When neither `synonyms` nor
+`fuzzy` was requested there's nothing to expand, so only one pass runs
+and `onPartial` is never invoked. Works identically in Worker and
+main-thread mode. `signal` behaves exactly as in
+[Cancellation](#cancellation) above, with one addition: `onPartial` is
+guarded to never fire once `signal` has already aborted, so an aborted
+caller gets nothing delivered at all (partial or final) — matching, not
+extending, the "an abort only cancels the caller's wait, not the
+underlying work" rule described there.
+
 ### Disposal
 
 ```ts
@@ -316,23 +346,6 @@ default — see
 [18-resource-aware-loading.md](18-resource-aware-loading.md#network-priority-not-just-laziness) —
 unlike an actual `search()` call, which always fetches immediately since
 the user is directly waiting on it.
-
-### Streaming/incremental results
-
-For instant-search UX, a callback-based variant avoids waiting for the
-slowest sub-step (e.g. fuzzy fallback) to show the fast path:
-
-```ts
-client.searchStream("wigdet", { fuzzy: true }, {
-  onPartial: (partial) => renderResults(partial), // fires with exact/prefix matches first
-  onComplete: (final) => renderResults(final),    // fires again once fuzzy/synonym passes land
-  signal: abortController.signal,
-});
-```
-
-Both `search()` and `searchStream()` share the same underlying query
-plan; `search()` is just `searchStream()` awaited to its final event —
-callers pick whichever fits their UI.
 
 ### Suggestions / autocomplete
 

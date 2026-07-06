@@ -811,6 +811,49 @@ export async function search(
   };
 }
 
+/**
+ * Streaming/incremental variant of search()
+ * (docs/07-client-api.md#streamingincremental-results): resolves to the
+ * exact same final `SearchResult` `search()` would, but -- only when
+ * the caller actually opted into `synonyms` and/or `fuzzy` -- first
+ * invokes `onPartial` with the fast literal/prefix-only pass (the same
+ * clauses `search()` would resolve with both options forced off), so a
+ * keystroke-driven UI can render exact matches immediately instead of
+ * waiting for the (potentially slower) synonym/fuzzy-expanded pass to
+ * land. When neither was requested there is nothing to expand, so only
+ * one pass runs and `onPartial` is never invoked -- calling it with a
+ * result identical to what the returned promise already resolves to
+ * would be a redundant, meaningless event.
+ *
+ * Implemented by calling `search()` itself up to twice rather than
+ * restructuring its clause-scoring loop into a genuinely shared
+ * two-phase pass: `ShardCache` already memoizes the term-shard fetches
+ * both passes need, so the only repeated work is the (cheap, in-memory,
+ * corpus-scale-appropriate per docs/14-reference-deployment-cms-2k.md)
+ * clause/candidate/scoring loop -- negligible next to the correctness
+ * risk of threading a partial-emission callback through that loop's
+ * single-pass control flow.
+ */
+export async function searchStream(
+  query: string,
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  options: SearchOptions,
+  onPartial?: (partial: SearchResult) => void,
+): Promise<SearchResult> {
+  if (!options.synonyms && !options.fuzzy) {
+    return search(query, manifest, cache, baseUrl, options);
+  }
+  const partial = await search(query, manifest, cache, baseUrl, {
+    ...options,
+    synonyms: false,
+    fuzzy: false,
+  });
+  onPartial?.(partial);
+  return search(query, manifest, cache, baseUrl, options);
+}
+
 export interface FacetValuesOptions {
   /**
    * Same filter shape as SearchOptions.filters. A filter on `field`

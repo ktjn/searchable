@@ -175,13 +175,27 @@ it just never gets delivered to the caller who aborted. Verified with
 a real-browser Playwright test proving this behaves identically
 whether the query executed inside a Worker or on the main thread.
 
-`searchStream` (see [07-client-api.md](07-client-api.md#streamingincremental-results))
-— a callback-based API with `onPartial`/`onComplete` for showing
-literal-match results before a slower fuzzy/synonym pass lands — is
-still design-only and a larger, separate piece of work: it needs
-`search()`'s clause-scoring loop restructured into two sequential
-passes (see the doc for that call's own `onPartial`/`onComplete`
-contract), not just this cancellation primitive underneath it.
+`searchStream()` (see [07-client-api.md](07-client-api.md#streamingincremental-results))
+— `SearchClient.searchStream(query, { onPartial, ... })` for showing
+literal-match results before a slower fuzzy/synonym pass lands — is now
+built, in both direct-execution and real-Worker modes. It resolves to
+the exact same final `SearchResult` `search()` would; the only
+difference is that when the caller opted into `synonyms` and/or
+`fuzzy`, `onPartial` fires once with the fast literal/prefix-only pass
+before that promise resolves. Implemented by calling `search()` itself
+up to twice (see `searchStream()` in
+[`packages/client/src/search.ts`](../packages/client/src/search.ts))
+rather than restructuring its clause-scoring loop into a shared
+two-phase pass — `ShardCache` already memoizes the shard fetches both
+passes need, so the repeated work is just the cheap, in-memory
+clause/scoring loop, not a second network round trip. `onPartial` reuses
+this section's cancellation primitive: it's guarded to never fire once
+`signal` has already aborted, matching `search()`'s "nothing is
+delivered to an aborted caller" rule, even though (same as `search()`)
+an abort only cancels the caller's *wait*, not the underlying passes
+still running in the background. When neither `synonyms` nor `fuzzy`
+was requested there's nothing to expand, so only one pass runs and
+`onPartial` is never invoked.
 
 ## Accessibility
 
