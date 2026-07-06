@@ -291,3 +291,70 @@ whole-shard — is a prerequisite the next slice of this work needs to
 prove out empirically (measuring decode time for *only the matched
 term's postings*, not the whole shard) before recommending binary as a
 default, not an optional afterthought.
+
+**That prototype is now built and measured.**
+`packages/indexer/bench/binary-lazy-decode.mjs`
+(`pnpm --filter @csf/indexer run bench:binary-lazy`) re-encodes the same
+largest-single-prefix-shard baseline into a directory-based layout — a
+sorted term → (byte offset, length) table followed by a postings blob,
+per [spec-binary-format.md](spec-binary-format.md#dictionary-encoding)'s
+own "sorted string table" baseline and
+[#decoding-strategy](spec-binary-format.md#decoding-strategy)'s "decode
+only matching posting lists" guidance — so a specific term's postings
+can be decoded by seeking directly to its byte range, without touching
+(let alone decoding) any other term. Every term's lazy-decoded result is
+round-trip-verified against the full JSON-parsed shard before any
+number is reported. Simulated queries touch the shard's *busiest* terms
+(highest document frequency) — the most expensive plausible case a real
+query could hit, not a cherry-picked cheap one:
+
+| docs | shard terms | JSON.parse | directory decode | +1 busiest term (total) | speedup | +3 busiest terms (total) | speedup |
+|---|---|---|---|---|---|---|---|
+| 1,000 | 57 | 7.98 ms | 0.50 ms | 0.84 ms | **9.5x** | 1.17 ms | **6.8x** |
+| 10,000 | 17 | 11.67 ms | 0.04 ms | 1.45 ms | **8.0x** | 3.96 ms | **2.9x** |
+| 100,000 | 3 | 96.68 ms | 0.11 ms | 46.32 ms | **2.1x** | 93.65 ms | **1.0x** |
+
+**Lazy per-term decode does flip the finding — for a typical query
+touching a handful of terms, binary is now consistently *faster* than
+`JSON.parse`, not slower**, reversing the previous benchmark's
+whole-shard-decode result across every corpus size tested. But the size
+of the win has a real, non-obvious dependency the numbers above expose:
+**it shrinks as the shard's own term count shrinks, not just as corpus
+size grows.** The 100k-doc case's speedup (2.1x for one term, ~1.0x —
+no real win — for three) is much smaller than 1k/10k's (9.5x/8.0x for
+one term) not because binary got worse at scale, but because the
+*largest* shard at 100k docs happens to pack only 3 extremely dense
+terms (a consequence of this project's recursive prefix-splitting
+auto-widening down to individual terms once nothing else can be
+split off, see the Phase 7 bullet in
+[09-roadmap.md](09-roadmap.md#phase-7--scale-options)) — with only 3
+terms in the whole shard, decoding "the 3 busiest" is decoding
+*almost the entire shard*, which is exactly the whole-shard case the
+previous benchmark already measured as a wash-to-slight-loss at that
+scale. Lazy decoding's advantage comes from *skipping unused terms*;
+a shard with few terms has little to skip. This is a genuinely useful,
+non-obvious empirical result: **the value of lazy binary decode is
+governed by a shard's vocabulary breadth, not raw corpus size** — a
+detail no amount of first-principles reasoning about "avoid parsing the
+whole shard" would have surfaced without measuring real shards.
+
+**Updated recommendation**: lazy per-term decode is the right design —
+it turns binary from a net loss into a consistent win for the common
+case (a shard with tens of distinct terms, which is what most of a real
+vocabulary's shards look like; the 3-term 100k-doc shard is the
+already-flagged pathological tail case where even one term's own
+posting list is enormous). Building the binary tier for real should
+implement the directory-based layout this prototype validates —
+`spec-binary-format.md`'s "sorted string table + binary search"
+baseline plus lazy per-term posting decode — rather than a whole-shard
+decode step. The remaining gap before calling this production-ready:
+this prototype fully decodes every term *name* in the directory up
+front into a `Map` (fast here — sub-millisecond even at 100k docs,
+since these shards only hold 3-57 terms), rather than doing
+`spec-binary-format.md`'s recommended binary search directly against
+the encoded, undecoded byte offsets. A shard with a genuinely large
+vocabulary (thousands of terms, e.g. an unsharded `shardByPrefix: false`
+small-corpus-mode shard rather than one of these narrow per-prefix
+ones) could make that directory-parse step itself non-trivial; that's a
+real but bounded follow-up to validate, not a blocker to the
+recommendation above.

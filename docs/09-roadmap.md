@@ -745,14 +745,34 @@ Phase 2 is now fully implemented.
   unoptimized decoder*. Building the binary tier as a real feature needs
   lazy per-term posting decode (not whole-shard decode, which this
   benchmark only measures for a fair baseline) to plausibly turn that
-  into a real win, which is the next slice of this work, not yet
-  attempted.
+  into a real win.
+- ✅ Lazy per-term decode prototype
+  (`packages/indexer/bench/binary-lazy-decode.mjs`, run via
+  `pnpm --filter @csf/indexer run bench:binary-lazy`): re-encodes the
+  same largest-shard baseline into a directory-based layout (sorted
+  term → byte offset/length table + postings blob, per
+  [spec-binary-format.md](spec-binary-format.md#dictionary-encoding)'s
+  own baseline) so a specific term's postings decode by seeking directly
+  to its byte range, without touching any other term — every result
+  round-trip-verified against the full JSON-parsed shard. **This does
+  flip the previous benchmark's finding**: decoding the directory plus a
+  simulated 1-3-term query's *busiest* (highest-df, most expensive
+  plausible) terms is 1.0x-9.5x faster than `JSON.parse`, not slower, at
+  every corpus size tested. The win's *size* has a genuinely non-obvious
+  dependency the numbers expose: it shrinks as the shard's own term
+  *count* shrinks (down to ~1.0x, no real win, at 100k docs' 3-term
+  largest shard), not as corpus size grows — because lazy decoding wins
+  by skipping unused terms, and a shard with few terms has little to
+  skip. Full numbers and interpretation in
+  [11-binary-vs-json-index.md](11-binary-vs-json-index.md). Building
+  the binary tier for real should use this directory-based, lazy-decode
+  design, not a whole-shard decode step.
 - Binary tier codec proper (plus a Range-request-capable single-file
-  postings variant) built as a real, shipped feature — the benchmark
-  above is proof-of-concept evidence for *whether*, this is the *actual
-  implementation*, gated on first proving out lazy per-term decode —
-  see [11-binary-vs-json-index.md](11-binary-vs-json-index.md) (the
-  "should we, and when") and [spec-binary-format.md](spec-binary-format.md)
+  postings variant) built as a real, shipped feature — the two
+  benchmarks above are proof-of-concept evidence for *whether* and
+  *how*, this is the *actual implementation* — see
+  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) (the "should
+  we, and when") and [spec-binary-format.md](spec-binary-format.md)
   (the physical layout) — plus an optional WASM scoring core and
   federated multi-index search. A query planner
   ([spec-query-planner.md](spec-query-planner.md)) and storage
