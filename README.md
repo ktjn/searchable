@@ -9,7 +9,9 @@ Think "Algolia/Typesense-grade query features, Pagefind/lunr-style
 zero-backend deployment."
 
 **Status**: Phases 0, 1, and 2 of the roadmap have working code, Phases
-3, 5, and 6 are fully built, and Phase 4 is partially built —
+3, 5, and 6 are fully built, Phase 4 is partially built, and Phase 7
+(scale options) has an opt-in binary term-shard tier plus the
+benchmarking that validated its design —
 [`packages/analysis`](packages/analysis)
 (shared tokenizer, four `LanguageProfile`s — English + German, each
 with a real stemmer verified against its own public reference
@@ -55,7 +57,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 330 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 349 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 32 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

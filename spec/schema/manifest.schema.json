@@ -75,7 +75,8 @@
               "lang": { "type": "string" },
               "prefix": { "type": "string" },
               "file": { "type": "string" },
-              "termCount": { "type": "integer", "minimum": 0 }
+              "termCount": { "type": "integer", "minimum": 0 },
+              "format": { "enum": ["json", "binary"] }
             }
           }
         },

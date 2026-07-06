@@ -1,6 +1,14 @@
 # Binary Index Format Specification
 
-Status: Draft
+Status: Draft, term shards implemented — see
+[09-roadmap.md](09-roadmap.md#phase-7--scale-options) and
+[11-binary-vs-json-index.md](11-binary-vs-json-index.md) for the shipped
+term-shard encoding (`writeIndex(built, outDir, { termShardFormat: "binary" })`,
+`packages/indexer/src/binary-term-shard.ts` +
+`packages/client/src/binary-term-shard.ts`) and the benchmarks that
+validated its directory-based, lazy-per-term-decode design before it was
+built. Facet, doc store, synonym, pins, and fuzzy shards remain JSON —
+this doc's design for those is still a draft, not yet implemented.
 
 ## Purpose
 

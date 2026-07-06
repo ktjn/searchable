@@ -1,0 +1,157 @@
+import type { TermEntry, TermShard } from "@csf/format";
+
+/**
+ * Directory-based binary term shard encoding
+ * (docs/spec-binary-format.md#dictionary-encoding's "sorted string
+ * table" baseline, docs/spec-binary-format.md#posting-encoding's
+ * delta+varint baseline): a sorted term -> (byte offset, byte length)
+ * directory followed by a postings blob, each term's postings
+ * independently encoded so the client can decode *only* the terms a
+ * query actually matched by seeking directly to their byte range
+ * (docs/spec-binary-format.md#decoding-strategy's "decode only matching
+ * posting lists") -- never the whole shard.
+ *
+ * Validated in `packages/indexer/bench/binary-lazy-decode.mjs` before
+ * being promoted here: at 1k/10k docs, decoding a directory plus a
+ * handful of matched terms measured 2.9x-9.5x faster than
+ * `JSON.parse`-ing the equivalent whole JSON shard (see
+ * docs/11-binary-vs-json-index.md for the full writeup and the
+ * shard-vocabulary-size caveat that win depends on).
+ *
+ * Layout: `[directory][postings blob]`. The directory is:
+ * `varint(termCount)`, then per term (sorted): `string(term)`,
+ * `varint(byteOffsetIntoPostingsBlob)`, `varint(byteLength)`. Each
+ * term's postings blob is: `varint(df)`, `varint(postingCount)`, then
+ * per posting: `varint(docIdDelta)`, `varint(hasBoost ? 1 : 0)`,
+ * `float64(boost)` if present, `varint(fieldCount)`, then per field
+ * (sorted by name): `string(fieldName)`, `varint(tf)`, `varint(len)`,
+ * `varint(positionCount)`, `varint(positionDelta)` per position.
+ *
+ * Boost is encoded as float64, not float32: a document boost like 1.8
+ * (`csf-boost`, docs/04-query-ranking-boosts.md) doesn't round-trip
+ * exactly through float32 (1.8 -> f32 -> f64 comes back as
+ * 1.7999999523162842) -- a real precision loss the JSON tier's plain
+ * decimal text never has.
+ */
+
+class ByteWriter {
+  #chunks: Uint8Array[] = [];
+  #buf = new Uint8Array(4096);
+  #len = 0;
+
+  #ensure(extra: number): void {
+    if (this.#len + extra <= this.#buf.length) return;
+    this.#chunks.push(this.#buf.subarray(0, this.#len));
+    this.#buf = new Uint8Array(Math.max(4096, extra * 2));
+    this.#len = 0;
+  }
+
+  writeVarint(value: number): void {
+    this.#ensure(10);
+    let v = value;
+    while (v >= 0x80) {
+      this.#buf[this.#len++] = (v & 0x7f) | 0x80;
+      v = Math.floor(v / 128);
+    }
+    this.#buf[this.#len++] = v;
+  }
+
+  writeBytes(bytes: Uint8Array): void {
+    this.#ensure(bytes.length);
+    this.#buf.set(bytes, this.#len);
+    this.#len += bytes.length;
+  }
+
+  writeString(str: string): void {
+    const bytes = new TextEncoder().encode(str);
+    this.writeVarint(bytes.length);
+    this.writeBytes(bytes);
+  }
+
+  writeFloat64(value: number): void {
+    this.#ensure(8);
+    new DataView(
+      this.#buf.buffer,
+      this.#buf.byteOffset + this.#len,
+      8,
+    ).setFloat64(0, value, true);
+    this.#len += 8;
+  }
+
+  toUint8Array(): Uint8Array {
+    this.#chunks.push(this.#buf.subarray(0, this.#len));
+    const total = this.#chunks.reduce((sum, c) => sum + c.length, 0);
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of this.#chunks) {
+      out.set(chunk, offset);
+      offset += chunk.length;
+    }
+    this.#chunks = [out];
+    this.#buf = new Uint8Array(0);
+    this.#len = 0;
+    return out;
+  }
+}
+
+function encodePostings(entry: TermEntry): Uint8Array {
+  const w = new ByteWriter();
+  w.writeVarint(entry.df);
+  w.writeVarint(entry.postings.length);
+  let prevDoc = 0;
+  for (const posting of entry.postings) {
+    w.writeVarint(posting.doc - prevDoc);
+    prevDoc = posting.doc;
+    const hasBoost = typeof posting.boost === "number";
+    w.writeVarint(hasBoost ? 1 : 0);
+    if (hasBoost && posting.boost !== undefined) w.writeFloat64(posting.boost);
+    const fieldNames = Object.keys(posting.fields).sort();
+    w.writeVarint(fieldNames.length);
+    for (const fieldName of fieldNames) {
+      const field = posting.fields[fieldName];
+      if (!field) continue;
+      w.writeString(fieldName);
+      w.writeVarint(field.tf);
+      w.writeVarint(field.len);
+      w.writeVarint(field.pos.length);
+      let prevPos = 0;
+      for (const pos of field.pos) {
+        w.writeVarint(pos - prevPos);
+        prevPos = pos;
+      }
+    }
+  }
+  return w.toUint8Array();
+}
+
+/** Encodes a full term shard into the directory-based binary layout described above. */
+export function encodeTermShardBinary(termShard: TermShard): Uint8Array {
+  const terms = Object.keys(termShard).sort();
+  const postingsBlobs = terms.map((term) => {
+    const entry = termShard[term];
+    if (!entry) throw new Error(`missing term entry for "${term}"`);
+    return encodePostings(entry);
+  });
+
+  const dir = new ByteWriter();
+  dir.writeVarint(terms.length);
+  let offset = 0;
+  for (const [i, term] of terms.entries()) {
+    const blob = postingsBlobs[i];
+    if (!blob) throw new Error(`missing postings blob for term "${term}"`);
+    dir.writeString(term);
+    dir.writeVarint(offset);
+    dir.writeVarint(blob.length);
+    offset += blob.length;
+  }
+  const directoryBytes = dir.toUint8Array();
+
+  const postingsBlob = new ByteWriter();
+  for (const blob of postingsBlobs) postingsBlob.writeBytes(blob);
+  const postingsBytes = postingsBlob.toUint8Array();
+
+  const out = new Uint8Array(directoryBytes.length + postingsBytes.length);
+  out.set(directoryBytes, 0);
+  out.set(postingsBytes, directoryBytes.length);
+  return out;
+}

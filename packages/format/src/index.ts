@@ -36,6 +36,16 @@ export interface Manifest {
       prefix: string;
       file: string;
       termCount: number;
+      /**
+       * Per-shard physical encoding (docs/spec-binary-format.md#manifest-integration):
+       * `"binary"` for the directory-based delta+varint encoding
+       * (docs/11-binary-vs-json-index.md's validated design), absent or
+       * `"json"` for the plain JSON shape every other shard type uses.
+       * Declared per shard, not globally, so a deployment can mix both
+       * during migration — a client must check this per entry, not
+       * assume every term shard in a manifest shares one format.
+       */
+      format?: "json" | "binary";
     }>;
     facets?: Array<{ field: string; file: string }>;
     docs: Array<{ shard: number; file: string; idRange: [number, number] }>;

@@ -358,3 +358,23 @@ small-corpus-mode shard rather than one of these narrow per-prefix
 ones) could make that directory-parse step itself non-trivial; that's a
 real but bounded follow-up to validate, not a blocker to the
 recommendation above.
+
+**Shipped**: the directory-based, lazy-per-term-decode design above is
+now a real, opt-in feature, not just a benchmark prototype —
+`writeIndex(built, outDir, { termShardFormat: "binary" })`
+(`packages/indexer/src/binary-term-shard.ts`,
+`packages/client/src/binary-term-shard.ts`). Per-shard, not global
+(`format: "binary"` recorded on that specific shard's manifest entry,
+per `spec-binary-format.md`'s "a deployment may mix JSON and binary
+files" allowance), and deliberately term-shard-only — every other shard
+type stays JSON. `packages/client/test/binary-term-shard.test.ts`
+builds the same corpus both ways and proves the same real-HTTP
+`SearchClient` query returns identical hit ids *and* identical scores
+across exact-term, prefix, multi-term AND, phrase, synonym-expanded,
+fuzzy-matched, facet-filtered, and document-boosted queries — the
+concrete "Binary and JSON indexes must return identical logical search
+results" success criterion `spec-binary-format.md` sets, verified
+directly rather than assumed. The directory-parse-scales-with-term-count
+follow-up flagged just above (true binary search against undecoded
+directory bytes, for shards with a much larger vocabulary than any
+tested here) remains open for a future slice.

@@ -213,6 +213,60 @@ describe("writeIndex", () => {
     ]);
   });
 
+  it("writes .bin files with format: 'binary' recorded per shard entry when termShardFormat: 'binary'", async () => {
+    // Full decode-correctness (does a binary shard actually round-trip
+    // through a real client and return identical search results to the
+    // JSON equivalent) is proven end-to-end in
+    // packages/client/test/binary-term-shard.test.ts, which has both
+    // the encoder (this package) and the decoder (@csf/client)
+    // available -- this test only checks the structural contract
+    // writeIndex() itself owns: file extension and manifest entries.
+    const built = buildIndex([docA, docB]);
+    const outDir = await tempOutDir();
+    await writeIndex(built, outDir, { termShardFormat: "binary" });
+
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    const enShards = (
+      manifest.shards.terms as {
+        lang: string;
+        prefix: string;
+        file: string;
+        format?: string;
+      }[]
+    ).filter((s) => s.lang === "en");
+    expect(enShards.length).toBeGreaterThan(0);
+    for (const entry of enShards) {
+      expect(entry.format).toBe("binary");
+      expect(entry.file).toMatch(/\.bin$/);
+    }
+  });
+
+  it("produces byte-identical binary term shards regardless of source document order", async () => {
+    const outDir1 = await tempOutDir();
+    const outDir2 = await tempOutDir();
+
+    await writeIndex(buildIndex([docA, docB]), outDir1, {
+      termShardFormat: "binary",
+    });
+    await writeIndex(buildIndex([docB, docA]), outDir2, {
+      termShardFormat: "binary",
+    });
+
+    const termsFiles1 = (await readdir(join(outDir1, "terms", "en"))).sort();
+    const termsFiles2 = (await readdir(join(outDir2, "terms", "en"))).sort();
+    expect(termsFiles1).toEqual(termsFiles2); // same content hash in filename, per shard
+
+    for (const [i, file] of termsFiles1.entries()) {
+      const content1 = await readFile(join(outDir1, "terms", "en", file));
+      const content2 = await readFile(
+        join(outDir2, "terms", "en", termsFiles2[i] as string),
+      );
+      expect(content1.equals(content2)).toBe(true);
+    }
+  });
+
   it("produces byte-identical term and facet shards regardless of source document order", async () => {
     const outDir1 = await tempOutDir();
     const outDir2 = await tempOutDir();

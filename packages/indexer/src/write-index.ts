@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
 import type { Manifest, TermShard } from "@csf/format";
+import { encodeTermShardBinary } from "./binary-term-shard.js";
 import { contentHash } from "./hash.js";
 import type { BuiltIndex } from "./types.js";
 
@@ -38,6 +39,19 @@ async function writeJson(
   const absPath = join(outDir, hashedRelPath);
   await mkdir(dirname(absPath), { recursive: true });
   await writeFile(absPath, json, "utf8");
+  return hashedRelPath;
+}
+
+async function writeBinary(
+  outDir: string,
+  relPath: string,
+  data: Uint8Array,
+): Promise<string> {
+  const hash = contentHash(data);
+  const hashedRelPath = relPath.replace(/\.bin$/, `.${hash}.bin`);
+  const absPath = join(outDir, hashedRelPath);
+  await mkdir(dirname(absPath), { recursive: true });
+  await writeFile(absPath, data);
   return hashedRelPath;
 }
 
@@ -177,6 +191,19 @@ export interface WriteIndexOptions {
    * Defaults to `true` (real prefix sharding, the general-case default).
    */
   shardByPrefix?: boolean;
+  /**
+   * `"binary"` writes term shards with the directory-based delta+varint
+   * encoding (`./binary-term-shard.js`, validated in
+   * `packages/indexer/bench/binary-lazy-decode.mjs` — see
+   * docs/11-binary-vs-json-index.md), one `.bin` file per prefix bucket
+   * with `format: "binary"` recorded on that shard's manifest entry, in
+   * place of the plain-JSON `terms/<lang>/<prefix>.json` shape.
+   * Defaults to `"json"`. Every other shard type (facets, doc store,
+   * pins, synonyms, fuzzy) stays JSON either way — this option is
+   * term-shard-only, matching docs/spec-binary-format.md's "a
+   * deployment may mix JSON and binary files" allowance.
+   */
+  termShardFormat?: "json" | "binary";
 }
 
 export async function writeIndex(
@@ -187,6 +214,7 @@ export async function writeIndex(
   const maxGzipBytes =
     options.maxShardGzipBytes ?? DEFAULT_MAX_TERM_SHARD_GZIP_BYTES;
   const shardByPrefix = options.shardByPrefix ?? true;
+  const termShardFormat = options.termShardFormat ?? "json";
   const languages = Object.keys(built.termShards).sort();
   const terms = (
     await Promise.all(
@@ -198,16 +226,29 @@ export async function writeIndex(
             )
           : ([["all", termShard]] as [string, TermShard][]);
         return Promise.all(
-          buckets.map(async ([prefix, group]) => ({
-            lang: language,
-            prefix,
-            file: await writeJson(
-              outDir,
-              `terms/${language}/${prefix}.json`,
-              group,
-            ),
-            termCount: Object.keys(group).length,
-          })),
+          buckets.map(async ([prefix, group]) => {
+            const file =
+              termShardFormat === "binary"
+                ? await writeBinary(
+                    outDir,
+                    `terms/${language}/${prefix}.bin`,
+                    encodeTermShardBinary(group),
+                  )
+                : await writeJson(
+                    outDir,
+                    `terms/${language}/${prefix}.json`,
+                    group,
+                  );
+            return {
+              lang: language,
+              prefix,
+              file,
+              termCount: Object.keys(group).length,
+              ...(termShardFormat === "binary"
+                ? { format: "binary" as const }
+                : {}),
+            };
+          }),
         );
       }),
     )

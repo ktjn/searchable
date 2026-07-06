@@ -767,17 +767,33 @@ Phase 2 is now fully implemented.
   [11-binary-vs-json-index.md](11-binary-vs-json-index.md). Building
   the binary tier for real should use this directory-based, lazy-decode
   design, not a whole-shard decode step.
-- Binary tier codec proper (plus a Range-request-capable single-file
-  postings variant) built as a real, shipped feature — the two
-  benchmarks above are proof-of-concept evidence for *whether* and
-  *how*, this is the *actual implementation* — see
-  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) (the "should
-  we, and when") and [spec-binary-format.md](spec-binary-format.md)
-  (the physical layout) — plus an optional WASM scoring core and
-  federated multi-index search. A query planner
-  ([spec-query-planner.md](spec-query-planner.md)) and storage
-  abstraction ([spec-storage-api.md](spec-storage-api.md)) are drafted
-  extensibility groundwork for this phase's scale work, not yet built.
+- ✅ Binary tier codec — term shards
+  (`packages/indexer/src/binary-term-shard.ts` for the encoder,
+  `packages/client/src/binary-term-shard.ts` for the decoder,
+  `writeIndex(built, outDir, { termShardFormat: "binary" })`): the two
+  benchmarks above's proof-of-concept promoted into a real, shipped,
+  opt-in feature — the same directory-based, lazy-per-term-decode
+  design, now wired end-to-end. Per-shard, not global (`format:
+  "binary"` on that shard's manifest entry, per
+  [spec-binary-format.md](spec-binary-format.md#manifest-integration)'s
+  "a deployment may mix JSON and binary files" allowance) — every other
+  shard type (facets, doc store, pins, synonyms, fuzzy) stays JSON
+  regardless, matching this slice's deliberately term-shard-only scope.
+  `packages/client/test/binary-term-shard.test.ts` proves
+  `spec-binary-format.md`'s success criterion directly: the same corpus
+  built both ways returns identical hit ids *and* identical scores over
+  real HTTP for exact-term, prefix (`term*`), multi-term AND, `"quoted
+  phrase"`, synonym-expanded, fuzzy-matched, facet-filtered, and
+  document-boosted queries — not just that both return non-empty
+  results. Still missing before this is a complete binary tier: a
+  Range-request-capable single-file postings variant, an optional WASM
+  scoring core, federated multi-index search, and binary encodings for
+  the other shard types — see [11-binary-vs-json-index.md](11-binary-vs-json-index.md)
+  and [spec-binary-format.md](spec-binary-format.md) for what's left. A
+  query planner ([spec-query-planner.md](spec-query-planner.md)) and
+  storage abstraction ([spec-storage-api.md](spec-storage-api.md)) are
+  drafted extensibility groundwork for this phase's scale work, not yet
+  built.
 
 **Phase 8 — Vector & hybrid search**
 - Embedding shard format, chunking, quantization (int8 default), brute-

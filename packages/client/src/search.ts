@@ -10,6 +10,11 @@ import type {
   TermEntry,
   TermShard,
 } from "@csf/format";
+import {
+  decodeBinaryTermEntry,
+  decodeBinaryTermShardDirectory,
+  termsWithBinaryPrefix,
+} from "./binary-term-shard.js";
 import type { ShardCache } from "./fetch-json.js";
 import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
@@ -639,18 +644,47 @@ export async function search(
     exactTermsNeeded,
     prefixesNeeded,
   );
-  const shards = await Promise.all(
-    neededShardEntries.map((entry) =>
-      cache.fetchJson<TermShard>(resolve(baseUrl, entry.file)),
-    ),
-  );
-
   const termLookup = new Map<string, TermEntry>();
-  for (const shard of shards) {
-    for (const [term, entry] of Object.entries(shard)) {
-      termLookup.set(term, entry);
-    }
-  }
+  await Promise.all(
+    neededShardEntries.map(async (entry) => {
+      if (entry.format === "binary") {
+        // Lazy per-term decode (docs/11-binary-vs-json-index.md,
+        // packages/indexer/bench/binary-lazy-decode.mjs): only the
+        // directory (every term name + byte range, no postings) and
+        // the specific terms this query needs are ever decoded, never
+        // the whole shard.
+        const bytes = await cache.fetchArrayBuffer(
+          resolve(baseUrl, entry.file),
+        );
+        const { sortedTerms, index, directoryByteLength } =
+          decodeBinaryTermShardDirectory(bytes);
+        const termsToDecode = new Set<string>();
+        for (const term of exactTermsNeeded) {
+          if (index.has(term)) termsToDecode.add(term);
+        }
+        for (const p of prefixesNeeded) {
+          for (const term of termsWithBinaryPrefix(sortedTerms, p)) {
+            termsToDecode.add(term);
+          }
+        }
+        for (const term of termsToDecode) {
+          const location = index.get(term);
+          if (!location) continue;
+          termLookup.set(
+            term,
+            decodeBinaryTermEntry(bytes, directoryByteLength, location.offset),
+          );
+        }
+      } else {
+        const shard = await cache.fetchJson<TermShard>(
+          resolve(baseUrl, entry.file),
+        );
+        for (const [term, e] of Object.entries(shard)) {
+          termLookup.set(term, e);
+        }
+      }
+    }),
+  );
 
   // Each query term becomes a clause: an exact term matches at most one
   // TermEntry (plus, when synonyms/fuzzy are enabled, any equivalence/

@@ -92,7 +92,7 @@ dist/index/
   "shards": {
     "terms": [
       { "lang": "en", "prefix": "a", "file": "terms/en/a.7f3c.json", "termCount": 812 },
-      { "lang": "en", "prefix": "b", "file": "terms/en/b.2a91.json", "termCount": 640 }
+      { "lang": "en", "prefix": "b", "file": "terms/en/b.2a91.bin", "termCount": 640, "format": "binary" }
     ],
     "facets": [
       { "field": "tags", "file": "facets/tags.51ee.json" }
@@ -171,13 +171,25 @@ happens — which, again, is before the doc-store fetch — so it's
 denormalized onto postings rather than sourced from the doc store.
 Absent means the default, `1.0`.
 
-For the binary tier, this becomes: a sorted term dictionary (FST or
-simple sorted-array + binary search) mapping term → byte offset into a
-postings blob, postings delta-varint-encoded by doc id with a
-skip-list every N entries for fast intersection on large posting lists —
-directly analogous to how Lucene/Tantivy structure their codecs, just
-implemented as a from-scratch minimal format rather than pulling in a
-full search library.
+**Implemented** (`writeIndex(built, outDir, { termShardFormat: "binary" })`,
+`packages/indexer/src/binary-term-shard.ts` for the encoder,
+`packages/client/src/binary-term-shard.ts` for the decoder — see
+[09-roadmap.md](09-roadmap.md#phase-7--scale-options) and
+[11-binary-vs-json-index.md](11-binary-vs-json-index.md) for the
+benchmarks that validated the design before it was built): a sorted
+term dictionary (simple sorted-array + binary search, not an FST —
+`format: "binary"` on the shard's manifest entry, see the `prefix:
+"all"` sentinel note above for how a client tells binary from JSON)
+mapping term → byte offset into a postings blob, postings
+delta-varint-encoded by doc id. The client decodes *only* the specific
+terms a query needs by seeking directly to their byte range — never
+the whole shard — which is what turns a real bytes-on-the-wire
+advantage into a real decode-time advantage too (whole-shard binary
+decode measured *slower* than `JSON.parse` at typical shard sizes; lazy
+per-term decode measured consistently faster). No skip-list yet (postings
+intersection is a plain per-doc-id set scan, same as the JSON tier) —
+a real but currently-unneeded optimization for corpora dense enough to
+have posting lists worth skipping through, not attempted here.
 
 ## Facet shard
 
