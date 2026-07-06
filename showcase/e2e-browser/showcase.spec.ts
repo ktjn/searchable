@@ -50,6 +50,29 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await page.locator(".csf-search-input").fill("zzzznonexistentqueryzzzz");
     await expect(page.locator(".csf-empty")).toBeVisible();
   });
+
+  test("accessibility: announces result count via aria-live and toggles aria-expanded (docs/08-modern-features.md#accessibility)", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}docs/00-overview.html`);
+    const input = page.locator(".csf-search-input");
+    const announcer = page.locator('[role="status"].csf-sr-only');
+
+    await expect(input).toHaveAttribute("aria-expanded", "false");
+    await expect(announcer).toHaveText("");
+
+    await input.fill("prefix matching");
+    await expect(input).toHaveAttribute("aria-expanded", "true");
+    await expect(announcer).toContainText('results for "prefix matching"');
+
+    await input.fill("zzzznonexistentqueryzzzz");
+    await expect(announcer).toHaveText(
+      'No results for "zzzznonexistentqueryzzzz".',
+    );
+
+    await input.fill("");
+    await expect(input).toHaveAttribute("aria-expanded", "false");
+  });
 });
 
 test.describe("feature gallery: product catalog demo (real browser)", () => {
@@ -102,6 +125,25 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
       .allTextContents()) {
       expect(title).not.toBe("");
     }
+  });
+
+  test("accessibility: result count is an aria-live region (docs/08-modern-features.md#accessibility)", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/products/index.html`);
+    const summary = page.locator(".gallery-results-summary");
+    await expect(summary).toHaveAttribute("role", "status");
+    await expect(summary).toHaveAttribute("aria-live", "polite");
+    await expect(summary).toContainText("result");
+
+    const beforeText = await summary.textContent();
+    await page
+      .locator(
+        ".gallery-facet-group:has-text('category') label:has-text(\"Furniture\")",
+      )
+      .locator("input")
+      .check();
+    await expect(summary).not.toHaveText(beforeText ?? "");
   });
 
   test("a matching best-bet pin is labeled and outranks organic ordering", async ({

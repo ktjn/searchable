@@ -51,11 +51,28 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
   input.placeholder = "Search these docs…";
   input.className = "csf-search-input";
   input.setAttribute("aria-label", "Search these docs");
+  input.setAttribute("aria-expanded", "false");
 
   const results = document.createElement("div");
   results.className = "csf-search-results";
+  results.id = "csf-search-results";
+  input.setAttribute("aria-controls", results.id);
 
-  root.append(input, results);
+  // Visually hidden (docs/08-modern-features.md#accessibility): the
+  // dropdown itself already shows results sighted users can see
+  // directly, so this exists purely to announce the same outcome to
+  // screen reader users via aria-live, not to duplicate visible UI.
+  const announcer = document.createElement("div");
+  announcer.className = "csf-sr-only";
+  announcer.setAttribute("role", "status");
+  announcer.setAttribute("aria-live", "polite");
+
+  root.append(input, results, announcer);
+
+  function setOpen(open: boolean): void {
+    results.classList.toggle("is-open", open);
+    input.setAttribute("aria-expanded", String(open));
+  }
 
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let latestQueryId = 0;
@@ -64,20 +81,21 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
     clearTimeout(debounceTimer);
     const query = input.value.trim();
     if (!query) {
-      results.classList.remove("is-open");
+      setOpen(false);
       results.replaceChildren();
+      announcer.textContent = "";
       return;
     }
     debounceTimer = setTimeout(() => runSearch(query), 150);
   });
 
   input.addEventListener("focus", () => {
-    if (results.childElementCount > 0) results.classList.add("is-open");
+    if (results.childElementCount > 0) setOpen(true);
   });
 
   document.addEventListener("click", (event) => {
     if (!root.contains(event.target as Node)) {
-      results.classList.remove("is-open");
+      setOpen(false);
     }
   });
 
@@ -92,6 +110,7 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
       empty.className = "csf-empty";
       empty.textContent = `No results for "${query}".`;
       results.append(empty);
+      announcer.textContent = `No results for "${query}".`;
     } else {
       const list = document.createElement("ul");
       for (const hit of hits) {
@@ -109,7 +128,8 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
         list.append(li);
       }
       results.append(list);
+      announcer.textContent = `${hits.length} result${hits.length === 1 ? "" : "s"} for "${query}".`;
     }
-    results.classList.add("is-open");
+    setOpen(true);
   }
 }

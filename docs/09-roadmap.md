@@ -18,9 +18,9 @@ expansion, plus SymSpell fuzzy matching and "did you mean"
 suggestions; `multiWord` phrase-level synonyms remain pending — see
 below). Phase 6 is partially built (a configuration testbed, a
 bundle-size CI gate, a first slice of result highlighting, observability
-hooks, and `options.signal` cancellation; `searchStream()`, an
-offline/Service Worker plugin, and an accessibility pass remain pending
-— see below). Phase 7+ remain design-only. The GitHub Pages showcase's
+hooks, `options.signal` cancellation, and an accessibility pass in the
+showcase's own widgets; `searchStream()` and an offline/Service Worker
+plugin remain pending — see below). Phase 7+ remain design-only. The GitHub Pages showcase's
 first three stages
 ([`showcase/`](../showcase/)) are also built and actually
 deployed — see below. Stage 3 remains blocked on Phase 8.
@@ -284,8 +284,7 @@ Phase 2 is now fully implemented.
   and `didYouMean` presence/absence — not just unit tests in isolation.
 
 **Phase 6 — Modern features polish**
-- Streaming results (`searchStream()`), offline/Service Worker plugin,
-  accessibility pass.
+- Streaming results (`searchStream()`), offline/Service Worker plugin.
 - ✅ Cancellation
   ([docs/08-modern-features.md#instant-search--debouncing--cancellation](08-modern-features.md#instant-search--debouncing--cancellation),
   [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
@@ -368,6 +367,24 @@ Phase 2 is now fully implemented.
   facets/filters on-or-off variants are likewise not in the matrix yet;
   the framework (one array of `{name, build, search}` entries) makes
   adding either a data change, not new test code.
+- ✅ Accessibility pass, first slice
+  ([docs/08-modern-features.md#accessibility](08-modern-features.md#accessibility),
+  [`showcase/src/search-widget.ts`](../showcase/src/search-widget.ts),
+  [`showcase/src/gallery-widget.ts`](../showcase/src/gallery-widget.ts)):
+  the showcase's own widgets demonstrate the documented `aria-live`
+  pattern as consuming-app code — the docs search box gets
+  `aria-expanded`/`aria-controls` on its `<input>` plus a
+  visually-hidden `role="status" aria-live="polite"` announcer that
+  reports result counts and no-results messages on every keystroke; the
+  feature-gallery widget's already-visible result-count paragraph is
+  promoted to the same kind of live region in place, rather than adding
+  a redundant hidden announcer next to visible text. Verified with two
+  real-browser Playwright tests. Scoped narrower than the target
+  design: no full WAI-ARIA combobox/listbox pattern (roving
+  `aria-activedescendant`, arrow-key navigation) and no RTL layout —
+  both deferred to the future `@csf/react` package, since these are
+  plain-DOM demo widgets, not a reusable accessible-by-default
+  component library.
 
 **Phase 7 — Scale options**
 - Binary tier codec (plus a Range-request-capable single-file postings

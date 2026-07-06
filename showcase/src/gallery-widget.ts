@@ -238,6 +238,12 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     resultsPane.replaceChildren();
     const summary = document.createElement("p");
     summary.className = "gallery-results-summary";
+    // docs/08-modern-features.md#accessibility: this text is already
+    // visible to sighted users, so making it an aria-live region
+    // announces the same result-count change to screen reader users
+    // too, rather than needing a separate hidden element.
+    summary.setAttribute("role", "status");
+    summary.setAttribute("aria-live", "polite");
     summary.textContent = `${result.totalHits} result${result.totalHits === 1 ? "" : "s"}`;
     resultsPane.append(summary);
 

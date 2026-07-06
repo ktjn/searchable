@@ -145,6 +145,21 @@ main a {
   max-width: 320px;
 }
 
+/* Screen-reader-only (docs/08-modern-features.md#accessibility): present
+   in the accessibility tree for aria-live announcements, invisible and
+   out of the flow for sighted users. */
+.csf-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .csf-search-input {
   width: 100%;
   padding: 0.4rem 0.6rem;

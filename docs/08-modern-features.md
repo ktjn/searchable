@@ -197,6 +197,22 @@ contract), not just this cancellation primitive underneath it.
   `@csf/react` package) will be built to WAI-ARIA combobox/listbox
   patterns out of the box.
 
+**Status**: the showcase's own widgets (`showcase/src/search-widget.ts`,
+`showcase/src/gallery-widget.ts`) demonstrate the documented pattern
+above end to end, as consuming-app code, not library code: the docs
+search box exposes `aria-expanded`/`aria-controls` on its `<input>` and
+a visually-hidden (`.csf-sr-only`) `role="status" aria-live="polite"`
+element that announces result counts and no-results messages on every
+query; the feature-gallery widget's already-visible result-count
+paragraph is likewise promoted to a live region
+(`role="status" aria-live="polite"`) rather than adding a second hidden
+announcer, since that text is already on screen. Both are verified in a
+real browser via Playwright (`showcase/e2e-browser/showcase.spec.ts`).
+What's still target-design only: a full WAI-ARIA combobox/listbox
+pattern (roving `aria-activedescendant`, arrow-key result navigation)
+and RTL layout — deferred to the future `@csf/react` package rather
+than built into these plain-DOM demo widgets.
+
 ## Security
 
 - No `eval`/`new Function` anywhere in the runtime (CSP-friendly by
