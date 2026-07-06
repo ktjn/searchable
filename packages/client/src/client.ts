@@ -8,6 +8,7 @@ import type {
   SearchResult,
 } from "./search.js";
 import { validateManifest } from "./validate-manifest.js";
+import { VectorSearchNotConfiguredError } from "./vector-search.js";
 import type {
   WorkerRequestPayload,
   WorkerResponse,
@@ -101,6 +102,20 @@ export interface SearchClientOptions {
    * arbitrary cross-origin URLs (REVIEW.md#6).
    */
   allowCrossOriginShards?: boolean;
+  /**
+   * Turns a query string into the vector `options.mode: "vector"`/
+   * `"hybrid"` search needs (docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from).
+   * Deliberately not provided by this library: what produces this
+   * vector (a bundled local model, a call to a remote embedding API, or
+   * anything else) is a deployment choice this project stays agnostic
+   * to — the resulting `number[]` must have the same dimensionality as
+   * the manifest's vector shards (built with the same `embed()` given
+   * to `@csf/indexer`'s `buildVectorShards()`). Omitting this while
+   * requesting `mode: "vector"`/`"hybrid"` throws
+   * `VectorSearchNotConfiguredError` rather than silently searching
+   * lexical-only.
+   */
+  embedQuery?: (query: string) => Promise<number[]> | number[];
 }
 
 interface PendingRequest {
@@ -168,9 +183,11 @@ export class SearchClient {
    */
   #fatalError?: Error;
   #listeners = new Map<SearchClientEvent, Set<AnyListener>>();
+  #embedQuery: SearchClientOptions["embedQuery"];
 
   constructor(options: SearchClientOptions) {
     this.#indexUrl = toAbsoluteUrl(options.indexUrl);
+    this.#embedQuery = options.embedQuery;
     const wantsWorker =
       options.worker !== false &&
       options.workerUrl !== undefined &&
@@ -225,6 +242,12 @@ export class SearchClient {
     await this.#ready;
     if (this.#fatalError) throw this.#fatalError;
     throwIfAborted(options.signal);
+    // Computed here, not inside search.ts, because `embedQuery` is
+    // arbitrary caller JS that can't cross the Worker postMessage
+    // boundary -- only its plain-array *result* can
+    // (docs/13-vector-and-hybrid-search.md).
+    const queryVector = await this.#resolveQueryVector(query, options.mode);
+    throwIfAborted(options.signal);
     this.#emit("query", { query, options });
     // `signal` is stripped before the options cross into the worker
     // message or the direct-execution search() call -- neither needs
@@ -236,15 +259,44 @@ export class SearchClient {
           type: "search",
           query,
           options: rest,
+          ...(queryVector ? { queryVector } : {}),
         })
       : (async () => {
           // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
           const manifest = await this.#manifest!;
-          return search(query, manifest, this.#cache, this.#indexUrl, rest);
+          return search(
+            query,
+            manifest,
+            this.#cache,
+            this.#indexUrl,
+            rest,
+            queryVector,
+          );
         })();
     const result = await raceAbort(work, signal);
     this.#emit("result", { query, options, result });
     return result;
+  }
+
+  /**
+   * Resolves `options.mode`'s query embedding, if any is needed
+   * (docs/13-vector-and-hybrid-search.md#api-surface). Returns
+   * `undefined` for `mode: "lexical"` (the default) — no embedding is
+   * ever computed unless a caller actually opts into vector/hybrid
+   * search, matching the "pay only for what you use" principle every
+   * other opt-in feature here follows.
+   */
+  async #resolveQueryVector(
+    query: string,
+    mode: SearchOptions["mode"],
+  ): Promise<number[] | undefined> {
+    if (mode !== "vector" && mode !== "hybrid") return undefined;
+    if (!this.#embedQuery) {
+      throw new VectorSearchNotConfiguredError(
+        `SearchClient.search: mode "${mode}" requires SearchClientOptions.embedQuery to be configured — see docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from`,
+      );
+    }
+    return this.#embedQuery(query);
   }
 
   /**

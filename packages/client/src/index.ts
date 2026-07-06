@@ -18,3 +18,11 @@ export type {
 } from "./search.js";
 export { InvalidManifestError, validateManifest } from "./validate-manifest.js";
 export type { ValidateManifestOptions } from "./validate-manifest.js";
+export {
+  cosineSimilarity,
+  DEFAULT_RRF_K,
+  dequantizeVector,
+  reciprocalRankFusion,
+  VectorSearchNotConfiguredError,
+} from "./vector-search.js";
+export type { VectorHit } from "./vector-search.js";

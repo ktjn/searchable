@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
 import type { Manifest, TermShard } from "@csf/format";
 import { encodeTermShardBinary } from "./binary-term-shard.js";
+import type { BuiltVectors } from "./build-vectors.js";
 import { contentHash } from "./hash.js";
 import type { BuiltIndex } from "./types.js";
 
@@ -204,6 +205,16 @@ export interface WriteIndexOptions {
    * deployment may mix JSON and binary files" allowance.
    */
   termShardFormat?: "json" | "binary";
+  /**
+   * Pre-built vector/hybrid search shards (docs/13-vector-and-hybrid-search.md),
+   * from a separate `buildVectorShards()` call — kept as a distinct
+   * argument rather than a `BuildIndexOptions` field since building
+   * vectors requires calling an async `embed()` function, and
+   * `buildIndex()` itself is deliberately synchronous. Omit entirely for
+   * a corpus with no vector index at all (the common case, and the
+   * default).
+   */
+  vectors?: BuiltVectors;
 }
 
 export async function writeIndex(
@@ -326,6 +337,32 @@ export async function writeIndex(
     }
   }
 
+  const vectorLanguages = Object.keys(options.vectors?.shardsByLanguage ?? {})
+    .filter(
+      (language) =>
+        (options.vectors?.shardsByLanguage[language]?.entries.length ?? 0) > 0,
+    )
+    .sort();
+  let vectors: Manifest["vectors"] | undefined;
+  if (options.vectors && vectorLanguages.length) {
+    const vectorShardFiles: Record<string, string> = {};
+    for (const language of vectorLanguages) {
+      vectorShardFiles[language] = await writeJson(
+        outDir,
+        `vectors/${language}.json`,
+        options.vectors.shardsByLanguage[language],
+      );
+    }
+    vectors = {
+      dims: options.vectors.dims,
+      quantization:
+        options.vectors.shardsByLanguage[vectorLanguages[0] as string]
+          ?.quantization ?? "int8",
+      embeddingProvider: options.vectors.embeddingProvider,
+      shards: vectorShardFiles,
+    };
+  }
+
   const manifest: Manifest = {
     ...built.manifest,
     shards: {
@@ -336,6 +373,7 @@ export async function writeIndex(
     ...(pins ? { pins } : {}),
     ...(synonyms ? { synonyms } : {}),
     ...(fuzzy ? { fuzzy } : {}),
+    ...(vectors ? { vectors } : {}),
   };
 
   await mkdir(outDir, { recursive: true });

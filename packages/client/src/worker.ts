@@ -58,6 +58,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         cache,
         indexUrl,
         msg.options,
+        msg.queryVector,
       );
       post({ type: "result", id: msg.id, result });
     }

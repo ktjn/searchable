@@ -147,6 +147,37 @@ export function validateManifest(
       checkShardFile(file, manifestUrl, allowCrossOrigin, `pins.${lang}`);
     }
   }
+  if (m.vectors !== undefined) {
+    if (typeof m.vectors !== "object" || m.vectors === null) {
+      fail("vectors must be an object");
+    }
+    const vectors = m.vectors as Record<string, unknown>;
+    if (!Number.isInteger(vectors.dims) || (vectors.dims as number) < 1) {
+      fail("vectors.dims must be a positive integer");
+    }
+    if (vectors.quantization !== "float32" && vectors.quantization !== "int8") {
+      fail('vectors.quantization must be "float32" or "int8"');
+    }
+    if (
+      typeof vectors.embeddingProvider !== "object" ||
+      vectors.embeddingProvider === null
+    ) {
+      fail("vectors.embeddingProvider must be an object");
+    }
+    if (typeof vectors.shards !== "object" || vectors.shards === null) {
+      fail("vectors.shards must be an object keyed by language");
+    }
+    for (const [lang, file] of Object.entries(
+      vectors.shards as Record<string, unknown>,
+    )) {
+      checkShardFile(
+        file,
+        manifestUrl,
+        allowCrossOrigin,
+        `vectors.shards.${lang}`,
+      );
+    }
+  }
 
   return data as Manifest;
 }

@@ -1,5 +1,9 @@
 export { buildIndex } from "./build-index.js";
 export type { BuildIndexOptions } from "./build-index.js";
+export { buildVectorShards } from "./build-vectors.js";
+export type { BuiltVectors, VectorsBuildOptions } from "./build-vectors.js";
+export { chunkText } from "./chunk-text.js";
+export type { Chunk } from "./chunk-text.js";
 export { discoverHtmlDocuments } from "./discover.js";
 export { extractDocument } from "./extract.js";
 export type { ExtractedDocument, PinDeclaration } from "./extract.js";
@@ -9,6 +13,7 @@ export type {
   BuiltIndex,
   DocStoreEntry,
   DocStoreShard,
+  EmbeddingProviderConfig,
   FacetShard,
   FacetValueEntry,
   FieldConfig,
@@ -24,4 +29,6 @@ export type {
   SynonymShard,
   TermEntry,
   TermShard,
+  VectorEntry,
+  VectorShard,
 } from "./types.js";

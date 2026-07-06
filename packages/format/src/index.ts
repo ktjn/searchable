@@ -56,6 +56,75 @@ export interface Manifest {
   synonyms?: Record<string, string>;
   /** lang -> fuzzy shard file, only present for languages with a built deletion dictionary. */
   fuzzy?: Record<string, string>;
+  /**
+   * Vector/hybrid search (docs/13-vector-and-hybrid-search.md), only
+   * present for a corpus built with a `vectors` option. `dims` and
+   * `quantization` are corpus-wide (one embedding space per index, not
+   * per language) — a query embedding must have exactly `dims` values
+   * regardless of which language's shard it's compared against.
+   * `embeddingProvider` tells the runtime what produced these vectors,
+   * so it can fail clearly (`VectorSearchNotConfiguredError`) instead of
+   * comparing a query embedding from the wrong model against the
+   * corpus's vectors. `shards` is one file per language (matching the
+   * `pins`/`synonyms`/`fuzzy` per-language-map shape above), not
+   * doc-id-range-sharded further within a language yet — the same
+   * single-shard-per-partition simplification the doc store itself
+   * currently has (write-index.ts always emits one `docs/0.json`).
+   */
+  vectors?: {
+    dims: number;
+    quantization: "float32" | "int8";
+    embeddingProvider: EmbeddingProviderConfig;
+    shards: Record<string, string>;
+  };
+}
+
+/**
+ * Identifies what produced a corpus's vectors (docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from) —
+ * this project doesn't run or validate any embedding model itself, so
+ * this is metadata for the runtime/caller to act on, not something
+ * `@csf/indexer`/`@csf/client` interpret internally. `"local-model"` and
+ * `"remote-api"` mirror the two real query-time options the design doc
+ * lays out; `"custom"` covers any other injectable `embed`/`embedQuery`
+ * function a deployment supplies (including this repo's own tests,
+ * which use a deterministic synthetic embedder, not a real model).
+ */
+export type EmbeddingProviderConfig =
+  | { type: "local-model"; model: string }
+  | { type: "remote-api" }
+  | { type: "custom" };
+
+/**
+ * One passage's embedding (docs/13-vector-and-hybrid-search.md#chunking):
+ * `passageId` back-references the chunk within its parent document
+ * (`"<docId>-<chunkIndex>"`), `docId` is the parent document's id (same
+ * id space as postings/doc store), and `vector` is `dims` numbers,
+ * either raw float32-precision values or int8-quantized ones — see
+ * `VectorShard.quantization`/`quantRange` for which and how to
+ * interpret them.
+ */
+export interface VectorEntry {
+  passageId: string;
+  docId: number;
+  vector: number[];
+}
+
+/**
+ * One language's vector shard (docs/13-vector-and-hybrid-search.md#storage-format).
+ * `quantization: "float32"` stores exact values as-is (JS/JSON numbers
+ * are already float64-precision, so this is "no lossy quantization
+ * applied" rather than a real 32-bit encoding); `"int8"` scalar-quantizes
+ * every dimension of every vector in this shard against one shared
+ * `quantRange` (a single corpus-wide min/max, not per-dimension) to an
+ * integer in `[0, 255]`, per docs/13's "per-shard min/max scaling" --
+ * `quantRange` is only present for that case, since a float32 shard has
+ * nothing to dequantize.
+ */
+export interface VectorShard {
+  dims: number;
+  quantization: "float32" | "int8";
+  quantRange?: { min: number; max: number };
+  entries: VectorEntry[];
 }
 
 export interface FieldPosting {

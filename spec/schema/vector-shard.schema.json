@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://client-search-framework/schema/vector-shard.schema.json",
+  "title": "Vector shard",
+  "description": "One vectors/<lang>.<hash>.json file: one language's chunked-passage embeddings. See docs/13-vector-and-hybrid-search.md#storage-format.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dims", "quantization", "entries"],
+  "properties": {
+    "dims": { "type": "integer", "minimum": 1 },
+    "quantization": { "type": "string", "enum": ["float32", "int8"] },
+    "quantRange": {
+      "description": "Only present when quantization is \"int8\" -- the shared min/max every entry's vector was scaled against.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["passageId", "docId", "vector"],
+        "properties": {
+          "passageId": { "type": "string" },
+          "docId": { "type": "integer", "minimum": 0 },
+          "vector": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -105,6 +105,32 @@
         return { partials, final: final.hits.map((h) => h.id) };
       };
 
+      window.__csfRunVectorSearch = async (query, useWorker, options) => {
+        const CONCEPT_BUCKETS = [
+          ["cancel", "closing", "close"],
+          ["plan", "account", "subscription", "membership"],
+          ["widgets", "gadgets"],
+          ["support"],
+        ];
+        const embed = (text) => {
+          const words = text.toLowerCase().split(/\W+/).filter(Boolean);
+          const vector = CONCEPT_BUCKETS.map(() => 0);
+          for (const word of words) {
+            CONCEPT_BUCKETS.forEach((bucket, i) => {
+              if (bucket.includes(word)) vector[i]++;
+            });
+          }
+          return vector;
+        };
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker ? new URL("./worker.js", location.href) : undefined,
+          embedQuery: embed,
+        });
+        return client.search(query, options);
+      };
+
       window.__csfTestAbortSearch = async (useWorker) => {
         const client = new SearchClient({
           indexUrl: "./manifest.json",

@@ -157,6 +157,34 @@ byproduct of the same dictionary: nearest real terms in the corpus for
 a query term that still matched nothing, surfaced only when the query
 returned zero hits.
 
+### Vector & hybrid search
+
+```ts
+const client = new SearchClient({
+  indexUrl: "/index/manifest.json",
+  embedQuery: (query) => myEmbeddingModel.embed(query), // required for mode: "vector"/"hybrid"
+});
+
+const result = await client.search("how do I cancel my plan", {
+  mode: "hybrid",                // "lexical" (default) | "vector" | "hybrid"
+  vectorWeight: 0.5,             // optional -- overrides RRF with weighted-score fusion, [0, 1]
+});
+```
+
+Mechanics-only slice ([13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md)):
+`mode: "vector"` ranks purely by cosine similarity against the
+manifest's per-language vector shard, bypassing filters/facets/pins for
+now; `mode: "hybrid"` runs the full lexical pipeline (filters/facets/pins
+intact) and vector search independently and merges them, by default via
+Reciprocal Rank Fusion. `embedQuery` is the query-time embedding seam —
+this library ships no embedding model itself (see the design doc's "hard
+constraint" section); omitting it while requesting `mode:
+"vector"`/`"hybrid"` throws `VectorSearchNotConfiguredError` rather than
+silently searching lexical-only. Not supported in combination with
+`searchStream()` yet (that combination also throws
+`VectorSearchNotConfiguredError`, since streaming never supplies a query
+embedding).
+
 ### Highlighting
 
 ```ts

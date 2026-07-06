@@ -1,5 +1,13 @@
 # Vector & Hybrid Search
 
+**Status**: Storage/similarity mechanics implemented — see
+[09-roadmap.md](09-roadmap.md)'s Phase 8 for what's actually built
+(`packages/indexer/src/build-vectors.ts`, `packages/indexer/src/chunk-text.ts`,
+`packages/client/src/vector-search.ts`) vs. still design-only below (real
+embedding-model integration, binary quantization, IVF clustering, WASM
+scoring). The design below is unchanged from when it was written; each
+section is annotated with what's real today.
+
 Flagged as an open question in [09-roadmap.md](09-roadmap.md); Orama
 supports vector and hybrid (lexical + vector) search natively (via
 `@orama/plugin-embeddings`), so this is a real feature gap worth a
@@ -59,6 +67,13 @@ opaquely.
 
 ## Chunking
 
+**Implemented** (`packages/indexer/src/chunk-text.ts`'s `chunkText()`,
+defaults `DEFAULT_CHUNK_TOKENS = 200`/`DEFAULT_CHUNK_OVERLAP_TOKENS = 20`,
+called from `build-vectors.ts` on each document's title+body text). A
+whitespace-word split, not `@csf/analysis`'s stemmed tokens — an
+embedding model wants natural surface text, not an already-destemmed bag
+of words.
+
 Whole documents are usually too long for a single embedding to represent
 well. At index time, long text fields are split into overlapping
 **passages** (configurable size/overlap, e.g. ~200 tokens with ~20-token
@@ -70,6 +85,18 @@ lookup as lexical results,
 [02-index-format.md](02-index-format.md#doc-store-shard)).
 
 ## Storage format
+
+**Implemented**, with one deliberate difference from the sketch below:
+`buildVectorShards()`/`writeIndex()` write one vector shard *per
+language* (`vectors/<lang>.<hash>.json`, `Manifest.vectors.shards: {lang:
+file}`), matching the `pins`/`synonyms`/`fuzzy` per-language shape,
+rather than per doc-id-range shard — a corpus-size-driven refinement
+(doc-id-range sharding within a language) that hasn't been needed yet,
+same as the doc store's own current single-shard-per-partition state.
+`dims`/`quantization`/`embeddingProvider` live on `Manifest.vectors`
+(corpus-wide, since one index has one embedding space); each shard's own
+`dims`/`quantization`/`quantRange`/`entries` mirror the shape below.
+`"binary"` quantization is not implemented (see below).
 
 A new shard type, same directory-of-shards pattern as everything else:
 
@@ -89,23 +116,37 @@ dist/index/
 }
 ```
 
-- **float32**: exact, largest (4 bytes/dim).
+- **float32**: exact, largest (4 bytes/dim). Implemented — stores
+  `embed()`'s raw output as-is (JS/JSON numbers are already
+  float64-precision, so this is really "no quantization applied").
 - **int8 scalar quantization** (default): per-shard min/max scaling to
   8-bit integers, ~4x smaller, negligible recall loss for this use case
   — the right default given the project's size-consciousness.
+  Implemented (`packages/indexer/src/build-vectors.ts`'s
+  `quantizeInt8()`, `packages/client/src/vector-search.ts`'s
+  `dequantizeVector()`).
 - **binary quantization** (1 bit/dim, ~32x smaller): usable as a coarse
   first pass to shortlist candidates before a full-precision rescore on
   a much smaller set, worth offering as an advanced option for very
   large corpora rather than a general default (meaningful recall cost).
+  Not implemented — still a future opt-in, not this slice.
 
 Vectors are sharded by doc-id range (like the doc store), not by term —
 there's no natural "prefix" to shard vectors by, so the sharding purpose
 here is purely keeping any single fetch bounded in size, not enabling
-lookup-by-key the way term-prefix sharding does.
+lookup-by-key the way term-prefix sharding does. **As implemented**,
+sharding today is per-language only (see "Storage format" above) — real
+doc-id-range sharding *within* a language is the same not-yet-needed
+refinement the doc store itself is still missing, deferred until a
+concrete corpus actually needs it.
 
 ## Similarity search strategy
 
-- **Brute-force cosine similarity** (default): compute the query vector's
+- **Brute-force cosine similarity** (default): Implemented
+  (`packages/client/src/vector-search.ts`'s `bruteForceVectorSearch()`) —
+  without the WASM-accelerated scoring path mentioned below, which
+  remains a future opt-in like the lexical core's own
+  `plugin:wasm-core`. Compute the query vector's
   dot product against every stored vector. This sounds naive but is
   simple, exact, and fast enough for corpora up to roughly the low
   hundreds of thousands of passages, especially with a WASM-accelerated
@@ -134,6 +175,13 @@ lookup-by-key the way term-prefix sharding does.
 
 ## Hybrid search: combining lexical and vector scores
 
+**Implemented** (`packages/client/src/vector-search.ts`'s
+`reciprocalRankFusion()`, `packages/client/src/search.ts`'s
+`fuseHybridResult()`) — both fusion modes described below, RRF default
+and the weighted-score override via `options.vectorWeight`. Pinned hits
+(docs/16) are carried over unchanged and excluded from fusion entirely —
+an editorial override, not a similarity-ranking candidate.
+
 Lexical BM25F scores and vector cosine similarities are on incomparable
 scales, so naive weighted-sum combination is fragile. Default fusion
 method is **Reciprocal Rank Fusion (RRF)**: run both searches
@@ -147,6 +195,11 @@ clever" principle — a weighted-score hybrid mode remains available for
 callers who want to hand-tune the tradeoff, but RRF is the default.
 
 ## API surface
+
+**Implemented**, matching the sketch below exactly
+(`packages/client/src/client.ts`, `packages/client/src/search.ts`) —
+plus `SearchClientOptions.embedQuery` (see "The hard constraint" above),
+the seam a caller wires a real embedding source into.
 
 ```ts
 const result = await client.search("how do I cancel my plan", {

@@ -9,9 +9,13 @@ Think "Algolia/Typesense-grade query features, Pagefind/lunr-style
 zero-backend deployment."
 
 **Status**: Phases 0, 1, and 2 of the roadmap have working code, Phases
-3, 5, and 6 are fully built, Phase 4 is partially built, and Phase 7
-(scale options) has an opt-in binary term-shard tier plus the
-benchmarking that validated its design —
+3, 5, and 6 are fully built, Phase 4 is partially built, Phase 7 (scale
+options) has an opt-in binary term-shard tier plus the benchmarking that
+validated its design, and Phase 8 (vector & hybrid search) has its
+storage/similarity mechanics slice built — chunking, int8/float32
+quantization, brute-force cosine similarity, Reciprocal Rank Fusion
+hybrid search, an injectable query-embedding seam (real embedding-model
+integration still pending) —
 [`packages/analysis`](packages/analysis)
 (shared tokenizer, four `LanguageProfile`s — English + German, each
 with a real stemmer verified against its own public reference
@@ -26,7 +30,9 @@ boosts, `csf-boost`/`csf-facet-<field>`/`csf-facet-range-<field>`/
 `csf-pin*` extraction, a build-time option to treat any facet field as
 hierarchical (path-structured, every ancestor level its own
 addressable entry), authored synonym equivalence/directional data, a
-SymSpell fuzzy/typo-tolerance dictionary), [`packages/client`](packages/client)
+SymSpell fuzzy/typo-tolerance dictionary, an opt-in vector-shard builder
+with a deterministic text chunker and int8/float32 quantization behind
+an injectable `embed()` seam), [`packages/client`](packages/client)
 (fetch + boolean AND + BM25F + field/term/document boosts + prefix
 matching + exact `"quoted phrase"` matching (real position-adjacency,
 not just a bare AND of the words) + Web Worker execution + terms, range, and hierarchical facets
@@ -38,7 +44,9 @@ mean" suggestions + opt-in result highlighting (literal query terms
 only) + observability hooks (`client.on("query" | "result", ...)`) +
 `AbortSignal` query cancellation + `searchStream()`
 streaming/incremental results + `registerOfflineCaching()` offline
-Service Worker caching, all proven in a real browser via Playwright, no
+Service Worker caching + opt-in `mode: "vector" | "hybrid"` search
+(brute-force cosine similarity, Reciprocal Rank Fusion, an injectable
+`embedQuery` seam), all proven in a real browser via Playwright, no
 synonym-or-fuzzy-variant-highlighting yet), and
 [`packages/fixtures`](packages/fixtures) (a realistically-shaped,
 deterministic CMS-export-style corpus generator for real-scale
@@ -57,8 +65,8 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 349 Vitest tests across all packages, including real-HTTP e2e tests
-pnpm test:browser             # 32 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
+pnpm test                     # 387 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test:browser             # 34 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically
 ```

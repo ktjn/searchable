@@ -14,6 +14,7 @@ import type {
 export type {
   DocStoreEntry,
   DocStoreShard,
+  EmbeddingProviderConfig,
   FacetShard,
   FacetValueEntry,
   FieldPosting,
@@ -28,6 +29,8 @@ export type {
   SynonymShard,
   TermEntry,
   TermShard,
+  VectorEntry,
+  VectorShard,
 } from "@csf/format";
 
 export interface SourceDocument {

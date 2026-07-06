@@ -9,6 +9,7 @@ import type {
   SynonymShard,
   TermEntry,
   TermShard,
+  VectorShard,
 } from "@csf/format";
 import {
   decodeBinaryTermEntry,
@@ -20,6 +21,12 @@ import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
 import { parseQuery } from "./parse-query.js";
 import { scoreTermForDoc } from "./score.js";
+import {
+  VectorSearchNotConfiguredError,
+  bruteForceVectorSearch,
+  reciprocalRankFusion,
+} from "./vector-search.js";
+import type { VectorHit } from "./vector-search.js";
 
 export interface Hit {
   id: number;
@@ -175,6 +182,35 @@ export interface SearchOptions {
    * normally, it just won't be delivered to the caller who aborted.
    */
   signal?: AbortSignal;
+  /**
+   * Retrieval strategy (docs/13-vector-and-hybrid-search.md#api-surface).
+   * `"lexical"` (default) is today's BM25F + boosts + synonyms/fuzzy
+   * pipeline above, entirely unaffected by vector search. `"vector"`
+   * embeds the query (via `SearchClientOptions.embedQuery`) and ranks
+   * purely by cosine similarity against the manifest's vector shard for
+   * the resolved language — a deliberate scope boundary for this first
+   * slice: filters/facets/pins/highlighting are lexical-only features
+   * and are not applied in this mode. `"hybrid"` runs the full lexical
+   * pipeline (filters/facets/pins intact) and vector search
+   * independently, then merges them (see `vectorWeight`). `"vector"`/
+   * `"hybrid"` without a configured query-embedding source throws
+   * `VectorSearchNotConfiguredError` rather than silently degrading to
+   * lexical-only. Not supported in combination with `searchStream()`
+   * (which never supplies a query embedding) — that combination also
+   * throws `VectorSearchNotConfiguredError`.
+   */
+  mode?: "lexical" | "vector" | "hybrid";
+  /**
+   * Only meaningful for `mode: "hybrid"`. Omitted (the default) combines
+   * the lexical and vector result lists via Reciprocal Rank Fusion
+   * (docs/13-vector-and-hybrid-search.md#hybrid-search-combining-lexical-and-vector-scores) —
+   * rank-based, so it needs no calibration between BM25F and cosine
+   * similarity's incomparable scales. Passing a number in `[0, 1]`
+   * switches to a min-max-normalized weighted-score combination instead
+   * (`0` = lexical only, `1` = vector only) for callers who want to
+   * hand-tune the tradeoff rather than accept RRF's rank-based default.
+   */
+  vectorWeight?: number;
 }
 
 /** docs/05-synonyms.md#scoring-impact. */
@@ -570,7 +606,7 @@ function shardEntriesForQuery(
  * independently of the organic query and spliced onto the front of the
  * result (docs/16-term-to-page-pinning.md).
  */
-export async function search(
+async function lexicalSearch(
   query: string,
   manifest: Manifest,
   cache: ShardCache,
@@ -1096,6 +1132,259 @@ export async function search(
     totalHits,
     ...(didYouMean ? { didYouMean } : {}),
   };
+}
+
+/** Fetches doc-store entries for exactly the given ids, from whichever doc shard(s) cover them — the same lookup `lexicalSearch` does inline, factored out so vector/hybrid result assembly (which builds its hit list from a different candidate set) can reuse it. */
+async function fetchDocStoreEntriesByIds(
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  ids: number[],
+): Promise<Map<number, DocStoreEntry>> {
+  const docShardEntries = manifest.shards.docs.filter((d) =>
+    ids.some((id) => id >= d.idRange[0] && id <= d.idRange[1]),
+  );
+  const docShards = await Promise.all(
+    docShardEntries.map((entry) =>
+      cache.fetchJson<Record<string, DocStoreEntry>>(
+        resolve(baseUrl, entry.file),
+      ),
+    ),
+  );
+  const docLookup = new Map<number, DocStoreEntry>();
+  for (const shard of docShards) {
+    for (const [id, entry] of Object.entries(shard)) {
+      docLookup.set(Number(id), entry);
+    }
+  }
+  return docLookup;
+}
+
+function docStoreEntryToHit(
+  id: number,
+  score: number,
+  doc?: DocStoreEntry,
+): Hit {
+  return { id, score, url: doc?.url ?? "", fields: doc?.fields ?? {} };
+}
+
+/**
+ * Runs brute-force cosine similarity (`./vector-search.js`) against the
+ * manifest's vector shard for `language`, if one was built
+ * (docs/13-vector-and-hybrid-search.md#storage-format) -- a language
+ * with no vector shard (e.g. an empty partition, or a corpus built
+ * without a `vectors` option at all) simply has no vector matches,
+ * mirroring how a language with no term shard returns no lexical
+ * matches, rather than being an error.
+ */
+async function vectorHitsForLanguage(
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  language: string,
+  queryVector: number[],
+  limit: number,
+): Promise<VectorHit[]> {
+  const file = manifest.vectors?.shards[language];
+  if (!file) return [];
+  const shard = await cache.fetchJson<VectorShard>(resolve(baseUrl, file));
+  return bruteForceVectorSearch(queryVector, shard, limit);
+}
+
+/** How many candidates each side of a hybrid fusion considers, beyond the caller's own requested `limit` -- RRF/weighted fusion over just the final page size would starve out documents that rank, say, 4th on one side and 4th on the other from ever combining into a top-10 fused result. */
+function fusionCandidateLimit(limit: number): number {
+  return Math.max(limit * 3, 30);
+}
+
+async function vectorOnlySearch(
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  queryVector: number[],
+  options: SearchOptions,
+): Promise<SearchResult> {
+  const language = options.language ?? manifest.defaultLanguage;
+  const limit = options.limit ?? 10;
+  const vectorHits = await vectorHitsForLanguage(
+    manifest,
+    cache,
+    baseUrl,
+    language,
+    queryVector,
+    limit,
+  );
+  const docLookup = await fetchDocStoreEntriesByIds(
+    manifest,
+    cache,
+    baseUrl,
+    vectorHits.map((v) => v.docId),
+  );
+  const hits = vectorHits.map((v) =>
+    docStoreEntryToHit(v.docId, v.score, docLookup.get(v.docId)),
+  );
+  return { hits, totalHits: hits.length };
+}
+
+/** `(v - min) / (max - min)` over `values`, clamped to a constant `1` when every value is identical (nothing to distinguish, and avoids a divide-by-zero) -- used to bring BM25F scores and cosine similarities onto a comparable `[0, 1]` scale before a weighted combination, since only RRF's rank-based default is calibration-free. */
+function minMaxNormalize(values: number[]): (value: number) => number {
+  if (values.length === 0) return () => 0;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (max === min) return () => 1;
+  return (value: number) => (value - min) / (max - min);
+}
+
+/**
+ * Combines a lexical result (computed with a wider-than-requested limit
+ * so fusion has real candidates to work with, per `fusionCandidateLimit`)
+ * with an independent vector search over the same query
+ * (docs/13-vector-and-hybrid-search.md#hybrid-search-combining-lexical-and-vector-scores).
+ * Pinned hits (docs/16-term-to-page-pinning.md) are carried over
+ * unchanged and excluded from fusion entirely -- a pin is an editorial
+ * override, not a candidate for a similarity-based reordering -- so only
+ * the *organic* lexical hits are fused with the vector hits, then both
+ * are re-merged with the untouched pinned hits in front, truncated to
+ * the caller's real `options.limit`.
+ */
+async function fuseHybridResult(
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  lexicalResult: SearchResult,
+  vectorHits: VectorHit[],
+  options: SearchOptions,
+): Promise<SearchResult> {
+  const limit = options.limit ?? 10;
+  const pinnedHits = lexicalResult.hits.filter((h) => h.pinned);
+  const organicLexicalHits = lexicalResult.hits.filter((h) => !h.pinned);
+  const pinnedIds = new Set(pinnedHits.map((h) => h.id));
+
+  const nonPinnedVectorHits = vectorHits.filter((v) => !pinnedIds.has(v.docId));
+
+  let combined: Map<number, number>;
+  if (options.vectorWeight !== undefined) {
+    const vectorWeight = options.vectorWeight;
+    const normalizeLexical = minMaxNormalize(
+      organicLexicalHits.map((h) => h.score),
+    );
+    const normalizeVector = minMaxNormalize(
+      nonPinnedVectorHits.map((v) => v.score),
+    );
+    combined = new Map<number, number>();
+    for (const hit of organicLexicalHits) {
+      combined.set(
+        hit.id,
+        (combined.get(hit.id) ?? 0) +
+          (1 - vectorWeight) * normalizeLexical(hit.score),
+      );
+    }
+    for (const v of nonPinnedVectorHits) {
+      combined.set(
+        v.docId,
+        (combined.get(v.docId) ?? 0) + vectorWeight * normalizeVector(v.score),
+      );
+    }
+  } else {
+    combined = reciprocalRankFusion([
+      organicLexicalHits.map((h) => h.id),
+      nonPinnedVectorHits.map((v) => v.docId),
+    ]);
+  }
+
+  const ranked = [...combined.entries()].sort((a, b) => b[1] - a[1]);
+  const remainingSlots = Math.max(0, limit - pinnedHits.length);
+  const topRanked = ranked.slice(0, remainingSlots);
+
+  const lexicalHitById = new Map(organicLexicalHits.map((h) => [h.id, h]));
+  const missingIds = topRanked
+    .map(([id]) => id)
+    .filter((id) => !lexicalHitById.has(id));
+  const extraDocLookup = missingIds.length
+    ? await fetchDocStoreEntriesByIds(manifest, cache, baseUrl, missingIds)
+    : new Map<number, DocStoreEntry>();
+
+  const hits: Hit[] = [
+    ...pinnedHits,
+    ...topRanked.map(([id, fusedScore]) => {
+      const existing = lexicalHitById.get(id);
+      return existing
+        ? { ...existing, score: fusedScore }
+        : docStoreEntryToHit(id, fusedScore, extraDocLookup.get(id));
+    }),
+  ];
+
+  const totalHits = new Set([...pinnedIds, ...combined.keys()]).size;
+
+  return {
+    hits,
+    ...(lexicalResult.facets ? { facets: lexicalResult.facets } : {}),
+    totalHits,
+    ...(lexicalResult.didYouMean
+      ? { didYouMean: lexicalResult.didYouMean }
+      : {}),
+  };
+}
+
+/**
+ * Public entry point dispatching on `options.mode`
+ * (docs/13-vector-and-hybrid-search.md#api-surface). `"lexical"`
+ * (default) delegates entirely to `lexicalSearch` above, unchanged from
+ * before vector search existed. `"vector"`/`"hybrid"` require a
+ * `queryVector` — computed by `SearchClient` from its configured
+ * `embedQuery` before this function is ever called, since embedding is
+ * an arbitrary caller-supplied function that can't cross the Worker
+ * postMessage boundary, only its plain-array *result* can. A direct
+ * caller of this module (bypassing `SearchClient`) who requests
+ * vector/hybrid mode without supplying one gets the same
+ * `VectorSearchNotConfiguredError` a misconfigured `SearchClient` would
+ * throw, rather than a confusing type error deeper in the call stack.
+ */
+export async function search(
+  query: string,
+  manifest: Manifest,
+  cache: ShardCache,
+  baseUrl: string,
+  options: SearchOptions = {},
+  queryVector?: number[],
+): Promise<SearchResult> {
+  const mode = options.mode ?? "lexical";
+  if (mode === "lexical") {
+    return lexicalSearch(query, manifest, cache, baseUrl, options);
+  }
+  if (!queryVector) {
+    throw new VectorSearchNotConfiguredError(
+      `search: mode "${mode}" requires a query embedding, but none was supplied — configure SearchClientOptions.embedQuery (docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from)`,
+    );
+  }
+
+  if (mode === "vector") {
+    return vectorOnlySearch(manifest, cache, baseUrl, queryVector, options);
+  }
+
+  const language = options.language ?? manifest.defaultLanguage;
+  const wideLimit = fusionCandidateLimit(options.limit ?? 10);
+  const [lexicalResult, vectorHits] = await Promise.all([
+    lexicalSearch(query, manifest, cache, baseUrl, {
+      ...options,
+      limit: wideLimit,
+    }),
+    vectorHitsForLanguage(
+      manifest,
+      cache,
+      baseUrl,
+      language,
+      queryVector,
+      wideLimit,
+    ),
+  ]);
+  return fuseHybridResult(
+    manifest,
+    cache,
+    baseUrl,
+    lexicalResult,
+    vectorHits,
+    options,
+  );
 }
 
 /**

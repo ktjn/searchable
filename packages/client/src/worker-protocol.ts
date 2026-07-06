@@ -18,7 +18,19 @@ import type {
  */
 export type WorkerRequestPayload =
   | { type: "init"; indexUrl: string; allowCrossOriginShards?: boolean }
-  | { type: "search"; query: string; options: SearchOptions }
+  | {
+      type: "search";
+      query: string;
+      options: SearchOptions;
+      /**
+       * Precomputed by SearchClient from its `embedQuery` before the
+       * message is sent, when `options.mode` is `"vector"`/`"hybrid"` —
+       * a query embedding function is arbitrary caller JS and can't
+       * cross the postMessage boundary, only its plain-array *result*
+       * can (docs/13-vector-and-hybrid-search.md).
+       */
+      queryVector?: number[];
+    }
   | { type: "searchStream"; query: string; options: SearchOptions }
   | { type: "facetValues"; field: string; options: FacetValuesOptions };
 

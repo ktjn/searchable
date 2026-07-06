@@ -23,10 +23,18 @@ is now fully built (a configuration testbed, a
 bundle-size CI gate, result highlighting, observability hooks,
 `options.signal` cancellation, `searchStream()` streaming results,
 offline Service Worker caching, and an accessibility pass in the
-showcase's own widgets). Phase 7+ remain design-only. The GitHub Pages showcase's
+showcase's own widgets). Phase 7 (scale options) has an opt-in binary
+term-shard tier plus the benchmarking that validated its design. Phase 8
+(vector & hybrid search) has its storage/similarity mechanics slice
+built and tested — chunking, quantization, brute-force cosine
+similarity, RRF hybrid fusion, an injectable query-embedding seam — with
+real embedding-model integration (bundling a local model or wiring a
+remote API) still pending, see below. The GitHub Pages showcase's
 first three stages
 ([`showcase/`](../showcase/)) are also built and actually
-deployed — see below. Stage 3 remains blocked on Phase 8.
+deployed — see below. Stage 3 remains blocked on Phase 8's still-pending
+real embedding-model integration (the mechanics slice alone has no model
+to demo with).
 
 A code/docs review ([`REVIEW.md`](archive/REVIEW.md), response noted
 inline there, archived now that its findings are all resolved) landed
@@ -796,14 +804,40 @@ Phase 2 is now fully implemented.
   built.
 
 **Phase 8 — Vector & hybrid search**
-- Embedding shard format, chunking, quantization (int8 default), brute-
-  force cosine similarity scoring, RRF-based hybrid fusion with lexical
-  BM25F results, opt-in coarse clustering for larger corpora. Full design
-  in [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md).
-  Deliberately sequenced after the lexical engine is proven out (Phases
-  1-6), since it's additive, higher-complexity, and depends on choices
-  (embedding model, quantization thresholds) best validated against a
-  working baseline rather than upfront.
+- ✅ Storage/similarity mechanics — chunking
+  (`packages/indexer/src/chunk-text.ts`: deterministic overlapping-window
+  splitting, ~200/~20-token defaults), a vector-shard builder
+  (`packages/indexer/src/build-vectors.ts`'s `buildVectorShards()`, an
+  async function kept separate from the deliberately-synchronous
+  `buildIndex()`), int8 scalar quantization (default, per-shard min/max)
+  plus exact `float32` storage, one vector shard per language
+  (`Manifest.vectors`, matching the `pins`/`synonyms`/`fuzzy` per-language
+  shape), brute-force cosine similarity
+  (`packages/client/src/vector-search.ts`), and Reciprocal Rank Fusion as
+  the default hybrid-combination method (a min-max-normalized
+  weighted-score mode is available via `options.vectorWeight` as an
+  override). `SearchClient.search(query, { mode: "vector" | "hybrid" })`,
+  with `SearchClientOptions.embedQuery` as the query-time embedding seam
+  and `VectorSearchNotConfiguredError` thrown clearly when it's missing.
+  Full design in
+  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md), now
+  annotated with what's actually built. Proven end-to-end over real HTTP
+  and through a real Worker
+  (`packages/client/test/vector-hybrid-search.test.ts`,
+  `packages/client/e2e-browser/vector-search.spec.ts`) with a
+  deterministic "concept bucket" synthetic embedder that demonstrates the
+  actual point of vector search — surfacing a document sharing zero
+  literal query terms, which the lexical pipeline alone provably misses
+  in the same test.
+- Deliberately still not built, per this slice's own scoping: real
+  embedding model integration (bundling a local ONNX/transformers.js
+  model, or wiring a remote embedding API) — `embed`/`embedQuery` stay an
+  arbitrary injectable seam, exercised in every test with a synthetic,
+  deterministic stand-in, not a real model; binary (1-bit) quantization;
+  IVF-style coarse clustering for larger corpora; WASM-accelerated
+  scoring. All explicitly named as future opt-ins in
+  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md), not
+  day-one requirements.
 
 **Showcase (runs alongside, not a phase of its own)**
 - A GitHub Pages demo is staged against the phases above rather than
@@ -853,7 +887,11 @@ Phase 2 is now fully implemented.
     "not one shared mega corpus" design. `Intl.Segmenter` CJK handling,
     RTL rendering, and per-language stemming differences remain
     unbuilt (blocked on Phase 4 itself, not this stage).
-  - ⬜ Stage 3 (semantic search demo): needs Phase 8 — still blocked.
+  - ⬜ Stage 3 (semantic search demo): Phase 8's storage/similarity
+    mechanics are built, but this stage needs a real embedding model
+    wired in (bundled local model or remote API) to have anything
+    genuine to demo against the showcase's own docs corpus — still
+    blocked on that, not on the mechanics.
 
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is
 already a usable, if basic, client-side search engine) — this is
