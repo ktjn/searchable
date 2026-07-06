@@ -6,6 +6,7 @@ import type {
   FacetShard,
   FuzzyShard,
   PinsShard,
+  Posting,
   SourceDocument,
   SynonymShard,
   TermShard,
@@ -500,8 +501,26 @@ function resolvePins(
   return { pinsShards, warnings };
 }
 
+/**
+ * Per-language, persists across every `addPostings()` call for the
+ * whole corpus: term -> docId -> that term's already-created `Posting`
+ * for that doc, so a second field (`body` after `title`) for the same
+ * (term, doc) pair finds its existing posting in O(1) instead of
+ * scanning `entry.postings` -- which, before this existed, was an
+ * `Array.prototype.find()` over an array that grows up to a term's
+ * full document frequency, making a common term's total insertion
+ * cost O(df²) and the whole build effectively O(n²) in corpus size
+ * (measured: ~31s to index 10k synthetic docs, vs. ~1.1s for 1k --
+ * see docs/11-binary-vs-json-index.md's Phase 7 investigation, where
+ * this was found while establishing a JSON-tier scaling baseline).
+ * Doesn't change `entry.postings`' insertion order or any output
+ * shape -- purely a lookup-cost fix.
+ */
+type PostingIndex = Map<string, Map<number, Posting>>;
+
 function addPostings(
   shard: TermShard,
+  postingIndex: PostingIndex,
   field: string,
   docId: number,
   docBoost: number,
@@ -517,16 +536,22 @@ function addPostings(
 
   for (const [term, positions] of positionsByTerm) {
     let entry = shard[term];
+    let docIndex = postingIndex.get(term);
     if (!entry) {
       entry = { df: 0, postings: [] };
       shard[term] = entry;
     }
-    let posting = entry.postings.find((p) => p.doc === docId);
+    if (!docIndex) {
+      docIndex = new Map();
+      postingIndex.set(term, docIndex);
+    }
+    let posting = docIndex.get(docId);
     if (!posting) {
       posting = { doc: docId, fields: {} };
       if (docBoost !== 1.0) posting.boost = docBoost;
       entry.postings.push(posting);
       entry.df++;
+      docIndex.set(docId, posting);
     }
     posting.fields[field] = {
       tf: positions.length,
@@ -590,6 +615,7 @@ export function buildIndex(
   }
 
   const termShards: Record<string, TermShard> = {};
+  const postingIndexByLanguage = new Map<string, PostingIndex>();
   const docStore: DocStoreShard = {};
   const facetShards: Record<string, FacetShard> = {};
   const pinsAccByLanguage = new Map<string, Map<string, PinAccumulatorEntry>>();
@@ -622,8 +648,27 @@ export function buildIndex(
       termShard = {};
       termShards[language] = termShard;
     }
-    addPostings(termShard, "title", source.id, extracted.boost, titleTokens);
-    addPostings(termShard, "body", source.id, extracted.boost, bodyTokens);
+    let postingIndex = postingIndexByLanguage.get(language);
+    if (!postingIndex) {
+      postingIndex = new Map();
+      postingIndexByLanguage.set(language, postingIndex);
+    }
+    addPostings(
+      termShard,
+      postingIndex,
+      "title",
+      source.id,
+      extracted.boost,
+      titleTokens,
+    );
+    addPostings(
+      termShard,
+      postingIndex,
+      "body",
+      source.id,
+      extracted.boost,
+      bodyTokens,
+    );
     addFacetValues(
       facetShards,
       extracted.facets,

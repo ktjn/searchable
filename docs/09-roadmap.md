@@ -601,6 +601,31 @@ Phase 2 is now fully implemented.
   component library.
 
 **Phase 7 — Scale options**
+- ✅ Found and fixed a real O(n²) `buildIndex()` performance bug while
+  establishing the JSON-tier scaling baseline this phase's investigation
+  needs ([11-binary-vs-json-index.md](11-binary-vs-json-index.md)):
+  `addPostings()` (`packages/indexer/src/build-index.ts`) looked up a
+  term's existing posting for a document via
+  `entry.postings.find((p) => p.doc === docId)` — an O(current
+  document-frequency) scan repeated for every (term, doc, field) triple
+  indexed, making the whole build effectively O(n²) in corpus size once
+  a term's posting list grew large (measured before the fix: ~1.1s at
+  1k docs, ~31s at 10k, an unsustainable curve for the "generate a
+  1M-doc synthetic corpus for benchmarking" work this phase actually
+  needs). Fixed with a per-language `Map<term, Map<docId, Posting>>`
+  index maintained alongside each language's `TermShard`, giving O(1)
+  lookup without changing `entry.postings`' insertion order or any
+  output shape — confirmed behavior-identical by the full existing test
+  suite passing unchanged. After the fix: ~1.1s at 1k docs, ~11s at 10k,
+  ~153s at 100k — roughly linear (mildly super-linear, consistent with
+  GC/allocation overhead at scale, not a remaining algorithmic
+  blowup). A dedicated regression test
+  (`packages/indexer/test/cms-2k-fixture.test.ts`) guards against this
+  bug class recurring: a hand-rolled worst-case corpus (every document
+  shares the same small vocabulary, maximizing every term's document
+  frequency) asserts an 8x corpus-size jump stays under a 12x time
+  increase — true linear scaling lands near 8x, the fixed bug measured
+  ~22x on this exact corpus shape.
 - Binary tier codec (plus a Range-request-capable single-file postings
   variant), benchmarked against JSON at 10k/100k/1M synthetic corpus
   sizes to empirically set the size/density threshold where it's worth

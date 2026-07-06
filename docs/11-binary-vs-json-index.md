@@ -152,3 +152,17 @@ Added to [09-roadmap.md](09-roadmap.md) Phase 7: build the binary codec
 both against JSON at 10k/100k/1M synthetic corpus sizes, and use that
 data (not intuition) to set the size/density threshold at which the
 indexer's auto-suggestion switches on.
+
+**Update**: while establishing the JSON-tier half of that baseline (a
+prerequisite to any JSON-vs-binary comparison), a real O(n²)
+`buildIndex()` performance bug was found and fixed — see the Phase 7
+bullet in [09-roadmap.md](09-roadmap.md#phase-7--scale-options) for the
+details. Worth calling out here specifically because it changes this
+investigation's own premise: the "unsustainable build time at scale"
+concern a slow JSON-tier reference indexer might otherwise raise is a
+fixed indexer bug, not evidence for or against binary — `buildIndex()`
+now scales roughly linearly (~11s at 10k docs, ~153s at 100k, measured
+on synthetic corpora via `@csf/fixtures`'s `generateCms2kCorpus()`),
+so the actual JSON-vs-binary tradeoff this doc discusses (bytes on the
+wire, client-side parse/decode time, producibility) remains exactly as
+analyzed above and is unaffected by the fix.

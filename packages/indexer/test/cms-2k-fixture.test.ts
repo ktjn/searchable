@@ -1,6 +1,7 @@
 import { generateCms2kCorpus } from "@csf/fixtures";
 import { describe, expect, it } from "vitest";
 import { buildIndex } from "../src/build-index.js";
+import type { SourceDocument } from "../src/types.js";
 
 /**
  * Exercises the real indexer against a realistically-shaped,
@@ -76,5 +77,50 @@ describe("buildIndex against the CMS-2k reference fixture", () => {
     );
     expect(boostedIds.size).toBeGreaterThan(0);
     expect(boostedIds.size).toBeLessThan(sources.length / 5);
+  });
+
+  it("build time scales roughly linearly with corpus size, not quadratically, for a corpus with high posting-list density", () => {
+    // Regression guard for a real O(n^2) bug found while establishing a
+    // JSON-tier scaling baseline for the Phase 7 investigation
+    // (docs/11-binary-vs-json-index.md): addPostings() used to look up
+    // a term's existing posting for a doc via `entry.postings.find()`,
+    // an O(df) scan repeated for every (term, doc) pair, making the
+    // whole build O(n^2) in corpus size once a term's posting list grew
+    // large. A hand-rolled worst-case corpus (every doc shares the same
+    // small vocabulary, maximizing every term's document frequency) is
+    // used rather than the naturalistic CMS-2k generator, since a more
+    // realistic vocabulary spread dilutes any single term's df enough
+    // that the quadratic cost doesn't show up until a much larger (and
+    // much slower to test) corpus size. Measured on this exact corpus
+    // shape before the fix: 2000 docs ~0.7s, 16000 docs ~15.8s (~22x for
+    // an 8x corpus-size jump); after the fix: ~0.6s and ~3.5s (~6x).
+    function denseCorpus(count: number): SourceDocument[] {
+      const html =
+        '<html lang="en"><head><title>widget gadget doohickey thingamajig</title></head>' +
+        "<body><main><p>widget gadget doohickey thingamajig common shared words " +
+        "repeated across every single document in this corpus to maximize " +
+        "posting list density</p></main></body></html>";
+      return Array.from({ length: count }, (_, i) => ({
+        id: i + 1,
+        url: `/${i + 1}`,
+        html,
+      }));
+    }
+
+    const small = denseCorpus(2000);
+    const large = denseCorpus(16000);
+
+    const t0 = performance.now();
+    buildIndex(small);
+    const smallMs = performance.now() - t0;
+
+    const t1 = performance.now();
+    buildIndex(large);
+    const largeMs = performance.now() - t1;
+
+    // True linear scaling lands near 8x; the fixed quadratic bug
+    // measured ~22x for this same 8x corpus-size jump. 12x sits
+    // between the two with margin on both sides.
+    expect(largeMs).toBeLessThan(smallMs * 12);
   });
 });
