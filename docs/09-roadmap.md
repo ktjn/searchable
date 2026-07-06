@@ -725,21 +725,39 @@ Phase 2 is now fully implemented.
   candidate prefix bucket (recursively, for any over-budget one) instead
   of writing one shard outright — a one-time build-time cost, paid once
   per deploy, traded for the query-time win above.
-- Binary tier codec (plus a Range-request-capable single-file postings
-  variant), benchmarked against JSON at 10k/100k/1M synthetic corpus
-  sizes to empirically set the size/density threshold where it's worth
-  switching — see the investigation in
-  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) (the "should
-  we, and when") and [spec-binary-format.md](spec-binary-format.md)
-  (the physical layout, if/when the investigation says yes) — optional
-  WASM scoring core and federated multi-index search. (The independent
-  Python reference generator proving the format is genuinely
-  implementation-agnostic, previously listed here as not yet built, is
-  done — see Phase 0's "Cross-implementation conformance" bullet.) A
-  query planner ([spec-query-planner.md](spec-query-planner.md)) and
-  storage abstraction ([spec-storage-api.md](spec-storage-api.md)) are
-  drafted extensibility groundwork for this phase's scale work, not yet
-  built.
+- ✅ Binary-vs-JSON postings benchmark
+  (`packages/indexer/bench/binary-vs-json-postings.mjs`, run via
+  `pnpm --filter @csf/indexer run bench:binary`): a minimal delta+varint
+  binary postings codec matching
+  [spec-binary-format.md](spec-binary-format.md)'s own baseline
+  recommendation, benchmarked against the largest single prefix shard
+  (the real per-query worst case, per the prefix-sharding fix above) at
+  1k/10k/100k docs, every result round-trip-verified byte-identical to
+  the JSON source. Deliberately investigation-only code (not part of
+  `@csf/format`/`@csf/indexer`'s shipped API) — see
+  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) for the full
+  writeup. Two findings, in opposite directions: the gzip size win is
+  far larger than this investigation's earlier illustrative estimate and
+  grows with corpus size (11x at 1k docs, 41x at 100k), but a naive
+  whole-shard binary decode is currently *slower* than native
+  `JSON.parse` at small/medium scale and only breaks even at 100k —
+  contradicting the "avoid parse cost" framing for *this specific,
+  unoptimized decoder*. Building the binary tier as a real feature needs
+  lazy per-term posting decode (not whole-shard decode, which this
+  benchmark only measures for a fair baseline) to plausibly turn that
+  into a real win, which is the next slice of this work, not yet
+  attempted.
+- Binary tier codec proper (plus a Range-request-capable single-file
+  postings variant) built as a real, shipped feature — the benchmark
+  above is proof-of-concept evidence for *whether*, this is the *actual
+  implementation*, gated on first proving out lazy per-term decode —
+  see [11-binary-vs-json-index.md](11-binary-vs-json-index.md) (the
+  "should we, and when") and [spec-binary-format.md](spec-binary-format.md)
+  (the physical layout) — plus an optional WASM scoring core and
+  federated multi-index search. A query planner
+  ([spec-query-planner.md](spec-query-planner.md)) and storage
+  abstraction ([spec-storage-api.md](spec-storage-api.md)) are drafted
+  extensibility groundwork for this phase's scale work, not yet built.
 
 **Phase 8 — Vector & hybrid search**
 - Embedding shard format, chunking, quantization (int8 default), brute-

@@ -221,3 +221,73 @@ benchmarked against *this* baseline (prefix-sharded JSON, largest-shard
 numbers above), not the pre-fix unsharded one — the original 10k/100k/1M
 benchmarking plan in the roadmap's Phase 7 bullet still stands, just
 against the corrected reference point.
+
+**That benchmark is now done.**
+`packages/indexer/bench/binary-vs-json-postings.mjs` (`pnpm --filter @csf/indexer run bench:binary`)
+takes the same largest-single-prefix-shard baseline as the table above,
+encodes it with a minimal delta+varint binary postings codec matching
+[spec-binary-format.md](spec-binary-format.md)'s own baseline
+recommendation (delta-encoded doc ids, varints throughout, delta-encoded
+positions), and measures real gzip size and decode time against the
+shard's existing JSON. Every result is round-trip-verified
+byte-identical to the JSON source before being reported, so a number is
+never published for a broken encoding:
+
+| docs | JSON gzip | binary gzip | size ratio | JSON parse | binary decode | speed ratio |
+|---|---|---|---|---|---|---|
+| 1,000 | 19.9 KB | 1.8 KB | **11.28x smaller** | 4.6 ms | 10.9 ms | 0.42x (binary slower) |
+| 10,000 | 46.8 KB | 1.4 KB | **33.76x smaller** | 11.9 ms | 32.0 ms | 0.37x (binary slower) |
+| 100,000 | 197.1 KB | 4.8 KB | **41.00x smaller** | 98.4 ms | 97.0 ms | 1.01x (roughly even) |
+
+Two real, somewhat surprising findings, in opposite directions:
+
+1. **The bytes-on-the-wire win is far bigger than this doc's earlier
+   "illustrative" ~20-30%-to-~2x estimate, and it grows with corpus
+   size** — 11x at 1k docs, 41x at 100k. The earlier estimate was
+   reasoned from first principles about gzip vs. hand-rolled
+   integer-packing in the abstract; measuring the *actual* shards this
+   codebase produces shows the effect is much larger in practice. The
+   shards that end up "largest" (and therefore matter most for
+   fetch latency) are dominated by a handful of very common terms with
+   large, dense posting lists — precisely the case delta+varint
+   doc-id encoding is suited for and gzip's generic LZ77-style
+   compression can't reach nearly as well, since gzip compresses
+   *repeated byte sequences*, not the *arithmetic structure* of
+   ascending integers the way delta-encoding does.
+2. **Decoding is currently *slower* than `JSON.parse`, not faster, at
+   small-to-medium scale — and only breaks even at 100k.** This directly
+   contradicts the "avoid whole-shard JSON parse cost" framing
+   [spec-binary-format.md](spec-binary-format.md) leads with, *for this
+   specific implementation*: V8's native `JSON.parse` is extremely
+   well-optimized C++, while this benchmark's decoder is a naive,
+   hand-rolled JavaScript byte-at-a-time loop — a fair baseline
+   comparison, but not evidence that binary decoding is inherently
+   slower. The gap closes as shards get bigger because `JSON.parse`'s
+   cost scales with the much larger *raw text* size while the varint
+   decoder's cost scales with the much smaller *binary* size; by 100k
+   docs the shard is large enough that binary's smaller total byte
+   count starts to offset its slower per-byte decode loop. A real
+   implementation has two independent levers this prototype doesn't use
+   that could plausibly flip this entirely: **lazy per-term decoding**
+   (only decode the postings for terms the query actually matched,
+   rather than every term in the shard up front, per
+   [spec-binary-format.md](spec-binary-format.md#decoding-strategy)'s
+   own "decode lazily" guidance — this benchmark decodes the whole
+   shard for a fair apples-to-apples comparison, which is *not* how a
+   real client would use it) and a more optimized decoder (a
+   typed-array-based bulk varint decode loop, or WASM, neither
+   attempted here).
+
+**Revised recommendation**: the bytes-on-the-wire case for binary is
+real and substantial — a 41x smaller fetch at 100k docs is not a rounding
+error, and shrinking the *largest* prefix shard (this investigation's
+remaining open question after the prefix-sharding fix above) is
+squarely what it's for. The decode-time story is genuinely unresolved:
+this benchmark's naive whole-shard decoder is currently a regression
+against `JSON.parse`, so building the binary tier as a straight
+whole-shard-decode replacement would trade a real bytes win for a real
+latency loss. Building it *well* — lazy per-term posting decode, not
+whole-shard — is a prerequisite the next slice of this work needs to
+prove out empirically (measuring decode time for *only the matched
+term's postings*, not the whole shard) before recommending binary as a
+default, not an optional afterthought.

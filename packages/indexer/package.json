@@ -14,7 +14,8 @@
     "build": "vite build && tsc --emitDeclarationOnly",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "bench": "node bench/json-tier-scaling.mjs"
+    "bench": "node bench/json-tier-scaling.mjs",
+    "bench:binary": "node bench/binary-vs-json-postings.mjs"
   },
   "dependencies": {
     "@csf/analysis": "workspace:*",
