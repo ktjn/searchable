@@ -7,7 +7,10 @@ export {
   english,
   german,
   japanese,
+  khmer,
+  lao,
   stripDiacritics,
+  thai,
 } from "./language-profile.js";
 export type { LanguageProfile, TokenSpan } from "./language-profile.js";
 export {
@@ -15,5 +18,6 @@ export {
   getRegisteredLanguageCodes,
 } from "./registry.js";
 export { segmentCjkBigram } from "./segment-cjk.js";
+export { segmentSeaTrigram } from "./segment-sea.js";
 export { stemGerman } from "./stemmer-de.js";
 export { stemEnglish } from "./stemmer-en.js";

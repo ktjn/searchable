@@ -9,7 +9,7 @@ Think "Algolia/Typesense-grade query features, Pagefind/lunr-style
 zero-backend deployment."
 
 **Status**: Phases 0, 1, and 2 of the roadmap have working code, Phases
-3, 5, and 6 are fully built, Phase 4 is partially built, Phase 7 (scale
+3, 5, and 6 are fully built, Phase 4 is mostly built, Phase 7 (scale
 options) has an opt-in binary tier for term, fuzzy, and doc store shards
 plus the benchmarking that validated its design, and Phase 8 (vector & hybrid search) has its
 storage/similarity mechanics slice built — chunking, int8/float32
@@ -18,13 +18,16 @@ hybrid search, an injectable query-embedding seam, and real local-model
 embedding integration via `@huggingface/transformers` (a remote-API
 option still pending) —
 [`packages/analysis`](packages/analysis)
-(shared tokenizer, four `LanguageProfile`s — English + German, each
+(shared tokenizer, seven `LanguageProfile`s — English + German, each
 with a real stemmer verified against its own public reference
 vocabulary (classic Porter for English, 23,531 words; Snowball for
-German, 35,053 words), plus Chinese + Japanese, both using a bigram
-n-gram fallback segmenter for guaranteed-correct CJK substring
-matching without a bundled word-boundary dictionary, plus a
-zero-bundled-model auto language detector used as an `<html lang>`-less
+German, 35,053 words), plus Chinese + Japanese (bigram n-gram fallback
+segmenter) and Thai + Khmer + Lao (trigram n-gram fallback segmenter,
+sharing its run-scanning core with the CJK one), all four for
+guaranteed-correct substring matching in their own scripts without a
+bundled word-boundary dictionary, plus a zero-bundled-model auto
+language detector (script-range detection for CJK and Thai/Khmer/Lao,
+marker-word detection for English/German) used as an `<html lang>`-less
 fallback and an `isRtlLanguage()` primitive),
 [`packages/format`](packages/format) (shared manifest/shard types),
 [`packages/indexer`](packages/indexer) (rendered HTML → manifest +
@@ -69,7 +72,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 430 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 446 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 34 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

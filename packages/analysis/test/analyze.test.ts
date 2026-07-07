@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { analyze, chinese, english, japanese } from "../src/index.js";
+import {
+  analyze,
+  chinese,
+  english,
+  japanese,
+  khmer,
+  lao,
+  thai,
+} from "../src/index.js";
 
 describe("analyze (english)", () => {
   it("splits on word boundaries and lowercases", () => {
@@ -61,5 +69,51 @@ describe("analyze (chinese/japanese, bigram fallback segmentation)", () => {
   it("mixes CJK bigrams and whole Latin words in one token stream", () => {
     const tokens = analyze("深度learning模型", chinese);
     expect(tokens.map((t) => t.term)).toEqual(["深度", "learning", "模型"]);
+  });
+});
+
+describe("analyze (thai/khmer/lao, trigram fallback segmentation)", () => {
+  it("produces overlapping trigrams as terms, unstemmed (stem is identity)", () => {
+    const tokens = analyze("สวัสดี", thai);
+    expect(tokens.map((t) => t.term)).toEqual(["สวั", "วัส", "ัสด", "สดี"]);
+    expect(tokens.map((t) => t.literal)).toEqual(tokens.map((t) => t.term));
+  });
+
+  it("segments Khmer text the same trigram way", () => {
+    const tokens = analyze("សួស្តី", khmer);
+    expect(tokens.map((t) => t.term)).toEqual(["សួស", "ួស្", "ស្ត", "្តី"]);
+  });
+
+  it("segments Lao text the same trigram way", () => {
+    const tokens = analyze("ສະບາຍດີ", lao);
+    expect(tokens.map((t) => t.term)).toEqual([
+      "ສະບ",
+      "ະບາ",
+      "ບາຍ",
+      "າຍດ",
+      "ຍດີ",
+    ]);
+  });
+
+  it("assigns sequential positions to trigram tokens, same as word tokens for other languages", () => {
+    const tokens = analyze("สวัสดี", thai);
+    expect(tokens.map((t) => t.position)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("is stable across repeated calls (index/query parity)", () => {
+    const a = analyze("สวัสดีครับ", thai);
+    const b = analyze("สวัสดีครับ", thai);
+    expect(a).toEqual(b);
+  });
+
+  it("mixes Thai trigrams and whole Latin words in one token stream", () => {
+    const tokens = analyze("สวัสดี hello", thai);
+    expect(tokens.map((t) => t.term)).toEqual([
+      "สวั",
+      "วัส",
+      "ัสด",
+      "สดี",
+      "hello",
+    ]);
   });
 });

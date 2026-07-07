@@ -9,16 +9,18 @@ including the realistically-shaped fixture corpus that was its last
 pending item. Phase 3 is now fully built (terms facets, range facets
 (both *filtering* and aggregate bucket *results*), hierarchical facets,
 pins, and a filter-only `facetValues()` browsing call — see below).
-Phase 4 is partially built (a
+Phase 4 is mostly built (a
 second real LanguageProfile, true per-document-language corpus
 partitioning, real stemmers for both English (classic Porter) and
 German (Snowball), a CJK bigram-fallback `LanguageProfile` for
-Chinese/Japanese, deterministic zero-bundled-model auto language
-detection as an `<html lang>`-less fallback, and an `isRtlLanguage()`
+Chinese/Japanese, a Thai/Khmer/Lao trigram-fallback `LanguageProfile`
+family, deterministic zero-bundled-model auto language detection (now
+covering all of CJK and Thai/Khmer/Lao by script, plus English/German by
+marker words) as an `<html lang>`-less fallback, and an `isRtlLanguage()`
 primitive plus `SearchResult.language` so a consuming app can set
-`dir="rtl"` without re-deriving either fact itself; Thai/Khmer/Lao
-segmentation and the higher-precision `Intl.Segmenter`-dictionary path
-for Chinese/Japanese remain pending — see below). Phase
+`dir="rtl"` without re-deriving either fact itself; the higher-precision
+`Intl.Segmenter`-dictionary path for Chinese/Japanese (and, potentially,
+Thai/Khmer/Lao) remains pending — see below). Phase
 5 is now fully built (query-time synonym
 expansion including `multiWord` phrase-level synonyms, SymSpell fuzzy
 matching (distance-1 and opt-in distance-2) with a length-dependent
@@ -368,16 +370,36 @@ Phase 2 is now fully implemented.
   arbitrary browsers/Node versions this runtime targets) — the
   higher-precision `Intl.Segmenter("zh"|"ja")` dictionary-based path
   the original design called for remains a documented future upgrade,
-  not built here. Thai/Khmer/Lao remain pending — a separate script
-  range, not a mechanical extension of this one.
+  not built here.
+- ✅ Thai/Khmer/Lao trigram-fallback segmentation
+  ([03-tokenization-i18n.md#segmentation](03-tokenization-i18n.md#segmentation),
+  [`packages/analysis/src/segment-sea.ts`](../packages/analysis/src/segment-sea.ts)):
+  three new `LanguageProfile`s, `thai` (`"th"`), `khmer` (`"km"`), and
+  `lao` (`"lo"`), all using the same trigram segmenter over their
+  respective script ranges (Thai U+0E00-0E7F, Lao U+0E80-0EFF, Khmer
+  U+1780-17FF) — the same n-gram robustness-net strategy as the CJK
+  bigram profiles above, but at width 3 rather than 2, since a single
+  codepoint in these scripts (often just one letter or one combining
+  vowel/tone mark) is finer-grained than a Han character or kana
+  syllable. The run-scanning/windowing mechanics are shared with the CJK
+  profiles via a new `packages/analysis/src/segment-ngram.ts`
+  (`segmentByScriptNgram(text, isInScript, n)`), refactored out of
+  `segment-cjk.ts` without changing its output (verified: its existing
+  tests pass unchanged). `stem` is the identity function, same reasoning
+  as CJK. `getRegisteredLanguageCodes()`-driven candidate lists meant
+  `extract.ts`'s `detectLanguage()` fallback and every other
+  registry-consuming call site picked these up automatically, with zero
+  code changes needed there.
 - ✅ Auto language detection + an RTL primitive
   ([03-tokenization-i18n.md](03-tokenization-i18n.md#auto-language-detection),
   `packages/analysis/src/detect-language.ts`'s `detectLanguage()`,
   `packages/analysis/src/is-rtl.ts`'s `isRtlLanguage()`): a
   deterministic, zero-bundled-model fallback wired into
   `extractDocument()` for pages with no `<html lang>` — script-range
-  detection for CJK (unambiguous), small curated function-word lists for
-  the two Latin-script profiles that exist (English, German), deliberately
+  detection for CJK and, as of the Thai/Khmer/Lao slice above,
+  Thai/Lao/Khmer too (all unambiguous, each its own non-overlapping
+  Unicode block), small curated function-word lists for the two
+  Latin-script profiles that exist (English, German), deliberately
   independent of `LanguageProfile.stopwords` (still empty everywhere,
   unrelated). An explicit `<html lang>` always wins; a low-confidence
   detection still falls back to `defaultLanguage`, exactly the prior

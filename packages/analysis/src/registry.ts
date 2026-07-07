@@ -1,4 +1,12 @@
-import { chinese, english, german, japanese } from "./language-profile.js";
+import {
+  chinese,
+  english,
+  german,
+  japanese,
+  khmer,
+  lao,
+  thai,
+} from "./language-profile.js";
 import type { LanguageProfile } from "./language-profile.js";
 
 /**
@@ -11,6 +19,9 @@ const PROFILES: Record<string, LanguageProfile> = {
   de: german,
   zh: chinese,
   ja: japanese,
+  th: thai,
+  km: khmer,
+  lo: lao,
 };
 
 export function getLanguageProfile(code: string): LanguageProfile {

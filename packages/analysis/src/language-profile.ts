@@ -1,4 +1,5 @@
 import { segmentCjkBigram } from "./segment-cjk.js";
+import { segmentSeaTrigram } from "./segment-sea.js";
 import { stemGerman } from "./stemmer-de.js";
 import { stemEnglish } from "./stemmer-en.js";
 
@@ -100,6 +101,45 @@ export const chinese: LanguageProfile = {
 export const japanese: LanguageProfile = {
   code: "ja",
   segment: segmentCjkBigram,
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: (term) => term,
+};
+
+/**
+ * Trigram (n-gram) fallback segmentation (`./segment-sea.ts`), the same
+ * robustness-net strategy as `chinese`/`japanese` above but at width 3
+ * rather than 2 (see that module's own doc comment for why). `stem` is
+ * the identity function for the same reason as `chinese`/`japanese`:
+ * none of these scripts have Indo-European-style inflectional
+ * morphology that affix-stripping stemming targets. `foldDiacritics` is
+ * deliberately `false`: Thai/Khmer/Lao vowel signs and tone marks are
+ * Unicode combining marks but are *not* decorative diacritics -- they
+ * distinguish otherwise-identical words, so running them through
+ * `stripDiacritics()`'s NFKD-then-strip-combining-marks logic (built for
+ * Latin-script accents) would silently conflate distinct words.
+ */
+export const thai: LanguageProfile = {
+  code: "th",
+  segment: segmentSeaTrigram,
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: (term) => term,
+};
+
+/** Same trigram-fallback segmentation as `thai` above -- the fallback mechanism doesn't depend on which of the three scripts the text is in (docs/03-tokenization-i18n.md#segmentation). */
+export const khmer: LanguageProfile = {
+  code: "km",
+  segment: segmentSeaTrigram,
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: (term) => term,
+};
+
+/** Same trigram-fallback segmentation as `thai` above -- the fallback mechanism doesn't depend on which of the three scripts the text is in (docs/03-tokenization-i18n.md#segmentation). */
+export const lao: LanguageProfile = {
+  code: "lo",
+  segment: segmentSeaTrigram,
   foldDiacritics: false,
   stopwords: new Set(),
   stem: (term) => term,

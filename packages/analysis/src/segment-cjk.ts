@@ -24,54 +24,24 @@
  * characters (Latin words, digits, punctuation, whitespace — CJK text
  * routinely mixes in these, e.g. product codes or English loanwords)
  * is segmented normally via `Intl.Segmenter`, exactly like the
- * space-delimited-language profiles.
+ * space-delimited-language profiles. The run-scanning/windowing
+ * mechanics themselves live in `./segment-ngram.ts`, shared with
+ * `./segment-sea.ts`'s trigram Thai/Khmer/Lao fallback.
  */
 
 import type { TokenSpan } from "./language-profile.js";
+import { segmentByScriptNgram } from "./segment-ngram.js";
 
 // Han ideographs (+ Extension A), hiragana, katakana -- deliberately
 // excludes Hangul (Korean is whitespace-delimited at the word level,
-// docs/03-tokenization-i18n.md#segmentation) and Thai/Khmer/Lao (a
-// separate, not-yet-built bigram profile with its own script ranges).
+// docs/03-tokenization-i18n.md#segmentation) and Thai/Khmer/Lao (see
+// `./segment-sea.ts`'s own trigram profile with its own script ranges).
 const CJK_CHAR = /[\u{3040}-\u{30FF}\u{3400}-\u{4DBF}\u{4E00}-\u{9FFF}]/u;
 
 function isCjk(ch: string): boolean {
   return CJK_CHAR.test(ch);
 }
 
-const nonCjkSegmenter = new Intl.Segmenter("en", { granularity: "word" });
-
-/** Splits a run of non-CJK text into ordinary word-boundary spans (Latin words, digits, punctuation, whitespace). */
-function segmentNonCjkRun(run: string): TokenSpan[] {
-  return Array.from(nonCjkSegmenter.segment(run), (s) => ({
-    text: s.segment,
-    isWordLike: s.isWordLike ?? false,
-  }));
-}
-
-/** Splits a run of consecutive CJK characters into overlapping bigrams (or the single character itself, if the run is only one character long). */
-function segmentCjkRun(run: string[]): TokenSpan[] {
-  if (run.length === 1) {
-    return [{ text: run[0] as string, isWordLike: true }];
-  }
-  const spans: TokenSpan[] = [];
-  for (let i = 0; i < run.length - 1; i++) {
-    spans.push({ text: `${run[i]}${run[i + 1]}`, isWordLike: true });
-  }
-  return spans;
-}
-
 export function segmentCjkBigram(text: string): TokenSpan[] {
-  const chars = [...text];
-  const spans: TokenSpan[] = [];
-  let i = 0;
-  while (i < chars.length) {
-    const cjk = isCjk(chars[i] as string);
-    let j = i;
-    while (j < chars.length && isCjk(chars[j] as string) === cjk) j++;
-    const run = chars.slice(i, j);
-    spans.push(...(cjk ? segmentCjkRun(run) : segmentNonCjkRun(run.join(""))));
-    i = j;
-  }
-  return spans;
+  return segmentByScriptNgram(text, isCjk, 2);
 }

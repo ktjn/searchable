@@ -7,8 +7,9 @@
  * not a bundled ML model: the roadmap's own open question is "how much
  * bundled model size is worth it... vs. just requiring explicit `language`
  * tagging", and this resolves that for the common case at zero bundle
- * cost -- script-range detection for CJK (unambiguous, no data table
- * needed) plus a small curated function-word list for the Latin-script
+ * cost -- script-range detection for CJK and Thai/Khmer/Lao (unambiguous,
+ * no data table needed, each occupies its own non-overlapping Unicode
+ * block) plus a small curated function-word list for the Latin-script
  * profiles that actually exist today (English, German). A language this
  * module has no heuristic for (a hypothetical future Latin-script
  * LanguageProfile with no word list added here) is simply never detected
@@ -18,15 +19,18 @@
 
 const HIRAGANA_KATAKANA = /[぀-ヿ]/u;
 const HAN = /[㐀-䶿一-鿿]/u;
+const THAI = /[\u{0E00}-\u{0E7F}]/u;
+const LAO = /[\u{0E80}-\u{0EFF}]/u;
+const KHMER = /[\u{1780}-\u{17FF}]/u;
 const LETTER = /\p{L}/u;
 
 /**
- * Fraction of "letter-ish" characters that must be CJK-script before this
- * module trusts a script-based classification over Latin scoring --
- * guards against one stray Han character in an otherwise-Latin page
- * (e.g. a brand name) triggering a false "this is Chinese" verdict.
+ * Fraction of "letter-ish" characters that must be a given script before
+ * this module trusts a script-based classification over Latin scoring --
+ * guards against one stray non-Latin character in an otherwise-Latin
+ * page (e.g. a brand name) triggering a false script-based verdict.
  */
-const CJK_SCRIPT_THRESHOLD = 0.3;
+const SCRIPT_THRESHOLD = 0.3;
 
 /**
  * Small, curated, unambiguous function-word lists -- purely a detection
@@ -83,21 +87,30 @@ const LATIN_MARKER_WORDS: Record<string, ReadonlySet<string>> = {
   ]),
 };
 
-function countCjkChars(text: string): {
+function countScriptChars(text: string): {
   han: number;
   kana: number;
+  thai: number;
+  lao: number;
+  khmer: number;
   letters: number;
 } {
   let han = 0;
   let kana = 0;
+  let thai = 0;
+  let lao = 0;
+  let khmer = 0;
   let letters = 0;
   for (const ch of text) {
     if (!LETTER.test(ch)) continue;
     letters++;
     if (HIRAGANA_KATAKANA.test(ch)) kana++;
     else if (HAN.test(ch)) han++;
+    else if (THAI.test(ch)) thai++;
+    else if (LAO.test(ch)) lao++;
+    else if (KHMER.test(ch)) khmer++;
   }
-  return { han, kana, letters };
+  return { han, kana, thai, lao, khmer, letters };
 }
 
 /** Counts occurrences of `words` (whole-word, case-insensitive) in `text`. */
@@ -122,10 +135,21 @@ export function detectLanguage(
   candidateCodes: readonly string[],
 ): string | undefined {
   const candidates = new Set(candidateCodes);
-  const { han, kana, letters } = countCjkChars(text);
-  if (letters > 0 && (han + kana) / letters >= CJK_SCRIPT_THRESHOLD) {
-    const cjkCode = kana > 0 ? "ja" : "zh";
-    return candidates.has(cjkCode) ? cjkCode : undefined;
+  const { han, kana, thai, lao, khmer, letters } = countScriptChars(text);
+  if (letters > 0) {
+    if ((han + kana) / letters >= SCRIPT_THRESHOLD) {
+      const cjkCode = kana > 0 ? "ja" : "zh";
+      return candidates.has(cjkCode) ? cjkCode : undefined;
+    }
+    if (thai / letters >= SCRIPT_THRESHOLD) {
+      return candidates.has("th") ? "th" : undefined;
+    }
+    if (lao / letters >= SCRIPT_THRESHOLD) {
+      return candidates.has("lo") ? "lo" : undefined;
+    }
+    if (khmer / letters >= SCRIPT_THRESHOLD) {
+      return candidates.has("km") ? "km" : undefined;
+    }
   }
 
   let bestCode: string | undefined;

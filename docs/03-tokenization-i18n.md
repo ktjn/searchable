@@ -1,20 +1,22 @@
 # Tokenization & Internationalization
 
-**Status**: The `LanguageProfile` abstraction is built with four real
-profiles (`english`, `german`, `chinese`, `japanese` —
-[`packages/analysis`](../packages/analysis)), and the indexer/client
-genuinely partition a multi-language corpus by each document's own
-declared language (not a single language forced onto the whole batch)
-— see [09-roadmap.md](09-roadmap.md#status). `english` and `german`
-have real stemmers (see [Stemming](#stemming) below); `chinese` and
-`japanese` use bigram-fallback segmentation (see
-[Segmentation](#segmentation) below) with identity stemming, matching
-the documented no-op rule for languages without inflectional
+**Status**: The `LanguageProfile` abstraction is built with seven real
+profiles (`english`, `german`, `chinese`, `japanese`, `thai`, `khmer`,
+`lao` — [`packages/analysis`](../packages/analysis)), and the
+indexer/client genuinely partition a multi-language corpus by each
+document's own declared language (not a single language forced onto the
+whole batch) — see [09-roadmap.md](09-roadmap.md#status). `english` and
+`german` have real stemmers (see [Stemming](#stemming) below);
+`chinese`/`japanese` use bigram-fallback segmentation and
+`thai`/`khmer`/`lao` use trigram-fallback segmentation (see
+[Segmentation](#segmentation) below), both with identity stemming,
+matching the documented no-op rule for languages without inflectional
 morphology. Auto language detection (`@csf/analysis`'s
-`detectLanguage()`) and an `isRtlLanguage()` primitive are now built too
-— see their own paragraphs below for exact scope. Still pending:
-Thai/Khmer/Lao segmentation and the higher-precision
-`Intl.Segmenter`-dictionary path for `chinese`/`japanese`.
+`detectLanguage()`) now covers all three of these script families (in
+addition to CJK) and an `isRtlLanguage()` primitive are also built —
+see their own paragraphs below for exact scope. Still pending: the
+higher-precision `Intl.Segmenter`-dictionary path for
+`chinese`/`japanese` (and, potentially, `thai`/`khmer`/`lao` too).
 
 The single hardest correctness requirement: **the exact same analysis
 pipeline must run at index time and at query time**, per language,
@@ -85,9 +87,27 @@ register a custom profile for anything unsupported.
   segmentation uses `Intl.Segmenter`, morphological analysis is a
   best-effort suffix-stripping stemmer (see below).
 - **Thai/Khmer/Lao** (no spaces, no `Intl.Segmenter` dictionary support
-  in all engines at time of writing): bigram/trigram fallback the same as
-  the CJK robustness net, or an optional bundled dictionary-segmentation
-  plugin for higher precision if the corpus is Thai-heavy.
+  in all engines at time of writing). **Status**: the `thai`/`khmer`/`lao`
+  `LanguageProfile`s (`packages/analysis/src/segment-sea.ts`) ship an
+  n-gram fallback the same as the CJK robustness net, but at width 3
+  (trigram) rather than 2 -- a run of consecutive Thai (U+0E00-0E7F),
+  Lao (U+0E80-0EFF), or Khmer (U+1780-17FF) characters splits into
+  overlapping 3-character windows (e.g. `"สวัสดี"` -> `"สวั"`, `"วัส"`,
+  `"ัสด"`, `"สดี"`). Width 3 rather than 2: a single codepoint in these
+  scripts is often just one letter or one combining vowel/tone mark
+  (unlike a Han character or kana syllable, already a dense semantic unit
+  on its own), so a 2-character window would too often split a word's
+  smallest meaningful unit (a consonant plus its vowel sign) across two
+  separate spans instead of capturing it whole in one. A run shorter than
+  3 characters indexes as that whole run rather than being dropped, and a
+  run of non-script text (Latin words, digits, punctuation) segments
+  normally via `Intl.Segmenter`, exactly like the CJK profiles. The
+  run-scanning/windowing mechanics are shared with the CJK bigram
+  profiles via `packages/analysis/src/segment-ngram.ts`'s
+  `segmentByScriptNgram(text, isInScript, n)`. An optional bundled
+  dictionary-segmentation plugin for higher precision, if a deployment's
+  corpus is Thai/Khmer/Lao-heavy, remains a future upgrade, same as the
+  CJK dictionary-segmentation path below.
 - **Right-to-left (Arabic, Hebrew)**: segmentation is whitespace-based
   like Latin scripts; the interesting work is script-specific stemming
   (see below, no `LanguageProfile` built yet for either) and making sure
@@ -121,12 +141,15 @@ is worth it for higher detection accuracy vs. just requiring explicit
 `language` tagging") in favor of a zero-bundle-cost heuristic for the
 common case instead:
 
-- **Script-based detection for CJK**: unambiguous and needs no data
-  table — a meaningful fraction of Han/Hiragana/Katakana characters
-  (≥30%, guarding against one stray CJK character in an otherwise-Latin
-  page) classifies the text as Chinese or Japanese; presence of any
+- **Script-based detection for CJK and Thai/Khmer/Lao**: unambiguous and
+  needs no data table — each of these scripts occupies its own
+  non-overlapping Unicode block, so a meaningful fraction of that
+  block's characters (≥30%, guarding against one stray non-Latin
+  character in an otherwise-Latin page) classifies the text accordingly:
+  Han/Hiragana/Katakana as Chinese or Japanese (presence of any
   Hiragana/Katakana at all picks Japanese over Chinese, since real
-  Chinese text essentially never contains kana.
+  Chinese text essentially never contains kana), and Thai/Lao/Khmer
+  block characters as `th`/`lo`/`km` respectively.
 - **Small curated function-word lists for Latin-script languages**
   (English, German — the two Latin-script `LanguageProfile`s that
   exist): counts occurrences of each language's list against the text

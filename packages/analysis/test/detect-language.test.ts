@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { detectLanguage } from "../src/detect-language.js";
 
-const ALL = ["en", "de", "zh", "ja"];
+const ALL = ["en", "de", "zh", "ja", "th", "km", "lo"];
 
 describe("detectLanguage", () => {
   it("detects clear English prose via function-word markers", () => {
@@ -38,6 +38,33 @@ describe("detectLanguage", () => {
         ALL,
       ),
     ).toBe("ja");
+  });
+
+  it("detects Thai text (Thai script) as th", () => {
+    expect(
+      detectLanguage(
+        "นี่คือเอกสารทดสอบเพื่อยืนยันว่าฟังก์ชันตรวจจับภาษาทำงานได้อย่างถูกต้อง",
+        ALL,
+      ),
+    ).toBe("th");
+  });
+
+  it("detects Lao text (Lao script) as lo", () => {
+    expect(
+      detectLanguage(
+        "ນີ້ແມ່ນເອກະສານທົດສອບເພື່ອຢືນຢັນວ່າຟັງຊັນກວດຫາພາສາເຮັດວຽກໄດ້ຢ່າງຖືກຕ້ອງ",
+        ALL,
+      ),
+    ).toBe("lo");
+  });
+
+  it("detects Khmer text (Khmer script) as km", () => {
+    expect(
+      detectLanguage(
+        "នេះជាឯកសារសាកល្បងដើម្បីផ្ទៀងផ្ទាត់ថាមុខងារកំណត់អត្តសញ្ញាណភាសាដំណើរការបានត្រឹមត្រូវ",
+        ALL,
+      ),
+    ).toBe("km");
   });
 
   it("returns undefined for text with no confident signal (too short/ambiguous)", () => {
