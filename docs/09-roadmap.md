@@ -1079,6 +1079,33 @@ sequencing for incremental value, not a waterfall gate.
   [07-client-api.md](07-client-api.md#federated-multi-index-search)) —
   min-max vs z-score vs learned normalization; needs empirical testing
   against real multi-corpus fixtures before picking a permanent default.
+- **Result diversification / near-duplicate collapsing.** Today every
+  matching document is its own hit, full stop — no de-duplication or
+  per-group cap. Worth a `groupBy` (e.g. cap hits per URL prefix or per
+  facet value) and/or a near-duplicate detector (e.g. shingled
+  minhash over indexed text) so a corpus with many similar/boilerplate
+  pages doesn't crowd out diverse results? No concrete driver yet;
+  revisit once a real deployment's result pages show the symptom.
+- **Freshness decay and authority/importance boosting.** BM25F plus
+  configured field/doc/term boosts ([04-query-ranking-boosts.md](04-query-ranking-boosts.md))
+  is purely content-relevance-based today — no notion of "this page is
+  newer" or "this page is more authoritative" absent an explicit boost
+  the deployment configures by hand. A generic time-decay function
+  (needs a `publishedAt`/`updatedAt` field convention) or a
+  precomputed authority score (e.g. internal-link count) are both
+  plausible, but both need a concrete corpus with a real staleness or
+  authority problem before picking a formula — easy to overfit a decay
+  curve to no actual data.
+- **Query rewrite beyond "did you mean".** Fuzzy matching already
+  surfaces a "did you mean" suggestion string
+  ([04-query-ranking-boosts.md](04-query-ranking-boosts.md#fuzzy--typo-tolerant-matching)),
+  but never auto-applies it — the consumer's UI decides whether to
+  re-run the corrected query. Should the API offer an opt-in
+  auto-rewrite-and-rerun mode (return the corrected-query's hits
+  directly when the original query returns zero results), or does
+  that surprise users by silently changing what they searched for?
+  Leaning toward keeping today's suggest-only behavior as the default
+  either way.
 
 ## Explicit non-features (revisit only with a concrete driver)
 

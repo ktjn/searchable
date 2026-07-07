@@ -163,6 +163,15 @@ Future execution should move toward:
 - UnionIterator
 - ScoreIterator
 
+A related, smaller-scoped optimization independent of the iterator
+rewrite: today's scoring path sorts the full scored-hit set to apply
+`limit`. A top-K heap (bounded-size min-heap, pop-and-replace when a
+new hit outscores the current minimum) avoids the full sort and caps
+memory to `limit` regardless of corpus size — worth doing whenever
+scoring shows up as a hot path in the benchmark suite (item 12 below),
+independent of whether the broader iterator-based execution model
+ever lands.
+
 This reduces allocations and scales much better.
 
 ---
