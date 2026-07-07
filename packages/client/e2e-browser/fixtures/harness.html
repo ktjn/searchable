@@ -196,6 +196,42 @@
         await navigator.serviceWorker.ready;
       };
 
+      // Unlike __csfRegisterOffline above, this doesn't await
+      // navigator.serviceWorker.ready -- that never resolves if install
+      // fails (the worker never reaches "activated"), which is exactly
+      // the case an invalid/cross-origin-shard manifest is meant to
+      // test. Instead it watches the installing worker's own
+      // statechange events and resolves with its terminal state:
+      // "activated" (install + precache succeeded) or "redundant"
+      // (install failed, e.g. validateManifest() threw).
+      window.__csfRegisterOfflineTrackInstall = async (
+        swPath,
+        indexUrl,
+        opts,
+      ) => {
+        const registration = await registerOfflineCaching(
+          new URL(swPath, location.href),
+          new URL(indexUrl, location.href).href,
+          opts,
+        );
+        const worker =
+          registration.installing ||
+          registration.waiting ||
+          registration.active;
+        if (!worker) return "no-worker";
+        if (worker.state === "activated" || worker.state === "redundant") {
+          return worker.state;
+        }
+        return new Promise((resolve) => {
+          worker.addEventListener("statechange", function onChange() {
+            if (worker.state === "activated" || worker.state === "redundant") {
+              worker.removeEventListener("statechange", onChange);
+              resolve(worker.state);
+            }
+          });
+        });
+      };
+
       window.__csfOfflineCacheUrls = async () => {
         const cache = await caches.open("csf-offline");
         const keys = await cache.keys();

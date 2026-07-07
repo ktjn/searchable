@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import type { Manifest } from "@csf/format";
+import { validateManifest } from "./validate-manifest.js";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -31,6 +32,7 @@ function parseConfig(): {
   indexUrl: string;
   mode: "cache-first" | "stale-while-revalidate";
   languages?: string[];
+  allowCrossOriginShards: boolean;
 } {
   const params = new URL(self.location.href).searchParams;
   const indexUrl = params.get("indexUrl");
@@ -47,6 +49,7 @@ function parseConfig(): {
   return {
     indexUrl,
     mode,
+    allowCrossOriginShards: params.get("allowCrossOriginShards") === "1",
     ...(languagesParam ? { languages: languagesParam.split(",") } : {}),
   };
 }
@@ -96,9 +99,17 @@ function shardUrlsFor(
 }
 
 async function precache(): Promise<void> {
-  const { indexUrl, languages } = parseConfig();
+  const { indexUrl, languages, allowCrossOriginShards } = parseConfig();
   const manifestResponse = await fetch(indexUrl);
-  const manifest: Manifest = await manifestResponse.clone().json();
+  const rawManifest: Manifest = await manifestResponse.clone().json();
+  // Same validation the main-thread/Worker query paths already run
+  // before trusting a fetched manifest (client.ts, worker.ts) -- without
+  // it, a malformed or cross-origin-shard-pointing manifest would get
+  // precached (and later blindly served) by this Service Worker alone,
+  // the one ingestion path that skipped it.
+  const manifest = validateManifest(rawManifest, indexUrl, {
+    allowCrossOriginShards,
+  });
   const cache = await caches.open(CACHE_NAME);
   await cache.put(indexUrl, manifestResponse);
   await cache.addAll(shardUrlsFor(manifest, indexUrl, languages));

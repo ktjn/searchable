@@ -25,7 +25,15 @@ export async function serveDir(
       CONTENT_TYPES[extname(path)] ?? "application/octet-stream";
     readFile(join(rootDir, path))
       .then((data) => {
-        res.writeHead(200, { "content-type": contentType });
+        // Permissive CORS so a test can exercise a genuinely cross-origin
+        // fetch succeeding (e.g. allowCrossOriginShards: true against a
+        // second serveDir() instance on a different port) rather than
+        // every cross-origin scenario failing on CORS regardless of what
+        // this library's own code does.
+        res.writeHead(200, {
+          "content-type": contentType,
+          "access-control-allow-origin": "*",
+        });
         res.end(data);
       })
       .catch(() => {

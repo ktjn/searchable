@@ -22,6 +22,18 @@ export interface OfflineCacheOptions {
    * Defaults to every language in the manifest.
    */
   languages?: string[];
+  /**
+   * Same allowance and same meaning as `SearchClientOptions.allowCrossOriginShards`
+   * (`client.ts`) -- off by default, so a compromised or misconfigured
+   * manifest can't make the Service Worker precache (and later blindly
+   * serve) arbitrary cross-origin URLs. The Service Worker validates
+   * the fetched manifest with the same `validateManifest()` the
+   * main-thread/Worker query paths already use before trusting it
+   * (`sw.ts`'s `precache()`), so this needs to be threaded through the
+   * same way `mode`/`languages` are: as a query param on the
+   * registration URL, since `register()` only accepts a script URL.
+   */
+  allowCrossOriginShards?: boolean;
 }
 
 /**
@@ -58,6 +70,9 @@ export async function registerOfflineCaching(
   url.searchParams.set("mode", options.mode ?? "cache-first");
   if (options.languages) {
     url.searchParams.set("languages", options.languages.join(","));
+  }
+  if (options.allowCrossOriginShards) {
+    url.searchParams.set("allowCrossOriginShards", "1");
   }
   return navigator.serviceWorker.register(url, { type: "module" });
 }
