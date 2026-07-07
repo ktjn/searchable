@@ -21,5 +21,12 @@ export default defineConfig({
     // fully self-contained file, not one with unresolved bare
     // specifiers. Both packages are well under 1KB gzipped, so inlining
     // costs nothing meaningful against the bundle-size budget.
+    rollupOptions: {
+      // @huggingface/transformers is only ever reached via a lazy
+      // `import()` inside transformers-embed.ts (an optional
+      // peerDependency, tens of MB) -- must stay external so Rollup
+      // never inlines it into index.js and blows the 15KB core budget.
+      external: ["@huggingface/transformers"],
+    },
   },
 });

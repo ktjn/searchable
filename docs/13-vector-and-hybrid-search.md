@@ -1,12 +1,15 @@
 # Vector & Hybrid Search
 
-**Status**: Storage/similarity mechanics implemented — see
+**Status**: Storage/similarity mechanics implemented, and option 1 below
+(ship a local model) is now implemented too — see
 [09-roadmap.md](09-roadmap.md)'s Phase 8 for what's actually built
 (`packages/indexer/src/build-vectors.ts`, `packages/indexer/src/chunk-text.ts`,
-`packages/client/src/vector-search.ts`) vs. still design-only below (real
-embedding-model integration, binary quantization, IVF clustering, WASM
-scoring). The design below is unchanged from when it was written; each
-section is annotated with what's real today.
+`packages/client/src/vector-search.ts`,
+`packages/indexer/src/transformers-embed.ts`,
+`packages/client/src/transformers-embed.ts`) vs. still design-only below
+(option 2, a remote embedding API; binary quantization; IVF clustering;
+WASM scoring). The design below is unchanged from when it was written;
+each section is annotated with what's real today.
 
 Flagged as an open question in [09-roadmap.md](09-roadmap.md); Orama
 supports vector and hybrid (lexical + vector) search natively (via
@@ -52,6 +55,28 @@ backend to call out to. Two real options, not a false choice:
    but it's a one-time, cached, lazy-loaded download, not part of the
    core bundle, and comparable to what any client-side embedding
    solution (Orama's browser demos included) actually costs.
+   **Implemented**: `createTransformersEmbedder()`
+   (`packages/indexer/src/transformers-embed.ts`) for the offline/build-time
+   half and `createTransformersEmbedQuery()`
+   (`packages/client/src/transformers-embed.ts`) for the query-time half,
+   both backed by `@huggingface/transformers` (ONNX Runtime under the
+   hood), defaulting to `Xenova/all-MiniLM-L6-v2` (384-dim, int8/`q8` by
+   default). The client half is a `devDependency` + optional
+   `peerDependency` only, loaded via a lazy `import()` evaluated on first
+   use, and listed in `packages/client/vite.config.ts`'s
+   `rollupOptions.external` — so a deployment that never calls
+   `createTransformersEmbedQuery()` pays nothing toward the 15KB core
+   bundle budget. **Caveat on how this was verified**: this session's
+   sandbox has organizational egress policy blocking `huggingface.co`
+   (where `@huggingface/transformers` fetches model weights from on first
+   use), so the batching/slicing/lazy-load-caching *plumbing* is tested
+   with a mocked `pipeline` (`packages/indexer/test/transformers-embed.test.ts`,
+   `packages/client/test/transformers-embed.test.ts`), not a real model
+   download — each test file also has an explicitly opt-in test (gated
+   behind `CSF_TEST_REAL_TRANSFORMERS=1`, skipped by default) that
+   exercises the real library end-to-end wherever network access to
+   `huggingface.co` is actually available (e.g. a contributor's own
+   machine, or a CI runner without this sandbox's restriction).
 2. **Call an external embedding API at query time** (explicit, documented
    opt-out from the static-only guarantee, not the default) — for
    deployments that already accept a backend dependency elsewhere and

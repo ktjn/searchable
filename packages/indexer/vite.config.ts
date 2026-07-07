@@ -18,6 +18,7 @@ export default defineConfig({
         "node-html-parser",
         "@csf/analysis",
         "@csf/format",
+        "@huggingface/transformers",
       ],
     },
   },

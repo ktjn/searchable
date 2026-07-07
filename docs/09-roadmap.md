@@ -33,14 +33,18 @@ validated its design (facet/synonym/pins shards deliberately stay JSON —
 see below for why). Phase 8
 (vector & hybrid search) has its storage/similarity mechanics slice
 built and tested — chunking, quantization, brute-force cosine
-similarity, RRF hybrid fusion, an injectable query-embedding seam — with
-real embedding-model integration (bundling a local model or wiring a
-remote API) still pending, see below. The GitHub Pages showcase's
-first three stages
+similarity, RRF hybrid fusion, an injectable query-embedding seam — plus
+real local-model embedding integration via `@huggingface/transformers`
+(`createTransformersEmbedder`/`createTransformersEmbedQuery`, both ends
+kept to the same default model); a remote-API embedding option remains
+unbuilt, see below. The GitHub Pages showcase's first three stages
 ([`showcase/`](../showcase/)) are also built and actually
-deployed — see below. Stage 3 remains blocked on Phase 8's still-pending
-real embedding-model integration (the mechanics slice alone has no model
-to demo with).
+deployed — see below. Stage 3 (a semantic search demo) is not yet built
+in this repo: doing so means running the indexer with a real model at
+build time, which needs network access to `huggingface.co` that this
+development session's sandbox doesn't have — the mechanism itself is
+ready to use the moment that access exists (a contributor's machine, or
+a CI runner without this sandbox's restriction).
 
 A code/docs review ([`REVIEW.md`](archive/REVIEW.md), response noted
 inline there, archived now that its findings are all resolved) landed
@@ -904,13 +908,30 @@ Phase 2 is now fully implemented.
   actual point of vector search — surfacing a document sharing zero
   literal query terms, which the lexical pipeline alone provably misses
   in the same test.
-- Deliberately still not built, per this slice's own scoping: real
-  embedding model integration (bundling a local ONNX/transformers.js
-  model, or wiring a remote embedding API) — `embed`/`embedQuery` stay an
-  arbitrary injectable seam, exercised in every test with a synthetic,
-  deterministic stand-in, not a real model; binary (1-bit) quantization;
-  IVF-style coarse clustering for larger corpora; WASM-accelerated
-  scoring. All explicitly named as future opt-ins in
+- ✅ Real local-model embedding integration —
+  `createTransformersEmbedder()` (`packages/indexer/src/transformers-embed.ts`)
+  for the offline/build-time half and `createTransformersEmbedQuery()`
+  (`packages/client/src/transformers-embed.ts`) for the query-time half,
+  both backed by `@huggingface/transformers`, defaulting to the same
+  model (`Xenova/all-MiniLM-L6-v2`, 384-dim) on both ends. The client
+  half is a `devDependency` + optional `peerDependency` only, loaded via
+  a lazy `import()` and listed in `rollupOptions.external`, so it costs
+  nothing against the 15KB core bundle budget unless a consumer actually
+  calls it. **Caveat**: this development session's sandbox blocks
+  egress to `huggingface.co` (where model weights are fetched from on
+  first use) by organizational policy, so the batching/slicing/lazy-
+  load-caching plumbing is verified with a mocked `pipeline`
+  (`packages/indexer/test/transformers-embed.test.ts`,
+  `packages/client/test/transformers-embed.test.ts`), not a completed
+  real-model download in this session. Each test file also carries an
+  explicitly opt-in real-model test, gated behind
+  `CSF_TEST_REAL_TRANSFORMERS=1` and skipped by default, for
+  environments that do have that network access.
+- Still not built: a remote embedding-API option (`embed`/`embedQuery`
+  stay an arbitrary injectable seam either way, so this is additive, not
+  blocking); binary (1-bit) quantization; IVF-style coarse clustering for
+  larger corpora; WASM-accelerated scoring. All explicitly named as
+  future opt-ins in
   [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md), not
   day-one requirements.
 
@@ -963,10 +984,14 @@ Phase 2 is now fully implemented.
     RTL rendering, and per-language stemming differences remain
     unbuilt (blocked on Phase 4 itself, not this stage).
   - ⬜ Stage 3 (semantic search demo): Phase 8's storage/similarity
-    mechanics are built, but this stage needs a real embedding model
-    wired in (bundled local model or remote API) to have anything
-    genuine to demo against the showcase's own docs corpus — still
-    blocked on that, not on the mechanics.
+    mechanics are built, and a real local embedding model integration now
+    exists (`createTransformersEmbedder`/`createTransformersEmbedQuery`,
+    above) — but building this demo means actually running the indexer
+    with that model against the showcase's own docs corpus at build
+    time, which needs network access to `huggingface.co` that this
+    development session's sandbox doesn't have. No longer blocked on the
+    *mechanism*, just on running a build with that network access
+    available.
 
 Each phase should be shippable/usable on its own (e.g. Phase 1 alone is
 already a usable, if basic, client-side search engine) — this is

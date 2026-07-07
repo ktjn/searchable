@@ -14,8 +14,9 @@ options) has an opt-in binary tier for term, fuzzy, and doc store shards
 plus the benchmarking that validated its design, and Phase 8 (vector & hybrid search) has its
 storage/similarity mechanics slice built — chunking, int8/float32
 quantization, brute-force cosine similarity, Reciprocal Rank Fusion
-hybrid search, an injectable query-embedding seam (real embedding-model
-integration still pending) —
+hybrid search, an injectable query-embedding seam, and real local-model
+embedding integration via `@huggingface/transformers` (a remote-API
+option still pending) —
 [`packages/analysis`](packages/analysis)
 (shared tokenizer, four `LanguageProfile`s — English + German, each
 with a real stemmer verified against its own public reference
@@ -68,7 +69,7 @@ pending.
 
 ```sh
 pnpm install
-pnpm test                     # 419 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test                     # 430 Vitest tests across all packages, including real-HTTP e2e tests
 pnpm test:browser             # 34 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically

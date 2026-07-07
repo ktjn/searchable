@@ -21,6 +21,7 @@
   "dependencies": {
     "@csf/analysis": "workspace:*",
     "@csf/format": "workspace:*",
+    "@huggingface/transformers": "^4.2.0",
     "node-html-parser": "^7.0.1"
   },
   "devDependencies": {

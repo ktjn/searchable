@@ -7,6 +7,14 @@ export type {
 } from "./client.js";
 export { registerOfflineCaching } from "./offline.js";
 export type { OfflineCacheOptions } from "./offline.js";
+export {
+  createTransformersEmbedQuery,
+  DEFAULT_TRANSFORMERS_MODEL,
+} from "./transformers-embed.js";
+export type {
+  TransformersDtype,
+  TransformersEmbedQueryOptions,
+} from "./transformers-embed.js";
 export type { HighlightSpan, HighlightTerm } from "./highlight.js";
 export type {
   FacetResult,
