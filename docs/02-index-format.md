@@ -281,6 +281,22 @@ Machine-checkable schemas for every shard type on this page live under
 - Old shard sets are harmless leftovers (can be garbage-collected by
   build tooling after N builds); there is no in-place mutation, so a
   client mid-session never sees a half-updated index.
+- **Client/index version support matrix**: `Manifest.version` is an
+  integer format-revision number (currently `1`, `packages/format/src/index.ts`).
+  `@csf/client`'s `validateManifest()` rejects any other value with a
+  named `InvalidManifestError` before a query ever runs, rather than
+  failing deep inside search execution against an unrecognized shape.
+
+  | `@csf/client` version | Supports index `version` |
+  |---|---|
+  | 1.x | 1 |
+
+  A future format revision that isn't purely additive must bump this
+  number and add its own row here (plus a migration note, per
+  [22-project-governance.md](22-project-governance.md)'s Compatibility
+  Policy) — a client only ever supports the version(s) listed in its own
+  row, so an old client talking to a newer-format index fails with that
+  clear error instead of silently misreading the shards.
 
 ## Compression
 

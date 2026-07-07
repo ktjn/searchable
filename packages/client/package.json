@@ -1,8 +1,15 @@
 {
   "name": "@csf/client",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Browser runtime: fetch a manifest and shards over plain HTTP, evaluate a query, return ranked hits.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ktjn/client-search-framework.git",
+    "directory": "packages/client"
+  },
+  "homepage": "https://github.com/ktjn/client-search-framework#readme",
+  "bugs": "https://github.com/ktjn/client-search-framework/issues",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

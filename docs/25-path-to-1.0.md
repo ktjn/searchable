@@ -88,18 +88,45 @@ storage abstraction / plugin API (specs stay draft per
 - Exit criteria: a table of every public export, stable vs experimental,
   committed to the repo (can live in this doc or a new `API.md`).
 
+**Done**: [`docs/adr/`](adr/) now holds five retroactive ADRs (pull-based
+static HTTP transport, JSON-first format with opt-in binary tier, BM25F
+ranking, the semver/manifest-version compatibility split, and the
+core-vs-opt-in plugin boundary), indexed in
+[`docs/adr/README.md`](adr/README.md). Export audit, from each package's
+`index.ts` barrel:
+
+| Package | Stable for 1.0 | Experimental (may change in a minor) |
+|---|---|---|
+| `@csf/client` | `SearchClient` (+ `SearchClientOptions`, `SearchClientEventMap`), `search()`/`searchStream()`/`facetValues()`/`ready()`/`dispose()`/`on()`, `Hit`/`SearchResult`/`SearchOptions`/`FacetResult*`/`RangeFilter`, `HighlightSpan`/`HighlightTerm`, `registerOfflineCaching`/`OfflineCacheOptions`, `validateManifest`/`InvalidManifestError`/`ValidateManifestOptions`, `isRtlLanguage` | `createTransformersEmbedQuery` + its types, `cosineSimilarity`/`reciprocalRankFusion`/`dequantizeVector`/`DEFAULT_RRF_K`, `VectorHit`, `VectorSearchNotConfiguredError`/`VectorProviderMismatchError`, `EmbeddingProviderConfig` — everything under `mode: "vector"/"hybrid"`, per ADR-0002/0005 |
+| `@csf/indexer` | `buildIndex`/`BuildIndexOptions`, `discoverHtmlDocuments`, `extractDocument` + its types, `writeIndex`/`WriteIndexOptions`, the core `Manifest`/`TermShard`/`FacetShard`/`DocStoreShard`/`PinsShard`/`SynonymShard`/`FuzzyShard`/posting types | `buildVectorShards`/`BuiltVectors`/`VectorsBuildOptions`, `chunkText`/`Chunk`, `createTransformersEmbedder` + its types, `VectorEntry`/`VectorShard`/`EmbeddingProviderConfig`, and `WriteIndexOptions`'s `termShardFormat`/`fuzzyShardFormat`/`docStoreFormat` binary-tier knobs |
+| `@csf/format` | Every type mirroring the JSON-tier manifest/shard shapes | The `vectors` field, `VectorEntry`/`VectorShard`/`EmbeddingProviderConfig`, and every shard's `format?: "binary"` variant — these evolve alongside the experimental features above |
+| `@csf/analysis` | Everything (`analyze`/`normalizePhrase`/`Token`, `detectLanguage`, `isRtlLanguage`, all `LanguageProfile`s, `getLanguageProfile`/`getRegisteredLanguageCodes`, both segmenters, both stemmers) — this is the core i18n pipeline with no experimental slice | — |
+| `@csf/fixtures` | N/A — test-only tooling, not part of the public API at all (see Iteration 3: ships `"private": true`, never published) | — |
+
+A breaking change to a "stable" cell after 1.0.0 needs a major bump per
+[22-project-governance.md](22-project-governance.md); a breaking change
+to an "experimental" cell only needs a changelog note.
+
 ### Iteration 2 — Make the index-format version real
 
-- `SearchClient` never checks `Manifest.version` against what it
-  supports — an incompatible future index format would fail with
-  whatever confusing error falling out of a shape mismatch produces,
-  not the "clear compatibility error" 22-project-governance.md commits
-  to. Add that check now, before 1.0, while there's still only one
-  version number in the wild.
-- Document the client-version ↔ index-version support matrix (even if
-  today it's the trivial "client 1.x supports index format 1").
-- Exit criteria: a manifest with an unrecognized `version` throws a
-  named, documented error instead of failing opaquely; a test proves it.
+**Already done, corrected from this doc's first draft**: an earlier pass
+of this doc claimed `SearchClient` never checks `Manifest.version`. That
+was wrong — `validateManifest()`
+(`packages/client/src/validate-manifest.ts`) already rejects any
+`version !== 1` with a named `InvalidManifestError` ("unsupported
+version N (expected 1)"), is called on every manifest load in
+`client.ts`, and is covered by a test
+(`packages/client/test/validate-manifest.test.ts`'s "rejects an
+unsupported version"). Nothing to build here. The one remaining item:
+
+- Document the client-version ↔ index-version support matrix explicitly
+  somewhere durable (today it's the trivial "client 1.x supports index
+  format 1" — worth stating once in
+  [02-index-format.md](02-index-format.md) rather than only being
+  implicit in `validateManifest`'s error message) so a future format
+  bump has a documented place to add its own row instead of just editing
+  the check in isolation.
+- Exit criteria: the support matrix is written down in 02-index-format.md.
 
 ### Iteration 3 — Release engineering
 
@@ -125,6 +152,22 @@ storage abstraction / plugin API (specs stay draft per
   `.github/workflows/` only has `ci.yml` and `deploy-pages.yml`.
 - Exit criteria: `CHANGELOG.md` exists and is accurate; a tag push
   publishes all four packages to npm without manual steps.
+
+**Done**: [`CHANGELOG.md`](../CHANGELOG.md) added at the repo root with
+a `1.0.0` entry summarizing everything in the Scope section above.
+Lockstep versioning chosen per the reasoning above — `@csf/client`,
+`@csf/indexer`, `@csf/format`, and `@csf/analysis` are all now
+`1.0.0`, each with `repository`/`homepage`/`bugs` fields added.
+`@csf/fixtures` is now `"private": true` (test-only tooling, never
+published — see Iteration 1's export audit). Added
+[`.github/workflows/publish.yml`](../.github/workflows/publish.yml):
+on a `v*` tag push, it re-runs every `ci.yml` check and then
+`pnpm publish -r --access public --provenance` (private packages are
+skipped automatically by `pnpm publish -r`), authenticating via an
+`NPM_TOKEN` repo secret that still needs to be created before the first
+real tag push — that's a one-time manual step outside this repo
+(npmjs.org token generation + adding it under repo Settings → Secrets),
+not something a workflow file can do for itself.
 
 ### Iteration 4 — Close the network-blocked gaps
 
