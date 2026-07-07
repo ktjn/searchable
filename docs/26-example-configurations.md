@@ -43,6 +43,46 @@ const client = new SearchClient({
 const { hits } = await client.search("widgets");
 ```
 
+### Not using Node for the build step?
+
+The index format is a documented spec
+([docs/02-index-format.md](02-index-format.md#the-format-is-a-spec-not-a-library-dependency)),
+not something only `@csf/indexer` can produce — the browser side above
+doesn't change no matter what wrote the manifest/shards it fetches.
+[`spec/examples/python/generate_index.py`](../spec/examples/python/generate_index.py)
+is a real, working ~100-line reference generator using nothing but
+Python's standard library, verified to produce a manifest `@csf/client`
+loads and queries correctly
+([`packages/client/test/cross-implementation-conformance.test.ts`](../packages/client/test/cross-implementation-conformance.test.ts)):
+
+```sh
+python3 generate_index.py documents.json ./dist/site/search-index
+```
+
+`documents.json`, a plain JSON array with one object per page:
+
+```json
+[
+  { "id": 1, "url": "/widgets", "title": "Widgets", "body": "Our widgets are wonderful." },
+  { "id": 2, "url": "/gadgets", "title": "Gadgets", "body": "Gadgets and gizmos." }
+]
+```
+
+The browser-side `SearchClient` snippet above doesn't change at all —
+it has no idea which generator produced the manifest it's fetching.
+
+**Scope honestly**: this script is deliberately the minimal case only —
+English, `title`/`body` fields at boost 1.0, no facets, no fuzzy
+matching, no synonyms, no pinning, no other languages. It exists to
+*prove* the format doesn't require Node/TypeScript
+([`spec/examples/README.md`](../spec/examples/README.md)'s verified
+cross-implementation conformance), not to be a feature-complete
+alternative indexer. For anything past section 1's minimal scenario
+(facets, fuzzy, i18n, vector search, ...), either use `@csf/indexer` or
+extend a from-scratch generator like this one yourself against the
+same spec — nothing about the format itself is Node/TypeScript-specific,
+only today's *reference* implementation of the fuller feature set.
+
 ## 2. E-commerce product catalog
 
 Facets, per-document boosts, curated best-bets, typo tolerance, and
