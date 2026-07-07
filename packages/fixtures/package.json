@@ -1,7 +1,8 @@
 {
   "name": "@csf/fixtures",
   "version": "0.0.0",
-  "description": "Phase 0 reference fixture corpus (docs/09-roadmap.md, docs/14-reference-deployment-cms-2k.md): a deterministic, realistically-shaped CMS-export-style HTML corpus generator, so correctness tests exercise the real indexer/client against content shaped like the target deployment instead of only tiny inline fixtures.",
+  "private": true,
+  "description": "Phase 0 reference fixture corpus (docs/09-roadmap.md, docs/14-reference-deployment-cms-2k.md): a deterministic, realistically-shaped CMS-export-style HTML corpus generator, so correctness tests exercise the real indexer/client against content shaped like the target deployment instead of only tiny inline fixtures. Test-only tooling, not part of the public API (docs/25-path-to-1.0.md) — never published.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

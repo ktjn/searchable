@@ -1,8 +1,15 @@
 {
   "name": "@csf/format",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "TypeScript types for the manifest/shard JSON format (docs/02-index-format.md, spec/schema/*.schema.json), shared by the indexer and the client so both sides can't silently drift on the format's shape.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ktjn/client-search-framework.git",
+    "directory": "packages/format"
+  },
+  "homepage": "https://github.com/ktjn/client-search-framework#readme",
+  "bugs": "https://github.com/ktjn/client-search-framework/issues",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
