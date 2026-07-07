@@ -1,6 +1,9 @@
 # Storage API Specification
 
-Status: Draft
+Status: Draft — listed in [23-implementation-roadmap.md](23-implementation-roadmap.md)'s
+Phase 1 and [24-architecture-recommendations.md](24-architecture-recommendations.md)'s
+item 4 as the spec to write for this; both now point here rather than
+restating its contents.
 
 ## Purpose
 

@@ -103,14 +103,10 @@ Performance regressions should be investigated before merging.
 
 # Benchmark Policy
 
-Maintain benchmark corpora of increasing size.
-
-Recommended:
-
-- 100 documents
-- 1,000 documents
-- 10,000 documents
-- 50,000 documents
+Maintain benchmark corpora of increasing size — see
+[spec-benchmarking.md](spec-benchmarking.md#corpus-sizes) for the one
+authoritative list of recommended sizes and corpus profiles, rather
+than a separately-maintained copy here.
 
 Record results over time to detect regressions.
 

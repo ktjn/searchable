@@ -1,5 +1,5 @@
+import { ownProp } from "@csf/analysis";
 import type { Manifest, Posting } from "@csf/format";
-import { ownProp } from "./safe-dict.js";
 
 /** BM25F parameters (docs/04-query-ranking-boosts.md#ranking-model-bm25f). */
 const K1 = 1.2;

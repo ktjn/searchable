@@ -2,123 +2,53 @@
 
 This document captures architectural recommendations that are intentionally separate from the current implementation. These are not required for the initial release, but they will significantly improve extensibility, debuggability and long-term maintainability.
 
+**Status note**: several items below have since gained a draft spec or a decision record — each such item is now a one-line pointer rather than a restatement, to avoid this doc and those documents quietly drifting apart. Only items with no spec yet keep their full description here. See [23-implementation-roadmap.md](23-implementation-roadmap.md) for which specs remain to be written and in what order — that's the reconciled version of this doc's old, separately-maintained priority list.
+
 ## Priority
 
 High:
 
-- Query planner
-- Storage abstraction
-- Explain API
-- Performance and memory budgets
-- Benchmark suite
+- Performance and memory budgets (item 6 — no spec yet)
+- Ranking framework ([23](23-implementation-roadmap.md) — no spec yet)
 
 Medium:
 
-- Pipeline plugins
-- Binary storage abstraction
-- Iterator-based execution
-- Version compatibility strategy
-- Corpus validation
+- Iterator-based execution (item 8 — no spec yet)
+- Corpus validation / content linter (item 13 — no spec yet)
 
 Low:
 
-- Compression formats
-- Advanced plugin ecosystem
+- Everything else below already has a draft spec or decision record — see each item's pointer.
 
 ---
 
-# 1. Introduce a query planner
+# 1. Query planner
 
-Separate planning from execution.
-
-Query
-→ Analyzer
-→ Planner
-→ Execution Plan
-→ Executor
-
-Benefits:
-
-- optimization
-- explain support
-- synonyms
-- fuzzy search
-- query rewriting
-- vector search
-- multiple executors
-
-Search execution should consume an execution plan instead of interpreting the raw query.
+Specified in [spec-query-planner.md](spec-query-planner.md) (draft, not yet implemented) and decided at the architecture level in [ADR-0001](adr/0001-pull-based-static-http.md)'s transport model.
 
 ---
 
-# 2. Add an Explain API
+# 2. Explain API / internal performance instrumentation
 
-Recommendation:
-
-client.explain(query, documentId)
-
-The API should explain:
-
-- matching fields
-- BM25 contributions
-- boosts
-- filters
-- pinning
-- final score
-
-This becomes invaluable when debugging ranking.
+Specified in [spec-diagnostics.md](spec-diagnostics.md) (draft, not yet implemented) — covers both the explain API and phase-timing instrumentation in one document rather than as two separate recommendations.
 
 ---
 
 # 3. Make the pipeline pluggable
 
-Instead of only making tokenization configurable, define a full search pipeline.
-
-Analyzer
-→ Query rewrite
-→ Synonyms
-→ Spell correction
-→ Expansion
-→ Execution
-→ Post-processing
-
-Each stage should have a replaceable interface.
+The plugin contract is decided in [17-plugin-architecture.md](17-plugin-architecture.md) (a fixed six-stage hook pipeline) and explored from a different angle in [spec-plugin-api.md](spec-plugin-api.md) — see that spec's own header for how the two relate. [ADR-0005](adr/0005-plugin-opt-in-boundary.md) records the core-vs-opt-in boundary decision already shipped. Not yet built: the dynamic registration mechanism itself.
 
 ---
 
-# 4. Introduce a storage abstraction
+# 4. Storage abstraction
 
-Search execution should not know where index data comes from.
-
-Example interface:
-
-- fetchManifest()
-- fetchTermShard()
-- fetchFacetShard()
-- fetchDocShard()
-
-Possible implementations:
-
-- HTTP
-- IndexedDB
-- File System API
-- Electron
-- Node
-- Service Worker cache
+Specified in [spec-storage-api.md](spec-storage-api.md) (draft, not yet implemented).
 
 ---
 
-# 5. Introduce a binary abstraction
+# 5. Binary/storage-format abstraction
 
-The search engine should not know whether data is JSON or binary.
-
-Example:
-
-TermStore
-- get(term)
-- prefix(prefix)
-
-This allows JSON, binary and future memory-mapped formats without changing the search engine.
+Specified in [spec-binary-format.md](spec-binary-format.md) (draft spec; term/fuzzy/doc-store shards are already implemented and shipped, per that doc's own status note) and decided in [ADR-0002](adr/0002-json-first-index-format.md).
 
 ---
 
@@ -133,22 +63,13 @@ Example:
 - <50 ms query
 - <5 MB heap growth per query
 
-Performance discussions become objective once budgets exist.
+Performance discussions become objective once budgets exist. No spec or decision record covers this yet — the closest existing artifact is the bundle-size *code* budget (15 KB gzip, enforced in CI, [08-modern-features.md](08-modern-features.md#bundle-size-budget)), which is a narrower, already-shipped instance of the same idea for one specific resource.
 
 ---
 
-# 7. Internal performance instrumentation
+# 7. Compression strategy
 
-Measure every major phase:
-
-- analysis
-- shard loading
-- intersection
-- scoring
-- document loading
-- facet computation
-
-This information does not need to be public but should be available for diagnostics.
+Specified in [spec-binary-format.md](spec-binary-format.md), which already covers delta-encoded ids and varints for the shipped binary tier; front-coded dictionaries and block compression remain future work within that same spec.
 
 ---
 
@@ -168,88 +89,58 @@ rewrite: today's scoring path sorts the full scored-hit set to apply
 `limit`. A top-K heap (bounded-size min-heap, pop-and-replace when a
 new hit outscores the current minimum) avoids the full sort and caps
 memory to `limit` regardless of corpus size — worth doing whenever
-scoring shows up as a hot path in the benchmark suite (item 12 below),
-independent of whether the broader iterator-based execution model
-ever lands.
+scoring shows up as a hot path in the benchmark suite
+([spec-benchmarking.md](spec-benchmarking.md)), independent of whether
+the broader iterator-based execution model ever lands.
 
-This reduces allocations and scales much better.
-
----
-
-# 9. Compression strategy
-
-Document the intended evolution toward:
-
-- delta encoded document ids
-- variable length integers
-- front-coded dictionaries
-- block compression
-
-The implementation can remain JSON initially.
+This reduces allocations and scales much better. No spec yet — this is
+the one performance-architecture item without one.
 
 ---
 
-# 10. Version compatibility
+# 9. Version compatibility
 
-Define compatibility rules.
-
-Rather than simply rejecting unknown versions, document which index versions each client supports.
-
----
-
-# 11. Testing strategy
-
-Document expected testing layers:
-
-- unit tests
-- integration tests
-- browser tests
-- golden ranking tests
-- compatibility tests
-- property tests
-- fuzz tests
-- performance regression tests
+**Done**: [docs/02-index-format.md](02-index-format.md#versioning--cache-strategy)
+documents the client/index-version support matrix, `validateManifest()`
+enforces it at load time (rejects an unrecognized `Manifest.version`
+with a clear error), and [ADR-0004](adr/0004-compatibility-policy.md)
+records the decision to keep API semver and index-format versioning as
+two independent numbers. Nothing left to design here.
 
 ---
 
-# 12. Benchmark suite
+# 10. Testing strategy
 
-Maintain benchmark datasets for multiple corpus sizes.
-
-Suggested sizes:
-
-- 100
-- 1,000
-- 2,000
-- 10,000
-- 50,000 documents
-
-Track:
-
-- build time
-- download size
-- first query
-- warm query
-- throughput
-- memory
+Covered by [10-testing-and-performance.md](10-testing-and-performance.md),
+which documents the actual layered suite (correctness tests, the
+performance/benchmark suite, and "done" criteria per feature) and is
+kept current as build status changes — that doc is authoritative, not
+this bullet.
 
 ---
 
-# 13. Stable extension API
+# 11. Benchmark suite
 
-If the project grows into an ecosystem, define extension points intentionally.
-
-Potential extension interfaces:
-
-- registerAnalyzer()
-- registerRanking()
-- registerStorage()
-- registerFacet()
-- registerHighlighter()
+Specified in [spec-benchmarking.md](spec-benchmarking.md) (draft
+methodology; corpus sizes, hardware assumptions, warm/cold measurement,
+reporting format) — that spec's own Corpus Sizes list is the
+authoritative one; [22-project-governance.md](22-project-governance.md)'s
+Benchmark Policy points here rather than repeating its own copy of the
+list.
 
 ---
 
-# 14. Corpus validation
+# 12. Stable extension API
+
+Covered by [17-plugin-architecture.md](17-plugin-architecture.md) (the
+decided registration/capability-negotiation contract) and
+[spec-plugin-api.md](spec-plugin-api.md) (a draft exploring the same
+goal from a typed-interface angle — see that spec's header for how the
+two relate).
+
+---
+
+# 13. Corpus validation
 
 The indexer should evolve into a content linter.
 
@@ -264,10 +155,17 @@ Examples:
 - invalid canonical URLs
 - language mismatches
 
-Think of this as an 'ESLint for search content'.
+Think of this as an 'ESLint for search content'. No spec yet.
 
 ---
 
 # Summary
 
-The current architecture provides a solid foundation. The recommendations in this document focus on long-term extensibility and operational maturity rather than adding new search features. They should be treated as architectural guidance for future iterations rather than immediate implementation work.
+The current architecture provides a solid foundation. Most of the
+recommendations this document originally proposed now have a draft
+spec or a decided ADR — see each item's pointer above rather than this
+doc's old, separately-restated version. What's left without a spec
+(performance budgets, iterator-based execution, corpus validation, the
+ranking framework in [23-implementation-roadmap.md](23-implementation-roadmap.md))
+is real remaining architectural guidance for future iterations, not
+immediate implementation work.

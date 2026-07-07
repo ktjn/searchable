@@ -15,7 +15,9 @@ import { serveStatic } from "./static-server.js";
  * can plausibly type. Query-time dictionary lookups keyed by the
  * literal query term (synonym directional expansion, fuzzy deletion
  * variants) must not be fooled by the prototype chain into treating a
- * missing key as present -- see `packages/client/src/safe-dict.ts` and
+ * missing key as present -- see `packages/analysis/src/safe-dict.ts`
+ * (shared by `@csf/indexer` and `@csf/client` so the write-time and
+ * read-time halves of this fix can't drift apart) and
  * `docs/25-path-to-1.0.md` for the full bug class this guards against.
  */
 const sources: SourceDocument[] = [

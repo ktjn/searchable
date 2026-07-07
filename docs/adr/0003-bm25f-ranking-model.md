@@ -38,8 +38,7 @@ normalization for both.
   real prose than BM25F for no simplicity win (the computation cost
   difference is negligible client-side).
 - **A pluggable/swappable ranking function from day one**: deferred, not
-  rejected — [24-architecture-recommendations.md](../24-architecture-recommendations.md)
-  and [23-implementation-roadmap.md](../23-implementation-roadmap.md)'s
+  rejected — [23-implementation-roadmap.md](../23-implementation-roadmap.md)'s
   "Ranking Framework" phase note that supporting multiple coexisting
   ranking strategies with deterministic ordering is real future work,
   but BM25F is the one model implemented and tested today; building a

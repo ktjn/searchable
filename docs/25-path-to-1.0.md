@@ -100,7 +100,7 @@ core-vs-opt-in plugin boundary), indexed in
 | `@csf/client` | `SearchClient` (+ `SearchClientOptions`, `SearchClientEventMap`), `search()`/`searchStream()`/`facetValues()`/`ready()`/`dispose()`/`on()`, `Hit`/`SearchResult`/`SearchOptions`/`FacetResult*`/`RangeFilter`, `HighlightSpan`/`HighlightTerm`, `registerOfflineCaching`/`OfflineCacheOptions`, `validateManifest`/`InvalidManifestError`/`ValidateManifestOptions`, `isRtlLanguage` | `createTransformersEmbedQuery` + its types, `cosineSimilarity`/`reciprocalRankFusion`/`dequantizeVector`/`DEFAULT_RRF_K`, `VectorHit`, `VectorSearchNotConfiguredError`/`VectorProviderMismatchError`, `EmbeddingProviderConfig` — everything under `mode: "vector"/"hybrid"`, per ADR-0002/0005 |
 | `@csf/indexer` | `buildIndex`/`BuildIndexOptions`, `discoverHtmlDocuments`, `extractDocument` + its types, `writeIndex`/`WriteIndexOptions`, the core `Manifest`/`TermShard`/`FacetShard`/`DocStoreShard`/`PinsShard`/`SynonymShard`/`FuzzyShard`/posting types | `buildVectorShards`/`BuiltVectors`/`VectorsBuildOptions`, `chunkText`/`Chunk`, `createTransformersEmbedder` + its types, `VectorEntry`/`VectorShard`/`EmbeddingProviderConfig`, and `WriteIndexOptions`'s `termShardFormat`/`fuzzyShardFormat`/`docStoreFormat` binary-tier knobs |
 | `@csf/format` | Every type mirroring the JSON-tier manifest/shard shapes | The `vectors` field, `VectorEntry`/`VectorShard`/`EmbeddingProviderConfig`, and every shard's `format?: "binary"` variant — these evolve alongside the experimental features above |
-| `@csf/analysis` | Everything (`analyze`/`normalizePhrase`/`Token`, `detectLanguage`, `isRtlLanguage`, all `LanguageProfile`s, `getLanguageProfile`/`getRegisteredLanguageCodes`, both segmenters, both stemmers) — this is the core i18n pipeline with no experimental slice | — |
+| `@csf/analysis` | Everything (`analyze`/`normalizePhrase`/`Token`, `detectLanguage`, `isRtlLanguage`, all `LanguageProfile`s, `getLanguageProfile`/`getRegisteredLanguageCodes`, `getOrCreate`/`ownProp`, both segmenters, both stemmers) — this is the core i18n pipeline with no experimental slice. `getOrCreate`/`ownProp` are an internal correctness primitive shared between `@csf/indexer` and `@csf/client` (Iteration 5's prototype-collision fix) rather than something a consuming app is expected to call directly, but they're technically reachable through the public barrel like everything else here, so they're listed rather than left undocumented | — |
 | `@csf/fixtures` | N/A — test-only tooling, not part of the public API at all (see Iteration 3: ships `"private": true`, never published) | — |
 
 A breaking change to a "stable" cell after 1.0.0 needs a major bump per
@@ -284,11 +284,17 @@ language-keyed dictionaries downstream are ever touched, so making it
 correctly throw its existing "no LanguageProfile registered" error for
 a colliding code closes off that entire branch at once. Also fixed:
 `build-index.ts`'s `addPostings`/`buildFuzzyShard`/`addFacetValues`/
-`addRangeFacetValues` (a new shared `getOrCreate()`/`ownProp()` in
-`packages/indexer/src/safe-dict.ts`), `extract.ts`'s facet/range-facet
-meta-tag parsing, and `search.ts`/`score.ts`'s query-time synonym/
-fuzzy/language-keyed lookups (a matching `ownProp()` in
-`packages/client/src/safe-dict.ts`). Covered by new regression tests:
+`addRangeFacetValues`, `extract.ts`'s facet/range-facet meta-tag
+parsing, and `search.ts`/`score.ts`'s query-time synonym/fuzzy/
+language-keyed lookups — all via one shared `getOrCreate()`/`ownProp()`
+in `packages/analysis/src/safe-dict.ts` (a small correctness primitive
+now exported from `@csf/analysis`'s public barrel alongside
+`getLanguageProfile`, since both `@csf/indexer` and `@csf/client`
+already depend on that package and the bug class is identical on the
+build-time and query-time side — first landed as two separately
+duplicated files, one per package, then consolidated here in a
+follow-up dedup pass so the write-time and read-time halves of this fix
+can't drift apart independently). Covered by new regression tests:
 `packages/indexer/test/prototype-safe-keys.test.ts` (a document body
 containing "constructor", plus facet fields literally named
 "constructor"/"hasOwnProperty") and
