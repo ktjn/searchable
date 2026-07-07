@@ -16,86 +16,94 @@ This document identifies the remaining major technical specifications that shoul
 
 Keep implementation aligned with well-defined specifications rather than allowing architecture to emerge from incremental feature work.
 
+## Status
+
+Six of this doc's original eight items now have a written spec (linked
+below). Three genuinely remain unwritten — see "Still open" at the
+bottom, which is now the single tracking list for them (folded in from
+[24-architecture-recommendations.md](24-architecture-recommendations.md)'s
+overlapping items #8, #10, and #14 rather than tracking the same gaps
+twice).
+
 ## Phase 1 – Core Specifications
 
-### Binary Index Format
+### Binary Index Format — ✅ written
 
-Define:
+See [spec-binary-format.md](spec-binary-format.md) (layout, versioning,
+endianness, compression, random access, compatibility). Partially
+built — see [09-roadmap.md](09-roadmap.md) Phase 7.
 
-- binary layout
-- versioning
-- endianness
-- compression strategy
-- random access
-- compatibility guarantees
+### Query Planner — ✅ written
 
-### Query Planner
+See [spec-query-planner.md](spec-query-planner.md) (logical query tree,
+execution plan, optimization passes, cost model, execution interfaces).
+Drafted extensibility groundwork, not yet built.
 
-Specify:
+### Storage Layer — ✅ written
 
-- logical query tree
-- execution plan
-- optimization passes
-- cost model
-- execution interfaces
-
-### Storage Layer
-
-Specify:
-
-- storage interfaces
-- cache responsibilities
-- offline support
-- transport independence
+See [spec-storage-api.md](spec-storage-api.md) (storage interfaces,
+cache responsibilities, offline support, transport independence).
+Drafted extensibility groundwork, not yet built.
 
 ## Phase 2 – Extensibility
 
-### Plugin API
+### Plugin API — ✅ written
 
-Specify extension points for:
+See [spec-plugin-api.md](spec-plugin-api.md) (extension points for
+analyzers, ranking, storage, highlighting, facets, query rewriting;
+lifecycle, registration, compatibility rules).
 
-- analyzers
-- ranking
-- storage
-- highlighting
-- facets
-- query rewriting
+### Ranking Framework — still open
 
-Define lifecycle, registration and compatibility rules.
-
-### Ranking Framework
-
-Document how multiple ranking strategies can coexist while preserving deterministic ordering.
+How multiple ranking strategies coexist while preserving deterministic
+ordering has no dedicated spec yet.
 
 ## Phase 3 – Performance
 
-### Benchmark Methodology
+### Benchmark Methodology — ✅ written
 
-Specify:
+See [spec-benchmarking.md](spec-benchmarking.md) (datasets, hardware
+assumptions, browser versions, warm vs. cold measurements, reporting
+format, performance budgets).
 
-- datasets
-- hardware assumptions
-- browser versions
-- warm vs cold measurements
-- reporting format
+### Memory Model — still open
 
-### Memory Model
-
-Document expected allocation strategy, cache ownership and object lifetime.
+Expected allocation strategy, cache ownership, and object lifetime have
+no dedicated spec yet — distinct from spec-benchmarking.md's budget
+*numbers*, this would document the allocation *strategy* behind them.
 
 ## Phase 4 – Operational Features
 
-### Diagnostics
+### Diagnostics — ✅ written
 
-Specify explain APIs, tracing, metrics and profiling hooks.
+See [spec-diagnostics.md](spec-diagnostics.md) (explain API, query
+trace/phase timings, metrics, profiling hooks).
 
-### Compatibility Matrix
+### Compatibility Matrix — still open
 
-Maintain compatibility tables between:
+No maintained table of client/index/plugin version compatibility exists
+yet. [22-project-governance.md](22-project-governance.md#compatibility-policy)
+sets the *policy* (older clients fail with a clear error, breaking
+changes are versioned); this item is the concrete matrix that policy
+implies.
 
-- client versions
-- index versions
-- plugin versions
+## Still open
+
+The three items above, plus two related recommendations from
+[24-architecture-recommendations.md](24-architecture-recommendations.md)
+that turned out to be the same kind of unwritten spec rather than
+separate work:
+
+- **Ranking Framework** (this doc).
+- **Memory Model** (this doc).
+- **Compatibility Matrix** (this doc; same gap as 24's recommendation #10,
+  "Version compatibility").
+- **Iterator-based execution** (24's recommendation #8) — moving scoring
+  off materialized intermediate arrays onto `PostingIterator` /
+  `IntersectionIterator` / `UnionIterator` / `ScoreIterator`.
+- **Corpus validation / content linter** (24's recommendation #14) — the
+  indexer catching duplicate URLs/titles, empty bodies, invalid facets,
+  conflicting pins, invalid canonical URLs, language mismatches.
 
 ## Success Criteria
 
