@@ -229,8 +229,32 @@ genuinely cross-origin (different port, same host, real second
 `serveDir()` server) shard reference fails Service Worker install by
 default, and installs cleanly once `allowCrossOriginShards: true` is
 set — proving it's specifically the origin check, not an unrelated
-fetch failure. `/security-review`/`/code-review` against the rest of
-the public API boundary remain to be run.
+fetch failure.
+
+**Done**: followed that gap up with a manual pass (in lieu of
+`/security-review`/`/code-review`, which are diff-scoped tools with
+nothing to diff against once the fix above was merged) over the
+remaining public API boundary — `client.ts` (constructor, `dispose()`,
+the worker-message protocol, the vector-provider-mismatch check),
+`search.ts`'s option handling, and `highlight.ts`'s regex construction.
+Findings:
+- No other dynamic `RegExp`/`Function`/`eval` construction anywhere in
+  `@csf/client`, `@csf/indexer`, or `@csf/analysis` besides
+  `highlight.ts`'s `buildPattern()` (grepped for it directly) — which
+  escapes every term via `escapeRegExp()` before interpolating and uses
+  only a flat alternation (no nested quantifiers), so it's not a ReDoS
+  vector.
+- `@csf/indexer` makes zero `fetch()` calls anywhere in its source —
+  it's genuinely filesystem-only/offline as ADR-0001 describes, so
+  there's no SSRF surface to check there.
+- `client.ts`'s dedicated Worker channel needs no `event.origin` check
+  (unlike `window.postMessage`) — a dedicated Worker's message channel
+  is private to the page that created it, nothing else can post to it.
+- No other issues found. `22-project-governance.md`'s Release Quality
+  Checklist: tests/lint/typecheck/bundle-size all green (see the PRs
+  executing this iteration); `pnpm bench` and a final documentation
+  pass are still open, folded into Iteration 6 below rather than
+  repeated here.
 
 ### Iteration 6 — Cut the release
 
