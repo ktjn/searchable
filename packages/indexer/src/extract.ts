@@ -1,5 +1,6 @@
 import { detectLanguage, getRegisteredLanguageCodes } from "@csf/analysis";
 import { parse } from "node-html-parser";
+import { getOrCreate } from "./safe-dict.js";
 
 export interface PinDeclaration {
   phrase: string;
@@ -216,7 +217,11 @@ export function extractDocument(
       const parsed = raw ? Number.parseFloat(raw) : Number.NaN;
       // First declared value wins; a page authoring the same range
       // field twice is almost certainly a mistake, not intentional.
-      if (field && Number.isFinite(parsed) && !(field in rangeFacets)) {
+      if (
+        field &&
+        Number.isFinite(parsed) &&
+        !Object.hasOwn(rangeFacets, field)
+      ) {
         rangeFacets[field] = parsed;
       }
       continue;
@@ -225,9 +230,8 @@ export function extractDocument(
     const field = name.slice(FACET_TAG_PREFIX.length);
     const value = meta.getAttribute("content")?.trim();
     if (!field || !value) continue;
-    const values = facets[field] ?? [];
+    const values = getOrCreate(facets, field, () => []);
     if (!values.includes(value)) values.push(value);
-    facets[field] = values;
   }
 
   const pinPhrases = root
