@@ -135,8 +135,8 @@ Design docs — start here:
 | [docs/20-tech-stack.md](docs/20-tech-stack.md) | Concrete tooling: TypeScript, Vite, Vitest, Playwright, Python+TypeScript reference generators |
 | [docs/21-architecture-principles.md](docs/21-architecture-principles.md) | Long-term architectural invariants (determinism, storage/format independence, small API, ...) |
 | [docs/22-project-governance.md](docs/22-project-governance.md) | ADRs, contributor guidelines, compatibility/benchmark/documentation policy |
-| [docs/23-implementation-roadmap.md](docs/23-implementation-roadmap.md) | Which major specs to write next, on a separate axis from 09-roadmap.md's build-status phases |
-| [docs/24-architecture-recommendations.md](docs/24-architecture-recommendations.md) | Longer-term extensibility/maturity recommendations (query planner, storage abstraction, explain API, ...) |
+| [docs/23-implementation-roadmap.md](docs/23-implementation-roadmap.md) | Which major specs are written vs. still remaining (Ranking Framework, Memory Model), on a separate axis from 09-roadmap.md's build-status phases |
+| [docs/24-architecture-recommendations.md](docs/24-architecture-recommendations.md) | Longer-term extensibility/maturity recommendations not yet spec'd (performance budgets, iterator-based execution, corpus validation, ...) |
 | [docs/25-path-to-1.0.md](docs/25-path-to-1.0.md) | Release-engineering iteration plan for a 1.0: API freeze, versioning, publish pipeline, hardening pass |
 | [docs/spec-query-planner.md](docs/spec-query-planner.md) | Draft spec: separating query planning from execution |
 | [docs/spec-storage-api.md](docs/spec-storage-api.md) | Draft spec: storage-backend abstraction (HTTP, IndexedDB, Service Worker, ...) |

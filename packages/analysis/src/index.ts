@@ -17,6 +17,7 @@ export {
   getLanguageProfile,
   getRegisteredLanguageCodes,
 } from "./registry.js";
+export { getOrCreate, ownProp } from "./safe-dict.js";
 export { segmentCjkBigram } from "./segment-cjk.js";
 export { segmentSeaTrigram } from "./segment-sea.js";
 export { stemGerman } from "./stemmer-de.js";

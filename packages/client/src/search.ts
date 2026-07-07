@@ -1,4 +1,4 @@
-import { getLanguageProfile, normalizePhrase } from "@csf/analysis";
+import { getLanguageProfile, normalizePhrase, ownProp } from "@csf/analysis";
 import type {
   DocStoreEntry,
   FacetShard,
@@ -28,7 +28,6 @@ import type { ShardCache } from "./fetch-json.js";
 import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
 import { parseQuery } from "./parse-query.js";
-import { ownProp } from "./safe-dict.js";
 import { scoreTermForDoc } from "./score.js";
 import {
   VectorSearchNotConfiguredError,

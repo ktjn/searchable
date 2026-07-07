@@ -1,6 +1,9 @@
-import { detectLanguage, getRegisteredLanguageCodes } from "@csf/analysis";
+import {
+  detectLanguage,
+  getOrCreate,
+  getRegisteredLanguageCodes,
+} from "@csf/analysis";
 import { parse } from "node-html-parser";
-import { getOrCreate } from "./safe-dict.js";
 
 export interface PinDeclaration {
   phrase: string;

@@ -1,6 +1,11 @@
-import { analyze, getLanguageProfile, normalizePhrase } from "@csf/analysis";
+import {
+  analyze,
+  getLanguageProfile,
+  getOrCreate,
+  normalizePhrase,
+  ownProp,
+} from "@csf/analysis";
 import { extractDocument } from "./extract.js";
-import { getOrCreate, ownProp } from "./safe-dict.js";
 import type {
   BuiltIndex,
   DocStoreShard,

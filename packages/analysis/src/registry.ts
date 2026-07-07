@@ -8,6 +8,7 @@ import {
   thai,
 } from "./language-profile.js";
 import type { LanguageProfile } from "./language-profile.js";
+import { ownProp } from "./safe-dict.js";
 
 /**
  * The one place indexer and runtime both look up a LanguageProfile by
@@ -25,7 +26,7 @@ const PROFILES: Record<string, LanguageProfile> = {
 };
 
 export function getLanguageProfile(code: string): LanguageProfile {
-  // Object.hasOwn, not a bare `PROFILES[code]` truthy check: `code` is
+  // ownProp(), not a bare `PROFILES[code]` truthy check: `code` is
   // ultimately attacker/content-controlled (a document's own `<html
   // lang="...">` attribute, per extract.ts) -- a bare index lookup is
   // fooled by the prototype chain for a code like "constructor" or
@@ -35,10 +36,11 @@ export function getLanguageProfile(code: string): LanguageProfile {
   // "unsupported language" error every other unregistered code
   // correctly gets -- every caller downstream then crashes confusingly
   // trying to call e.g. `profile.tokenize(...)` on it instead.
-  if (!Object.hasOwn(PROFILES, code)) {
+  const profile = ownProp(PROFILES, code);
+  if (!profile) {
     throw new Error(`no LanguageProfile registered for "${code}"`);
   }
-  return PROFILES[code] as LanguageProfile;
+  return profile;
 }
 
 /** Every language code with a registered `LanguageProfile` -- the candidate set `detectLanguage()` chooses among when a document declares none of its own (`packages/indexer/src/extract.ts`). */
