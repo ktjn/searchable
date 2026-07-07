@@ -506,4 +506,89 @@ describe("writeIndex", () => {
     );
     expect(content1.equals(content2)).toBe(true);
   });
+
+  it("writes exactly one doc-store shard by default, regardless of corpus size (issue #1 finding 6)", async () => {
+    const outDir = await tempOutDir();
+    const sources = generateCms2kCorpus({ count: 50, languages: ["en"] });
+    await writeIndex(buildIndex(sources, "en"), outDir);
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.shards.docs).toHaveLength(1);
+  });
+
+  it("docStoreShardSize splits the doc store into multiple contiguous id-range shards", async () => {
+    const outDir = await tempOutDir();
+    const sources = generateCms2kCorpus({ count: 50, languages: ["en"] });
+    await writeIndex(buildIndex(sources, "en"), outDir, {
+      docStoreShardSize: 20,
+    });
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    const maxId = Math.max(...sources.map((s) => s.id));
+    expect(manifest.shards.docs).toHaveLength(Math.ceil(maxId / 20));
+
+    const idRanges = manifest.shards.docs
+      .map((d: { idRange: [number, number] }) => d.idRange)
+      .sort((a: [number, number], b: [number, number]) => a[0] - b[0]);
+    // Contiguous, non-overlapping, and covering every id 1..maxId with no gaps.
+    expect(idRanges[0][0]).toBe(1);
+    expect(idRanges[idRanges.length - 1][1]).toBe(maxId);
+    for (let i = 1; i < idRanges.length; i++) {
+      expect(idRanges[i][0]).toBe(idRanges[i - 1][1] + 1);
+    }
+  });
+
+  it("each JSON doc-store shard's ids exactly match its declared idRange, no gaps or overlaps", async () => {
+    // Binary-format decode-correctness for a multi-shard doc store is
+    // proven end-to-end in packages/client/test/binary-doc-store.test.ts
+    // (same split as the single-shard "writes a .bin doc store" case
+    // above -- @csf/client owns the binary decoder, not this package).
+    const outDir = await tempOutDir();
+    const sources = generateCms2kCorpus({ count: 30, languages: ["en"] });
+    await writeIndex(buildIndex(sources, "en"), outDir, {
+      docStoreShardSize: 10,
+    });
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    const maxId = Math.max(...sources.map((s) => s.id));
+    expect(manifest.shards.docs).toHaveLength(Math.ceil(maxId / 10));
+
+    for (const entry of manifest.shards.docs as Array<{
+      file: string;
+      idRange: [number, number];
+    }>) {
+      const shard = JSON.parse(
+        await readFile(join(outDir, entry.file), "utf8"),
+      );
+      const ids = Object.keys(shard)
+        .map(Number)
+        .sort((a, b) => a - b);
+      expect(ids[0]).toBe(entry.idRange[0]);
+      expect(ids[ids.length - 1]).toBe(entry.idRange[1]);
+      expect(ids).toHaveLength(entry.idRange[1] - entry.idRange[0] + 1);
+    }
+  });
+
+  it("still writes exactly one, empty doc-store shard for a corpus where every document is csf-noindex", async () => {
+    const outDir = await tempOutDir();
+    const noindexOnly: SourceDocument = {
+      id: 1,
+      url: "/draft",
+      html: `<html lang="en"><head><title>Draft</title><meta name="csf-noindex"></head><body><main>x</main></body></html>`,
+    };
+    await writeIndex(buildIndex([noindexOnly]), outDir, {
+      docStoreShardSize: 5,
+    });
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    expect(manifest.shards.docs).toHaveLength(1);
+    const shard = JSON.parse(
+      await readFile(join(outDir, manifest.shards.docs[0].file), "utf8"),
+    );
+    expect(shard).toEqual({});
+  });
 });

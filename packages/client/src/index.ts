@@ -1,4 +1,5 @@
 export { isRtlLanguage } from "@csf/analysis";
+export type { EmbeddingProviderConfig } from "@csf/format";
 export { SearchClient } from "./client.js";
 export type {
   SearchClientEventMap,
@@ -13,6 +14,7 @@ export {
 } from "./transformers-embed.js";
 export type {
   TransformersDtype,
+  TransformersEmbedQuery,
   TransformersEmbedQueryOptions,
 } from "./transformers-embed.js";
 export type { HighlightSpan, HighlightTerm } from "./highlight.js";
@@ -32,6 +34,7 @@ export {
   DEFAULT_RRF_K,
   dequantizeVector,
   reciprocalRankFusion,
+  VectorProviderMismatchError,
   VectorSearchNotConfiguredError,
 } from "./vector-search.js";
 export type { VectorHit } from "./vector-search.js";

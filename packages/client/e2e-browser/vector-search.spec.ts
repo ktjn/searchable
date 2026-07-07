@@ -13,7 +13,17 @@ declare global {
       query: string,
       useWorker: boolean,
       options: Record<string, unknown>,
-    ) => Promise<{ hits: Array<{ id: number; score: number }> }>;
+    ) => Promise<{ hits: Array<{ id: number; url: string; score: number }> }>;
+    __csfRunVectorSearchWithProvider?: (
+      query: string,
+      useWorker: boolean,
+      options: Record<string, unknown>,
+      provider: Record<string, unknown>,
+      validateVectorProvider?: boolean,
+    ) => Promise<
+      | { ok: true; result: { hits: Array<{ id: number; score: number }> } }
+      | { ok: false; name: string; message: string }
+    >;
   }
 }
 
@@ -132,5 +142,63 @@ test.describe("vector/hybrid search (real browser, real Worker)", () => {
 
     expect(withWorker).toEqual(withoutWorker);
     expect(withWorker?.hits.map((h) => h.id)).toEqual([1, 2, 3]);
+  });
+
+  test("mismatched embedQuery provider throws VectorProviderMismatchError via a real Worker (issue #1 finding 4)", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    // This corpus's vectors were built with no explicit `provider` option
+    // (buildVectorShards() defaults to {type: "custom"}) -- in worker
+    // mode this exercises SearchClient's lazy second manifest fetch on
+    // the main thread (the Worker holds its own copy internally), the
+    // code path unique to provider validation under worker: true.
+    const outcome = await page.evaluate(
+      ([query, useWorker, options, provider]) =>
+        window.__csfRunVectorSearchWithProvider?.(
+          query as string,
+          useWorker as boolean,
+          options as Record<string, unknown>,
+          provider as Record<string, unknown>,
+        ),
+      [
+        "cancel plan",
+        true,
+        { mode: "vector" },
+        { type: "local-model", model: "wrong/model" },
+      ] as [string, boolean, Record<string, unknown>, Record<string, unknown>],
+    );
+
+    expect(outcome?.ok).toBe(false);
+    expect(outcome && !outcome.ok && outcome.name).toBe(
+      "VectorProviderMismatchError",
+    );
+  });
+
+  test("a matching embedQuery provider does not throw via a real Worker", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const outcome = await page.evaluate(
+      ([query, useWorker, options, provider]) =>
+        window.__csfRunVectorSearchWithProvider?.(
+          query as string,
+          useWorker as boolean,
+          options as Record<string, unknown>,
+          provider as Record<string, unknown>,
+        ),
+      ["cancel plan", true, { mode: "vector" }, { type: "custom" }] as [
+        string,
+        boolean,
+        Record<string, unknown>,
+        Record<string, unknown>,
+      ],
+    );
+
+    expect(outcome?.ok).toBe(true);
   });
 });

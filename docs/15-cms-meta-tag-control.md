@@ -54,6 +54,37 @@ consolidating and extending the table introduced in
 | `<meta name="csf-pin-mode">` | `exact` (whole normalized query must match) or `contains` (query containing the term matches) | `<meta name="csf-pin-mode" content="contains">` | `exact` |
 | `<meta name="csf-pin-exclusive">` | If present, a matching query shows **only** this result, not organic results alongside it | `<meta name="csf-pin-exclusive" content="true">` | absent — pin is inserted above organic results, which still show |
 
+## Canonical URL
+
+`<link rel="canonical">`'s `href` flows straight through to `Hit.url`,
+which a consuming app may render directly into a link — untrusted or
+malformed rendered HTML producing a `javascript:`, `data:`, or
+protocol-relative URL would otherwise be a real XSS footgun handed to
+every consumer, so `extractDocument()`/`buildIndex()` validate it before
+trusting it:
+
+- **Accepted**: an absolute `http:`/`https:` URL, or a root-relative
+  path (`"/products/widget"`, no scheme to exploit).
+- **Rejected, falls back to the document's own crawled URL** (exactly as
+  if no canonical tag were present at all — a build warning is logged,
+  not a build failure, so one malformed page doesn't sour an entire
+  build): any other scheme (`javascript:`, `data:`, `mailto:`, ...), a
+  malformed URL, a protocol-relative URL (`"//evil.example.com/..."`)
+  with no `canonicalBaseUrl` configured to resolve it against, or (when
+  `BuildIndexOptions.allowedUrlOrigins` is set) an absolute URL whose
+  origin isn't in that allowlist.
+- **`BuildIndexOptions.allowedUrlOrigins`** (optional): restricts
+  accepted canonical URLs to an explicit list of origins (e.g.
+  `["https://example.com"]`) — useful for a deployment with a fixed
+  production origin that wants to reject a canonical pointing anywhere
+  else, intentional or not. Off by default (any `http:`/`https:` origin
+  accepted) since many deployments have no single fixed origin at index
+  time (e.g. a preview/staging build).
+- **`BuildIndexOptions.canonicalBaseUrl`** (optional): resolves a
+  protocol-relative canonical href against this origin before the
+  protocol/allowlist checks above run. Without it, a protocol-relative
+  href has no base to resolve against and is rejected.
+
 ## Precedence
 
 Structural extraction (title/body/language) always runs first to

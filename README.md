@@ -8,72 +8,102 @@ entirely in the browser. No search server, no query-time backend.
 Think "Algolia/Typesense-grade query features, Pagefind/lunr-style
 zero-backend deployment."
 
-**Status**: Phases 0, 1, and 2 of the roadmap have working code, Phases
-3, 5, and 6 are fully built, Phase 4 is mostly built, Phase 7 (scale
-options) has an opt-in binary tier for term, fuzzy, and doc store shards
-plus the benchmarking that validated its design, and Phase 8 (vector & hybrid search) has its
-storage/similarity mechanics slice built — chunking, int8/float32
-quantization, brute-force cosine similarity, Reciprocal Rank Fusion
-hybrid search, an injectable query-embedding seam, and real local-model
-embedding integration via `@huggingface/transformers` (a remote-API
-option still pending) —
-[`packages/analysis`](packages/analysis)
-(shared tokenizer, seven `LanguageProfile`s — English + German, each
-with a real stemmer verified against its own public reference
-vocabulary (classic Porter for English, 23,531 words; Snowball for
-German, 35,053 words), plus Chinese + Japanese (bigram n-gram fallback
-segmenter) and Thai + Khmer + Lao (trigram n-gram fallback segmenter,
-sharing its run-scanning core with the CJK one), all four for
-guaranteed-correct substring matching in their own scripts without a
-bundled word-boundary dictionary, plus a zero-bundled-model auto
-language detector (script-range detection for CJK and Thai/Khmer/Lao,
-marker-word detection for English/German) used as an `<html lang>`-less
-fallback and an `isRtlLanguage()` primitive),
-[`packages/format`](packages/format) (shared manifest/shard types),
-[`packages/indexer`](packages/indexer) (rendered HTML → manifest +
-shards, per-document-language corpus partitioning, configurable field
-boosts, `csf-boost`/`csf-facet-<field>`/`csf-facet-range-<field>`/
-`csf-pin*` extraction, a build-time option to treat any facet field as
-hierarchical (path-structured, every ancestor level its own
-addressable entry), authored synonym equivalence/directional data, a
-SymSpell fuzzy/typo-tolerance dictionary, an opt-in vector-shard builder
-with a deterministic text chunker and int8/float32 quantization behind
-an injectable `embed()` seam), [`packages/client`](packages/client)
-(fetch + boolean AND + BM25F + field/term/document boosts + prefix
-matching + exact `"quoted phrase"` matching (real position-adjacency,
-not just a bare AND of the words) + Web Worker execution + terms, range, and hierarchical facets
-(filtering + aggregate bucket results) with contextual counts + a
-filter-only `facetValues()` browsing call + term-to-page pinning +
-multi-language query isolation + opt-in synonym expansion (single-word
-and `multiWord` phrase-level) + opt-in fuzzy matching with "did you
-mean" suggestions + opt-in result highlighting (literal query terms
-only) + observability hooks (`client.on("query" | "result", ...)`) +
-`AbortSignal` query cancellation + `searchStream()`
-streaming/incremental results + `registerOfflineCaching()` offline
-Service Worker caching + opt-in `mode: "vector" | "hybrid"` search
-(brute-force cosine similarity, Reciprocal Rank Fusion, an injectable
-`embedQuery` seam) + `SearchResult.language`, all proven in a real
-browser via Playwright, no synonym-or-fuzzy-variant-highlighting yet),
-and
-[`packages/fixtures`](packages/fixtures) (a realistically-shaped,
-deterministic CMS-export-style corpus generator for real-scale
-correctness testing, per
-[docs/14-reference-deployment-cms-2k.md](docs/14-reference-deployment-cms-2k.md)),
-plus [`spec/`](spec) (JSON Schema + independent Python/TypeScript
-reference generators). [`showcase/`](showcase) is a live demo of it
-all, deployed to GitHub Pages — the docs site (this repo's own docs,
-rendered and searched by the real engine) plus a feature gallery of
-purpose-built demos (product catalog with facets/boosts/pins/fuzzy
-matching, a synonym playground, a multi-language corpus) — see
-[docs/19-github-pages-showcase.md](docs/19-github-pages-showcase.md).
-Everything else below is design docs for phases not yet built — see
-[docs/09-roadmap.md](docs/09-roadmap.md#status) for what's done vs.
-pending.
+## Quick start
+
+```sh
+npm install @csf/indexer @csf/client
+```
+
+Build the index from your already-rendered HTML (a static site export, a
+prerendered SPA, whatever your build already produces):
+
+```sh
+npx csf-indexer ./dist/site ./dist/site/search-index
+```
+
+Deploy `./dist/site` (including `search-index/`) to any static host, then
+search from the browser:
+
+```html
+<script type="module">
+  import { SearchClient } from "@csf/client";
+
+  const client = new SearchClient({
+    indexUrl: "/search-index/manifest.json",
+  });
+
+  const result = await client.search("widgets");
+  for (const hit of result.hits) {
+    console.log(hit.url, hit.fields.title, hit.score);
+  }
+</script>
+```
+
+That's the whole integration: no server, no build-time coupling beyond
+running the indexer once per content change. See
+[docs/07-client-api.md](docs/07-client-api.md) for the full `search()`
+options (facets, filters, boosts, fuzzy matching, highlighting, `mode:
+"vector"`/`"hybrid"`, streaming results, cancellation, and more) and
+[docs/15-cms-meta-tag-control.md](docs/15-cms-meta-tag-control.md) for
+every `csf-*` meta tag your pages can use to control indexing.
+
+## Production checklist
+
+- **Cache headers**: every shard file the indexer emits is content-hashed
+  (e.g. `terms/en/w.7f3c.json`) — serve those
+  `Cache-Control: public, max-age=31536000, immutable`. The one unhashed
+  file, `manifest.json`, is what changes on every rebuild — serve it with
+  a short or no cache lifetime so clients actually pick up a new build
+  (see [docs/02-index-format.md#versioning--cache-strategy](docs/02-index-format.md#versioning--cache-strategy)).
+- **Worker URL**: pass `workerUrl` pointing at wherever your build
+  actually deploys `@csf/client`'s built `worker.js` — this is
+  deliberately not auto-resolved, since every bundler has its own
+  incompatible convention for referencing a sibling worker file from a
+  library. Omit it to run on the main thread instead (same API either
+  way).
+- **Service Worker URL** (optional, for offline support): same
+  deployment concern as the worker above, for whatever URL you register
+  via `registerOfflineCaching()` — see
+  [docs/08-modern-features.md#caching--offline-support](docs/08-modern-features.md#caching--offline-support).
+- **CSP**: this library never uses `eval`/inline scripts and only talks
+  to your own static host over plain `fetch()`; if you register the
+  Worker/Service Worker above, make sure your `script-src`/`worker-src`
+  policy allows loading them from wherever you deployed them.
+- **Index rebuild trigger**: re-run `csf-indexer` (or your own
+  `buildIndex()`/`writeIndex()` call) as a step in whatever pipeline
+  already rebuilds your site's content — there's no incremental update
+  mechanism yet (see [docs/09-roadmap.md](docs/09-roadmap.md)'s "open
+  questions"), a full rebuild is fast and simple enough that no
+  deployment has needed one so far.
+- **Bundle-size expectations**: the core runtime (`index.js` + `worker.js`
+  + `sw.js`) is held to a 15KB gzip budget, enforced in this repo's own
+  CI — everything else (real embedding-model integration, the binary
+  storage tier, offline caching) is opt-in and only costs bytes if you
+  actually use it. See
+  [docs/08-modern-features.md#bundle-size-budget](docs/08-modern-features.md#bundle-size-budget).
+
+## Status
+
+The core engine is implemented and tested end-to-end: multi-language
+lexical search (BM25F, boosts, prefix/phrase matching), facets (terms,
+range, hierarchical), synonyms, fuzzy/typo-tolerant matching, term-to-page
+pinning, result highlighting, Web Worker execution, offline Service
+Worker caching, an opt-in vector/hybrid search mode with real local-model
+embedding support, and an opt-in binary storage tier for larger corpora.
+[`showcase/`](showcase) is a live demo of all of it, deployed to GitHub
+Pages — this repo's own docs site searched by the real engine, plus a
+feature gallery (product catalog with facets/boosts/pins/fuzzy matching,
+a synonym playground, a multi-language corpus).
+
+For the full phase-by-phase build status (what's done, what's partial,
+what's still design-only) see
+[docs/09-roadmap.md](docs/09-roadmap.md#status) — the authoritative,
+continuously-updated source of truth, not duplicated here.
 
 ```sh
 pnpm install
-pnpm test                     # 446 Vitest tests across all packages, including real-HTTP e2e tests
-pnpm test:browser             # 34 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
+pnpm test                     # 496 Vitest tests across all packages, including real-HTTP e2e tests
+pnpm test:browser             # 40 Playwright tests in real Chromium (Worker execution, lifecycle, offline caching, showcase, feature gallery)
 pnpm build                    # builds every package
 pnpm --filter showcase build  # renders docs/*.md, builds the search index; serve showcase/dist/ statically
 ```

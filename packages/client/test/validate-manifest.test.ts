@@ -135,4 +135,147 @@ describe("validateManifest", () => {
       /different origin/,
     );
   });
+
+  it("rejects a synonyms entry that resolves cross-origin by default", () => {
+    const manifest = {
+      ...validManifest(),
+      synonyms: { en: "https://evil.example.com/synonyms/en.json" },
+    };
+    expect(() => validateManifest(manifest, MANIFEST_URL)).toThrow(
+      /different origin/,
+    );
+  });
+
+  it("allows a same-origin synonyms entry", () => {
+    const manifest = {
+      ...validManifest(),
+      synonyms: { en: "synonyms/en.json" },
+    };
+    expect(() => validateManifest(manifest, MANIFEST_URL)).not.toThrow();
+  });
+
+  it("allows a cross-origin synonyms entry when allowCrossOriginShards is set", () => {
+    const manifest = {
+      ...validManifest(),
+      synonyms: { en: "https://evil.example.com/synonyms/en.json" },
+    };
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, {
+        allowCrossOriginShards: true,
+      }),
+    ).not.toThrow();
+  });
+});
+
+/**
+ * Issue #1 finding 7 (productization review): semantic checks beyond
+ * the always-on structural/security ones, off by default (a production
+ * deployment's own known-good manifest shouldn't pay extra validation
+ * cost on every page view) but available for dev/test and independent-
+ * producer conformance checking.
+ */
+describe("validateManifest: strict mode", () => {
+  it("does not run strict checks by default, even on an otherwise strict-invalid manifest", () => {
+    const manifest = {
+      ...validManifest(),
+      shards: {
+        ...(validManifest().shards as Record<string, unknown>),
+        terms: [
+          { lang: "de", prefix: "all", file: "terms/en/all.json" }, // "de" not in languages
+        ],
+      },
+    };
+    expect(() => validateManifest(manifest, MANIFEST_URL)).not.toThrow();
+  });
+
+  it("rejects a term shard lang not present in languages", () => {
+    const manifest = validManifest();
+    (manifest.shards as { terms: Array<Record<string, unknown>> }).terms = [
+      { lang: "de", prefix: "all", file: "terms/en/all.json" },
+    ];
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).toThrow(/lang.*not in languages/);
+  });
+
+  it("rejects a term shard with an empty prefix", () => {
+    const manifest = validManifest();
+    (manifest.shards as { terms: Array<Record<string, unknown>> }).terms = [
+      { lang: "en", prefix: "", file: "terms/en/all.json" },
+    ];
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).toThrow(/prefix must be a non-empty string/);
+  });
+
+  it("rejects duplicate (lang, prefix) pairs across term shards", () => {
+    const manifest = validManifest();
+    (manifest.shards as { terms: Array<Record<string, unknown>> }).terms = [
+      { lang: "en", prefix: "a", file: "terms/en/a.json" },
+      { lang: "en", prefix: "a", file: "terms/en/a2.json" },
+    ];
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).toThrow(/duplicate \(lang, prefix\) pair/);
+  });
+
+  it("rejects an unrecognized term shard format value", () => {
+    const manifest = validManifest();
+    (manifest.shards as { terms: Array<Record<string, unknown>> }).terms = [
+      { lang: "en", prefix: "all", file: "terms/en/all.json", format: "xml" },
+    ];
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).toThrow(/format must be absent, "json", or "binary"/);
+  });
+
+  it("rejects a docs shard idRange that isn't a two-number tuple", () => {
+    const manifest = validManifest();
+    (manifest.shards as { docs: Array<Record<string, unknown>> }).docs = [
+      { shard: 0, file: "docs/0.json", idRange: [0] },
+    ];
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).toThrow(/idRange must be a two-number tuple/);
+  });
+
+  it("rejects a docs shard idRange that isn't ordered (min > max)", () => {
+    const manifest = validManifest();
+    (manifest.shards as { docs: Array<Record<string, unknown>> }).docs = [
+      { shard: 0, file: "docs/0.json", idRange: [9, 0] },
+    ];
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).toThrow(/must be ordered/);
+  });
+
+  it("rejects docCount missing an entry for a declared language", () => {
+    const manifest = {
+      ...validManifest(),
+      languages: ["en", "de"],
+      docCount: { en: 10 }, // missing "de"
+    };
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).toThrow(/docCount is missing an entry for language "de"/);
+  });
+
+  it("rejects avgFieldLength missing an entry for a declared language", () => {
+    const manifest = {
+      ...validManifest(),
+      languages: ["en", "de"],
+      docCount: { en: 10, de: 5 },
+      avgFieldLength: { en: { title: 5 } }, // missing "de"
+    };
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).toThrow(/avgFieldLength is missing an entry for language "de"/);
+  });
+
+  it("accepts a fully well-formed manifest under strict mode", () => {
+    const manifest = validManifest();
+    expect(() =>
+      validateManifest(manifest, MANIFEST_URL, { strict: true }),
+    ).not.toThrow();
+  });
 });

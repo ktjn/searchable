@@ -5,13 +5,13 @@
     <script type="module">
       import { SearchClient, registerOfflineCaching } from "./index.js";
 
-      window.__csfRunSearch = async (query, useWorker) => {
+      window.__csfRunSearch = async (query, useWorker, options) => {
         const client = new SearchClient({
           indexUrl: "./manifest.json",
           worker: useWorker,
           workerUrl: useWorker ? new URL("./worker.js", location.href) : undefined,
         });
-        return client.search(query);
+        return client.search(query, options);
       };
 
       window.__csfRunFacetValues = async (field, useWorker) => {
@@ -131,6 +131,44 @@
         return client.search(query, options);
       };
 
+      window.__csfRunVectorSearchWithProvider = async (
+        query,
+        useWorker,
+        options,
+        provider,
+        validateVectorProvider,
+      ) => {
+        const CONCEPT_BUCKETS = [
+          ["cancel", "closing", "close"],
+          ["plan", "account", "subscription", "membership"],
+          ["widgets", "gadgets"],
+          ["support"],
+        ];
+        const embed = (text) => {
+          const words = text.toLowerCase().split(/\W+/).filter(Boolean);
+          const vector = CONCEPT_BUCKETS.map(() => 0);
+          for (const word of words) {
+            CONCEPT_BUCKETS.forEach((bucket, i) => {
+              if (bucket.includes(word)) vector[i]++;
+            });
+          }
+          return vector;
+        };
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker ? new URL("./worker.js", location.href) : undefined,
+          embedQuery: { embed, provider },
+          validateVectorProvider,
+        });
+        try {
+          const result = await client.search(query, options);
+          return { ok: true, result };
+        } catch (err) {
+          return { ok: false, name: err && err.name, message: err && err.message };
+        }
+      };
+
       window.__csfTestAbortSearch = async (useWorker) => {
         const client = new SearchClient({
           indexUrl: "./manifest.json",
@@ -171,6 +209,28 @@
         const map = {};
         for (const entry of manifest.shards.terms) {
           map[entry.lang] = new URL(entry.file, absIndexUrl).href;
+        }
+        return map;
+      };
+
+      window.__csfManifestFuzzyShardFiles = async (indexUrl) => {
+        const absIndexUrl = new URL(indexUrl, location.href).href;
+        const res = await fetch(absIndexUrl);
+        const manifest = await res.json();
+        const map = {};
+        for (const [lang, descriptor] of Object.entries(manifest.fuzzy ?? {})) {
+          map[lang] = new URL(descriptor.file, absIndexUrl).href;
+        }
+        return map;
+      };
+
+      window.__csfManifestVectorShardFiles = async (indexUrl) => {
+        const absIndexUrl = new URL(indexUrl, location.href).href;
+        const res = await fetch(absIndexUrl);
+        const manifest = await res.json();
+        const map = {};
+        for (const [lang, file] of Object.entries(manifest.vectors?.shards ?? {})) {
+          map[lang] = new URL(file, absIndexUrl).href;
         }
         return map;
       };

@@ -499,6 +499,22 @@ interface FuzzyLookup {
 }
 
 /**
+ * Hard cap on how many distinct dictionary candidates a single fuzzy
+ * lookup will Levenshtein-score (issue #1 finding 8), regardless of how
+ * many deletion-variant buckets matched. A dense vocabulary (many terms
+ * within a couple of edits of each other) or a common short deletion key
+ * can otherwise return an unbounded candidate set, and Levenshtein
+ * distance is computed for every one of them -- this bounds worst-case
+ * per-term CPU cost independent of dictionary size or shape. Candidates
+ * beyond the cap are dropped *before* scoring (the point is avoiding the
+ * O(candidates) distance computation itself, not just trimming the
+ * result list afterward), so this is a safety valve against pathological
+ * density, not a "keep the best N" ranking — which candidates survive
+ * past the cap depends on `Set` insertion order, not distance.
+ */
+const MAX_FUZZY_CANDIDATES_PER_TERM = 200;
+
+/**
  * Every real term discoverable from `term` via the deletion dictionary
  * (a fast candidate generator, not a distance oracle), each paired with
  * its true Levenshtein distance from `term`. Excludes `term` itself
@@ -522,8 +538,15 @@ function fuzzyCandidatesFor(
   for (const deletion of generateDeletes(term, lookup.maxEdits)) {
     for (const t of lookup.get(deletion)) candidates.add(t);
   }
+  let candidateTerms = [...candidates];
+  if (candidateTerms.length > MAX_FUZZY_CANDIDATES_PER_TERM) {
+    console.warn(
+      `[csf-client] fuzzy lookup for "${term}" found ${candidateTerms.length} dictionary candidates, over the ${MAX_FUZZY_CANDIDATES_PER_TERM}-candidate cap -- scoring only the first ${MAX_FUZZY_CANDIDATES_PER_TERM} (not necessarily the closest). A dense vocabulary this large may want a shorter query term, a smaller fuzzyMaxEdits, or this project's benchmarking data to size the tradeoff (docs/10-testing-and-performance.md).`,
+    );
+    candidateTerms = candidateTerms.slice(0, MAX_FUZZY_CANDIDATES_PER_TERM);
+  }
   const matches: { term: string; distance: number }[] = [];
-  for (const candidate of candidates) {
+  for (const candidate of candidateTerms) {
     if (candidate === term) continue;
     matches.push({
       term: candidate,

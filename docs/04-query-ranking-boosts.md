@@ -145,6 +145,29 @@ feature.
   fuzzy matching is a suggestion candidate precisely because it's
   further away, so cutting off *suggestions* at the same threshold that
   already rejected it as a match would be self-defeating.
+- **Per-term candidate cap** (issue #1 finding 8,
+  `MAX_FUZZY_CANDIDATES_PER_TERM = 200` in `packages/client/src/search.ts`):
+  a dense vocabulary (many real terms that collide on one common
+  deletion-variant key) can make one query term's raw candidate set
+  large, and Levenshtein distance is computed for every candidate before
+  it's known whether it's actually within range — this bounds that
+  worst-case per-term cost independent of dictionary size or shape.
+  Candidates beyond the cap are dropped *before* scoring, and a
+  `console.warn` names the overflowing term, so an unusually dense
+  corpus is visible during development rather than only showing up as
+  unexplained query latency. This is a safety valve, not a "keep the
+  closest N" ranking — which candidates survive the cap depends on `Set`
+  insertion order, not distance — so a corpus that regularly hits it is
+  a signal to reconsider `fuzzyMaxEdits`/query-term length policy, not
+  something to just raise the constant past. Proven with a real,
+  deliberately-constructed dense vocabulary (many terms colliding on one
+  shared deletion key), not a mock
+  (`packages/client/test/fuzzy-candidate-cap.test.ts`): the query still
+  returns and the warning fires, while every other (ordinary, small)
+  fuzzy test in this repo never triggers it. A from-scratch performance
+  benchmark for this scenario (docs/10-testing-and-performance.md's
+  separate, scheduled performance suite, not this correctness fix) is
+  not attempted here.
 - Fuzzy results are always ranked below exact/prefix matches for the same
   term (a small score penalty proportional to edit distance) rather than
   mixed in undifferentiated.

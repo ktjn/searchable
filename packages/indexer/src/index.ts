@@ -6,7 +6,11 @@ export { chunkText } from "./chunk-text.js";
 export type { Chunk } from "./chunk-text.js";
 export { discoverHtmlDocuments } from "./discover.js";
 export { extractDocument } from "./extract.js";
-export type { ExtractedDocument, PinDeclaration } from "./extract.js";
+export type {
+  CanonicalUrlOptions,
+  ExtractedDocument,
+  PinDeclaration,
+} from "./extract.js";
 export {
   createTransformersEmbedder,
   DEFAULT_TRANSFORMERS_MODEL,

@@ -57,7 +57,13 @@ function parseConfig(): {
  * only the visitor's current UI language instead of paying to cache
  * every language's shards. Facet and doc-store shards aren't
  * per-language (docs/02-index-format.md#manifest) so `languages`
- * doesn't apply to them.
+ * doesn't apply to them. `fuzzy` is handled separately from
+ * `pins`/`synonyms` below because its value is `{file, format?}`, not a
+ * bare file string like those two -- iterating all three the same way
+ * would push the whole descriptor object through `resolve()` instead of
+ * its `.file` string. `vectors.shards` is included too, so
+ * `mode: "vector"`/`"hybrid"` are actually offline-capable, not just
+ * `mode: "lexical"`.
  */
 function shardUrlsFor(
   manifest: Manifest,
@@ -75,10 +81,16 @@ function shardUrlsFor(
   for (const entry of manifest.shards.docs) {
     urls.push(resolve(indexUrl, entry.file));
   }
-  for (const table of [manifest.pins, manifest.synonyms, manifest.fuzzy]) {
+  for (const table of [manifest.pins, manifest.synonyms]) {
     for (const [lang, file] of Object.entries(table ?? {})) {
       if (includesLang(lang)) urls.push(resolve(indexUrl, file));
     }
+  }
+  for (const [lang, descriptor] of Object.entries(manifest.fuzzy ?? {})) {
+    if (includesLang(lang)) urls.push(resolve(indexUrl, descriptor.file));
+  }
+  for (const [lang, file] of Object.entries(manifest.vectors?.shards ?? {})) {
+    if (includesLang(lang)) urls.push(resolve(indexUrl, file));
   }
   return urls;
 }

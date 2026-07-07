@@ -99,6 +99,22 @@ export interface BuildIndexOptions {
    * build time rather than silently producing a nonsensical histogram.
    */
   rangeFacetBuckets?: Record<string, number | number[]>;
+  /**
+   * Restricts an absolute `<link rel="canonical">` href to one of these
+   * exact origins (docs/15-cms-meta-tag-control.md#canonical-url) —
+   * anything else falls back to the document's own crawled `url`, same
+   * as a missing/invalid canonical tag. `javascript:`/`data:`/other
+   * non-web schemes are always rejected regardless of this option
+   * (that check isn't optional).
+   */
+  allowedUrlOrigins?: string[];
+  /**
+   * Base URL used to resolve a root-relative or relative canonical href
+   * into an absolute URL before the protocol/origin checks above run —
+   * see `CanonicalUrlOptions.baseUrl` (extract.ts) for exactly what this
+   * does and doesn't affect.
+   */
+  canonicalBaseUrl?: string;
 }
 
 const DEFAULT_HIERARCHY_SEPARATOR = ">";
@@ -625,7 +641,19 @@ export function buildIndex(
   let maxId = Number.NEGATIVE_INFINITY;
 
   for (const source of sources) {
-    const extracted = extractDocument(source.html, source.url, defaultLanguage);
+    const extracted = extractDocument(
+      source.html,
+      source.url,
+      defaultLanguage,
+      {
+        ...(options.allowedUrlOrigins
+          ? { allowedUrlOrigins: options.allowedUrlOrigins }
+          : {}),
+        ...(options.canonicalBaseUrl
+          ? { baseUrl: options.canonicalBaseUrl }
+          : {}),
+      },
+    );
     if (extracted.noindex) continue;
 
     const language = extracted.language;

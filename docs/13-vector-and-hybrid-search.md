@@ -1,7 +1,9 @@
 # Vector & Hybrid Search
 
-**Status**: Storage/similarity mechanics implemented, and option 1 below
-(ship a local model) is now implemented too — see
+**Status**: Storage/similarity mechanics implemented, option 1 below
+(ship a local model) is implemented, and `SearchClient` now validates
+`embedQuery`'s provider against the manifest's own
+`vectors.embeddingProvider` (see "API surface" below) — see
 [09-roadmap.md](09-roadmap.md)'s Phase 8 for what's actually built
 (`packages/indexer/src/build-vectors.ts`, `packages/indexer/src/chunk-text.ts`,
 `packages/client/src/vector-search.ts`,
@@ -238,6 +240,27 @@ embedding source configured (local model or remote API per the manifest,
 see above) — attempting vector/hybrid mode without one throws a clear
 `VectorSearchNotConfiguredError` rather than silently falling back to
 lexical-only.
+
+**Provider-mismatch validation (implemented)**: `embedQuery` can be a
+bare function (this library then has no way to know what produced its
+vectors, so no check is possible) or `{embed, provider}` — the shape
+`createTransformersEmbedQuery()` itself returns. When given the object
+form, `SearchClient` compares `provider` against the manifest's own
+`vectors.embeddingProvider` *before* ever computing a query vector, and
+throws `VectorProviderMismatchError` on a mismatch rather than silently
+returning plausible-looking but meaningless rankings — comparing a query
+embedded by one model against corpus vectors built by another produces
+garbage cosine similarities, not an error, unless something catches it.
+On by default; opt out per-client via
+`new SearchClient({ ..., validateVectorProvider: false })` for a
+deployment that's certain a mismatch is intentional (e.g. deliberately
+testing cross-model behavior). Works in both Worker and main-thread
+mode — in Worker mode, `SearchClient` lazily fetches its own small copy
+of the manifest on the main thread the first time this check actually
+runs (the Worker holds its own copy internally, never exposed to the
+main thread otherwise), so a client that never uses the object form or
+never requests `mode: "vector"`/`"hybrid"` never pays for a second
+fetch.
 
 ## Non-goals
 

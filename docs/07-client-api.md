@@ -194,6 +194,15 @@ silently searching lexical-only. Not supported in combination with
 `VectorSearchNotConfiguredError`, since streaming never supplies a query
 embedding).
 
+`embedQuery` can also be `{embed, provider}` (the shape
+`createTransformersEmbedQuery()` returns) instead of a bare function —
+`SearchClient` then compares `provider` against the manifest's own
+`vectors.embeddingProvider` before computing a query vector, throwing
+`VectorProviderMismatchError` on a mismatch rather than silently
+returning meaningless rankings from comparing incompatible embedding
+spaces. On by default when the object form is used; opt out with
+`validateVectorProvider: false`.
+
 ### Highlighting
 
 ```ts
@@ -369,6 +378,16 @@ for the caching-strategy details and cache-invalidation reasoning.
   in with `allowCrossOriginShards: true` on `SearchClientOptions` — a
   compromised or misconfigured manifest shouldn't be able to make the
   client fetch arbitrary third-party URLs.
+- `SearchClientOptions.strict: true` (issue #1 finding 7) adds semantic
+  manifest checks beyond the always-on structural/security ones above —
+  every term shard's `lang` is actually declared, `(lang, prefix)` pairs
+  are unique, `docCount`/`avgFieldLength` cover every declared language,
+  and so on (`ValidateManifestOptions.strict`,
+  `packages/client/src/validate-manifest.ts`). Off by default: meant for
+  dev/test and checking a manifest from an independent producer
+  ([02-index-format.md](02-index-format.md#the-format-is-a-spec-not-a-library-dependency)),
+  not a production deployment's own known-good, indexer-built manifest
+  paying extra validation cost on every page view.
 - If Web Workers are unavailable (rare, e.g. certain locked-down
   embedded webviews) or `workerUrl` is omitted, the client transparently
   runs on the main thread instead of failing to initialize — same

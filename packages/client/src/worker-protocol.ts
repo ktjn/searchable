@@ -17,7 +17,12 @@ import type {
  * discriminated union, it collapses it.
  */
 export type WorkerRequestPayload =
-  | { type: "init"; indexUrl: string; allowCrossOriginShards?: boolean }
+  | {
+      type: "init";
+      indexUrl: string;
+      allowCrossOriginShards?: boolean;
+      strict?: boolean;
+    }
   | {
       type: "search";
       query: string;

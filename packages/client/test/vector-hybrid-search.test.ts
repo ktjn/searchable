@@ -5,7 +5,10 @@ import { buildIndex, buildVectorShards, writeIndex } from "@csf/indexer";
 import type { SourceDocument } from "@csf/indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
-import { VectorSearchNotConfiguredError } from "../src/vector-search.js";
+import {
+  VectorProviderMismatchError,
+  VectorSearchNotConfiguredError,
+} from "../src/vector-search.js";
 import { serveStatic } from "./static-server.js";
 
 /**
@@ -153,5 +156,86 @@ describe("vector/hybrid search mechanics (real HTTP, deterministic synthetic emb
     const client = clientWithEmbed();
     const result = await client.search("widgets");
     expect(result.hits.map((h) => h.id)).toEqual([3]);
+  });
+});
+
+/**
+ * Issue #1 finding 4 (productization review): `embedQuery` can carry its
+ * own `provider` metadata (`{embed, provider}`, the shape
+ * `createTransformersEmbedQuery()` returns), which `SearchClient`
+ * compares against this index's own `manifest.vectors.embeddingProvider`
+ * (recorded above as `{ type: "custom" }`) before ever computing a query
+ * vector. A bare-function `embedQuery` (every test above) has no
+ * provider to compare, so it's never validated -- that's the documented,
+ * intentional tradeoff for a deployment that doesn't use the
+ * object form.
+ */
+describe("vector embedding-provider mismatch validation (real HTTP)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+
+  beforeAll(async () => {
+    outDir = await mkdtemp(join(tmpdir(), "csf-vector-provider-"));
+    const built = buildIndex(sources, "en");
+    const vectors = await buildVectorShards(sources, "en", {
+      embed: embedBatch,
+    });
+    await writeIndex(built, outDir, { vectors });
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await rm(outDir, { recursive: true, force: true });
+  });
+
+  it("a matching provider does not throw", async () => {
+    const client = new SearchClient({
+      indexUrl: `${baseUrl}manifest.json`,
+      embedQuery: { embed: embedText, provider: { type: "custom" } },
+    });
+    await expect(
+      client.search("cancel plan", { mode: "vector" }),
+    ).resolves.toBeDefined();
+  });
+
+  it("a mismatched provider throws VectorProviderMismatchError before computing a query vector", async () => {
+    const client = new SearchClient({
+      indexUrl: `${baseUrl}manifest.json`,
+      embedQuery: {
+        embed: embedText,
+        provider: { type: "local-model", model: "wrong/model" },
+      },
+    });
+    await expect(
+      client.search("cancel plan", { mode: "vector" }),
+    ).rejects.toBeInstanceOf(VectorProviderMismatchError);
+  });
+
+  it("validateVectorProvider: false opts out of the check", async () => {
+    const client = new SearchClient({
+      indexUrl: `${baseUrl}manifest.json`,
+      embedQuery: {
+        embed: embedText,
+        provider: { type: "local-model", model: "wrong/model" },
+      },
+      validateVectorProvider: false,
+    });
+    await expect(
+      client.search("cancel plan", { mode: "vector" }),
+    ).resolves.toBeDefined();
+  });
+
+  it("a bare-function embedQuery is never validated (no provider to compare)", async () => {
+    const client = new SearchClient({
+      indexUrl: `${baseUrl}manifest.json`,
+      embedQuery: (query) => embedText(query),
+    });
+    await expect(
+      client.search("cancel plan", { mode: "vector" }),
+    ).resolves.toBeDefined();
   });
 });

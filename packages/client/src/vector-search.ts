@@ -17,6 +17,25 @@ export class VectorSearchNotConfiguredError extends Error {
 }
 
 /**
+ * Thrown by `mode: "vector"`/`"hybrid"` when `embedQuery` declares its
+ * own `provider` (docs/13-vector-and-hybrid-search.md#api-surface) and it
+ * doesn't match the manifest's `vectors.embeddingProvider` -- comparing
+ * a query embedded by one model against corpus vectors built by another
+ * produces meaningless cosine similarities, not an error, unless this
+ * check catches the mismatch first. Fails loud rather than silently
+ * returning plausible-looking but wrong rankings; opt out via
+ * `SearchClientOptions.validateVectorProvider: false` for a deployment
+ * that's certain the mismatch is intentional (e.g. deliberately testing
+ * cross-model behavior).
+ */
+export class VectorProviderMismatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "VectorProviderMismatchError";
+  }
+}
+
+/**
  * Vector/hybrid search mechanics (docs/13-vector-and-hybrid-search.md):
  * dequantization, brute-force cosine similarity, and Reciprocal Rank
  * Fusion. Deliberately the simplest thing that meets the bar per that

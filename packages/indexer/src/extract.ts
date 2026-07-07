@@ -26,6 +26,100 @@ export interface ExtractedDocument {
 const FACET_TAG_PREFIX = "csf-facet-";
 const RANGE_FACET_TAG_PREFIX = "csf-facet-range-";
 
+export interface CanonicalUrlOptions {
+  /**
+   * Restricts an absolute canonical URL to one of these exact origins
+   * (scheme + host + port, e.g. `"https://example.com"`) — anything
+   * else falls back to the document's own crawled `sourceUrl`, same as
+   * a missing/invalid canonical tag. Off by default: with no allowlist
+   * configured, any `http:`/`https:` origin is accepted (see
+   * `SAFE_URL_PROTOCOLS` below) since most deployments have no fixed
+   * production origin at index time (e.g. a preview/staging build).
+   */
+  allowedUrlOrigins?: string[];
+  /**
+   * Base URL used to resolve a root-relative (`"/products/widget"`) or
+   * otherwise relative canonical href into an absolute URL before
+   * protocol/origin checks run. Without this, only already-absolute
+   * `http:`/`https:` canonical URLs and bare root-relative paths are
+   * accepted — a canonical href that's relative to the *current* page
+   * (not root-relative) has no way to resolve to anything meaningful
+   * without knowing that page's own URL, so it's rejected (falls back
+   * to `sourceUrl`) rather than guessed at.
+   */
+  baseUrl?: string;
+}
+
+/**
+ * Schemes a canonical URL is allowed to resolve to (docs/15-cms-meta-tag-control.md#canonical-url):
+ * `javascript:`, `data:`, and other executable/non-web schemes are
+ * rejected outright, since this value flows through to `Hit.url`, which
+ * a consuming app may render directly into a link — untrusted/malformed
+ * rendered HTML producing one of those schemes would otherwise be a
+ * real XSS footgun handed straight to every consumer.
+ */
+const SAFE_URL_PROTOCOLS = new Set(["http:", "https:"]);
+
+/**
+ * Validates a `<link rel="canonical">` href before trusting it as a
+ * document's `url` (docs/15-cms-meta-tag-control.md#canonical-url) —
+ * malformed, non-web-scheme, or (when `allowedUrlOrigins` is set)
+ * off-allowlist values fall back to `sourceUrl`, exactly as if no
+ * canonical tag were present at all, rather than either throwing (one
+ * bad page souring an entire build) or passing the raw value through
+ * unchecked (the security footgun this exists to close).
+ */
+function sanitizeCanonicalUrl(
+  canonical: string | undefined,
+  sourceUrl: string,
+  options: CanonicalUrlOptions,
+): string {
+  if (!canonical) return sourceUrl;
+
+  // Root-relative paths ("/products/widget") have no scheme to exploit
+  // and need no base to resolve -- accepted as-is, matching how a real
+  // browser treats <link rel="canonical" href="/foo">. Protocol-relative
+  // ("//evil.com/foo") is deliberately excluded from this fast path (its
+  // second character is also "/") so it always goes through full URL
+  // resolution below instead of being trusted blind.
+  if (canonical.startsWith("/") && !canonical.startsWith("//")) {
+    return canonical;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(canonical, options.baseUrl);
+  } catch {
+    console.warn(
+      `[csf-indexer] canonical URL "${canonical}" for ${sourceUrl} is malformed or relative with no baseUrl configured -- ignoring, indexing with ${sourceUrl} instead. See docs/15-cms-meta-tag-control.md#canonical-url.`,
+    );
+    return sourceUrl;
+  }
+
+  if (!SAFE_URL_PROTOCOLS.has(parsed.protocol)) {
+    console.warn(
+      `[csf-indexer] canonical URL "${canonical}" for ${sourceUrl} uses a disallowed protocol (${parsed.protocol}) -- ignoring, indexing with ${sourceUrl} instead.`,
+    );
+    return sourceUrl;
+  }
+
+  if (
+    options.allowedUrlOrigins &&
+    !options.allowedUrlOrigins.includes(parsed.origin)
+  ) {
+    console.warn(
+      `[csf-indexer] canonical URL "${canonical}" for ${sourceUrl} resolves to an origin (${parsed.origin}) not in allowedUrlOrigins -- ignoring, indexing with ${sourceUrl} instead.`,
+    );
+    return sourceUrl;
+  }
+
+  // `parsed.href`, not the raw `canonical` string: this is the point at
+  // which a protocol-relative href (accepted here only because `baseUrl`
+  // resolved it to a real origin) needs to become the actual absolute
+  // URL, not the still-schemeless original.
+  return parsed.href;
+}
+
 const BOILERPLATE_SELECTORS = [
   "nav",
   "header",
@@ -50,6 +144,7 @@ export function extractDocument(
   html: string,
   sourceUrl: string,
   defaultLanguage = "en",
+  canonicalUrlOptions: CanonicalUrlOptions = {},
 ): ExtractedDocument {
   const root = parse(html);
 
@@ -66,8 +161,9 @@ export function extractDocument(
 
   const canonical = root
     .querySelector('link[rel="canonical"]')
-    ?.getAttribute("href");
-  const url = canonical?.trim() || sourceUrl;
+    ?.getAttribute("href")
+    ?.trim();
+  const url = sanitizeCanonicalUrl(canonical, sourceUrl, canonicalUrlOptions);
 
   const excerpt = collapseWhitespace(
     root.querySelector('meta[name="description"]')?.getAttribute("content") ??

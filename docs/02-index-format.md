@@ -246,12 +246,23 @@ directory-based `docId -> (byte offset, byte length)` table (same shape
 as the term shard's `term -> (offset, length)` directory) followed by a
 records blob, so a query decodes only the specific hit ids on its result
 page. This one is motivated a bit differently than the term/fuzzy
-shards' "large dictionary, few keys" shape: there is (today) exactly
-*one* doc store shard for the whole corpus regardless of size
-(`write-index.ts` always emits one `docs/0.json`), so every query that
-needs even a single hit's stored fields currently pays the cost of
-fetching and parsing every document in the corpus — this format removes
-that cost by letting the client seek directly to just the ids it needs.
+shards' "large dictionary, few keys" shape: even a single physical shard
+covering the whole corpus benefits, since every query that needs even
+one hit's stored fields would otherwise pay to parse every document.
+
+**Multi-shard splitting implemented** (`writeIndex(built, outDir, { docStoreShardSize })`):
+without it, `writeIndex()` still emits exactly one `docs/0.json`/`.bin`
+covering the whole corpus (unchanged default, matching every existing
+build) — `docStoreShardSize` is what actually produces more than one
+contiguous-id-range shard for the client to skip past. The client already
+fetches only the shard(s) whose `idRange` overlaps a query's hit ids
+(`packages/client/src/search.ts`'s `fetchDocStoreEntriesByIds()`, written
+generically from the start to handle any number of shards), so setting
+this option is the only change a deployment with a large corpus needs to
+make to stop paying for the whole doc store on every query — no client
+changes required. Combines with `docStoreFormat: "binary"`
+independently: shard-count bounds *fetch* size, binary format bounds
+per-shard *decode* cost — a large corpus wants both.
 
 Machine-checkable schemas for every shard type on this page live under
 [`spec/schema/`](../spec/schema/) (Phase 0 of

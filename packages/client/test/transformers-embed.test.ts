@@ -36,10 +36,10 @@ describe("createTransformersEmbedQuery", () => {
 
     const { createTransformersEmbedQuery, DEFAULT_TRANSFORMERS_MODEL } =
       await import("../src/transformers-embed.js");
-    const embedQuery = createTransformersEmbedQuery();
+    const { embed } = createTransformersEmbedQuery();
     expect(pipelineMock).not.toHaveBeenCalled();
 
-    await embedQuery("hello");
+    await embed("hello");
 
     expect(pipelineMock).toHaveBeenCalledTimes(1);
     expect(pipelineMock).toHaveBeenCalledWith(
@@ -56,11 +56,11 @@ describe("createTransformersEmbedQuery", () => {
     const { createTransformersEmbedQuery } = await import(
       "../src/transformers-embed.js"
     );
-    const embedQuery = createTransformersEmbedQuery({
+    const { embed } = createTransformersEmbedQuery({
       model: "some/model",
       dtype: "fp32",
     });
-    await embedQuery("hello");
+    await embed("hello");
 
     expect(pipelineMock).toHaveBeenCalledWith(
       "feature-extraction",
@@ -71,6 +71,18 @@ describe("createTransformersEmbedQuery", () => {
     );
   });
 
+  it("reports a provider matching the requested model", async () => {
+    const extractor = fakeExtractor(3);
+    pipelineMock.mockResolvedValue(extractor);
+
+    const { createTransformersEmbedQuery } = await import(
+      "../src/transformers-embed.js"
+    );
+    const { provider } = createTransformersEmbedQuery({ model: "a/b" });
+
+    expect(provider).toEqual({ type: "local-model", model: "a/b" });
+  });
+
   it("loads the model only once across repeated calls", async () => {
     const extractor = fakeExtractor(3);
     pipelineMock.mockResolvedValue(extractor);
@@ -78,10 +90,10 @@ describe("createTransformersEmbedQuery", () => {
     const { createTransformersEmbedQuery } = await import(
       "../src/transformers-embed.js"
     );
-    const embedQuery = createTransformersEmbedQuery();
-    await embedQuery("first");
-    await embedQuery("second");
-    await embedQuery("third");
+    const { embed } = createTransformersEmbedQuery();
+    await embed("first");
+    await embed("second");
+    await embed("third");
 
     expect(pipelineMock).toHaveBeenCalledTimes(1);
     expect(extractor).toHaveBeenCalledTimes(3);
@@ -94,8 +106,8 @@ describe("createTransformersEmbedQuery", () => {
     const { createTransformersEmbedQuery } = await import(
       "../src/transformers-embed.js"
     );
-    const embedQuery = createTransformersEmbedQuery();
-    await embedQuery("hello");
+    const { embed } = createTransformersEmbedQuery();
+    await embed("hello");
 
     expect(extractor).toHaveBeenCalledWith(["hello"], {
       pooling: "mean",
@@ -110,8 +122,8 @@ describe("createTransformersEmbedQuery", () => {
     const { createTransformersEmbedQuery } = await import(
       "../src/transformers-embed.js"
     );
-    const embedQuery = createTransformersEmbedQuery();
-    const vector = await embedQuery("hello");
+    const { embed } = createTransformersEmbedQuery();
+    const vector = await embed("hello");
 
     expect(vector).toEqual([1, 2, 3, 4]);
   });
@@ -132,8 +144,8 @@ describe.skipIf(!process.env.CSF_TEST_REAL_TRANSFORMERS)(
       const { createTransformersEmbedQuery } = await import(
         "../src/transformers-embed.js"
       );
-      const embedQuery = createTransformersEmbedQuery();
-      const vector = await embedQuery("hello world");
+      const { embed } = createTransformersEmbedQuery();
+      const vector = await embed("hello world");
 
       expect(vector).toHaveLength(384);
       const norm = Math.sqrt(vector.reduce((sum, v) => sum + v * v, 0));

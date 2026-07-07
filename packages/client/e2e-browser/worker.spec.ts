@@ -13,7 +13,8 @@ declare global {
     __csfRunSearch?: (
       query: string,
       useWorker: boolean,
-    ) => Promise<{ hits: Array<{ id: number; url: string }> }>;
+      options?: Record<string, unknown>,
+    ) => Promise<{ hits: Array<{ id: number; url: string; score: number }> }>;
     __csfRunFacetValues?: (
       field: string,
       useWorker: boolean,

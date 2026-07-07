@@ -893,6 +893,30 @@ Phase 2 is now fully implemented.
   suggestion), and identical `url`/stored `fields`/`score` — the last
   exercising the float64 `csf-boost` round-trip — for both formats
   built from the same corpus.
+- ✅ Doc store multi-shard splitting (issue #1 finding 6,
+  `WriteIndexOptions.docStoreShardSize`,
+  `packages/indexer/src/write-index.ts`'s `chunkDocStoreByIdRange()`):
+  the doc store used to always be exactly one physical shard covering
+  the whole corpus regardless of size, so this project's own "scales
+  past toy corpora" positioning was in tension with a query having to
+  fetch that single, ever-growing file. `docStoreShardSize` splits it
+  into multiple contiguous-id-range shards instead — the client's
+  `fetchDocStoreEntriesByIds()` (`packages/client/src/search.ts`) was
+  already written generically to fetch only the shard(s) whose
+  `idRange` overlaps a query's hit ids, so this option is the only
+  change a deployment needs to make; no client changes were required.
+  Defaults to `Number.POSITIVE_INFINITY` (today's single-shard
+  behavior, matching every existing build/test byte-for-byte) — an
+  explicit opt-in for a corpus large enough that this matters. Combines
+  independently with `docStoreFormat: "binary"` above (shard count
+  bounds fetch size, binary format bounds per-shard decode cost).
+  Verified over real HTTP
+  (`packages/client/test/doc-store-sharding.test.ts`): a query whose
+  hits straddle a shard boundary returns byte-identical results to an
+  unsharded build of the same corpus, and — the actual point — a
+  `fetch` spy confirms a query hitting one shard's id range never
+  fetches the others, while a query spanning every shard's range
+  fetches all of them.
 - Still missing before this is a complete binary tier: a
   Range-request-capable single-file postings variant, an optional WASM
   scoring core, federated multi-index search, and a facet-shard binary

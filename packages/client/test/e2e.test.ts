@@ -359,6 +359,34 @@ describe("manifest validation (real HTTP)", () => {
     });
     await expect(client.ready()).rejects.toThrow(/different origin/);
   });
+
+  it("strict: true rejects a semantically-invalid manifest that lite mode accepts (issue #1 finding 7)", async () => {
+    const built = buildIndex(sources);
+    await writeIndex(built, outDir);
+    const manifestPath = join(outDir, "manifest.json");
+    const { readFile } = await import("node:fs/promises");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    // "de" is not in manifest.languages -- structurally fine (still a
+    // valid array of shard entries), only wrong under strict's semantic
+    // cross-check.
+    manifest.shards.terms[0].lang = "de";
+    await writeFile(
+      join(outDir, "strict-invalid-manifest.json"),
+      JSON.stringify(manifest),
+      "utf8",
+    );
+
+    const lite = new SearchClient({
+      indexUrl: `${baseUrl}strict-invalid-manifest.json`,
+    });
+    await expect(lite.ready()).resolves.toBeUndefined();
+
+    const strict = new SearchClient({
+      indexUrl: `${baseUrl}strict-invalid-manifest.json`,
+      strict: true,
+    });
+    await expect(strict.ready()).rejects.toThrow(/not in languages/);
+  });
 });
 
 describe("document-level boost (csf-boost)", () => {

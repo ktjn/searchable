@@ -1,4 +1,4 @@
-import type { Manifest } from "@csf/format";
+import type { EmbeddingProviderConfig, Manifest } from "@csf/format";
 import { ShardCache } from "./fetch-json.js";
 import { facetValues, search, searchStream } from "./search.js";
 import type {
@@ -8,7 +8,10 @@ import type {
   SearchResult,
 } from "./search.js";
 import { validateManifest } from "./validate-manifest.js";
-import { VectorSearchNotConfiguredError } from "./vector-search.js";
+import {
+  VectorProviderMismatchError,
+  VectorSearchNotConfiguredError,
+} from "./vector-search.js";
 import type {
   WorkerRequestPayload,
   WorkerResponse,
@@ -37,6 +40,18 @@ function toAbsoluteUrl(url: string): string {
 
 function abortError(): DOMException {
   return new DOMException("The operation was aborted.", "AbortError");
+}
+
+/** Structural equality for the small, fixed `EmbeddingProviderConfig` union -- deliberately not `JSON.stringify` comparison, since key order between a manifest parsed from JSON and a locally-constructed object isn't guaranteed to match. */
+function providersMatch(
+  a: EmbeddingProviderConfig,
+  b: EmbeddingProviderConfig,
+): boolean {
+  if (a.type !== b.type) return false;
+  if (a.type === "local-model" && b.type === "local-model") {
+    return a.model === b.model;
+  }
+  return true;
 }
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
@@ -103,6 +118,16 @@ export interface SearchClientOptions {
    */
   allowCrossOriginShards?: boolean;
   /**
+   * Adds semantic manifest checks beyond the always-on structural/
+   * security ones (issue #1 finding 7) — see
+   * `ValidateManifestOptions.strict` (`validate-manifest.ts`) for
+   * exactly what this adds. Off by default: meant for dev/test and
+   * independent-producer conformance checking, not a production
+   * deployment's own known-good, indexer-built manifest paying extra
+   * validation cost on every page view.
+   */
+  strict?: boolean;
+  /**
    * Turns a query string into the vector `options.mode: "vector"`/
    * `"hybrid"` search needs (docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from).
    * Deliberately not provided by this library: what produces this
@@ -114,8 +139,32 @@ export interface SearchClientOptions {
    * requesting `mode: "vector"`/`"hybrid"` throws
    * `VectorSearchNotConfiguredError` rather than silently searching
    * lexical-only.
+   *
+   * Accepts either a bare function (this library has no way to know
+   * what produced its vectors, so no provider-mismatch check is
+   * possible) or `{embed, provider}` — the object form this package's
+   * own `createTransformersEmbedQuery()` returns — so `SearchClient` can
+   * compare `provider` against the manifest's own
+   * `vectors.embeddingProvider` and fail fast on a mismatch instead of
+   * silently comparing a query embedded by one model against corpus
+   * vectors built by another (see `validateVectorProvider` below).
    */
-  embedQuery?: (query: string) => Promise<number[]> | number[];
+  embedQuery?:
+    | ((query: string) => Promise<number[]> | number[])
+    | {
+        embed: (query: string) => Promise<number[]> | number[];
+        provider: EmbeddingProviderConfig;
+      };
+  /**
+   * When `embedQuery` is given in its `{embed, provider}` form, compares
+   * `provider` against the manifest's `vectors.embeddingProvider` before
+   * ever computing a query vector, throwing `VectorProviderMismatchError`
+   * on a mismatch. Defaults to `true` — set `false` only for a
+   * deployment that's certain a mismatch is intentional (e.g. testing
+   * cross-model behavior). Has no effect when `embedQuery` is a bare
+   * function, since this library then has no provider to compare.
+   */
+  validateVectorProvider?: boolean;
 }
 
 interface PendingRequest {
@@ -184,10 +233,26 @@ export class SearchClient {
   #fatalError?: Error;
   #listeners = new Map<SearchClientEvent, Set<AnyListener>>();
   #embedQuery: SearchClientOptions["embedQuery"];
+  #validateVectorProvider: boolean;
+  #allowCrossOriginShards: boolean;
+  #strict: boolean;
+  /**
+   * A manifest fetch used *only* to read `vectors.embeddingProvider` for
+   * provider-mismatch validation when running in Worker mode (where
+   * `#manifest` below is never set — the Worker holds its own copy).
+   * Lazily created on first use, not in the constructor, so a client
+   * that never requests `mode: "vector"`/`"hybrid"` with a
+   * provider-carrying `embedQuery` never pays for a second manifest
+   * fetch alongside the Worker's own.
+   */
+  #vectorValidationManifest?: Promise<Manifest>;
 
   constructor(options: SearchClientOptions) {
     this.#indexUrl = toAbsoluteUrl(options.indexUrl);
     this.#embedQuery = options.embedQuery;
+    this.#validateVectorProvider = options.validateVectorProvider ?? true;
+    this.#allowCrossOriginShards = options.allowCrossOriginShards ?? false;
+    this.#strict = options.strict ?? false;
     const wantsWorker =
       options.worker !== false &&
       options.workerUrl !== undefined &&
@@ -216,6 +281,7 @@ export class SearchClient {
         ...(options.allowCrossOriginShards !== undefined
           ? { allowCrossOriginShards: options.allowCrossOriginShards }
           : {}),
+        ...(options.strict !== undefined ? { strict: options.strict } : {}),
       }).then(() => undefined);
     } else {
       this.#manifest = this.#cache
@@ -223,6 +289,7 @@ export class SearchClient {
         .then((manifest) =>
           validateManifest(manifest, this.#indexUrl, {
             allowCrossOriginShards: options.allowCrossOriginShards ?? false,
+            strict: this.#strict,
           }),
         );
       this.#ready = this.#manifest.then(() => undefined);
@@ -296,7 +363,57 @@ export class SearchClient {
         `SearchClient.search: mode "${mode}" requires SearchClientOptions.embedQuery to be configured — see docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from`,
       );
     }
-    return this.#embedQuery(query);
+    if (typeof this.#embedQuery === "function") {
+      return this.#embedQuery(query);
+    }
+    const { embed, provider } = this.#embedQuery;
+    if (this.#validateVectorProvider) {
+      await this.#checkVectorProvider(provider);
+    }
+    return embed(query);
+  }
+
+  /**
+   * Compares `embedQuery`'s declared `provider` against the manifest's
+   * own `vectors.embeddingProvider`, throwing `VectorProviderMismatchError`
+   * on a mismatch (see `SearchClientOptions.validateVectorProvider`). A
+   * manifest with no `vectors` configured at all isn't this check's
+   * job to report -- `search.ts`'s own `VectorSearchNotConfiguredError`
+   * (thrown when there's no vector shard to search at all) covers that
+   * case with a clearer, more specific message.
+   */
+  async #checkVectorProvider(provider: EmbeddingProviderConfig): Promise<void> {
+    const manifest = await this.#getManifestForVectorValidation();
+    const manifestProvider = manifest.vectors?.embeddingProvider;
+    if (!manifestProvider) return;
+    if (!providersMatch(provider, manifestProvider)) {
+      throw new VectorProviderMismatchError(
+        `SearchClient.search: embedQuery's provider (${JSON.stringify(provider)}) does not match this index's vectors.embeddingProvider (${JSON.stringify(manifestProvider)}) — comparing a query embedded by one model against corpus vectors built by another produces meaningless scores. Pass validateVectorProvider: false to opt out if this mismatch is intentional.`,
+      );
+    }
+  }
+
+  /**
+   * The main-thread's own copy of the manifest, needed only to read
+   * `vectors.embeddingProvider` for the check above. In non-worker mode
+   * this is just `#manifest`, already resolved; in Worker mode the
+   * manifest normally lives only inside the Worker, so this lazily
+   * fetches+validates a second copy on the main thread, once, the first
+   * time it's actually needed.
+   */
+  #getManifestForVectorValidation(): Promise<Manifest> {
+    if (this.#manifest) return this.#manifest;
+    if (!this.#vectorValidationManifest) {
+      this.#vectorValidationManifest = this.#cache
+        .fetchJson<Manifest>(this.#indexUrl)
+        .then((manifest) =>
+          validateManifest(manifest, this.#indexUrl, {
+            allowCrossOriginShards: this.#allowCrossOriginShards,
+            strict: this.#strict,
+          }),
+        );
+    }
+    return this.#vectorValidationManifest;
   }
 
   /**

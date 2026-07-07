@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { extractDocument } from "../src/extract.js";
 
 describe("extractDocument", () => {
@@ -192,5 +192,114 @@ describe("extractDocument", () => {
     const html =
       "<html><head><title>Ohne Lang</title></head><body>x y z</body></html>";
     expect(extractDocument(html, "/x", "de").language).toBe("de");
+  });
+});
+
+/**
+ * Issue #1 finding 5 (productization review): a `<link rel="canonical">`
+ * href flows straight through to `Hit.url`, which a consuming app may
+ * render directly into a link -- untrusted/malformed rendered HTML
+ * producing a `javascript:`/`data:`/protocol-relative URL would
+ * otherwise be a real XSS footgun handed to every consumer.
+ */
+describe("extractDocument: canonical URL sanitization", () => {
+  function withCanonical(href: string): string {
+    return `<html><head><title>T</title><link rel="canonical" href="${href}"></head><body><main>x</main></body></html>`;
+  }
+
+  it("accepts an absolute http/https canonical URL", () => {
+    expect(
+      extractDocument(withCanonical("https://example.com/pricing"), "/x").url,
+    ).toBe("https://example.com/pricing");
+    expect(
+      extractDocument(withCanonical("http://example.com/pricing"), "/x").url,
+    ).toBe("http://example.com/pricing");
+  });
+
+  it("accepts a root-relative canonical path with no baseUrl needed", () => {
+    expect(extractDocument(withCanonical("/products/widget"), "/x").url).toBe(
+      "/products/widget",
+    );
+  });
+
+  it("rejects a javascript: canonical URL, falling back to sourceUrl", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const doc = extractDocument(
+      withCanonical("javascript:alert(1)"),
+      "/safe-page",
+    );
+    expect(doc.url).toBe("/safe-page");
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("disallowed protocol"),
+    );
+    warn.mockRestore();
+  });
+
+  it("rejects a data: canonical URL, falling back to sourceUrl", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const doc = extractDocument(
+      withCanonical("data:text/html,<script>alert(1)</script>"),
+      "/safe-page",
+    );
+    expect(doc.url).toBe("/safe-page");
+    warn.mockRestore();
+  });
+
+  it("rejects a protocol-relative canonical URL with no baseUrl configured", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const doc = extractDocument(
+      withCanonical("//evil.example.com/phish"),
+      "/safe-page",
+    );
+    expect(doc.url).toBe("/safe-page");
+    warn.mockRestore();
+  });
+
+  it("rejects a malformed canonical URL, falling back to sourceUrl", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const doc = extractDocument(withCanonical("not a url::"), "/safe-page");
+    expect(doc.url).toBe("/safe-page");
+    warn.mockRestore();
+  });
+
+  it("allowedUrlOrigins accepts a listed origin", () => {
+    const doc = extractDocument(
+      withCanonical("https://example.com/pricing"),
+      "/x",
+      "en",
+      { allowedUrlOrigins: ["https://example.com"] },
+    );
+    expect(doc.url).toBe("https://example.com/pricing");
+  });
+
+  it("allowedUrlOrigins rejects an unlisted origin, falling back to sourceUrl", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const doc = extractDocument(
+      withCanonical("https://evil.example.com/pricing"),
+      "/safe-page",
+      "en",
+      { allowedUrlOrigins: ["https://example.com"] },
+    );
+    expect(doc.url).toBe("/safe-page");
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("not in allowedUrlOrigins"),
+    );
+    warn.mockRestore();
+  });
+
+  it("baseUrl resolves a protocol-relative canonical URL before origin checks run", () => {
+    const doc = extractDocument(
+      withCanonical("//example.com/pricing"),
+      "/x",
+      "en",
+      { baseUrl: "https://example.com" },
+    );
+    expect(doc.url).toBe("https://example.com/pricing");
+  });
+
+  it("no canonical tag at all still falls back to sourceUrl, unaffected", () => {
+    const html =
+      "<html><head><title>T</title></head><body><main>x</main></body></html>";
+    expect(extractDocument(html, "/plain-page").url).toBe("/plain-page");
   });
 });

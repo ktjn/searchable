@@ -102,6 +102,62 @@ describe("buildIndex", () => {
   });
 });
 
+/** Issue #1 finding 5: BuildIndexOptions.allowedUrlOrigins/canonicalBaseUrl actually reach extractDocument()'s canonical-URL sanitization, not just extractDocument() called directly. */
+describe("buildIndex: canonical URL sanitization options passthrough", () => {
+  const canonicalSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widgets",
+      html: `<html lang="en"><head><title>Widgets</title>
+        <link rel="canonical" href="javascript:alert(1)"></head>
+        <body><main><p>Our widgets.</p></main></body></html>`,
+    },
+  ];
+
+  it("rejects a javascript: canonical through buildIndex(), falling back to the source URL", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const built = buildIndex(canonicalSources);
+    expect(built.docStore["1"]?.url).toBe("/widgets");
+    warn.mockRestore();
+  });
+
+  it("passes allowedUrlOrigins through to reject an off-allowlist canonical", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const built = buildIndex(
+      [
+        {
+          id: 1,
+          url: "/widgets",
+          html: `<html lang="en"><head><title>Widgets</title>
+          <link rel="canonical" href="https://evil.example.com/widgets"></head>
+          <body><main><p>Our widgets.</p></main></body></html>`,
+        },
+      ],
+      "en",
+      { allowedUrlOrigins: ["https://mysite.example.com"] },
+    );
+    expect(built.docStore["1"]?.url).toBe("/widgets");
+    warn.mockRestore();
+  });
+
+  it("passes canonicalBaseUrl through to resolve a protocol-relative canonical", () => {
+    const built = buildIndex(
+      [
+        {
+          id: 1,
+          url: "/widgets",
+          html: `<html lang="en"><head><title>Widgets</title>
+          <link rel="canonical" href="//mysite.example.com/widgets"></head>
+          <body><main><p>Our widgets.</p></main></body></html>`,
+        },
+      ],
+      "en",
+      { canonicalBaseUrl: "https://mysite.example.com" },
+    );
+    expect(built.docStore["1"]?.url).toBe("https://mysite.example.com/widgets");
+  });
+});
+
 describe("buildIndex facets", () => {
   const facetSources: SourceDocument[] = [
     {

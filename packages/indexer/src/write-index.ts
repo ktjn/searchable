@@ -7,7 +7,7 @@ import { encodeFuzzyShardBinary } from "./binary-fuzzy-shard.js";
 import { encodeTermShardBinary } from "./binary-term-shard.js";
 import type { BuiltVectors } from "./build-vectors.js";
 import { contentHash } from "./hash.js";
-import type { BuiltIndex } from "./types.js";
+import type { BuiltIndex, DocStoreShard } from "./types.js";
 
 /**
  * Recursively sorts object keys (array element order is left alone --
@@ -168,6 +168,41 @@ function shardTermsByPrefix(
 }
 
 /**
+ * Splits `docStore` into contiguous id-ordered chunks of at most
+ * `shardSize` entries each (docs/02-index-format.md#doc-store) — id
+ * order, not insertion order, so each shard's `idRange` is a genuine
+ * contiguous range the client can filter against
+ * (`packages/client/src/search.ts`'s `fetchDocStoreEntriesByIds()`).
+ * `shardSize: Infinity` (the default) produces exactly one chunk
+ * covering every id, matching the pre-sharding single-`docs/0.json`
+ * behavior byte-for-byte.
+ */
+function chunkDocStoreByIdRange(
+  docStore: DocStoreShard,
+  shardSize: number,
+): Array<{ idRange: [number, number]; shard: DocStoreShard }> {
+  const sortedIds = Object.keys(docStore)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const chunks: Array<{ idRange: [number, number]; shard: DocStoreShard }> = [];
+  for (let i = 0; i < sortedIds.length; i += shardSize) {
+    const idsInChunk = sortedIds.slice(i, i + shardSize);
+    const shard: DocStoreShard = {};
+    for (const id of idsInChunk) {
+      shard[String(id)] = docStore[String(id)] as DocStoreShard[string];
+    }
+    chunks.push({
+      idRange: [
+        idsInChunk[0] as number,
+        idsInChunk[idsInChunk.length - 1] as number,
+      ],
+      shard,
+    });
+  }
+  return chunks;
+}
+
+/**
  * Serializes a BuiltIndex to content-hashed shard files plus a plain
  * (unhashed) manifest.json — the full hashed-manifest + alias-pointer
  * scheme from docs/02-index-format.md#versioning--cache-strategy is a
@@ -219,6 +254,25 @@ export interface WriteIndexOptions {
    * Defaults to `"json"`.
    */
   docStoreFormat?: "json" | "binary";
+  /**
+   * Max doc-store entries per physical shard
+   * (docs/02-index-format.md#doc-store) — once the corpus has more docs
+   * than this, the doc store splits into multiple contiguous-id-range
+   * shards (`docs/0.json`, `docs/1.json`, ...) instead of one file
+   * covering the whole corpus. The client already fetches only the
+   * shard(s) that actually cover a given query's hit ids
+   * (`packages/client/src/search.ts`'s `fetchDocStoreEntriesByIds()`,
+   * built to handle any number of shards from the start) — this option
+   * is what actually produces more than one for it to skip past. Doesn't
+   * change per-shard *decode* cost with `docStoreFormat: "binary"`
+   * (already only decodes requested ids), but does bound per-shard
+   * *fetch* size, which binary decoding alone doesn't. Defaults to
+   * `Number.POSITIVE_INFINITY` (today's single-shard behavior) — an
+   * explicit opt-in for a corpus large enough that this matters, not a
+   * silent behavior change for every existing deployment/test relying
+   * on exactly one `docs/0.json`.
+   */
+  docStoreShardSize?: number;
   /**
    * `"binary"` writes every language's fuzzy shard with the same
    * directory-based encoding as term shards (`./binary-fuzzy-shard.js`)
@@ -292,22 +346,36 @@ export async function writeIndex(
     )
   ).flat();
 
-  const docsFile =
-    docStoreFormat === "binary"
-      ? await writeBinary(
-          outDir,
-          "docs/0.bin",
-          encodeDocStoreBinary(built.docStore),
-        )
-      : await writeJson(outDir, "docs/0.json", built.docStore);
-  const docs = [
-    {
-      shard: 0,
-      file: docsFile,
-      idRange: built.idRange,
-      ...(docStoreFormat === "binary" ? { format: "binary" as const } : {}),
-    },
-  ];
+  const docStoreShardSize =
+    options.docStoreShardSize ?? Number.POSITIVE_INFINITY;
+  const docStoreChunks = chunkDocStoreByIdRange(
+    built.docStore,
+    docStoreShardSize,
+  );
+  // An empty corpus (every document was csf-noindex) still emits exactly
+  // one, empty doc-store shard, matching the pre-sharding behavior of
+  // always writing docs/0.json regardless of size.
+  if (docStoreChunks.length === 0) {
+    docStoreChunks.push({ idRange: built.idRange, shard: {} });
+  }
+  const docs = await Promise.all(
+    docStoreChunks.map(async ({ idRange, shard }, shardIndex) => {
+      const file =
+        docStoreFormat === "binary"
+          ? await writeBinary(
+              outDir,
+              `docs/${shardIndex}.bin`,
+              encodeDocStoreBinary(shard),
+            )
+          : await writeJson(outDir, `docs/${shardIndex}.json`, shard);
+      return {
+        shard: shardIndex,
+        file,
+        idRange,
+        ...(docStoreFormat === "binary" ? { format: "binary" as const } : {}),
+      };
+    }),
+  );
 
   const facetFields = Object.keys(built.facetShards).sort();
   const facets = facetFields.length

@@ -21,6 +21,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       manifestPromise = cache.fetchJson<Manifest>(indexUrl).then((manifest) =>
         validateManifest(manifest, indexUrl as string, {
           allowCrossOriginShards: msg.allowCrossOriginShards ?? false,
+          strict: msg.strict ?? false,
         }),
       );
       const manifest = await manifestPromise;
