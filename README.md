@@ -137,6 +137,7 @@ Design docs — start here:
 | [docs/22-project-governance.md](docs/22-project-governance.md) | ADRs, contributor guidelines, compatibility/benchmark/documentation policy |
 | [docs/23-implementation-roadmap.md](docs/23-implementation-roadmap.md) | Which major specs to write next, on a separate axis from 09-roadmap.md's build-status phases |
 | [docs/24-architecture-recommendations.md](docs/24-architecture-recommendations.md) | Longer-term extensibility/maturity recommendations (query planner, storage abstraction, explain API, ...) |
+| [docs/25-path-to-1.0.md](docs/25-path-to-1.0.md) | Release-engineering iteration plan for a 1.0: API freeze, versioning, publish pipeline, hardening pass |
 | [docs/spec-query-planner.md](docs/spec-query-planner.md) | Draft spec: separating query planning from execution |
 | [docs/spec-storage-api.md](docs/spec-storage-api.md) | Draft spec: storage-backend abstraction (HTTP, IndexedDB, Service Worker, ...) |
 | [docs/spec-plugin-api.md](docs/spec-plugin-api.md) | Draft spec exploring plugin-system goals from a different angle than 17's decided contract |
