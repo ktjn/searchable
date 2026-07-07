@@ -1,4 +1,4 @@
-import { cp, mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +20,11 @@ declare global {
       indexUrl: string,
     ) => Promise<Record<string, string>>;
     __csfFetchStatus?: (url: string) => Promise<number | string>;
+    __csfRegisterOfflineTrackInstall?: (
+      swPath: string,
+      indexUrl: string,
+      opts?: Record<string, unknown>,
+    ) => Promise<string>;
   }
 }
 
@@ -44,6 +49,7 @@ const offlineSources: SourceDocument[] = [
 test.describe("offline Service Worker caching (real browser)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
+  let closeCrossOriginServer: () => Promise<void>;
   let rootDir: string;
 
   test.beforeAll(async () => {
@@ -55,6 +61,38 @@ test.describe("offline Service Worker caching (real browser)", () => {
     );
     await writeIndex(buildIndex(offlineSources), rootDir);
 
+    // A second, real static server on a different port (a genuinely
+    // different origin, same host) serving the identical content -- so
+    // the manifest below can point the "en" term shard at a URL that's
+    // truly cross-origin *and* actually fetchable, distinguishing "the
+    // Service Worker's validateManifest() call rejected this" from "the
+    // fetch itself just failed" (which a fake, unreachable domain like
+    // https://evil.example.com couldn't tell apart).
+    const crossOriginServer = await serveDir(rootDir);
+    closeCrossOriginServer = crossOriginServer.close;
+
+    // A manifest whose "en" term shard points at that other origin --
+    // used to prove the Service Worker's precache() rejects it via the
+    // same validateManifest() cross-origin-shard check the main-thread/
+    // Worker query paths already apply, rather than blindly caching (and
+    // later serving) whatever URL a compromised/misconfigured manifest
+    // names, and that allowCrossOriginShards: true is the one thing that
+    // changes that outcome.
+    const manifest = JSON.parse(
+      await readFile(join(rootDir, "manifest.json"), "utf8"),
+    );
+    manifest.shards.terms = manifest.shards.terms.map(
+      (entry: { lang: string; file: string }) =>
+        entry.lang === "en"
+          ? { ...entry, file: `${crossOriginServer.baseUrl}${entry.file}` }
+          : entry,
+    );
+    await writeFile(
+      join(rootDir, "manifest-cross-origin.json"),
+      JSON.stringify(manifest),
+      "utf8",
+    );
+
     const server = await serveDir(rootDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -62,6 +100,7 @@ test.describe("offline Service Worker caching (real browser)", () => {
 
   test.afterAll(async () => {
     await closeServer();
+    await closeCrossOriginServer();
     await rm(rootDir, { recursive: true, force: true });
   });
 
@@ -118,6 +157,36 @@ test.describe("offline Service Worker caching (real browser)", () => {
 
     expect(cachedUrls).toContain(shardFiles?.en);
     expect(cachedUrls).not.toContain(shardFiles?.de);
+  });
+
+  test("a manifest with a cross-origin shard fails Service Worker install unless allowCrossOriginShards is set", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const rejectedState = await page.evaluate(
+      ([swPath, indexUrl]) =>
+        window.__csfRegisterOfflineTrackInstall?.(swPath, indexUrl),
+      ["./sw.js", "./manifest-cross-origin.json"] as [string, string],
+    );
+    expect(rejectedState).toBe("redundant");
+
+    // The failed registration above never activates (redundant, no
+    // controller for this scope) -- re-registering the same scope with
+    // allowCrossOriginShards set installs cleanly, proving the earlier
+    // rejection was specifically the cross-origin-shard check, not
+    // something else about this manifest.
+    const acceptedState = await page.evaluate(
+      ([swPath, indexUrl, opts]) =>
+        window.__csfRegisterOfflineTrackInstall?.(swPath, indexUrl, opts),
+      [
+        "./sw.js",
+        "./manifest-cross-origin.json",
+        { allowCrossOriginShards: true },
+      ] as [string, string, Record<string, unknown>],
+    );
+    expect(acceptedState).toBe("activated");
   });
 
   test("mode: 'stale-while-revalidate' also serves the manifest while fully offline", async ({

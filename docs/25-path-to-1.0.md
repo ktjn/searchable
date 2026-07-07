@@ -209,6 +209,29 @@ because the code is unfinished:
 - Exit criteria: checklist fully green, findings from both reviews
   either fixed or explicitly deferred with a reason.
 
+**In progress**: a manual pass over the three Service Worker/Worker
+ingestion surfaces (`fetch-json.ts`, `worker.ts`/`worker-protocol.ts`,
+`sw.ts`) found and fixed one real gap — `sw.ts`'s `precache()` fetched
+and trusted the manifest directly, without ever calling
+`validateManifest()`, the one manifest-ingestion path (of three: main
+thread, Worker, Service Worker) that skipped it. A manifest with a
+cross-origin shard reference would have been blindly precached (and
+later served offline) by the Service Worker alone, bypassing the
+cross-origin-shard guard `client.ts`/`worker.ts` already enforce. Fixed:
+`sw.ts` now validates the fetched manifest the same way, with a new
+`OfflineCacheOptions.allowCrossOriginShards` (threaded through as a
+query param on the registration URL, the same mechanism `mode`/
+`languages` already use, since `register()` only accepts a script URL)
+mirroring `SearchClientOptions.allowCrossOriginShards`. Covered by a new
+real-browser Playwright test
+(`packages/client/e2e-browser/offline.spec.ts`): a manifest with a
+genuinely cross-origin (different port, same host, real second
+`serveDir()` server) shard reference fails Service Worker install by
+default, and installs cleanly once `allowCrossOriginShards: true` is
+set — proving it's specifically the origin check, not an unrelated
+fetch failure. `/security-review`/`/code-review` against the rest of
+the public API boundary remain to be run.
+
 ### Iteration 6 — Cut the release
 
 - Tag `v1.0.0`; let Iteration 3's `publish.yml` publish all four
