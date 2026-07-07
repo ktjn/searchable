@@ -250,11 +250,55 @@ Findings:
 - `client.ts`'s dedicated Worker channel needs no `event.origin` check
   (unlike `window.postMessage`) — a dedicated Worker's message channel
   is private to the page that created it, nothing else can post to it.
-- No other issues found. `22-project-governance.md`'s Release Quality
-  Checklist: tests/lint/typecheck/bundle-size all green (see the PRs
-  executing this iteration); `pnpm bench` and a final documentation
-  pass are still open, folded into Iteration 6 below rather than
-  repeated here.
+- No other issues found in that pass. `22-project-governance.md`'s
+  Release Quality Checklist: tests/lint/typecheck/bundle-size all green
+  (see the PRs executing this iteration); `pnpm bench` and a final
+  documentation pass are still open, folded into Iteration 6 below
+  rather than repeated here.
+
+**Found and fixed a real, live one anyway** — not via a review tool,
+but because this very doc's previous paragraph (above) used the word
+"constructor" in prose, and the showcase's own CI build indexes
+`docs/*.md` for real. That crashed `buildIndex()` in CI
+(`TypeError: Cannot read properties of undefined (reading 'push')`),
+which traced back to a systemic bug class: every plain-object
+dictionary keyed by corpus- or query-derived strings (`TermShard`,
+fuzzy deletion dictionaries, facet shards, the `@csf/analysis` language
+registry, synonym/pins/vector manifest lookups) used a bare
+`if (!dict[key])` / `key in dict` / `dict[key] ?? fallback` existence
+check — every one of those is fooled by the prototype chain when `key`
+happens to be an inherited `Object.prototype` member name
+("constructor" is the one that survives this project's lowercasing
+analysis unchanged; "toString"/"hasOwnProperty"/etc. fold to
+non-colliding lowercase forms first, but facet *field* names come from
+raw, un-lowercased `csf-facet-<field>` meta-tag suffixes, so those stay
+exploitable too). A document containing the word "constructor" in
+prose, a `csf-facet-constructor`/`csf-facet-range-hasOwnProperty` meta
+tag, a `<html lang="constructor">`, or a search query for the literal
+word "constructor" could each crash or silently corrupt scores.
+
+Fixed at every location found, most critically
+`@csf/analysis`'s `getLanguageProfile()` (`packages/analysis/src/registry.ts`) —
+the root-cause fix, since it's called before any of the
+language-keyed dictionaries downstream are ever touched, so making it
+correctly throw its existing "no LanguageProfile registered" error for
+a colliding code closes off that entire branch at once. Also fixed:
+`build-index.ts`'s `addPostings`/`buildFuzzyShard`/`addFacetValues`/
+`addRangeFacetValues` (a new shared `getOrCreate()`/`ownProp()` in
+`packages/indexer/src/safe-dict.ts`), `extract.ts`'s facet/range-facet
+meta-tag parsing, and `search.ts`/`score.ts`'s query-time synonym/
+fuzzy/language-keyed lookups (a matching `ownProp()` in
+`packages/client/src/safe-dict.ts`). Covered by new regression tests:
+`packages/indexer/test/prototype-safe-keys.test.ts` (a document body
+containing "constructor", plus facet fields literally named
+"constructor"/"hasOwnProperty") and
+`packages/client/test/prototype-safe-keys.test.ts` (searching the
+literal word "constructor" with synonyms+fuzzy enabled over real HTTP,
+and `options.language: "constructor"` now failing with the same clear
+"unsupported language" error any other unregistered code gets, instead
+of a confusing crash deep in synonym/fuzzy lookup). Full suite still
+green after the fix: 502 Vitest tests (6 new), 41 Playwright tests,
+lint/typecheck/bundle-size all clean.
 
 ### Iteration 6 — Cut the release
 

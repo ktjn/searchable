@@ -1,5 +1,6 @@
 import { analyze, getLanguageProfile, normalizePhrase } from "@csf/analysis";
 import { extractDocument } from "./extract.js";
+import { getOrCreate, ownProp } from "./safe-dict.js";
 import type {
   BuiltIndex,
   DocStoreShard,
@@ -9,6 +10,7 @@ import type {
   Posting,
   SourceDocument,
   SynonymShard,
+  TermEntry,
   TermShard,
 } from "./types.js";
 
@@ -186,8 +188,7 @@ function buildFuzzyShard(termShard: TermShard, maxEdits: 1 | 2): FuzzyShard {
   const deletionSets: Record<string, Set<string>> = {};
   for (const term of Object.keys(termShard)) {
     for (const variant of generateDeletes(term, maxEdits)) {
-      if (!deletionSets[variant]) deletionSets[variant] = new Set();
-      deletionSets[variant].add(term);
+      getOrCreate(deletionSets, variant, () => new Set()).add(term);
     }
   }
   const deletions: Record<string, string[]> = {};
@@ -290,8 +291,10 @@ function addFacetValues(
   hierarchicalFacets: Record<string, { separator?: string }>,
 ): void {
   for (const [field, values] of Object.entries(facets)) {
-    const hierarchyConfig = hierarchicalFacets[field];
-    let shard = facetShards[field];
+    const hierarchyConfig = ownProp(hierarchicalFacets, field);
+    let shard = Object.hasOwn(facetShards, field)
+      ? facetShards[field]
+      : undefined;
     if (!shard) {
       shard = hierarchyConfig
         ? {
@@ -323,11 +326,10 @@ function addFacetValues(
       }
     }
     for (const path of paths) {
-      let entry = shard.values[path];
-      if (!entry) {
-        entry = { count: 0, docs: [] };
-        shard.values[path] = entry;
-      }
+      const entry = getOrCreate(shard.values, path, () => ({
+        count: 0,
+        docs: [],
+      }));
       entry.docs.push(docId);
       entry.count++;
     }
@@ -351,7 +353,9 @@ function addRangeFacetValues(
   docId: number,
 ): void {
   for (const [field, value] of Object.entries(rangeFacets)) {
-    let shard = facetShards[field];
+    let shard = Object.hasOwn(facetShards, field)
+      ? facetShards[field]
+      : undefined;
     if (!shard) {
       shard = { type: "range", values: {}, sorted: [] };
       facetShards[field] = shard;
@@ -551,12 +555,11 @@ function addPostings(
   }
 
   for (const [term, positions] of positionsByTerm) {
-    let entry = shard[term];
+    const entry = getOrCreate<TermEntry>(shard, term, () => ({
+      df: 0,
+      postings: [],
+    }));
     let docIndex = postingIndex.get(term);
-    if (!entry) {
-      entry = { df: 0, postings: [] };
-      shard[term] = entry;
-    }
     if (!docIndex) {
       docIndex = new Map();
       postingIndex.set(term, docIndex);
@@ -765,7 +768,8 @@ export function buildIndex(
     // the values.docs sort below populates and sorts the buckets this
     // computes.
     if (facetShard.type === "range") {
-      const config = rangeFacetBuckets[field] ?? RANGE_FACET_BUCKET_COUNT;
+      const config =
+        ownProp(rangeFacetBuckets, field) ?? RANGE_FACET_BUCKET_COUNT;
       if (Array.isArray(config)) {
         computeRangeFacetBucketsExplicit(facetShard, config);
       } else {

@@ -28,6 +28,7 @@ import type { ShardCache } from "./fetch-json.js";
 import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
 import { parseQuery } from "./parse-query.js";
+import { ownProp } from "./safe-dict.js";
 import { scoreTermForDoc } from "./score.js";
 import {
   VectorSearchNotConfiguredError,
@@ -396,7 +397,10 @@ function synonymVariantsFor(
       if (variant !== term) variants.add(variant);
     }
   }
-  for (const variant of synonymShard.directional?.[term] ?? []) {
+  const directionalVariants = synonymShard.directional
+    ? ownProp(synonymShard.directional, term)
+    : undefined;
+  for (const variant of directionalVariants ?? []) {
     variants.add(variant);
   }
   return [...variants];
@@ -622,7 +626,7 @@ async function loadFuzzyLookup(
   baseUrl: string,
   language: string,
 ): Promise<FuzzyLookup | undefined> {
-  const entry = manifest.fuzzy?.[language];
+  const entry = manifest.fuzzy && ownProp(manifest.fuzzy, language);
   if (!entry) return undefined;
   if (entry.format === "binary") {
     const bytes = await cache.fetchArrayBuffer(resolve(baseUrl, entry.file));
@@ -644,7 +648,7 @@ async function loadFuzzyLookup(
   const shard = await cache.fetchJson<FuzzyShard>(resolve(baseUrl, entry.file));
   return {
     maxEdits: shard.maxEdits,
-    get: (variant) => shard.deletions[variant] ?? [],
+    get: (variant) => ownProp(shard.deletions, variant) ?? [],
   };
 }
 
@@ -730,9 +734,10 @@ async function lexicalSearch(
   // resolving them now (rather than lazily inside the clause loop below)
   // lets their variant/candidate terms feed the term-shard *selection*
   // below, not just clause resolution afterwards.
-  const synonymsFile = options.synonyms
-    ? manifest.synonyms?.[language]
-    : undefined;
+  const synonymsFile =
+    options.synonyms && manifest.synonyms
+      ? ownProp(manifest.synonyms, language)
+      : undefined;
   const synonymShard = synonymsFile
     ? await cache.fetchJson<SynonymShard>(resolve(baseUrl, synonymsFile))
     : undefined;
@@ -1061,7 +1066,7 @@ async function lexicalSearch(
   // --- pins (docs/16-term-to-page-pinning.md), resolved independently
   // of whether the organic query matched anything ---
   const normalizedQuery = normalizePhrase(query, profile);
-  const pinsFile = manifest.pins?.[language];
+  const pinsFile = manifest.pins && ownProp(manifest.pins, language);
   let matchedPins: { id: number; priority: number; exclusive: boolean }[] = [];
   if (pinsFile && normalizedQuery) {
     const pinsShard = await cache.fetchJson<PinsShard>(
@@ -1306,7 +1311,7 @@ async function vectorHitsForLanguage(
   queryVector: number[],
   limit: number,
 ): Promise<VectorHit[]> {
-  const file = manifest.vectors?.shards[language];
+  const file = manifest.vectors && ownProp(manifest.vectors.shards, language);
   if (!file) return [];
   const shard = await cache.fetchJson<VectorShard>(resolve(baseUrl, file));
   return bruteForceVectorSearch(queryVector, shard, limit);

@@ -1,4 +1,5 @@
 import type { Manifest, Posting } from "@csf/format";
+import { ownProp } from "./safe-dict.js";
 
 /** BM25F parameters (docs/04-query-ranking-boosts.md#ranking-model-bm25f). */
 const K1 = 1.2;
@@ -27,7 +28,7 @@ export function scoreTermForDoc(
   language: string,
   fieldBoostOverrides?: Record<string, number>,
 ): number {
-  const avgFieldLength = manifest.avgFieldLength[language] ?? {};
+  const avgFieldLength = ownProp(manifest.avgFieldLength, language) ?? {};
   let weightedTf = 0;
   for (const [field, fieldPosting] of Object.entries(posting.fields)) {
     const boost =
@@ -37,6 +38,6 @@ export function scoreTermForDoc(
     weightedTf += (boost * fieldPosting.tf) / (lengthNorm || 1);
   }
 
-  const docCount = manifest.docCount[language] ?? 0;
+  const docCount = ownProp(manifest.docCount, language) ?? 0;
   return idf(docCount, df) * (weightedTf / (weightedTf + K1));
 }
