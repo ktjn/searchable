@@ -36,3 +36,7 @@ class BuiltIndex:
     term_shards: dict[str, dict]
     doc_store: dict
     id_range: tuple[int, int]
+    facet_shards: dict[str, dict] = field(default_factory=dict)
+    pins_shards: dict[str, dict] = field(default_factory=dict)
+    synonym_shards: dict[str, dict] = field(default_factory=dict)
+    fuzzy_shards: dict[str, dict] = field(default_factory=dict)
