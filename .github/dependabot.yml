@@ -26,3 +26,4 @@ updates:
       npm:
         patterns:
           - "*"
+          
