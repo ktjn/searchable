@@ -1,8 +1,8 @@
-import { cp, readFile, readdir } from "node:fs/promises";
+import { cp, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildIndex, writeIndex } from "@csf/indexer";
 import type { SourceDocument } from "@csf/indexer";
+import { buildIndex, writeIndex } from "@csf/indexer";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");

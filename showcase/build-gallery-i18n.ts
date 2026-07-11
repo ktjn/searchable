@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildIndex, writeIndex } from "@csf/indexer";
 import type { SourceDocument } from "@csf/indexer";
-import { I18N_DOCS } from "./gallery-i18n-data.js";
+import { buildIndex, writeIndex } from "@csf/indexer";
 import type { I18nDoc } from "./gallery-i18n-data.js";
+import { I18N_DOCS } from "./gallery-i18n-data.js";
 import { escapeHtml, pageShell } from "./gallery-shared.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

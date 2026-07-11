@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MARKETING_PAGES, generateCms2kCorpus } from "../src/index.js";
+import { generateCms2kCorpus, MARKETING_PAGES } from "../src/index.js";
 
 describe("generateCms2kCorpus", () => {
   it("is deterministic: the same options produce byte-identical output", () => {

@@ -1,12 +1,12 @@
 import type { EmbeddingProviderConfig, Manifest } from "@csf/format";
 import { ShardCache } from "./fetch-json.js";
-import { facetValues, search, searchStream } from "./search.js";
 import type {
   FacetResult,
   FacetValuesOptions,
   SearchOptions,
   SearchResult,
 } from "./search.js";
+import { facetValues, search, searchStream } from "./search.js";
 import { validateManifest } from "./validate-manifest.js";
 import {
   VectorProviderMismatchError,

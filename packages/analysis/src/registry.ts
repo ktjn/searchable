@@ -1,3 +1,4 @@
+import type { LanguageProfile } from "./language-profile.js";
 import {
   chinese,
   english,
@@ -7,7 +8,6 @@ import {
   lao,
   thai,
 } from "./language-profile.js";
-import type { LanguageProfile } from "./language-profile.js";
 import { ownProp } from "./safe-dict.js";
 
 /**

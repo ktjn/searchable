@@ -1,13 +1,10 @@
 import type {
   DocStoreShard,
   FacetShard,
-  FieldPosting,
   FuzzyShard,
   Manifest,
   PinsShard,
-  Posting,
   SynonymShard,
-  TermEntry,
   TermShard,
 } from "@csf/format";
 
@@ -17,8 +14,8 @@ export type {
   EmbeddingProviderConfig,
   FacetShard,
   FacetValueEntry,
-  FieldPosting,
   FieldConfig,
+  FieldPosting,
   FuzzyShard,
   Manifest,
   PinDoc,
