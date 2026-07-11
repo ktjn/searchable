@@ -18,6 +18,19 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install and test csf-analysis (Python)
+        working-directory: python/csf-analysis
+        run: |
+          uv sync
+          uv run pytest -v
+      - name: Install and test csf-indexer (Python)
+        working-directory: python/csf-indexer
+        run: |
+          uv sync
+          uv run pytest -v
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
