@@ -1,9 +1,9 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head><meta charset="utf-8" /><title>csf worker test harness</title></head>
   <body>
     <script type="module">
-      import { SearchClient, registerOfflineCaching } from "./index.js";
+      import { registerOfflineCaching, SearchClient } from "./index.js";
 
       window.__csfRunSearch = async (query, useWorker, options) => {
         const client = new SearchClient({
@@ -165,7 +165,7 @@
           const result = await client.search(query, options);
           return { ok: true, result };
         } catch (err) {
-          return { ok: false, name: err && err.name, message: err && err.message };
+          return { ok: false, name: err?.name, message: err?.message };
         }
       };
 
@@ -183,7 +183,7 @@
           await pending;
           return undefined;
         } catch (err) {
-          return err && err.name;
+          return err?.name;
         }
       };
 

@@ -1,5 +1,5 @@
-import { analyze } from "@csf/analysis";
 import type { LanguageProfile } from "@csf/analysis";
+import { analyze } from "@csf/analysis";
 
 export interface QueryTerm {
   /** Analyzed (lowercased/stemmed) term or prefix, ready for lookup. */

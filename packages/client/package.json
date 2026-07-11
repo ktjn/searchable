@@ -18,7 +18,9 @@
     "./worker": "./dist/worker.js",
     "./sw": "./dist/sw.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly",
     "test": "vitest run",

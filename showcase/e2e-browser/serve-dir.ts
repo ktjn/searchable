@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { createServer } from "node:http";
 import type { Server } from "node:http";
+import { createServer } from "node:http";
 import { extname, join } from "node:path";
 
 const CONTENT_TYPES: Record<string, string> = {

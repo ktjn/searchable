@@ -35,7 +35,7 @@ const SIZES = process.env.CSF_BENCH_SIZES
   ? process.env.CSF_BENCH_SIZES.split(",").map(Number)
   : [1000, 10000, 100000];
 
-function formatBytes(n) {
+function _formatBytes(n) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(2)} MB`;

@@ -2,8 +2,8 @@ import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildIndex, buildVectorShards, writeIndex } from "@csf/indexer";
 import type { SourceDocument } from "@csf/indexer";
+import { buildIndex, buildVectorShards, writeIndex } from "@csf/indexer";
 import { expect, test } from "@playwright/test";
 import { serveDir } from "./serve-dir.js";
 

@@ -73,6 +73,7 @@ describe("buildVectorShards", () => {
     expect(allDocIds).not.toContain(4);
   });
 
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: describing the format, not a template literal
   it("produces passageId as `${docId}-${chunkIndex}`", async () => {
     const built = await buildVectorShards(sources, "en", {
       embed: fixedDimEmbed,

@@ -29,12 +29,12 @@ import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
 import { parseQuery } from "./parse-query.js";
 import { scoreTermForDoc } from "./score.js";
+import type { VectorHit } from "./vector-search.js";
 import {
-  VectorSearchNotConfiguredError,
   bruteForceVectorSearch,
   reciprocalRankFusion,
+  VectorSearchNotConfiguredError,
 } from "./vector-search.js";
-import type { VectorHit } from "./vector-search.js";
 
 export interface Hit {
   id: number;

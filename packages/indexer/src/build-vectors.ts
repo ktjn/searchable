@@ -1,7 +1,7 @@
 import {
+  chunkText,
   DEFAULT_CHUNK_OVERLAP_TOKENS,
   DEFAULT_CHUNK_TOKENS,
-  chunkText,
 } from "./chunk-text.js";
 import { extractDocument } from "./extract.js";
 import type {

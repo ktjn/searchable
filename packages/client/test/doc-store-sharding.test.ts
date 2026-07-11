@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildIndex, writeIndex } from "@csf/indexer";
 import type { SourceDocument } from "@csf/indexer";
+import { buildIndex, writeIndex } from "@csf/indexer";
 import {
   afterAll,
   afterEach,
