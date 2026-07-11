@@ -145,3 +145,88 @@ def test_excerpt_from_meta_description():
     """
     doc = extract_document(html, "/page")
     assert doc.excerpt == "A short summary."
+
+
+def test_facet_meta_tags_collect_distinct_values():
+    html = """
+    <html lang="en">
+      <head>
+        <title>T</title>
+        <meta name="csf-facet-category" content="Electronics">
+        <meta name="csf-facet-category" content="Audio">
+        <meta name="csf-facet-category" content="Electronics">
+      </head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.facets["category"] == ["Electronics", "Audio"]
+
+
+def test_range_facet_meta_tag_parses_a_single_numeric_value():
+    html = """
+    <html lang="en">
+      <head><title>T</title><meta name="csf-facet-range-price" content="49.99"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.range_facets["price"] == 49.99
+
+
+def test_range_facet_prefix_does_not_get_misparsed_as_a_terms_facet():
+    html = """
+    <html lang="en">
+      <head><title>T</title><meta name="csf-facet-range-price" content="10"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert "range-price" not in doc.facets
+    assert doc.range_facets["price"] == 10.0
+
+
+def test_pin_meta_tags_produce_pin_declarations():
+    html = """
+    <html lang="en">
+      <head>
+        <title>T</title>
+        <meta name="csf-pin" content="widgets">
+        <meta name="csf-pin-mode" content="contains">
+        <meta name="csf-pin-priority" content="5">
+        <meta name="csf-pin-exclusive">
+      </head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert len(doc.pins) == 1
+    pin = doc.pins[0]
+    assert pin.phrase == "widgets"
+    assert pin.mode == "contains"
+    assert pin.priority == 5.0
+    assert pin.exclusive is True
+
+
+def test_pin_defaults_when_mode_and_priority_absent():
+    html = """
+    <html lang="en">
+      <head><title>T</title><meta name="csf-pin" content="gadgets"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.pins[0].mode == "exact"
+    assert doc.pins[0].priority == 0.0
+    assert doc.pins[0].exclusive is False
+
+
+def test_no_pins_when_no_csf_pin_tag_present():
+    html = """
+    <html lang="en">
+      <head><title>T</title></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.pins == []
