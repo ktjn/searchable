@@ -114,6 +114,28 @@ def test_canonical_link_off_allowlist_falls_back_to_source_url():
     assert doc.url == "/page"
 
 
+def test_canonical_link_mixed_case_host_matches_lowercase_allowlist():
+    html = """
+    <html lang="en">
+      <head><title>T</title><link rel="canonical" href="https://EXAMPLE.com/page"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page", allowed_url_origins=["https://example.com"])
+    assert doc.url == "https://EXAMPLE.com/page"
+
+
+def test_canonical_link_with_userinfo_matches_allowlist():
+    html = """
+    <html lang="en">
+      <head><title>T</title><link rel="canonical" href="https://user@example.com/page"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page", allowed_url_origins=["https://example.com"])
+    assert doc.url == "https://user@example.com/page"
+
+
 def test_root_relative_canonical_is_accepted_as_is():
     html = """
     <html lang="en">

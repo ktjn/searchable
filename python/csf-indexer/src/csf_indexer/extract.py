@@ -69,7 +69,9 @@ def _sanitize_canonical_url(
         return source_url
 
     if allowed_url_origins is not None:
-        origin = f"{parsed.scheme}://{parsed.netloc}"
+        origin = f"{parsed.scheme}://{parsed.hostname}"
+        if parsed.port:
+            origin += f":{parsed.port}"
         if origin not in allowed_url_origins:
             _warn(
                 f'canonical URL "{canonical}" for {source_url} resolves to an '
