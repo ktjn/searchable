@@ -17,13 +17,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "marked": "^15.0.6"
+    "marked": "^18.0.6"
   },
   "devDependencies": {
     "@csf/client": "workspace:*",
     "@csf/indexer": "workspace:*",
-    "@types/node": "^22.10.5",
+    "@types/node": "^26.1.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^7.0.2"
   }
 }
