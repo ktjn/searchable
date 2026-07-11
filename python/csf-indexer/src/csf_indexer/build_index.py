@@ -1,7 +1,19 @@
 import datetime
+import math
+import sys
 
-from csf_analysis import analyze, get_language_profile
+from csf_analysis import analyze, get_language_profile, normalize_phrase
 from csf_indexer.extract import extract_document
+from csf_indexer.facets import (
+    RANGE_FACET_BUCKET_COUNT,
+    add_facet_values,
+    add_range_facet_values,
+    compute_range_facet_buckets_equal_width,
+    compute_range_facet_buckets_explicit,
+)
+from csf_indexer.fuzzy import build_fuzzy_shard
+from csf_indexer.pins import resolve_pins
+from csf_indexer.synonyms import build_synonym_shards
 from csf_indexer.types import BuiltIndex, SourceDocument
 
 _DEFAULT_FIELD_BOOSTS = {"title": 3.0, "body": 1.0}
@@ -29,6 +41,28 @@ def _derive_excerpt(body: str) -> str:
     if len(body) <= _EXCERPT_LENGTH:
         return body
     return body[:_EXCERPT_LENGTH].rstrip() + "…"
+
+
+def _validate_range_facet_buckets(range_facet_buckets: dict[str, int | list[float]]) -> None:
+    for field_name, config in range_facet_buckets.items():
+        if isinstance(config, list):
+            if len(config) < 1 or not all(math.isfinite(n) for n in config):
+                raise ValueError(
+                    f"build_index: invalid range_facet_buckets boundaries {config!r} "
+                    f'for field "{field_name}" -- must be a non-empty list of finite numbers'
+                )
+            for i in range(1, len(config)):
+                if config[i] <= config[i - 1]:
+                    raise ValueError(
+                        f"build_index: invalid range_facet_buckets boundaries {config!r} "
+                        f'for field "{field_name}" -- must be strictly ascending'
+                    )
+        else:
+            if not isinstance(config, int) or isinstance(config, bool) or config < 1:
+                raise ValueError(
+                    f"build_index: invalid range_facet_buckets count {config!r} "
+                    f'for field "{field_name}" -- must be a positive integer'
+                )
 
 
 def _add_postings(shard, posting_index, field_name, doc_id, doc_boost, tokens) -> None:
@@ -61,13 +95,27 @@ def build_index(
     field_boosts: dict[str, float] | None = None,
     allowed_url_origins: list[str] | None = None,
     canonical_base_url: str | None = None,
+    hierarchical_facets: dict[str, dict] | None = None,
+    range_facet_buckets: dict[str, int | list[float]] | None = None,
+    synonyms: dict[str, dict] | None = None,
+    fuzzy: bool = False,
+    fuzzy_max_edits: int = 1,
 ) -> BuiltIndex:
     _validate_source_ids(sources)
     boosts = {**_DEFAULT_FIELD_BOOSTS, **(field_boosts or {})}
+    hierarchical_facets = hierarchical_facets or {}
+    range_facet_buckets = range_facet_buckets or {}
+    _validate_range_facet_buckets(range_facet_buckets)
+    if fuzzy_max_edits not in (1, 2):
+        raise ValueError(
+            f"build_index: invalid fuzzy_max_edits {fuzzy_max_edits!r} -- must be 1 or 2"
+        )
 
     term_shards: dict[str, dict] = {}
     posting_index_by_language: dict[str, dict] = {}
     doc_store: dict = {}
+    facet_shards: dict[str, dict] = {}
+    pins_acc_by_language: dict[str, dict] = {}
     stats_by_language: dict[str, dict] = {}
     indexed_count = 0
     min_id: int | None = None
@@ -106,6 +154,25 @@ def build_index(
             term_shard, posting_index, "body", source.id, extracted.boost, body_tokens
         )
 
+        add_facet_values(facet_shards, extracted.facets, source.id, hierarchical_facets)
+        add_range_facet_values(facet_shards, extracted.range_facets, source.id)
+
+        if extracted.pins:
+            pins_acc = pins_acc_by_language.setdefault(language, {})
+            for pin in extracted.pins:
+                normalized = normalize_phrase(pin.phrase, profile)
+                if not normalized:
+                    continue
+                acc = pins_acc.setdefault(normalized, {"mode": pin.mode, "docs": []})
+                acc["docs"].append(
+                    {
+                        "id": source.id,
+                        "priority": pin.priority,
+                        "exclusive": pin.exclusive,
+                        "boost": extracted.boost,
+                    }
+                )
+
         entry: dict = {
             "url": extracted.url,
             "fields": {
@@ -121,10 +188,28 @@ def build_index(
         min_id = source.id if min_id is None else min(min_id, source.id)
         max_id = source.id if max_id is None else max(max_id, source.id)
 
+    pins_shards, pin_warnings = resolve_pins(pins_acc_by_language)
+    for warning in pin_warnings:
+        print(f"[csf-indexer] {warning}", file=sys.stderr)
+
     for term_shard in term_shards.values():
         for entry in term_shard.values():
             entry["postings"].sort(key=lambda p: p["doc"])
 
+    for field_name, shard in facet_shards.items():
+        if shard.get("sorted") is not None:
+            shard["sorted"].sort(key=lambda e: (e["value"], e["doc"]))
+        if shard["type"] == "range":
+            config = range_facet_buckets.get(field_name, RANGE_FACET_BUCKET_COUNT)
+            if isinstance(config, list):
+                compute_range_facet_buckets_explicit(shard, config)
+            else:
+                compute_range_facet_buckets_equal_width(shard, config)
+    for shard in facet_shards.values():
+        for entry in shard["values"].values():
+            entry["docs"].sort()
+
+    facet_fields = sorted(facet_shards.keys())
     languages = sorted(stats_by_language.keys()) if stats_by_language else [default_language]
 
     doc_count: dict[str, int] = {}
@@ -138,6 +223,11 @@ def build_index(
             "body": (stats["body"] / count) if stats and count else 0.0,
         }
 
+    fuzzy_shards: dict[str, dict] = {}
+    if fuzzy:
+        for language, term_shard in term_shards.items():
+            fuzzy_shards[language] = build_fuzzy_shard(term_shard, fuzzy_max_edits)
+
     manifest = {
         "version": 1,
         "buildId": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -148,6 +238,7 @@ def build_index(
             "title": {"boost": boosts["title"], "stored": True},
             "body": {"boost": boosts["body"], "stored": False},
         },
+        **({"facetFields": facet_fields} if facet_fields else {}),
         "docCount": doc_count,
         "avgFieldLength": avg_field_length,
         "shards": {"terms": [], "docs": []},
@@ -160,4 +251,8 @@ def build_index(
         term_shards=term_shards,
         doc_store=doc_store,
         id_range=id_range,
+        facet_shards=facet_shards,
+        pins_shards=pins_shards,
+        synonym_shards=build_synonym_shards(synonyms),
+        fuzzy_shards=fuzzy_shards,
     )

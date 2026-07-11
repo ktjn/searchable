@@ -100,3 +100,129 @@ def test_manifest_shape_matches_the_json_schema_expectations():
     assert manifest["docCount"]["en"] == 1
     assert manifest["avgFieldLength"]["en"]["title"] > 0
     assert manifest["shards"] == {"terms": [], "docs": []}
+
+
+def _doc_with_meta(doc_id: int, url: str, title: str, body: str, extra_head: str = "") -> SourceDocument:
+    html = (
+        f'<html lang="en"><head><title>{title}</title>{extra_head}</head>'
+        f"<body><main>{body}</main></body></html>"
+    )
+    return SourceDocument(id=doc_id, url=url, html=html)
+
+
+def test_terms_facets_are_indexed_from_csf_facet_meta_tags():
+    doc = _doc_with_meta(
+        1, "/a", "Widgets", "widgets",
+        extra_head='<meta name="csf-facet-color" content="red">',
+    )
+    built = build_index([doc])
+    assert built.facet_shards["color"]["type"] == "terms"
+    assert built.facet_shards["color"]["values"]["red"]["docs"] == [1]
+
+
+def test_hierarchical_facets_option_produces_hierarchy_shard():
+    doc = _doc_with_meta(
+        1, "/a", "Widgets", "widgets",
+        extra_head='<meta name="csf-facet-category" content="a>b">',
+    )
+    built = build_index([doc], hierarchical_facets={"category": {}})
+    assert built.facet_shards["category"]["type"] == "hierarchy"
+    assert "a" in built.facet_shards["category"]["values"]
+    assert "a>b" in built.facet_shards["category"]["values"]
+
+
+def test_range_facets_get_default_5_equal_width_buckets():
+    docs = [
+        _doc_with_meta(
+            i, f"/d{i}", "T", "b",
+            extra_head=f'<meta name="csf-facet-range-price" content="{price}">',
+        )
+        for i, price in enumerate([10, 50, 90], start=1)
+    ]
+    built = build_index(docs)
+    assert built.facet_shards["price"]["type"] == "range"
+    assert len(built.facet_shards["price"]["values"]) <= 5
+
+
+def test_range_facet_buckets_option_overrides_default_count():
+    docs = [
+        _doc_with_meta(
+            i, f"/d{i}", "T", "b",
+            extra_head=f'<meta name="csf-facet-range-price" content="{price}">',
+        )
+        for i, price in enumerate([10, 50, 90], start=1)
+    ]
+    built = build_index(docs, range_facet_buckets={"price": 2})
+    assert len(built.facet_shards["price"]["values"]) == 2
+
+
+def test_invalid_range_facet_buckets_count_raises_value_error():
+    doc = _doc_with_meta(1, "/a", "T", "b")
+    with pytest.raises(ValueError, match="invalid range_facet_buckets count"):
+        build_index([doc], range_facet_buckets={"price": 0})
+
+
+def test_invalid_range_facet_buckets_boundaries_raises_value_error():
+    doc = _doc_with_meta(1, "/a", "T", "b")
+    with pytest.raises(ValueError, match="must be strictly ascending"):
+        build_index([doc], range_facet_buckets={"price": [50, 25]})
+
+
+def test_manifest_facet_fields_present_only_when_facets_exist():
+    doc = _doc_with_meta(1, "/a", "T", "b")
+    built = build_index([doc])
+    assert "facetFields" not in built.manifest
+
+    doc2 = _doc_with_meta(
+        1, "/a", "T", "b",
+        extra_head='<meta name="csf-facet-color" content="red">',
+    )
+    built2 = build_index([doc2])
+    assert built2.manifest["facetFields"] == ["color"]
+
+
+def test_pins_are_accumulated_and_resolved():
+    doc = _doc_with_meta(
+        1, "/a", "Widgets", "widgets are great",
+        extra_head='<meta name="csf-pin" content="widgets">',
+    )
+    built = build_index([doc])
+    assert "widget" in built.pins_shards["en"]
+    assert built.pins_shards["en"]["widget"]["docs"][0]["id"] == 1
+
+
+def test_pin_conflict_prints_a_warning_to_stderr(capsys):
+    doc1 = _doc_with_meta(
+        1, "/a", "T", "b", extra_head='<meta name="csf-pin" content="widgets">'
+    )
+    doc2 = _doc_with_meta(
+        2, "/b", "T", "b", extra_head='<meta name="csf-pin" content="widgets">'
+    )
+    build_index([doc1, doc2])
+    captured = capsys.readouterr()
+    assert "pin conflict" in captured.err
+
+
+def test_synonyms_option_populates_synonym_shards():
+    doc = _doc_with_meta(1, "/a", "T", "b")
+    built = build_index([doc], synonyms={"en": {"equivalences": [["Couch", "Sofa"]]}})
+    assert built.synonym_shards["en"]["equivalences"] == [["couch", "sofa"]]
+
+
+def test_fuzzy_false_by_default_produces_no_fuzzy_shards():
+    doc = _doc_with_meta(1, "/a", "Widgets", "widgets")
+    built = build_index([doc])
+    assert built.fuzzy_shards == {}
+
+
+def test_fuzzy_true_produces_a_deletion_dictionary_per_language():
+    doc = _doc_with_meta(1, "/a", "Widgets", "widgets")
+    built = build_index([doc], fuzzy=True)
+    assert built.fuzzy_shards["en"]["maxEdits"] == 1
+    assert "widget" in built.fuzzy_shards["en"]["deletions"]
+
+
+def test_invalid_fuzzy_max_edits_raises_value_error():
+    doc = _doc_with_meta(1, "/a", "T", "b")
+    with pytest.raises(ValueError, match="invalid fuzzy_max_edits"):
+        build_index([doc], fuzzy=True, fuzzy_max_edits=3)
