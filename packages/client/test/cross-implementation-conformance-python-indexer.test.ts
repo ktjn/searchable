@@ -297,7 +297,9 @@ describe("cross-implementation conformance: binary storage tier byte-identity", 
     // build_index/write_index directly via a small script run through
     // `uv run python` from python/csf-indexer/'s own venv. ---
     pyOutDir = await mkdtemp(join(tmpdir(), "csf-binary-conformance-py-"));
-    const scriptDir = await mkdtemp(join(tmpdir(), "csf-binary-conformance-script-"));
+    const scriptDir = await mkdtemp(
+      join(tmpdir(), "csf-binary-conformance-script-"),
+    );
     const scriptPath = join(scriptDir, "build_binary_fixture.py");
     await writeFile(
       scriptPath,
