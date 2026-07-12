@@ -1,8 +1,10 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Manifest } from "@csf/format";
 import { buildIndex, discoverHtmlDocuments, writeIndex } from "@csf/indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
@@ -234,5 +236,163 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
     const pyResult = await pyClient.search("gizmos");
     expect(pyResult.hits[0]?.id).toEqual(tsResult.hits[0]?.id);
     expect(tsResult.hits[0]?.pinned).toBe(true);
+  });
+});
+
+/**
+ * Byte-identical conformance for the binary storage tier
+ * (docs/superpowers/specs/2026-07-12-python-indexer-binary-tier-design.md):
+ * unlike the JSON tier (where the two implementations only need to
+ * agree on *content*), the binary term-shard/doc-store encoders are a
+ * fully deterministic byte format (docs/spec-binary-format.md) --
+ * delta+varint postings, a fixed directory layout -- so there is no
+ * legitimate source of byte-level divergence between a conformant TS
+ * and Python encoder, unlike tokenization/stemming edge cases
+ * elsewhere in this file. This block builds the *same* small,
+ * hand-authored fixture on both sides (via `buildIndex`/`writeIndex`
+ * directly on the TS side, and a small driver script invoking
+ * `build_index`/`write_index` directly on the Python side, since the
+ * Python CLI has no format flags), then asserts the raw shard bytes
+ * are identical -- not just that a client can independently decode
+ * both to the same content, though the second describe block above
+ * already establishes that live-query equivalence for the JSON tier.
+ *
+ * A separate end-to-end query test (real HTTP + the real
+ * `SearchClient`) proves the *decoder* side too: byte-identical output
+ * is necessary but not sufficient, since a bug shared by both the TS
+ * encoder and TS decoder could produce byte-identical-but-wrong shards
+ * that still "worked" only because the same misencoding round-trips
+ * through the same misdecoding. Querying the Python-built binary
+ * output through `@csf/client`'s real binary decoder closes that gap.
+ */
+describe("cross-implementation conformance: binary storage tier byte-identity", () => {
+  const FIXTURE = [
+    {
+      id: 0,
+      url: "/a",
+      html: '<html lang="en"><head><title>Widgets</title></head><body><main><p>Our widgets are wonderful and useful for everyone.</p></main></body></html>',
+    },
+    {
+      id: 1,
+      url: "/b",
+      html: '<html lang="en"><head><title>Gadgets</title></head><body><main><p>Gadgets and gizmos for every home and office.</p></main></body></html>',
+    },
+  ];
+
+  let tsOutDir: string;
+  let pyOutDir: string;
+  let pyBaseUrl: string;
+  let closePyServer: () => Promise<void>;
+
+  beforeAll(async () => {
+    // --- TypeScript side: build the fixture in-memory and write it with the binary tier enabled ---
+    tsOutDir = await mkdtemp(join(tmpdir(), "csf-binary-conformance-ts-"));
+    const built = buildIndex(FIXTURE, "en");
+    await writeIndex(built, tsOutDir, {
+      termShardFormat: "binary",
+      docStoreFormat: "binary",
+    });
+
+    // --- Python side: no CLI flags exist for the binary tier, so drive
+    // build_index/write_index directly via a small script run through
+    // `uv run python` from python/csf-indexer/'s own venv. ---
+    pyOutDir = await mkdtemp(join(tmpdir(), "csf-binary-conformance-py-"));
+    const scriptDir = await mkdtemp(join(tmpdir(), "csf-binary-conformance-script-"));
+    const scriptPath = join(scriptDir, "build_binary_fixture.py");
+    await writeFile(
+      scriptPath,
+      [
+        "import sys",
+        "from csf_indexer.build_index import build_index",
+        "from csf_indexer.write_index import write_index",
+        "from csf_indexer.types import SourceDocument",
+        "",
+        "sources = [",
+        '    SourceDocument(id=0, url="/a", html=\'<html lang="en"><head><title>Widgets</title></head><body><main><p>Our widgets are wonderful and useful for everyone.</p></main></body></html>\'),',
+        '    SourceDocument(id=1, url="/b", html=\'<html lang="en"><head><title>Gadgets</title></head><body><main><p>Gadgets and gizmos for every home and office.</p></main></body></html>\'),',
+        "]",
+        'built = build_index(sources, "en")',
+        "write_index(",
+        "    built,",
+        "    sys.argv[1],",
+        '    term_shard_format="binary",',
+        '    doc_store_format="binary",',
+        ")",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    execFileSync("uv", ["run", "python", scriptPath, pyOutDir], {
+      cwd: pythonIndexerDir,
+      stdio: "pipe",
+    });
+    await rm(scriptDir, { recursive: true, force: true });
+
+    const pyServer = await serveStatic(pyOutDir);
+    pyBaseUrl = pyServer.baseUrl;
+    closePyServer = pyServer.close;
+  });
+
+  afterAll(async () => {
+    await closePyServer();
+    await Promise.all([
+      rm(tsOutDir, { recursive: true, force: true }),
+      rm(pyOutDir, { recursive: true, force: true }),
+    ]);
+  });
+
+  it("produces byte-identical binary term-shard and doc-store files", () => {
+    const tsManifest: Manifest = JSON.parse(
+      readFileSync(join(tsOutDir, "manifest.json"), "utf8"),
+    );
+    const pyManifest: Manifest = JSON.parse(
+      readFileSync(join(pyOutDir, "manifest.json"), "utf8"),
+    );
+
+    expect(tsManifest.shards.terms.length).toBeGreaterThan(0);
+    expect(pyManifest.shards.terms.length).toEqual(
+      tsManifest.shards.terms.length,
+    );
+    for (let i = 0; i < tsManifest.shards.terms.length; i++) {
+      const tsEntry = tsManifest.shards.terms[i];
+      const pyEntry = pyManifest.shards.terms[i];
+      expect(tsEntry?.format).toBe("binary");
+      expect(pyEntry?.format).toBe("binary");
+      expect(pyEntry?.lang).toEqual(tsEntry?.lang);
+      expect(pyEntry?.prefix).toEqual(tsEntry?.prefix);
+
+      const tsBytes = readFileSync(join(tsOutDir, tsEntry?.file ?? ""));
+      const pyBytes = readFileSync(join(pyOutDir, pyEntry?.file ?? ""));
+      expect(pyBytes.equals(tsBytes)).toBe(true);
+    }
+
+    expect(tsManifest.shards.docs.length).toBeGreaterThan(0);
+    expect(pyManifest.shards.docs.length).toEqual(
+      tsManifest.shards.docs.length,
+    );
+    for (let i = 0; i < tsManifest.shards.docs.length; i++) {
+      const tsEntry = tsManifest.shards.docs[i];
+      const pyEntry = pyManifest.shards.docs[i];
+      expect(tsEntry?.format).toBe("binary");
+      expect(pyEntry?.format).toBe("binary");
+
+      const tsBytes = readFileSync(join(tsOutDir, tsEntry?.file ?? ""));
+      const pyBytes = readFileSync(join(pyOutDir, pyEntry?.file ?? ""));
+      expect(pyBytes.equals(tsBytes)).toBe(true);
+    }
+  });
+
+  it("lets the real SearchClient query the Python-built binary output over real HTTP", async () => {
+    const pyClient = new SearchClient({
+      indexUrl: `${pyBaseUrl}manifest.json`,
+    });
+
+    // "wonderful" appears only in the widgets doc (id 0) and stems to
+    // itself under Porter stemming, so it's an unambiguous literal
+    // query word regardless of which side's stemmer produced the
+    // corpus (see the file-level doc comment on the block above for
+    // why that matters).
+    const result = await pyClient.search("wonderful");
+    expect(result.hits.map((h) => h.id)).toEqual([0]);
   });
 });
