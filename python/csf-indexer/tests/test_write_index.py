@@ -82,3 +82,76 @@ def test_output_is_byte_identical_across_repeated_builds_of_the_same_corpus(tmp_
     m1.pop("buildId")
     m2.pop("buildId")
     assert m1 == m2
+
+
+def _doc_with_meta(doc_id, url, title, body, extra_head=""):
+    html = (
+        f'<html lang="en"><head><title>{title}</title>{extra_head}</head>'
+        f"<body><main>{body}</main></body></html>"
+    )
+    return SourceDocument(id=doc_id, url=url, html=html)
+
+
+def test_facet_shard_is_written_and_referenced_in_manifest(tmp_path):
+    doc = _doc_with_meta(
+        1, "/a", "T", "b", extra_head='<meta name="csf-facet-color" content="red">'
+    )
+    built = build_index([doc])
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert manifest["facetFields"] == ["color"]
+    facets_entry = manifest["shards"]["facets"][0]
+    assert facets_entry["field"] == "color"
+    facet_shard = json.loads((tmp_path / facets_entry["file"]).read_text())
+    assert facet_shard["values"]["red"]["docs"] == [1]
+
+
+def test_no_facets_section_when_no_facets_present(tmp_path):
+    doc = _doc_with_meta(1, "/a", "T", "b")
+    built = build_index([doc])
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert "facets" not in manifest["shards"]
+    assert "facetFields" not in manifest
+
+
+def test_pins_shard_is_written_and_referenced_in_manifest(tmp_path):
+    doc = _doc_with_meta(
+        1, "/a", "Widgets", "widgets", extra_head='<meta name="csf-pin" content="widgets">'
+    )
+    built = build_index([doc])
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    pins_file = manifest["pins"]["en"]
+    pins_shard = json.loads((tmp_path / pins_file).read_text())
+    assert "widget" in pins_shard
+
+
+def test_synonym_shard_is_written_and_referenced_in_manifest(tmp_path):
+    doc = _doc_with_meta(1, "/a", "T", "b")
+    built = build_index([doc], synonyms={"en": {"equivalences": [["Couch", "Sofa"]]}})
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    synonyms_file = manifest["synonyms"]["en"]
+    synonym_shard = json.loads((tmp_path / synonyms_file).read_text())
+    assert synonym_shard["equivalences"] == [["couch", "sofa"]]
+
+
+def test_fuzzy_shard_is_written_and_referenced_in_manifest(tmp_path):
+    doc = _doc_with_meta(1, "/a", "Widgets", "widgets")
+    built = build_index([doc], fuzzy=True)
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    fuzzy_entry = manifest["fuzzy"]["en"]
+    fuzzy_shard = json.loads((tmp_path / fuzzy_entry["file"]).read_text())
+    assert fuzzy_shard["maxEdits"] == 1
+
+
+def test_no_pins_synonyms_fuzzy_sections_when_none_configured(tmp_path):
+    doc = _doc_with_meta(1, "/a", "T", "b")
+    built = build_index([doc])
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert "pins" not in manifest
+    assert "synonyms" not in manifest
+    assert "fuzzy" not in manifest

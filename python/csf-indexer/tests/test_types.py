@@ -33,3 +33,11 @@ def test_built_index_fields():
     built = BuiltIndex(manifest={"version": 1}, term_shards={}, doc_store={}, id_range=(0, 0))
     assert built.manifest["version"] == 1
     assert built.id_range == (0, 0)
+
+
+def test_built_index_new_fields_default_to_empty_dicts():
+    built = BuiltIndex(manifest={}, term_shards={}, doc_store={}, id_range=(0, 0))
+    assert built.facet_shards == {}
+    assert built.pins_shards == {}
+    assert built.synonym_shards == {}
+    assert built.fuzzy_shards == {}

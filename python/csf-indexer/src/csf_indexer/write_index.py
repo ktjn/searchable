@@ -128,7 +128,70 @@ def write_index(
             {"shard": shard_index, "file": file, "idRange": list(chunk["idRange"])}
         )
 
-    manifest = {**built.manifest, "shards": {"terms": terms, "docs": docs}}
+    facet_fields = sorted(built.facet_shards.keys())
+    facets = None
+    if facet_fields:
+        facets = []
+        for field_name in facet_fields:
+            file = _write_json(
+                out_dir, f"facets/{field_name}.json", built.facet_shards[field_name]
+            )
+            facets.append({"field": field_name, "file": file})
+
+    pin_languages = sorted(
+        language for language, shard in built.pins_shards.items() if shard
+    )
+    pins = None
+    if pin_languages:
+        pins = {}
+        for language in pin_languages:
+            pins[language] = _write_json(
+                out_dir, f"pins/{language}.json", built.pins_shards[language]
+            )
+
+    def _synonym_shard_nonempty(shard: dict) -> bool:
+        return bool(
+            shard.get("equivalences") or shard.get("directional") or shard.get("multiWord")
+        )
+
+    synonym_languages = sorted(
+        language
+        for language, shard in built.synonym_shards.items()
+        if _synonym_shard_nonempty(shard)
+    )
+    synonyms = None
+    if synonym_languages:
+        synonyms = {}
+        for language in synonym_languages:
+            synonyms[language] = _write_json(
+                out_dir, f"synonyms/{language}.json", built.synonym_shards[language]
+            )
+
+    fuzzy_languages = sorted(
+        language
+        for language, shard in built.fuzzy_shards.items()
+        if shard.get("deletions")
+    )
+    fuzzy = None
+    if fuzzy_languages:
+        fuzzy = {}
+        for language in fuzzy_languages:
+            file = _write_json(
+                out_dir, f"fuzzy/{language}.json", built.fuzzy_shards[language]
+            )
+            fuzzy[language] = {"file": file}
+
+    manifest = {
+        **built.manifest,
+        "shards": {
+            "terms": terms,
+            "docs": docs,
+            **({"facets": facets} if facets else {}),
+        },
+        **({"pins": pins} if pins else {}),
+        **({"synonyms": synonyms} if synonyms else {}),
+        **({"fuzzy": fuzzy} if fuzzy else {}),
+    }
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)

@@ -59,6 +59,8 @@ interface FixtureSource {
   lang: string;
   title: string;
   body: string;
+  /** Extra <meta name="..." content="..."> tags to inject into <head>, verbatim -- used by the facets/pins fixture doc (csf-facet-<field>/csf-pin, docs/15-cms-meta-tag-control.md, docs/16-term-to-page-pinning.md). Both discover functions parse these identically on the TS and Python sides. */
+  meta?: { name: string; content: string }[];
 }
 
 const FIXTURE_SOURCES: FixtureSource[] = [
@@ -80,10 +82,23 @@ const FIXTURE_SOURCES: FixtureSource[] = [
     title: "Sofas",
     body: "Unsere Sofas sind sehr bequem und gross.",
   },
+  {
+    filename: 4,
+    lang: "en",
+    title: "Gizmos",
+    body: "Gizmos and gadgets for the modern home.",
+    meta: [
+      { name: "csf-facet-category", content: "electronics" },
+      { name: "csf-pin", content: "gizmos" },
+    ],
+  },
 ];
 
 function toHtml(source: FixtureSource): string {
-  return `<html lang="${source.lang}"><head><title>${source.title}</title></head><body><main><p>${source.body}</p></main></body></html>`;
+  const metaTags = (source.meta ?? [])
+    .map((m) => `<meta name="${m.name}" content="${m.content}">`)
+    .join("");
+  return `<html lang="${source.lang}"><head><title>${source.title}</title>${metaTags}</head><body><main><p>${source.body}</p></main></body></html>`;
 }
 
 describe("cross-implementation conformance: real csf-indexer Python CLI", () => {
@@ -189,5 +204,35 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
     // "3.html" (the sofas doc) sorts last, so both sides assign it
     // doc id 2.
     expect(tsIds).toEqual([2]);
+  });
+
+  it("returns the same facet counts and pin-boosted top hit for a query against both implementations", async () => {
+    const tsClient = new SearchClient({
+      indexUrl: `${tsBaseUrl}manifest.json`,
+    });
+    const pyClient = new SearchClient({
+      indexUrl: `${pyBaseUrl}manifest.json`,
+    });
+
+    // "4.html" (the gizmos doc) is the only doc declaring
+    // csf-facet-category, so both implementations' facet shards agree
+    // on a single "electronics" value with count 1.
+    const tsFacets = await tsClient.facetValues("category");
+    const pyFacets = await pyClient.facetValues("category");
+    expect(pyFacets).toEqual(tsFacets);
+    expect(tsFacets).toEqual({
+      values: [{ value: "electronics", count: 1, selected: false }],
+    });
+
+    // "gizmos" (normalized/stemmed identically by both sides via
+    // normalizePhrase()) is an exact-mode csf-pin on 4.html only, even
+    // though the word "gizmos" also appears organically in 2.html's
+    // body -- a matching pin is placed ahead of organic hits
+    // regardless of BM25 ranking, so both implementations must agree
+    // the pinned doc (4.html) is the top hit.
+    const tsResult = await tsClient.search("gizmos");
+    const pyResult = await pyClient.search("gizmos");
+    expect(pyResult.hits[0]?.id).toEqual(tsResult.hits[0]?.id);
+    expect(tsResult.hits[0]?.pinned).toBe(true);
   });
 });
