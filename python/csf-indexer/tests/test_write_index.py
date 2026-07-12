@@ -155,3 +155,61 @@ def test_no_pins_synonyms_fuzzy_sections_when_none_configured(tmp_path):
     assert "pins" not in manifest
     assert "synonyms" not in manifest
     assert "fuzzy" not in manifest
+
+
+def test_term_shard_format_binary_writes_bin_files_and_marks_manifest(tmp_path):
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
+    write_index(built, str(tmp_path), term_shard_format="binary")
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    term_entry = manifest["shards"]["terms"][0]
+    assert term_entry["format"] == "binary"
+    assert term_entry["file"].endswith(".bin")
+    term_file = tmp_path / term_entry["file"]
+    assert term_file.exists()
+    # Binary content must not parse as JSON.
+    try:
+        json.loads(term_file.read_bytes())
+        parsed_as_json = True
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        parsed_as_json = False
+    assert not parsed_as_json
+
+
+def test_doc_store_format_binary_writes_bin_files_and_marks_manifest(tmp_path):
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
+    write_index(built, str(tmp_path), doc_store_format="binary")
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    docs_entry = manifest["shards"]["docs"][0]
+    assert docs_entry["format"] == "binary"
+    assert docs_entry["file"].endswith(".bin")
+    assert (tmp_path / docs_entry["file"]).exists()
+
+
+def test_fuzzy_shard_format_binary_writes_bin_files_and_marks_manifest(tmp_path):
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")], fuzzy=True)
+    write_index(built, str(tmp_path), fuzzy_shard_format="binary")
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    fuzzy_entry = manifest["fuzzy"]["en"]
+    assert fuzzy_entry["format"] == "binary"
+    assert fuzzy_entry["file"].endswith(".bin")
+    assert (tmp_path / fuzzy_entry["file"]).exists()
+
+
+def test_default_format_is_still_json_for_all_three(tmp_path):
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")], fuzzy=True)
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert "format" not in manifest["shards"]["terms"][0]
+    assert "format" not in manifest["shards"]["docs"][0]
+    assert "format" not in manifest["fuzzy"]["en"]
+
+
+def test_binary_term_shard_content_hash_matches_file_bytes(tmp_path):
+    from csf_indexer.hash import content_hash
+
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
+    write_index(built, str(tmp_path), term_shard_format="binary")
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    term_entry = manifest["shards"]["terms"][0]
+    file_bytes = (tmp_path / term_entry["file"]).read_bytes()
+    assert content_hash(file_bytes) in term_entry["file"]
