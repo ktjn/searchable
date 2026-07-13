@@ -22,6 +22,12 @@ export type {
   SuiteReport,
 } from "./evaluate.js";
 export { evaluateSuite } from "./evaluate.js";
+export type { GovukContentItem } from "./govuk-normalize.js";
+export {
+  hashSnapshotContent,
+  htmlToText,
+  normalizeGovukDocument,
+} from "./govuk-normalize.js";
 export type { KnownDomainSuite } from "./load-domain-suite.js";
 export {
   KNOWN_DOMAIN_SUITES,
