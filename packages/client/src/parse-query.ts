@@ -52,7 +52,7 @@ export function parseQueryTerms(
  * present independently, the way a bare space-separated AND of the
  * same words would already be satisfied.
  */
-export interface PhraseTerm {
+interface PhraseTerm {
   terms: QueryTerm[];
 }
 

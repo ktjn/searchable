@@ -133,7 +133,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-export function priceBucketFor(price: number): string {
+function priceBucketFor(price: number): string {
   if (price < 25) return "Under $25";
   if (price < 100) return "$25–$100";
   if (price < 500) return "$100–$500";

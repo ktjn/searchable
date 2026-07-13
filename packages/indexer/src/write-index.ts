@@ -59,7 +59,7 @@ async function writeBinary(
 }
 
 /** Default per docs/concepts/index-format.md#size-targets-and-sharding-tuning ("e.g. ~50KB gzipped"). */
-export const DEFAULT_MAX_TERM_SHARD_GZIP_BYTES = 50 * 1024;
+const DEFAULT_MAX_TERM_SHARD_GZIP_BYTES = 50 * 1024;
 
 function groupByPrefixLength(
   termShard: TermShard,

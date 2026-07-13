@@ -24,7 +24,6 @@
     "marked": "^18.0.6"
   },
   "devDependencies": {
-    "@csf/client": "workspace:*",
     "@csf/indexer": "workspace:*",
     "@types/node": "^26.1.1",
     "tsx": "^4.19.2",
