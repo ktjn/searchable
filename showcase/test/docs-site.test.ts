@@ -46,8 +46,66 @@ describe("documentation navigation", () => {
     expect(
       rewriteMarkdownLinks(
         '<a href="../reference/client-api.md#search">API</a>',
+        "docs/guides/indexing.md",
+        DOC_SECTIONS,
       ),
     ).toBe('<a href="../reference/client-api.html#search">API</a>');
+  });
+
+  test("links archived Markdown to its canonical GitHub source", () => {
+    expect(
+      rewriteMarkdownLinks(
+        '<a href="../archive/roadmaps/implementation-history.md">History</a>',
+        "docs/project/roadmap.md",
+        DOC_SECTIONS,
+      ),
+    ).toBe(
+      '<a href="https://github.com/ktjn/client-search-framework/blob/main/docs/archive/roadmaps/implementation-history.md">History</a>',
+    );
+  });
+
+  test("links root Markdown to its canonical GitHub source", () => {
+    expect(
+      rewriteMarkdownLinks(
+        '<a href="../../CHANGELOG.md">Changelog</a>',
+        "docs/adr/0002-json-first-index-format.md",
+        DOC_SECTIONS,
+      ),
+    ).toBe(
+      '<a href="https://github.com/ktjn/client-search-framework/blob/main/CHANGELOG.md">Changelog</a>',
+    );
+  });
+
+  test("preserves fragments on canonical GitHub source links", () => {
+    expect(
+      rewriteMarkdownLinks(
+        '<a href="../archive/specs/plugin-api.md#registration">Draft</a>',
+        "docs/adr/0005-plugin-opt-in-boundary.md",
+        DOC_SECTIONS,
+      ),
+    ).toBe(
+      '<a href="https://github.com/ktjn/client-search-framework/blob/main/docs/archive/specs/plugin-api.md#registration">Draft</a>',
+    );
+  });
+
+  test("keeps manifest targets on local generated routes", () => {
+    expect(
+      rewriteMarkdownLinks(
+        '<a href="../project/roadmap.md#status">Roadmap</a>',
+        "docs/reference/client-api.md",
+        DOC_SECTIONS,
+      ),
+    ).toBe('<a href="../project/roadmap.html#status">Roadmap</a>');
+  });
+
+  test("rejects Markdown links that escape the repository", () => {
+    expect(() =>
+      rewriteMarkdownLinks(
+        '<a href="../../../outside.md">Outside</a>',
+        "docs/guides/indexing.md",
+        DOC_SECTIONS,
+      ),
+    ).toThrow("Markdown link escapes repository: ../../../outside.md");
   });
 
   test("rejects duplicate and forbidden sources", () => {

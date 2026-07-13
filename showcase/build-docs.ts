@@ -54,6 +54,8 @@ async function renderPage(page: DocPage): Promise<SitePage> {
   const { excerpt } = extractTitleAndExcerpt(markdown);
   const bodyHtml = rewriteMarkdownLinks(
     await marked.parse(markdown, { gfm: true, renderer }),
+    page.source,
+    DOC_SECTIONS,
   );
   return { ...page, excerpt, bodyHtml };
 }
@@ -79,6 +81,8 @@ async function main() {
     excerpt: homeMetadata.excerpt,
     bodyHtml: rewriteMarkdownLinks(
       await marked.parse(homeMarkdown, { gfm: true, renderer }),
+      "README.md",
+      DOC_SECTIONS,
     ),
   };
 

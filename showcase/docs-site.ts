@@ -1,3 +1,4 @@
+import { posix } from "node:path";
 import hljs from "highlight.js/lib/core";
 import bash from "highlight.js/lib/languages/bash";
 import javascript from "highlight.js/lib/languages/javascript";
@@ -39,10 +40,50 @@ export function validateNavigation(sections: readonly DocSection[]): void {
   }
 }
 
-export function rewriteMarkdownLinks(html: string): string {
+const GITHUB_SOURCE_ROOT =
+  "https://github.com/ktjn/client-search-framework/blob/main";
+
+function isExternalLink(path: string): boolean {
+  return /^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith("//");
+}
+
+function resolveRepoPath(currentSource: string, path: string): string {
+  const sourceDirectory = posix.dirname(currentSource);
+  const target = path.startsWith("/")
+    ? posix.normalize(path.slice(1))
+    : posix.normalize(posix.join(sourceDirectory, path));
+  if (target === ".." || target.startsWith("../") || posix.isAbsolute(target)) {
+    throw new Error(`Markdown link escapes repository: ${path}`);
+  }
+  return target;
+}
+
+export function rewriteMarkdownLinks(
+  html: string,
+  currentSource: string,
+  sections: readonly DocSection[],
+): string {
+  const pages = flattenNavigation(sections);
   return html.replace(
     /href="([^"]*?)\.md(#[^"]*)?"/g,
-    (_match, path: string, hash = "") => `href="${path}.html${hash}"`,
+    (match, path: string, hash = "") => {
+      if (isExternalLink(path)) return match;
+
+      const targetSource = resolveRepoPath(currentSource, `${path}.md`);
+      const targetPage = pages.find((page) => page.source === targetSource);
+      if (!targetPage) {
+        return `href="${GITHUB_SOURCE_ROOT}/${targetSource}${hash}"`;
+      }
+
+      const currentRoute =
+        pages.find((page) => page.source === currentSource)?.route ??
+        currentSource.replace(/\.md$/, "");
+      const targetRoute = posix.relative(
+        posix.dirname(currentRoute),
+        targetPage.route,
+      );
+      return `href="${targetRoute}.html${hash}"`;
+    },
   );
 }
 
