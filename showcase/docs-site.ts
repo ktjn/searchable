@@ -40,8 +40,8 @@ export function validateNavigation(sections: readonly DocSection[]): void {
   }
 }
 
-const GITHUB_SOURCE_ROOT =
-  "https://github.com/ktjn/client-search-framework/blob/main";
+const GITHUB_REPOSITORY_ROOT =
+  "https://github.com/ktjn/client-search-framework";
 
 function isExternalLink(path: string): boolean {
   return /^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith("//");
@@ -53,9 +53,19 @@ function resolveRepoPath(currentSource: string, path: string): string {
     ? posix.normalize(path.slice(1))
     : posix.normalize(posix.join(sourceDirectory, path));
   if (target === ".." || target.startsWith("../") || posix.isAbsolute(target)) {
-    throw new Error(`Markdown link escapes repository: ${path}`);
+    const kind = path.endsWith(".md") ? "Markdown" : "Repository";
+    throw new Error(`${kind} link escapes repository: ${path}`);
   }
   return target;
+}
+
+function splitReference(reference: string): { path: string; suffix: string } {
+  const suffixIndex = reference.search(/[?#]/);
+  if (suffixIndex === -1) return { path: reference, suffix: "" };
+  return {
+    path: reference.slice(0, suffixIndex),
+    suffix: reference.slice(suffixIndex),
+  };
 }
 
 export function rewriteMarkdownLinks(
@@ -65,24 +75,35 @@ export function rewriteMarkdownLinks(
 ): string {
   const pages = flattenNavigation(sections);
   return html.replace(
-    /href="([^"]*?)\.md(#[^"]*)?"/g,
-    (match, path: string, hash = "") => {
-      if (isExternalLink(path)) return match;
-
-      const targetSource = resolveRepoPath(currentSource, `${path}.md`);
-      const targetPage = pages.find((page) => page.source === targetSource);
-      if (!targetPage) {
-        return `href="${GITHUB_SOURCE_ROOT}/${targetSource}${hash}"`;
+    /\b(href|src)=(["'])(.*?)\2/g,
+    (match, attribute: string, quote: string, reference: string) => {
+      if (
+        !reference ||
+        reference.startsWith("#") ||
+        reference.startsWith("?") ||
+        isExternalLink(reference)
+      ) {
+        return match;
       }
 
-      const currentRoute =
-        pages.find((page) => page.source === currentSource)?.route ??
-        currentSource.replace(/\.md$/, "");
-      const targetRoute = posix.relative(
-        posix.dirname(currentRoute),
-        targetPage.route,
-      );
-      return `href="${targetRoute}.html${hash}"`;
+      const { path, suffix } = splitReference(reference);
+      const targetSource = resolveRepoPath(currentSource, path);
+      if (path.toLowerCase().endsWith(".html")) return match;
+
+      const targetPage = pages.find((page) => page.source === targetSource);
+      if (targetPage) {
+        const currentRoute =
+          pages.find((page) => page.source === currentSource)?.route ??
+          currentSource.replace(/\.md$/, "");
+        const targetRoute = posix.relative(
+          posix.dirname(currentRoute),
+          targetPage.route,
+        );
+        return `${attribute}=${quote}${targetRoute}.html${suffix}${quote}`;
+      }
+
+      const sourceKind = path.endsWith("/") ? "tree" : "blob";
+      return `${attribute}=${quote}${GITHUB_REPOSITORY_ROOT}/${sourceKind}/main/${targetSource}${suffix}${quote}`;
     },
   );
 }

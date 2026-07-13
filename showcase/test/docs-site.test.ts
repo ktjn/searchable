@@ -108,6 +108,75 @@ describe("documentation navigation", () => {
     ).toThrow("Markdown link escapes repository: ../../../outside.md");
   });
 
+  test("links repository directories to their canonical GitHub trees", () => {
+    expect(
+      rewriteMarkdownLinks(
+        '<a href="../../spec/examples/?format=json#basic">Examples</a>',
+        "docs/adr/0002-json-first-index-format.md",
+        DOC_SECTIONS,
+      ),
+    ).toBe(
+      '<a href="https://github.com/ktjn/client-search-framework/tree/main/spec/examples/?format=json#basic">Examples</a>',
+    );
+    expect(
+      rewriteMarkdownLinks(
+        '<a href="../../spec/schema/">Schema</a>',
+        "docs/concepts/index-format.md",
+        DOC_SECTIONS,
+      ),
+    ).toBe(
+      '<a href="https://github.com/ktjn/client-search-framework/tree/main/spec/schema/">Schema</a>',
+    );
+  });
+
+  test("links repository files without extensions to canonical GitHub blobs", () => {
+    expect(
+      rewriteMarkdownLinks(
+        '<a href="LICENSE">MIT</a>',
+        "README.md",
+        DOC_SECTIONS,
+      ),
+    ).toBe(
+      '<a href="https://github.com/ktjn/client-search-framework/blob/main/LICENSE">MIT</a>',
+    );
+  });
+
+  test("rewrites local repository src attributes and preserves suffixes", () => {
+    expect(
+      rewriteMarkdownLinks(
+        '<img src="../../spec/schema/manifest.schema.json?raw=1#shape">',
+        "docs/concepts/index-format.md",
+        DOC_SECTIONS,
+      ),
+    ).toBe(
+      '<img src="https://github.com/ktjn/client-search-framework/blob/main/spec/schema/manifest.schema.json?raw=1#shape">',
+    );
+  });
+
+  test("keeps explicit generated HTML and fragment-only links local", () => {
+    const html =
+      '<a href="../reference/client-api.html#search">API</a><a href="#configuration">Config</a>';
+    expect(
+      rewriteMarkdownLinks(html, "docs/guides/indexing.md", DOC_SECTIONS),
+    ).toBe(html);
+  });
+
+  test("leaves external and protocol-relative links unchanged", () => {
+    const html =
+      '<a href="https://example.com/spec/">Spec</a><script src="//cdn.example.com/widget.js"></script>';
+    expect(rewriteMarkdownLinks(html, "README.md", DOC_SECTIONS)).toBe(html);
+  });
+
+  test("rejects non-Markdown links that escape the repository", () => {
+    expect(() =>
+      rewriteMarkdownLinks(
+        '<a href="../../../outside/">Outside</a>',
+        "docs/guides/indexing.md",
+        DOC_SECTIONS,
+      ),
+    ).toThrow("Repository link escapes repository: ../../../outside/");
+  });
+
   test("rejects duplicate and forbidden sources", () => {
     expect(() =>
       validateNavigation([
