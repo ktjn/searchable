@@ -133,6 +133,8 @@ Use `git mv` for history-preserving moves. Do not copy a file and leave its old 
 New-Item -ItemType Directory -Force docs/getting-started, docs/guides, docs/concepts, docs/reference, docs/project, docs/archive/investigations, docs/archive/roadmaps, docs/archive/specs | Out-Null
 git mv docs/11-binary-vs-json-index.md docs/archive/investigations/binary-vs-json-index.md
 git mv docs/12-competitive-landscape.md docs/archive/investigations/competitive-landscape.md
+git mv docs/09-roadmap.md docs/archive/roadmaps/implementation-history.md
+git mv docs/17-plugin-architecture.md docs/archive/specs/plugin-architecture.md
 git mv docs/19-github-pages-showcase.md docs/archive/roadmaps/github-pages-showcase.md
 git mv docs/23-implementation-roadmap.md docs/archive/roadmaps/specification-roadmap.md
 git mv docs/24-architecture-recommendations.md docs/archive/roadmaps/architecture-recommendations.md
@@ -202,7 +204,7 @@ Each page begins with a one-paragraph purpose statement, describes shipped behav
 After their canonical pages contain the current material, delete the remaining old top-level sources:
 
 ```powershell
-git rm docs/00-overview.md docs/01-architecture.md docs/02-index-format.md docs/03-tokenization-i18n.md docs/04-query-ranking-boosts.md docs/05-synonyms.md docs/06-faceted-search.md docs/07-client-api.md docs/08-modern-features.md docs/09-roadmap.md docs/10-testing-and-performance.md docs/13-vector-and-hybrid-search.md docs/14-reference-deployment-cms-2k.md docs/15-cms-meta-tag-control.md docs/16-term-to-page-pinning.md docs/17-plugin-architecture.md docs/18-resource-aware-loading.md docs/20-tech-stack.md docs/21-architecture-principles.md docs/22-project-governance.md docs/26-example-configurations.md
+git rm docs/00-overview.md docs/01-architecture.md docs/02-index-format.md docs/03-tokenization-i18n.md docs/04-query-ranking-boosts.md docs/05-synonyms.md docs/06-faceted-search.md docs/07-client-api.md docs/08-modern-features.md docs/10-testing-and-performance.md docs/13-vector-and-hybrid-search.md docs/14-reference-deployment-cms-2k.md docs/15-cms-meta-tag-control.md docs/16-term-to-page-pinning.md docs/18-resource-aware-loading.md docs/20-tech-stack.md docs/21-architecture-principles.md docs/22-project-governance.md docs/26-example-configurations.md
 ```
 
 Create `docs/archive/specs/client-api-target.md` and `docs/archive/specs/resource-aware-loading.md` only from target-only sections that are not already present in another archived spec; do not manufacture duplicate archive prose.
@@ -359,9 +361,18 @@ export const DOC_SECTIONS: readonly DocSection[] = [
     ["cms-meta-tags", "CMS meta tags"], ["compatibility", "Compatibility"],
   ].map(([name, title]) => ({ source: `docs/reference/${name}.md`, route: `docs/reference/${name}`, title })) },
   { title: "Project", pages: [
-    ["roadmap", "Roadmap"], ["governance", "Governance"],
-    ["architecture-decisions", "Architecture decisions"],
-  ].map(([name, title]) => ({ source: `docs/project/${name}.md`, route: `docs/project/${name}`, title })) },
+    ...[
+      ["roadmap", "Roadmap"], ["governance", "Governance"],
+      ["architecture-decisions", "Architecture decisions"],
+    ].map(([name, title]) => ({ source: `docs/project/${name}.md`, route: `docs/project/${name}`, title })),
+    ...[
+      ["0001-pull-based-static-http", "ADR-0001: Pull-based static HTTP"],
+      ["0002-json-first-index-format", "ADR-0002: JSON-first index format"],
+      ["0003-bm25f-ranking-model", "ADR-0003: BM25F ranking model"],
+      ["0004-compatibility-policy", "ADR-0004: Compatibility policy"],
+      ["0005-plugin-opt-in-boundary", "ADR-0005: Plugin opt-in boundary"],
+    ].map(([name, title]) => ({ source: `docs/adr/${name}.md`, route: `docs/adr/${name}`, title })),
+  ] },
 ];
 ```
 
@@ -413,7 +424,7 @@ pnpm exec vitest run --config showcase/vitest.config.ts showcase/test/docs-site.
 pnpm --filter showcase build:docs
 ```
 
-Expected: tests pass and the build reports 21 curated documentation pages plus the README home page.
+Expected: tests pass and the build reports 26 curated documentation pages plus the README home page.
 
 - [ ] **Step 6: Commit the manifest-driven site**
 
