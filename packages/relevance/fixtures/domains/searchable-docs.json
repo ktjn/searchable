@@ -1,0 +1,426 @@
+{
+  "schemaVersion": 1,
+  "id": "searchable-docs",
+  "version": "1.0.0",
+  "language": "en",
+  "provenance": {
+    "publisher": "Searchable contributors",
+    "sourceTitle": "Searchable documentation",
+    "sourceUrl": "https://ktjn.github.io/searchable/",
+    "license": "MIT",
+    "licenseUrl": "https://github.com/ktjn/searchable/blob/main/LICENSE",
+    "retrievedAt": "2026-07-13",
+    "attribution": "Searchable contributors",
+    "selectionNotes": "All 28 generated documentation pages are included. Queries are task-oriented search intents authored for this judged domain corpus rather than copied page headings."
+  },
+  "review": {
+    "status": "draft",
+    "method": "Maintainer review of every query, grade, rationale, and measured top-five result."
+  },
+  "pages": [
+    {
+      "id": "/docs/adr/0001-pull-based-static-http.html",
+      "title": "ADR-0001: Pull-based static HTTP"
+    },
+    {
+      "id": "/docs/adr/0002-json-first-index-format.html",
+      "title": "ADR-0002: JSON-first index format"
+    },
+    {
+      "id": "/docs/adr/0003-bm25f-ranking-model.html",
+      "title": "ADR-0003: BM25F ranking model"
+    },
+    {
+      "id": "/docs/adr/0004-compatibility-policy.html",
+      "title": "ADR-0004: Compatibility policy"
+    },
+    {
+      "id": "/docs/adr/0005-plugin-opt-in-boundary.html",
+      "title": "ADR-0005: Plugin opt-in boundary"
+    },
+    {
+      "id": "/docs/concepts/architecture.html",
+      "title": "Architecture"
+    },
+    {
+      "id": "/docs/concepts/binary-storage.html",
+      "title": "Binary storage"
+    },
+    {
+      "id": "/docs/concepts/index-format.html",
+      "title": "Index format"
+    },
+    {
+      "id": "/docs/getting-started/first-search.html",
+      "title": "Your first search"
+    },
+    {
+      "id": "/docs/getting-started/installation.html",
+      "title": "Installation"
+    },
+    {
+      "id": "/docs/getting-started/overview.html",
+      "title": "Overview"
+    },
+    {
+      "id": "/docs/guides/facets.html",
+      "title": "Faceted search"
+    },
+    {
+      "id": "/docs/guides/indexing.html",
+      "title": "Indexing content"
+    },
+    {
+      "id": "/docs/guides/internationalization.html",
+      "title": "Internationalization"
+    },
+    {
+      "id": "/docs/guides/offline-search.html",
+      "title": "Offline search"
+    },
+    {
+      "id": "/docs/guides/pinning.html",
+      "title": "Pinned results"
+    },
+    {
+      "id": "/docs/guides/ranking-and-boosts.html",
+      "title": "Ranking and boosts"
+    },
+    {
+      "id": "/docs/guides/synonyms.html",
+      "title": "Synonyms"
+    },
+    {
+      "id": "/docs/guides/vector-search.html",
+      "title": "Vector and hybrid search"
+    },
+    {
+      "id": "/docs/project/architecture-decisions.html",
+      "title": "Architecture decisions"
+    },
+    {
+      "id": "/docs/project/governance.html",
+      "title": "Governance"
+    },
+    {
+      "id": "/docs/project/relevance-baselines.html",
+      "title": "Relevance baselines"
+    },
+    {
+      "id": "/docs/project/roadmap.html",
+      "title": "Roadmap"
+    },
+    {
+      "id": "/docs/reference/client-api.html",
+      "title": "Client API"
+    },
+    {
+      "id": "/docs/reference/cms-meta-tags.html",
+      "title": "CMS meta tags"
+    },
+    {
+      "id": "/docs/reference/compatibility.html",
+      "title": "Compatibility"
+    },
+    {
+      "id": "/docs/reference/configuration.html",
+      "title": "Configuration"
+    },
+    {
+      "id": "/index.html",
+      "title": "Searchable"
+    }
+  ],
+  "queries": [
+    {
+      "id": "install-packages",
+      "text": "install the packages and build the project",
+      "topic": "setup",
+      "judgments": {
+        "/docs/getting-started/installation.html": 3,
+        "/docs/getting-started/overview.html": 1
+      },
+      "rationales": {
+        "/docs/getting-started/installation.html": "Provides the package installation commands, workspace setup, and build prerequisites.",
+        "/docs/getting-started/overview.html": "Provides useful orientation before following the installation procedure."
+      }
+    },
+    {
+      "id": "first-search-box",
+      "text": "create my first search box",
+      "topic": "setup",
+      "judgments": {
+        "/docs/getting-started/first-search.html": 3,
+        "/docs/reference/client-api.html": 2,
+        "/docs/guides/indexing.html": 1
+      },
+      "rationales": {
+        "/docs/getting-started/first-search.html": "Walks through constructing a client and issuing the first search.",
+        "/docs/reference/client-api.html": "Documents the client methods and result fields needed by a search interface.",
+        "/docs/guides/indexing.html": "Explains the prerequisite index that the first search consumes."
+      }
+    },
+    {
+      "id": "index-rendered-html",
+      "text": "build an index from rendered html pages",
+      "topic": "indexing-deployment",
+      "judgments": {
+        "/docs/guides/indexing.html": 3,
+        "/docs/concepts/architecture.html": 2
+      },
+      "rationales": {
+        "/docs/guides/indexing.html": "Directly explains discovering rendered HTML and writing index artifacts.",
+        "/docs/concepts/architecture.html": "Shows how rendered content flows through the indexer into static shards."
+      }
+    },
+    {
+      "id": "deploy-static-index",
+      "text": "publish the search index on a static host",
+      "topic": "indexing-deployment",
+      "judgments": {
+        "/docs/guides/indexing.html": 3,
+        "/docs/adr/0001-pull-based-static-http.html": 2,
+        "/docs/concepts/architecture.html": 2
+      },
+      "rationales": {
+        "/docs/guides/indexing.html": "Documents the generated directory and how it is published for the client.",
+        "/docs/adr/0001-pull-based-static-http.html": "Explains the decision to serve immutable search artifacts over static HTTP.",
+        "/docs/concepts/architecture.html": "Describes the deployment topology connecting a static host to browser search."
+      }
+    },
+    {
+      "id": "boost-important-fields",
+      "text": "make title matches rank higher than body text",
+      "topic": "lexical-features",
+      "judgments": {
+        "/docs/guides/ranking-and-boosts.html": 3,
+        "/docs/reference/configuration.html": 2,
+        "/docs/adr/0003-bm25f-ranking-model.html": 2
+      },
+      "rationales": {
+        "/docs/guides/ranking-and-boosts.html": "Directly explains field boosts and their effect on title and body matches.",
+        "/docs/reference/configuration.html": "Lists the concrete build and query configuration used to set boosts.",
+        "/docs/adr/0003-bm25f-ranking-model.html": "Explains why field-aware BM25F is the ranking model behind field boosts."
+      }
+    },
+    {
+      "id": "category-filters",
+      "text": "add category filters with result counts",
+      "topic": "lexical-features",
+      "judgments": {
+        "/docs/guides/facets.html": 3,
+        "/docs/reference/cms-meta-tags.html": 2,
+        "/docs/reference/client-api.html": 1
+      },
+      "rationales": {
+        "/docs/guides/facets.html": "Directly explains facet fields, filters, and contextual result counts.",
+        "/docs/reference/cms-meta-tags.html": "Shows how category facet values can be supplied from rendered CMS metadata.",
+        "/docs/reference/client-api.html": "Documents the search and facet result structures consumed by a filter interface."
+      }
+    },
+    {
+      "id": "sofa-couch-synonyms",
+      "text": "treat sofa and couch as the same search",
+      "topic": "lexical-features",
+      "judgments": {
+        "/docs/guides/synonyms.html": 3,
+        "/docs/reference/configuration.html": 2
+      },
+      "rationales": {
+        "/docs/guides/synonyms.html": "Directly explains equivalence classes using vocabulary such as sofa and couch.",
+        "/docs/reference/configuration.html": "Documents where synonym configuration is supplied to the indexer and client."
+      }
+    },
+    {
+      "id": "pin-promoted-result",
+      "text": "force a promoted page to the top for one query",
+      "topic": "lexical-features",
+      "judgments": {
+        "/docs/guides/pinning.html": 3,
+        "/docs/reference/cms-meta-tags.html": 2
+      },
+      "rationales": {
+        "/docs/guides/pinning.html": "Directly documents exact, contains, priority, and exclusive pinned-result behavior.",
+        "/docs/reference/cms-meta-tags.html": "Shows the page metadata used to declare a pin from CMS output."
+      }
+    },
+    {
+      "id": "language-analyzers",
+      "text": "configure stemming and stopwords for multiple languages",
+      "topic": "internationalization",
+      "judgments": {
+        "/docs/guides/internationalization.html": 3,
+        "/docs/reference/configuration.html": 2,
+        "/docs/project/relevance-baselines.html": 1
+      },
+      "rationales": {
+        "/docs/guides/internationalization.html": "Directly explains language profiles, tokenization, stopwords, stemming, and fallback segmentation.",
+        "/docs/reference/configuration.html": "Documents language-related indexer and client settings.",
+        "/docs/project/relevance-baselines.html": "Provides supporting evidence about the currently tested full language profiles."
+      }
+    },
+    {
+      "id": "offline-caching",
+      "text": "keep search working without a network connection",
+      "topic": "offline-worker",
+      "judgments": {
+        "/docs/guides/offline-search.html": 3,
+        "/docs/reference/client-api.html": 2,
+        "/docs/concepts/architecture.html": 1
+      },
+      "rationales": {
+        "/docs/guides/offline-search.html": "Directly explains Service Worker registration, precaching, and offline cache modes.",
+        "/docs/reference/client-api.html": "Documents the offline caching registration API and its options.",
+        "/docs/concepts/architecture.html": "Provides supporting context for immutable index files and browser-side execution."
+      }
+    },
+    {
+      "id": "web-worker-search",
+      "text": "run search outside the browser main thread",
+      "topic": "offline-worker",
+      "judgments": {
+        "/docs/reference/client-api.html": 3,
+        "/docs/concepts/architecture.html": 2,
+        "/docs/getting-started/first-search.html": 1
+      },
+      "rationales": {
+        "/docs/reference/client-api.html": "Documents worker selection, worker URLs, lifecycle, and the main-thread fallback.",
+        "/docs/concepts/architecture.html": "Explains the worker execution boundary in the overall client architecture.",
+        "/docs/getting-started/first-search.html": "Shows the initial client construction where worker behavior is configured."
+      }
+    },
+    {
+      "id": "semantic-search",
+      "text": "find conceptually related pages with semantic search",
+      "topic": "vector-hybrid",
+      "judgments": {
+        "/docs/guides/vector-search.html": 3,
+        "/docs/reference/client-api.html": 2,
+        "/docs/adr/0005-plugin-opt-in-boundary.html": 1
+      },
+      "rationales": {
+        "/docs/guides/vector-search.html": "Directly explains local embeddings, vector shards, and semantic similarity search.",
+        "/docs/reference/client-api.html": "Documents vector mode and the query embedding interface.",
+        "/docs/adr/0005-plugin-opt-in-boundary.html": "Provides supporting rationale for keeping vector costs optional."
+      }
+    },
+    {
+      "id": "hybrid-search",
+      "text": "combine keyword ranking with vector similarity",
+      "topic": "vector-hybrid",
+      "judgments": {
+        "/docs/guides/vector-search.html": 3,
+        "/docs/guides/ranking-and-boosts.html": 2,
+        "/docs/adr/0003-bm25f-ranking-model.html": 1
+      },
+      "rationales": {
+        "/docs/guides/vector-search.html": "Directly explains hybrid mode and reciprocal-rank fusion of lexical and vector results.",
+        "/docs/guides/ranking-and-boosts.html": "Explains the lexical ranking side that contributes to hybrid results.",
+        "/docs/adr/0003-bm25f-ranking-model.html": "Provides supporting detail about the lexical BM25F model being combined."
+      }
+    },
+    {
+      "id": "index-shards",
+      "text": "understand the manifest and shard files",
+      "topic": "indexing-deployment",
+      "judgments": {
+        "/docs/concepts/index-format.html": 3,
+        "/docs/concepts/architecture.html": 2,
+        "/docs/adr/0002-json-first-index-format.html": 2
+      },
+      "rationales": {
+        "/docs/concepts/index-format.html": "Directly describes the manifest and each shard family.",
+        "/docs/concepts/architecture.html": "Shows how the index artifacts move between indexer, host, and client.",
+        "/docs/adr/0002-json-first-index-format.html": "Explains the design decision behind the default JSON shard format."
+      }
+    },
+    {
+      "id": "binary-download-size",
+      "text": "reduce index download size with binary storage",
+      "topic": "indexing-deployment",
+      "judgments": {
+        "/docs/concepts/binary-storage.html": 3,
+        "/docs/concepts/index-format.html": 2
+      },
+      "rationales": {
+        "/docs/concepts/binary-storage.html": "Directly explains supported binary codecs, trade-offs, and measured size evidence.",
+        "/docs/concepts/index-format.html": "Shows which manifest and shard entries select binary storage."
+      }
+    },
+    {
+      "id": "client-options",
+      "text": "look up SearchClient options and result fields",
+      "topic": "setup",
+      "judgments": {
+        "/docs/reference/client-api.html": 3,
+        "/docs/reference/configuration.html": 2
+      },
+      "rationales": {
+        "/docs/reference/client-api.html": "Directly lists SearchClient construction, methods, options, events, and result types.",
+        "/docs/reference/configuration.html": "Organizes related configuration values across index and query time."
+      }
+    },
+    {
+      "id": "cms-controls",
+      "text": "set boosts facets and pins from cms metadata",
+      "topic": "lexical-features",
+      "judgments": {
+        "/docs/reference/cms-meta-tags.html": 3,
+        "/docs/guides/ranking-and-boosts.html": 2,
+        "/docs/guides/facets.html": 2,
+        "/docs/guides/pinning.html": 2
+      },
+      "rationales": {
+        "/docs/reference/cms-meta-tags.html": "Directly lists the rendered metadata conventions for boosts, facets, and pins.",
+        "/docs/guides/ranking-and-boosts.html": "Explains how boost metadata affects ranking.",
+        "/docs/guides/facets.html": "Explains how facet metadata becomes filterable index data.",
+        "/docs/guides/pinning.html": "Explains how pin metadata changes result ordering."
+      }
+    },
+    {
+      "id": "format-compatibility",
+      "text": "check client compatibility with an index format version",
+      "topic": "indexing-deployment",
+      "judgments": {
+        "/docs/reference/compatibility.html": 3,
+        "/docs/adr/0004-compatibility-policy.html": 2,
+        "/docs/project/governance.html": 1
+      },
+      "rationales": {
+        "/docs/reference/compatibility.html": "Directly provides the package and manifest compatibility contract.",
+        "/docs/adr/0004-compatibility-policy.html": "Explains why the compatibility and validation policy was chosen.",
+        "/docs/project/governance.html": "Provides supporting release and versioning rules."
+      }
+    },
+    {
+      "id": "measure-relevance",
+      "text": "measure mrr ndcg recall and zero result rate",
+      "topic": "relevance",
+      "judgments": {
+        "/docs/project/relevance-baselines.html": 3,
+        "/docs/project/roadmap.html": 2,
+        "/docs/adr/0003-bm25f-ranking-model.html": 1
+      },
+      "rationales": {
+        "/docs/project/relevance-baselines.html": "Directly defines the evaluator commands and all named ranking metrics.",
+        "/docs/project/roadmap.html": "Explains the broader relevance quality-gate program and evidence still required.",
+        "/docs/adr/0003-bm25f-ranking-model.html": "Provides supporting context about the ranking model being measured."
+      }
+    },
+    {
+      "id": "public-index-security",
+      "text": "can private or restricted content go in the generated index",
+      "topic": "indexing-deployment",
+      "judgments": {
+        "/docs/project/roadmap.html": 3,
+        "/docs/concepts/architecture.html": 2,
+        "/docs/guides/indexing.html": 1
+      },
+      "rationales": {
+        "/docs/project/roadmap.html": "Directly states that every generated index artifact is public data and must exclude restricted content.",
+        "/docs/concepts/architecture.html": "Explains why a browser-downloadable static index cannot enforce content authorization.",
+        "/docs/guides/indexing.html": "Provides supporting context about which rendered fields become published index artifacts."
+      }
+    }
+  ]
+}
