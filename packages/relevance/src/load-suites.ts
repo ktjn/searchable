@@ -1,8 +1,8 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  SUPPORTED_BASELINE_LANGUAGES,
   type RelevanceSuite,
+  SUPPORTED_BASELINE_LANGUAGES,
   type SupportedBaselineLanguage,
 } from "./schema.js";
 import { validateSuite } from "./validate-suite.js";
@@ -18,7 +18,9 @@ export async function loadSuites(
   for (const name of names) {
     const language = name.slice(0, -5);
     if (selectedLanguage && language !== selectedLanguage) continue;
-    const suite = validateSuite(JSON.parse(await readFile(join(directory, name), "utf8")));
+    const suite = validateSuite(
+      JSON.parse(await readFile(join(directory, name), "utf8")),
+    );
     if (suite.language !== language)
       throw new Error(`Fixture ${name} declares language ${suite.language}`);
     suites.push(suite);
@@ -28,7 +30,8 @@ export async function loadSuites(
     : [...SUPPORTED_BASELINE_LANGUAGES];
   for (const language of required) {
     const count = suites.filter((suite) => suite.language === language).length;
-    if (count !== 1) throw new Error(`Expected exactly one ${language} suite, found ${count}`);
+    if (count !== 1)
+      throw new Error(`Expected exactly one ${language} suite, found ${count}`);
   }
   const order = new Map(
     SUPPORTED_BASELINE_LANGUAGES.map((language, index) => [language, index]),

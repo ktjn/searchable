@@ -1,7 +1,4 @@
-import {
-  SUPPORTED_BASELINE_LANGUAGES,
-  type RelevanceSuite,
-} from "./schema.js";
+import { type RelevanceSuite, SUPPORTED_BASELINE_LANGUAGES } from "./schema.js";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -100,14 +97,19 @@ export function validateSuite(value: unknown): RelevanceSuite {
     let positive = false;
     for (const [documentId, grade] of Object.entries(judgments)) {
       if (!documentIds.has(documentId))
-        errors.push(`query ${id} judgment references unknown document ${documentId}`);
+        errors.push(
+          `query ${id} judgment references unknown document ${documentId}`,
+        );
       if (!Number.isInteger(grade) || Number(grade) < 0 || Number(grade) > 3)
-        errors.push(`query ${id} judgment grade for ${documentId} must be 0..3`);
+        errors.push(
+          `query ${id} judgment grade for ${documentId} must be 0..3`,
+        );
       else if (Number(grade) >= 1) positive = true;
     }
     if (!positive) errors.push(`query ${id} must have a positive judgment`);
   }
 
-  if (errors.length) throw new Error(`Invalid relevance suite:\n- ${errors.join("\n- ")}`);
+  if (errors.length)
+    throw new Error(`Invalid relevance suite:\n- ${errors.join("\n- ")}`);
   return value as RelevanceSuite;
 }

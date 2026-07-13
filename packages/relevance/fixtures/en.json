@@ -14,23 +14,87 @@
     "selectionNotes": "Eight native English questions and their corresponding answers were selected verbatim, with link markup removed."
   },
   "documents": [
-    { "id": "what", "title": "What is Wikipedia?", "body": "Wikipedia is an online free-content encyclopedia that you can edit and contribute to. Wikipedia exists to bring knowledge to everyone who seeks it.", "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#What_is_Wikipedia?" },
-    { "id": "owns", "title": "Who owns Wikipedia?", "body": "Wikipedia's technical framework is supported by the Wikimedia Foundation, which owns the domain names. The site is run by the community of Wikipedians.", "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#Who_owns_Wikipedia?" },
-    { "id": "responsible", "title": "Who is responsible for the articles on Wikipedia?", "body": "Editing is a collaborative effort. Millions of people have contributed information, and anyone can help correct an error or discuss it on the talk page.", "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#Who_is_responsible_for_the_articles_on_Wikipedia?" },
-    { "id": "contact", "title": "How can I contact the project?", "body": "See Wikipedia:Contact us for important links and email addresses. Improvements to a specific article can be suggested on its talk page.", "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#How_can_I_contact_the_project?" },
-    { "id": "account", "title": "Should I create an account?", "body": "Editors with user names enjoy several benefits, but editing as an unregistered user is acceptable. A user name also keeps an editor's IP address from public view.", "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#Should_I_create_an_account?_Can't_I_just_edit_articles_anonymously?" },
-    { "id": "correct", "title": "How do you know if information is correct?", "body": "Incorrect information is usually corrected quickly because many people read articles and monitor contributions. Readers are encouraged to validate content and provide useful references.", "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#How_do_you_know_if_information_is_correct?" },
-    { "id": "vandalism", "title": "How do you prevent people from ruining articles?", "body": "All changes are registered in a page history, so defacement can be replaced by reverting to an older version. Editors, bots, watchlists, protection, and blocks also help prevent vandalism.", "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#How_do_you_prevent_people_from_ruining_articles?" },
-    { "id": "software", "title": "Which wiki software does Wikipedia run on?", "body": "Wikipedia and the other Wikimedia projects use the MediaWiki software to facilitate collaborative editing and storage of page histories.", "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#Which_wiki_software_does_Wikipedia_run_on?" }
+    {
+      "id": "what",
+      "title": "What is Wikipedia?",
+      "body": "Wikipedia is an online free-content encyclopedia that you can edit and contribute to. Wikipedia exists to bring knowledge to everyone who seeks it.",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#What_is_Wikipedia?"
+    },
+    {
+      "id": "owns",
+      "title": "Who owns Wikipedia?",
+      "body": "Wikipedia's technical framework is supported by the Wikimedia Foundation, which owns the domain names. The site is run by the community of Wikipedians.",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#Who_owns_Wikipedia?"
+    },
+    {
+      "id": "responsible",
+      "title": "Who is responsible for the articles on Wikipedia?",
+      "body": "Editing is a collaborative effort. Millions of people have contributed information, and anyone can help correct an error or discuss it on the talk page.",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#Who_is_responsible_for_the_articles_on_Wikipedia?"
+    },
+    {
+      "id": "contact",
+      "title": "How can I contact the project?",
+      "body": "See Wikipedia:Contact us for important links and email addresses. Improvements to a specific article can be suggested on its talk page.",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#How_can_I_contact_the_project?"
+    },
+    {
+      "id": "account",
+      "title": "Should I create an account?",
+      "body": "Editors with user names enjoy several benefits, but editing as an unregistered user is acceptable. A user name also keeps an editor's IP address from public view.",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#Should_I_create_an_account?_Can't_I_just_edit_articles_anonymously?"
+    },
+    {
+      "id": "correct",
+      "title": "How do you know if information is correct?",
+      "body": "Incorrect information is usually corrected quickly because many people read articles and monitor contributions. Readers are encouraged to validate content and provide useful references.",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#How_do_you_know_if_information_is_correct?"
+    },
+    {
+      "id": "vandalism",
+      "title": "How do you prevent people from ruining articles?",
+      "body": "All changes are registered in a page history, so defacement can be replaced by reverting to an older version. Editors, bots, watchlists, protection, and blocks also help prevent vandalism.",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#How_do_you_prevent_people_from_ruining_articles?"
+    },
+    {
+      "id": "software",
+      "title": "Which wiki software does Wikipedia run on?",
+      "body": "Wikipedia and the other Wikimedia projects use the MediaWiki software to facilitate collaborative editing and storage of page histories.",
+      "url": "https://en.wikipedia.org/wiki/Wikipedia:FAQ/Overview#Which_wiki_software_does_Wikipedia_run_on?"
+    }
   ],
   "queries": [
-    { "id": "account", "text": "Should I create an account?", "judgments": { "account": 3 } },
-    { "id": "contact", "text": "How can I contact the project?", "judgments": { "contact": 3 } },
-    { "id": "correct", "text": "How do you know if information is correct?", "judgments": { "correct": 3 } },
+    {
+      "id": "account",
+      "text": "Should I create an account?",
+      "judgments": { "account": 3 }
+    },
+    {
+      "id": "contact",
+      "text": "How can I contact the project?",
+      "judgments": { "contact": 3 }
+    },
+    {
+      "id": "correct",
+      "text": "How do you know if information is correct?",
+      "judgments": { "correct": 3 }
+    },
     { "id": "owns", "text": "Who owns Wikipedia?", "judgments": { "owns": 3 } },
-    { "id": "responsible", "text": "Who is responsible for the articles on Wikipedia?", "judgments": { "responsible": 3 } },
-    { "id": "software", "text": "Which wiki software does Wikipedia run on?", "judgments": { "software": 3 } },
-    { "id": "vandalism", "text": "How do you prevent people from ruining articles?", "judgments": { "vandalism": 3 } },
+    {
+      "id": "responsible",
+      "text": "Who is responsible for the articles on Wikipedia?",
+      "judgments": { "responsible": 3 }
+    },
+    {
+      "id": "software",
+      "text": "Which wiki software does Wikipedia run on?",
+      "judgments": { "software": 3 }
+    },
+    {
+      "id": "vandalism",
+      "text": "How do you prevent people from ruining articles?",
+      "judgments": { "vandalism": 3 }
+    },
     { "id": "what", "text": "What is Wikipedia?", "judgments": { "what": 3 } }
   ]
 }

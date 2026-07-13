@@ -2,11 +2,11 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadSuites } from "./load-suites.js";
 import { renderConsoleReport, serializeJsonReport } from "./report.js";
-import { runSearchableSuite } from "./searchable-runner.js";
 import {
   SUPPORTED_BASELINE_LANGUAGES,
   type SupportedBaselineLanguage,
 } from "./schema.js";
+import { runSearchableSuite } from "./searchable-runner.js";
 
 export interface CliOptions {
   language?: SupportedBaselineLanguage;
@@ -30,7 +30,8 @@ export function parseCliArgs(args: readonly string[]): CliOptions {
       const value = args[++index];
       if (!value) throw new Error("--k requires a value");
       const k = Number(value);
-      if (!Number.isInteger(k) || k <= 0) throw new Error("--k must be a positive integer");
+      if (!Number.isInteger(k) || k <= 0)
+        throw new Error("--k must be a positive integer");
       options.k = k;
     } else {
       throw new Error(`unknown option: ${arg}`);
@@ -41,10 +42,13 @@ export function parseCliArgs(args: readonly string[]): CliOptions {
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const options = parseCliArgs(args);
-  const fixtureDirectory = fileURLToPath(new URL("../fixtures/", import.meta.url));
+  const fixtureDirectory = fileURLToPath(
+    new URL("../fixtures/", import.meta.url),
+  );
   const suites = await loadSuites(fixtureDirectory, options.language);
   const reports = [];
-  for (const suite of suites) reports.push(await runSearchableSuite(suite, options.k));
+  for (const suite of suites)
+    reports.push(await runSearchableSuite(suite, options.k));
   process.stdout.write(
     options.json
       ? serializeJsonReport(reports, options.k)
@@ -55,7 +59,9 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 const entry = process.argv[1];
 if (entry && import.meta.url === pathToFileURL(entry).href) {
   main().catch((error: unknown) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(
+      `${error instanceof Error ? error.message : String(error)}\n`,
+    );
     process.exitCode = 1;
   });
 }

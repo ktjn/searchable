@@ -4,12 +4,12 @@ import { join } from "node:path";
 import { SearchClient } from "@ktjn/searchable-client";
 import {
   buildIndex,
-  writeIndex,
   type SourceDocument,
+  writeIndex,
 } from "@ktjn/searchable-indexer";
 import { evaluateSuite, type SuiteReport } from "./evaluate.js";
 import type { RelevanceSuite } from "./schema.js";
-import { serveDirectory, type StaticServer } from "./static-server.js";
+import { type StaticServer, serveDirectory } from "./static-server.js";
 
 function escapeHtml(text: string): string {
   return text
@@ -27,7 +27,9 @@ export async function runSearchableSuite(
   let server: StaticServer | undefined;
   let client: SearchClient | undefined;
   try {
-    const sortedDocuments = [...suite.documents].sort((a, b) => a.id.localeCompare(b.id));
+    const sortedDocuments = [...suite.documents].sort((a, b) =>
+      a.id.localeCompare(b.id),
+    );
     const fixtureIdByNumericId = new Map<number, string>();
     const sources: SourceDocument[] = sortedDocuments.map((document, index) => {
       const id = index + 1;
@@ -52,7 +54,8 @@ export async function runSearchableSuite(
         const result = await client?.search(query, options);
         return (result?.hits ?? []).map((hit) => {
           const fixtureId = fixtureIdByNumericId.get(hit.id);
-          if (!fixtureId) throw new Error(`Unknown numeric result id ${hit.id}`);
+          if (!fixtureId)
+            throw new Error(`Unknown numeric result id ${hit.id}`);
           return fixtureId;
         });
       },

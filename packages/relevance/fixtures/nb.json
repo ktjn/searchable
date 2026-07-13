@@ -14,23 +14,91 @@
     "selectionNotes": "Åtte spørsmål og svar skrevet på norsk bokmål ble valgt verbatim; lenkemarkering ble fjernet."
   },
   "documents": [
-    { "id": "stole", "title": "Kan jeg stole på Wikipedia?", "body": "En kan ikke anta at påstander på Wikipedia er garantert sanne. Som leser bør du sjekke kildene artikkelen refererer til.", "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Kan_jeg_stole_på_Wikipedia?" },
-    { "id": "delta", "title": "Kan jeg delta?", "body": "Ja, alle kan bidra på Wikipedia. Velkomstsiden gir hjelp til å komme i gang.", "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Kan_jeg_delta?" },
-    { "id": "registrere", "title": "Må jeg registrere meg?", "body": "Nei, men hvis du registrerer deg får du tilgang til flere funksjoner, blant annet en overvåkningsliste og en egen diskusjonsside.", "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Må_jeg_registrere_meg?" },
-    { "id": "presentere", "title": "Bør jeg presentere meg?", "body": "Det er opp til deg om du vil bruke brukersiden og hvor detaljert du vil presentere deg. Det er ikke nødvendig å oppgi detaljerte personalia.", "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Bør_jeg_presentere_meg?" },
-    { "id": "opprette", "title": "Hvordan kan jeg opprette nye artikler?", "body": "Skriv navnet i søkefeltet og trykk på den røde lenken rediger. Det anbefales at du først blir kjent med Wikipedia før du oppretter egne artikler.", "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Hvordan_kan_jeg_opprette_nye_artikler?" },
-    { "id": "kopiere", "title": "Er det greit at jeg kopierer inn tekst eller bilder fra andre steder?", "body": "Som regel ikke. Du kan ikke bruke andres materiale med mindre det er tilgjengelig under en fri lisens, men sitater kan brukes etter sitatretten.", "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Er_det_greit_at_jeg_kopierer_inn_tekst_eller_bilder_fra_andre_steder?" },
-    { "id": "konflikt", "title": "Hva skjer hvis to personer redigerer samme artikkel samtidig?", "body": "Da oppstår det en redigeringskonflikt. Den andre bidragsyteren må ta hensyn til de lagrede endringene og flette inn sine forslag.", "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Hva_skjer_hvis_to_personer_redigerer_samme_artikkel_samtidig?" },
-    { "id": "bilder", "title": "Hvordan kan jeg sette inn bilder og andre filer?", "body": "Wikipedia bruker Wikimedia Commons. I det visuelle redigeringsverktøyet kan du velge Sett inn og deretter Bilder og media, men filen må ha en passende lisens.", "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Hvordan_kan_jeg_sette_inn_bilder_og_andre_filer?" }
+    {
+      "id": "stole",
+      "title": "Kan jeg stole på Wikipedia?",
+      "body": "En kan ikke anta at påstander på Wikipedia er garantert sanne. Som leser bør du sjekke kildene artikkelen refererer til.",
+      "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Kan_jeg_stole_på_Wikipedia?"
+    },
+    {
+      "id": "delta",
+      "title": "Kan jeg delta?",
+      "body": "Ja, alle kan bidra på Wikipedia. Velkomstsiden gir hjelp til å komme i gang.",
+      "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Kan_jeg_delta?"
+    },
+    {
+      "id": "registrere",
+      "title": "Må jeg registrere meg?",
+      "body": "Nei, men hvis du registrerer deg får du tilgang til flere funksjoner, blant annet en overvåkningsliste og en egen diskusjonsside.",
+      "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Må_jeg_registrere_meg?"
+    },
+    {
+      "id": "presentere",
+      "title": "Bør jeg presentere meg?",
+      "body": "Det er opp til deg om du vil bruke brukersiden og hvor detaljert du vil presentere deg. Det er ikke nødvendig å oppgi detaljerte personalia.",
+      "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Bør_jeg_presentere_meg?"
+    },
+    {
+      "id": "opprette",
+      "title": "Hvordan kan jeg opprette nye artikler?",
+      "body": "Skriv navnet i søkefeltet og trykk på den røde lenken rediger. Det anbefales at du først blir kjent med Wikipedia før du oppretter egne artikler.",
+      "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Hvordan_kan_jeg_opprette_nye_artikler?"
+    },
+    {
+      "id": "kopiere",
+      "title": "Er det greit at jeg kopierer inn tekst eller bilder fra andre steder?",
+      "body": "Som regel ikke. Du kan ikke bruke andres materiale med mindre det er tilgjengelig under en fri lisens, men sitater kan brukes etter sitatretten.",
+      "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Er_det_greit_at_jeg_kopierer_inn_tekst_eller_bilder_fra_andre_steder?"
+    },
+    {
+      "id": "konflikt",
+      "title": "Hva skjer hvis to personer redigerer samme artikkel samtidig?",
+      "body": "Da oppstår det en redigeringskonflikt. Den andre bidragsyteren må ta hensyn til de lagrede endringene og flette inn sine forslag.",
+      "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Hva_skjer_hvis_to_personer_redigerer_samme_artikkel_samtidig?"
+    },
+    {
+      "id": "bilder",
+      "title": "Hvordan kan jeg sette inn bilder og andre filer?",
+      "body": "Wikipedia bruker Wikimedia Commons. I det visuelle redigeringsverktøyet kan du velge Sett inn og deretter Bilder og media, men filen må ha en passende lisens.",
+      "url": "https://no.wikipedia.org/wiki/Wikipedia:Ofte_stilte_spørsmål#Hvordan_kan_jeg_sette_inn_bilder_og_andre_filer?"
+    }
   ],
   "queries": [
-    { "id": "bilder", "text": "Hvordan kan jeg sette inn bilder og andre filer?", "judgments": { "bilder": 3 } },
+    {
+      "id": "bilder",
+      "text": "Hvordan kan jeg sette inn bilder og andre filer?",
+      "judgments": { "bilder": 3 }
+    },
     { "id": "delta", "text": "Kan jeg delta?", "judgments": { "delta": 3 } },
-    { "id": "konflikt", "text": "Hva skjer hvis to personer redigerer samme artikkel samtidig?", "judgments": { "konflikt": 3 } },
-    { "id": "kopiere", "text": "Er det greit at jeg kopierer inn tekst eller bilder fra andre steder?", "judgments": { "kopiere": 3 } },
-    { "id": "opprette", "text": "Hvordan kan jeg opprette nye artikler?", "judgments": { "opprette": 3 } },
-    { "id": "presentere", "text": "Bør jeg presentere meg?", "judgments": { "presentere": 3 } },
-    { "id": "registrere", "text": "Må jeg registrere meg?", "judgments": { "registrere": 3 } },
-    { "id": "stole", "text": "Kan jeg stole på Wikipedia?", "judgments": { "stole": 3 } }
+    {
+      "id": "konflikt",
+      "text": "Hva skjer hvis to personer redigerer samme artikkel samtidig?",
+      "judgments": { "konflikt": 3 }
+    },
+    {
+      "id": "kopiere",
+      "text": "Er det greit at jeg kopierer inn tekst eller bilder fra andre steder?",
+      "judgments": { "kopiere": 3 }
+    },
+    {
+      "id": "opprette",
+      "text": "Hvordan kan jeg opprette nye artikler?",
+      "judgments": { "opprette": 3 }
+    },
+    {
+      "id": "presentere",
+      "text": "Bør jeg presentere meg?",
+      "judgments": { "presentere": 3 }
+    },
+    {
+      "id": "registrere",
+      "text": "Må jeg registrere meg?",
+      "judgments": { "registrere": 3 }
+    },
+    {
+      "id": "stole",
+      "text": "Kan jeg stole på Wikipedia?",
+      "judgments": { "stole": 3 }
+    }
   ]
 }

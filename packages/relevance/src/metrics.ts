@@ -3,7 +3,8 @@ import type { RelevanceGrade } from "./schema.js";
 export type Judgments = Readonly<Record<string, RelevanceGrade>>;
 
 function requireCutoff(k: number): void {
-  if (!Number.isInteger(k) || k <= 0) throw new Error("k must be a positive integer");
+  if (!Number.isInteger(k) || k <= 0)
+    throw new Error("k must be a positive integer");
 }
 
 function relevant(id: string, judgments: Judgments): boolean {
@@ -24,7 +25,9 @@ export function precisionAtK(
   k: number,
 ): number {
   requireCutoff(k);
-  return returnedIds.slice(0, k).filter((id) => relevant(id, judgments)).length / k;
+  return (
+    returnedIds.slice(0, k).filter((id) => relevant(id, judgments)).length / k
+  );
 }
 
 export function recallAtK(
@@ -34,7 +37,10 @@ export function recallAtK(
 ): number {
   requireCutoff(k);
   const total = Object.values(judgments).filter((grade) => grade >= 1).length;
-  return returnedIds.slice(0, k).filter((id) => relevant(id, judgments)).length / total;
+  return (
+    returnedIds.slice(0, k).filter((id) => relevant(id, judgments)).length /
+    total
+  );
 }
 
 function dcg(grades: readonly number[]): number {
@@ -51,7 +57,9 @@ export function ndcgAtK(
 ): number {
   requireCutoff(k);
   const actual = returnedIds.slice(0, k).map((id) => judgments[id] ?? 0);
-  const ideal = Object.values(judgments).sort((a, b) => b - a).slice(0, k);
+  const ideal = Object.values(judgments)
+    .sort((a, b) => b - a)
+    .slice(0, k);
   return dcg(actual) / dcg(ideal);
 }
 

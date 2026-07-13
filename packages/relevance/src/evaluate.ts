@@ -43,12 +43,18 @@ export async function evaluateSuite(
   k = 5,
 ): Promise<SuiteReport> {
   validateSuite(suite);
-  if (!Number.isInteger(k) || k <= 0) throw new Error("k must be a positive integer");
+  if (!Number.isInteger(k) || k <= 0)
+    throw new Error("k must be a positive integer");
   const queries: QueryReport[] = [];
-  for (const query of [...suite.queries].sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const query of [...suite.queries].sort((a, b) =>
+    a.id.localeCompare(b.id),
+  )) {
     let returnedIds: readonly string[];
     try {
-      returnedIds = await search(query.text, { language: suite.language, limit: k });
+      returnedIds = await search(query.text, {
+        language: suite.language,
+        limit: k,
+      });
     } catch (cause) {
       throw new Error(
         `Relevance search failed for language ${suite.language}, query ${query.id}`,

@@ -26,7 +26,14 @@ function suite(language: SupportedBaselineLanguage) {
       attribution: "Example",
       selectionNotes: "Verbatim help pairs.",
     },
-    documents: [{ id: "a", title: "A", body: "Answer", url: `https://example.test/${language}#a` }],
+    documents: [
+      {
+        id: "a",
+        title: "A",
+        body: "Answer",
+        url: `https://example.test/${language}#a`,
+      },
+    ],
     queries: [{ id: "q", text: "Question", judgments: { a: 3 } }],
   };
 }
@@ -34,14 +41,24 @@ function suite(language: SupportedBaselineLanguage) {
 it("loads all suites in supported language order", async () => {
   directory = await mkdtemp(join(tmpdir(), "relevance-suites-"));
   for (const language of ["nn", "nb", "nl", "sv", "de", "en"] as const)
-    await writeFile(join(directory, `${language}.json`), JSON.stringify(suite(language)));
+    await writeFile(
+      join(directory, `${language}.json`),
+      JSON.stringify(suite(language)),
+    );
   expect((await loadSuites(directory)).map((item) => item.language)).toEqual([
-    "en", "de", "sv", "nl", "nb", "nn",
+    "en",
+    "de",
+    "sv",
+    "nl",
+    "nb",
+    "nn",
   ]);
 });
 
 it("can select one language without requiring the others", async () => {
   directory = await mkdtemp(join(tmpdir(), "relevance-suites-"));
   await writeFile(join(directory, "sv.json"), JSON.stringify(suite("sv")));
-  expect((await loadSuites(directory, "sv")).map((item) => item.language)).toEqual(["sv"]);
+  expect(
+    (await loadSuites(directory, "sv")).map((item) => item.language),
+  ).toEqual(["sv"]);
 });

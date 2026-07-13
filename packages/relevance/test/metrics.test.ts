@@ -8,7 +8,12 @@ import {
   reciprocalRank,
 } from "../src/metrics.js";
 
-const judgments = { a: 3 as const, b: 2 as const, c: 1 as const, x: 0 as const };
+const judgments = {
+  a: 3 as const,
+  b: 2 as const,
+  c: 1 as const,
+  x: 0 as const,
+};
 
 describe("relevance metrics", () => {
   it("calculates reciprocal rank", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { RelevanceSuite } from "../src/schema.js";
 import { evaluateSuite } from "../src/evaluate.js";
+import type { RelevanceSuite } from "../src/schema.js";
 
 const suite: RelevanceSuite = {
   schemaVersion: 1,
@@ -18,8 +18,18 @@ const suite: RelevanceSuite = {
     selectionNotes: "Verbatim help pairs.",
   },
   documents: [
-    { id: "answer-1", title: "One", body: "First answer", url: "https://example.test/1" },
-    { id: "answer-2", title: "Two", body: "Second answer", url: "https://example.test/2" },
+    {
+      id: "answer-1",
+      title: "One",
+      body: "First answer",
+      url: "https://example.test/1",
+    },
+    {
+      id: "answer-2",
+      title: "Two",
+      body: "Second answer",
+      url: "https://example.test/2",
+    },
   ],
   queries: [
     { id: "question-b", text: "missing", judgments: { "answer-2": 3 } },
@@ -35,7 +45,10 @@ describe("evaluateSuite", () => {
       5,
     );
 
-    expect(report.queries.map((query) => query.id)).toEqual(["question-a", "question-b"]);
+    expect(report.queries.map((query) => query.id)).toEqual([
+      "question-a",
+      "question-b",
+    ]);
     expect(report.queries[0]?.returnedIds).toEqual(["answer-1"]);
     expect(report.queryCount).toBe(2);
     expect(report.documentCount).toBe(2);

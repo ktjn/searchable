@@ -18,13 +18,32 @@ const suite: RelevanceSuite = {
     selectionNotes: "Verbatim help pairs.",
   },
   documents: [
-    { id: "password", title: "Reset a password", body: "Reset your forgotten password securely.", url: "https://example.test/password" },
-    { id: "invoice", title: "Get an invoice copy", body: "Download a copy of an invoice from billing.", url: "https://example.test/invoice" },
-    { id: "profile", title: "Edit profile", body: "Change your public profile details.", url: "https://example.test/profile" },
+    {
+      id: "password",
+      title: "Reset a password",
+      body: "Reset your forgotten password securely.",
+      url: "https://example.test/password",
+    },
+    {
+      id: "invoice",
+      title: "Get an invoice copy",
+      body: "Download a copy of an invoice from billing.",
+      url: "https://example.test/invoice",
+    },
+    {
+      id: "profile",
+      title: "Edit profile",
+      body: "Change your public profile details.",
+      url: "https://example.test/profile",
+    },
   ],
   queries: [
     { id: "invoice-copy", text: "invoice copy", judgments: { invoice: 3 } },
-    { id: "reset-password", text: "reset password", judgments: { password: 3 } },
+    {
+      id: "reset-password",
+      text: "reset password",
+      judgments: { password: 3 },
+    },
   ],
 };
 
