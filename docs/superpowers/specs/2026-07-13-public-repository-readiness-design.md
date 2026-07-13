@@ -113,6 +113,23 @@ A public-readiness policy test will verify:
 
 The test checks durable public contracts, not exact prose or formatting.
 
+## Post-merge planning cleanup
+
+After the public-readiness pull request is merged, a separate cleanup change
+will remove the completed internal execution material under
+`docs/superpowers/plans/` and `docs/superpowers/specs/`, including this design
+and its implementation plan. These files are agent working records rather than
+public product documentation; the durable decisions already live in ADRs,
+current documentation, tests, and archived project history.
+
+Before deletion, references outside those two directories will be redirected
+to durable documentation or removed when they only support an obsolete
+allowlist. The cleanup will specifically update the binary conformance test's
+design-file comment and simplify the project-identity policy test. It will then
+verify that no tracked file links to a removed planning document. The cleanup
+does not remove `docs/archive/`, accepted ADRs, the roadmap, or implementation
+history.
+
 ## Verification
 
 Implementation is complete when:
