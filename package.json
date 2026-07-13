@@ -20,6 +20,7 @@
     "typecheck": "pnpm -r --filter=./packages/* run typecheck && pnpm --filter showcase run typecheck",
     "presize": "pnpm build",
     "size": "pnpm --filter @ktjn/searchable-client run check:bundle-size",
+    "relevance": "pnpm build && pnpm --filter @ktjn/searchable-relevance evaluate",
     "prebench": "pnpm build",
     "bench": "pnpm --filter @ktjn/searchable-indexer run bench",
     "lint": "biome check .",

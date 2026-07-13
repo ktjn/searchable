@@ -1,5 +1,7 @@
 # 2026-07-13 Multilingual Relevance Baseline Design
 
+> **Archived:** Implemented on `feature/multilingual-relevance-baseline`. Current operating guidance and limitations are maintained in [Relevance baselines](../../project/relevance-baselines.md).
+
 ## Purpose
 
 Searchable needs a reproducible relevance baseline before it can make or enforce search-quality claims. This slice adds a small end-to-end evaluation system for every full language profile: English (`en`), German (`de`), Swedish (`sv`), Dutch (`nl`), Bokmål (`nb`), and Nynorsk (`nn`).
