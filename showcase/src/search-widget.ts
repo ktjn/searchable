@@ -50,6 +50,9 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
   input.type = "search";
   input.placeholder = "Search these docs…";
   input.className = "csf-search-input";
+  input.name = "docs-search";
+  input.autocomplete = "off";
+  input.spellcheck = false;
   input.setAttribute("aria-label", "Search these docs");
   input.setAttribute("aria-expanded", "false");
 

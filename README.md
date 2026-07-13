@@ -59,7 +59,7 @@ See [First search](docs/getting-started/first-search.md) for a complete path and
 
 ## Showcase
 
-The `showcase/` application builds the public documentation search and feature gallery. Run `pnpm --filter showcase build` to generate it locally.
+Explore the interactive [feature gallery](https://ktjn.github.io/client-search-framework/gallery/), where every example uses a real generated index and the browser client. The `showcase/` application builds the public documentation search and gallery; run `pnpm --filter showcase build` to generate it locally.
 
 ## Development
 

@@ -26,9 +26,18 @@ export function flattenNavigation(sections: readonly DocSection[]): DocPage[] {
 export function validateNavigation(sections: readonly DocSection[]): void {
   const routes = new Set<string>();
   const sources = new Set<string>();
+  const titles = new Set<string>();
   for (const page of flattenNavigation(sections)) {
-    if (/^docs\/(archive|superpowers)\//.test(page.source)) {
-      throw new Error(`Unpublishable documentation source: ${page.source}`);
+    const normalizedSource = posix.normalize(page.source);
+    if (
+      normalizedSource !== page.source ||
+      !/^docs\/(?:getting-started|guides|concepts|reference|project|adr)\//.test(
+        normalizedSource,
+      )
+    ) {
+      throw new Error(
+        `Documentation source outside approved sections: ${page.source}`,
+      );
     }
     if (routes.has(page.route)) {
       throw new Error(`Duplicate documentation route: ${page.route}`);
@@ -36,8 +45,12 @@ export function validateNavigation(sections: readonly DocSection[]): void {
     if (sources.has(page.source)) {
       throw new Error(`Duplicate documentation source: ${page.source}`);
     }
+    if (titles.has(page.title)) {
+      throw new Error(`Duplicate documentation title: ${page.title}`);
+    }
     routes.add(page.route);
     sources.add(page.source);
+    titles.add(page.title);
   }
 }
 
@@ -232,16 +245,17 @@ export function renderSitePage(
     <link rel="stylesheet" href="${root}style.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <header>
       <a href="${root}index.html" class="brand">client-search-framework</a>
-      <a href="${root}gallery/products/index.html">Feature gallery</a>
+      <a href="${root}gallery/index.html">Feature gallery</a>
       <div id="search-root" data-search-root></div>
     </header>
     <div class="layout">
       <nav aria-label="Documentation">
         ${renderNavigation(sections, current.route)}
       </nav>
-      <main>
+      <main id="main-content">
         ${current.bodyHtml}
         <nav class="page-navigation" aria-label="Documentation pages">
           ${renderPagerLink("previous", previous, root)}

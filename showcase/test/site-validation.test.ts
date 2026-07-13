@@ -67,6 +67,40 @@ test("does not accept targets outside the generated artifact", async () => {
   ]);
 });
 
+test("rejects root-absolute local asset references as not subpath-safe", async () => {
+  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  await writeFile(join(root, "style.css"), "body {}");
+  await writeFile(
+    join(root, "index.html"),
+    '<link rel="stylesheet" href="/style.css"><script src="/app.js"></script>',
+  );
+
+  expect(await validateSite(root)).toEqual([
+    {
+      source: "index.html",
+      reference: "/app.js",
+      reason: "root-absolute reference is not Pages subpath-safe",
+    },
+    {
+      source: "index.html",
+      reference: "/style.css",
+      reason: "root-absolute reference is not Pages subpath-safe",
+    },
+  ]);
+});
+
+test("allows root-relative URLs in search-index document data", async () => {
+  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  await mkdir(join(root, "search-index"));
+  await writeFile(join(root, "index.html"), "<main>Home</main>");
+  await writeFile(
+    join(root, "search-index", "manifest.json"),
+    JSON.stringify({ documents: { url: ["/docs/current.html"] } }),
+  );
+
+  expect(await validateSite(root)).toEqual([]);
+});
+
 test("rejects forbidden generated paths and search-index entries", async () => {
   const root = await mkdtemp(join(tmpdir(), "csf-site-"));
   await mkdir(join(root, "docs", "archive"), { recursive: true });

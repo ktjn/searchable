@@ -34,13 +34,57 @@ describe("documentation navigation", () => {
       {
         title: "A",
         pages: [
-          { source: "docs/a.md", route: "docs/a", title: "A" },
-          { source: "docs/b.md", route: "docs/a", title: "B" },
+          { source: "docs/guides/a.md", route: "docs/a", title: "A" },
+          { source: "docs/guides/b.md", route: "docs/a", title: "B" },
         ],
       },
     ];
     expect(() => validateNavigation(invalid)).toThrow(
       "Duplicate documentation route: docs/a",
+    );
+  });
+
+  test("rejects sources outside the approved documentation roots", () => {
+    const invalid = [
+      {
+        title: "A",
+        pages: [{ source: "README.md", route: "docs/readme", title: "README" }],
+      },
+    ];
+    expect(() => validateNavigation(invalid)).toThrow(
+      "Documentation source outside approved sections: README.md",
+    );
+
+    expect(() =>
+      validateNavigation([
+        {
+          title: "A",
+          pages: [
+            {
+              source: "docs/guides/../archive/a.md",
+              route: "docs/a",
+              title: "A",
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "Documentation source outside approved sections: docs/guides/../archive/a.md",
+    );
+  });
+
+  test("rejects duplicate visible document titles", () => {
+    const invalid = [
+      {
+        title: "A",
+        pages: [
+          { source: "docs/guides/a.md", route: "docs/a", title: "Same" },
+          { source: "docs/reference/b.md", route: "docs/b", title: "Same" },
+        ],
+      },
+    ];
+    expect(() => validateNavigation(invalid)).toThrow(
+      "Duplicate documentation title: Same",
     );
   });
 
@@ -185,12 +229,12 @@ describe("documentation navigation", () => {
         {
           title: "A",
           pages: [
-            { source: "docs/a.md", route: "docs/a", title: "A" },
-            { source: "docs/a.md", route: "docs/b", title: "B" },
+            { source: "docs/guides/a.md", route: "docs/a", title: "A" },
+            { source: "docs/guides/a.md", route: "docs/b", title: "B" },
           ],
         },
       ]),
-    ).toThrow("Duplicate documentation source: docs/a.md");
+    ).toThrow("Duplicate documentation source: docs/guides/a.md");
 
     expect(() =>
       validateNavigation([
@@ -205,7 +249,9 @@ describe("documentation navigation", () => {
           ],
         },
       ]),
-    ).toThrow("Unpublishable documentation source: docs/archive/a.md");
+    ).toThrow(
+      "Documentation source outside approved sections: docs/archive/a.md",
+    );
   });
 });
 
@@ -268,5 +314,10 @@ describe("documentation rendering", () => {
     expect(html).toContain(
       'class="next" href="../../docs/getting-started/first-search.html"',
     );
+    expect(html).toContain(
+      'href="../../gallery/index.html">Feature gallery</a>',
+    );
+    expect(html).toContain('<a class="skip-link" href="#main-content">');
+    expect(html).toContain('<main id="main-content">');
   });
 });

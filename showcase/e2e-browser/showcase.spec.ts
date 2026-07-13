@@ -28,6 +28,24 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await expect(page).toHaveTitle("Architecture");
   });
 
+  test("docs search has stable form metadata and accessible page landmarks", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
+    const input = page.locator(".csf-search-input");
+    await expect(input).toHaveAttribute("name", "docs-search");
+    await expect(input).toHaveAttribute("autocomplete", "off");
+    await expect(input).toHaveAttribute("spellcheck", "false");
+    const skipLink = page.locator('.skip-link[href="#main-content"]');
+    await skipLink.focus();
+    await expect(skipLink).toBeVisible();
+    await expect(page.locator("main#main-content")).toHaveCount(1);
+    await expect(page.locator("main h1")).toHaveCSS(
+      "scroll-margin-top",
+      "80px",
+    );
+  });
+
   test("search returns ranked results and navigating to one loads the right page", async ({
     page,
   }) => {
@@ -277,6 +295,18 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     await expect(
       page.locator(".gallery-facet-group:has-text('category')"),
     ).toBeVisible();
+    await expect(page.locator(".gallery-search-input")).toHaveAttribute(
+      "name",
+      "gallery-search",
+    );
+    await expect(page.locator(".gallery-search-input")).toHaveAttribute(
+      "autocomplete",
+      "off",
+    );
+    await expect(page.locator(".gallery-search-input")).toHaveAttribute(
+      "spellcheck",
+      "false",
+    );
   });
 
   test("checking a category facet filters results and updates counts", async ({

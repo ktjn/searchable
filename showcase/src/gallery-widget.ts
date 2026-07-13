@@ -129,6 +129,9 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   input.className = "gallery-search-input";
   input.placeholder = "Search…";
   input.value = defaultQuery;
+  input.name = "gallery-search";
+  input.autocomplete = "off";
+  input.spellcheck = false;
   input.setAttribute("aria-label", "Search this demo");
   controls.append(input);
 

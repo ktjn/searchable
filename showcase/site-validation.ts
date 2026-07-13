@@ -154,10 +154,17 @@ export async function validateSite(
     for (const reference of extractMatches(REFERENCE_PATTERN, html)) {
       if (!reference || isIgnoredReference(reference)) continue;
 
+      if (reference.startsWith("/")) {
+        issues.push({
+          source: displayPath(absoluteRoot, sourcePath),
+          reference,
+          reason: "root-absolute reference is not Pages subpath-safe",
+        });
+        continue;
+      }
+
       const { path, fragment } = splitReference(reference);
-      const targetPath = path.startsWith("/")
-        ? resolve(absoluteRoot, `.${path}`)
-        : resolve(dirname(sourcePath), path || sourcePath);
+      const targetPath = resolve(dirname(sourcePath), path || sourcePath);
       const targetRelativePath = relative(absoluteRoot, targetPath);
       const isInsideArtifact =
         targetRelativePath !== ".." &&

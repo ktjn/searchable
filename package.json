@@ -11,7 +11,7 @@
   "scripts": {
     "build": "pnpm -r --filter=./packages/* build",
     "docs:build": "pnpm build && pnpm --filter showcase build",
-    "docs:check": "pnpm docs:build && pnpm --filter showcase validate && pnpm exec vitest run --config showcase/vitest.config.ts",
+    "docs:check": "pnpm docs:build && pnpm --filter showcase validate && pnpm exec vitest run --config showcase/vitest.config.ts && pnpm test:browser",
     "pretest": "pnpm build",
     "test": "vitest run",
     "pretest:browser": "pnpm build && pnpm --filter showcase build",
