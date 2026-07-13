@@ -245,7 +245,7 @@ describe("cross-implementation conformance: real searchable-indexer Python CLI",
 
 /**
  * Byte-identical conformance for the binary storage tier
- * (docs/superpowers/specs/2026-07-12-python-indexer-binary-tier-design.md):
+ * (docs/concepts/binary-storage.md):
  * unlike the JSON tier (where the two implementations only need to
  * agree on *content*), the binary term-shard/doc-store encoders are a
  * fully deterministic byte format (docs/archive/specs/binary-format.md) --
