@@ -141,7 +141,7 @@ describe("runGeneratedDomainSuite", () => {
 
   function suite(): DomainRelevanceSuite {
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: "searchable-docs",
       version: "1.0.0",
       language: "en",
@@ -156,7 +156,7 @@ describe("runGeneratedDomainSuite", () => {
         selectionNotes: "All generated documentation pages are included.",
       },
       review: { status: "draft", method: "Maintainer review." },
-      pages: inventory,
+      corpus: { kind: "generated-index", pages: inventory },
       queries: [
         {
           id: "offline",
@@ -194,8 +194,9 @@ describe("runGeneratedDomainSuite", () => {
 
   it("reports exact fixture and generated inventory drift", async () => {
     const value = suite();
-    value.pages = [
-      ...value.pages.filter((page) => page.id !== "/index.html"),
+    if (value.corpus.kind !== "generated-index") throw new Error("unreachable");
+    value.corpus.pages = [
+      ...value.corpus.pages.filter((page) => page.id !== "/index.html"),
       { id: "/missing.html", title: "Missing" },
     ].sort((left, right) => left.id.localeCompare(right.id));
     await expect(
@@ -203,5 +204,28 @@ describe("runGeneratedDomainSuite", () => {
     ).rejects.toThrow(
       /missing from fixture: \/index\.html.*missing from generated index: \/missing\.html/s,
     );
+  });
+
+  it("rejects snapshot corpora", async () => {
+    const value = suite();
+    value.corpus = {
+      kind: "snapshot",
+      documents: [
+        {
+          id: "/learn",
+          url: "https://www.gov.uk/learn",
+          title: "Learn to drive a car",
+          description: "The steps needed to learn to drive.",
+          body: "Apply for a provisional licence and prepare for your tests.",
+          contentHash: "a".repeat(64),
+        },
+      ],
+    };
+    value.queries[0].judgments = { "/learn": 3 };
+    value.queries[0].rationales = { "/learn": "Directly answers the query." };
+    value.queries.splice(1);
+    await expect(
+      runGeneratedDomainSuite(value, showcaseDist, 5),
+    ).rejects.toThrow(/requires a generated-index corpus/);
   });
 });

@@ -4,11 +4,15 @@ export {
   runGeneratedDomainSuite,
 } from "./domain-runner.js";
 export type {
+  DomainCorpus,
   DomainJudgedQuery,
   DomainPage,
   DomainQueryTopic,
   DomainRelevanceSuite,
+  GeneratedIndexDomainCorpus,
   JudgmentReview,
+  SnapshotDomainCorpus,
+  SnapshotDomainDocument,
 } from "./domain-schema.js";
 export { DOMAIN_QUERY_TOPICS } from "./domain-schema.js";
 export type {

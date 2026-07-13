@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "searchable-docs",
   "version": "1.0.0",
   "language": "en",
@@ -19,120 +19,123 @@
     "reviewer": "ktjn",
     "reviewedAt": "2026-07-13"
   },
-  "pages": [
-    {
-      "id": "/docs/adr/0001-pull-based-static-http.html",
-      "title": "ADR-0001: Pull-based static HTTP"
-    },
-    {
-      "id": "/docs/adr/0002-json-first-index-format.html",
-      "title": "ADR-0002: JSON-first index format"
-    },
-    {
-      "id": "/docs/adr/0003-bm25f-ranking-model.html",
-      "title": "ADR-0003: BM25F ranking model"
-    },
-    {
-      "id": "/docs/adr/0004-compatibility-policy.html",
-      "title": "ADR-0004: Compatibility policy"
-    },
-    {
-      "id": "/docs/adr/0005-plugin-opt-in-boundary.html",
-      "title": "ADR-0005: Plugin opt-in boundary"
-    },
-    {
-      "id": "/docs/concepts/architecture.html",
-      "title": "Architecture"
-    },
-    {
-      "id": "/docs/concepts/binary-storage.html",
-      "title": "Binary storage"
-    },
-    {
-      "id": "/docs/concepts/index-format.html",
-      "title": "Index format"
-    },
-    {
-      "id": "/docs/getting-started/first-search.html",
-      "title": "Your first search"
-    },
-    {
-      "id": "/docs/getting-started/installation.html",
-      "title": "Installation"
-    },
-    {
-      "id": "/docs/getting-started/overview.html",
-      "title": "Overview"
-    },
-    {
-      "id": "/docs/guides/facets.html",
-      "title": "Faceted search"
-    },
-    {
-      "id": "/docs/guides/indexing.html",
-      "title": "Indexing content"
-    },
-    {
-      "id": "/docs/guides/internationalization.html",
-      "title": "Internationalization"
-    },
-    {
-      "id": "/docs/guides/offline-search.html",
-      "title": "Offline search"
-    },
-    {
-      "id": "/docs/guides/pinning.html",
-      "title": "Pinned results"
-    },
-    {
-      "id": "/docs/guides/ranking-and-boosts.html",
-      "title": "Ranking and boosts"
-    },
-    {
-      "id": "/docs/guides/synonyms.html",
-      "title": "Synonyms"
-    },
-    {
-      "id": "/docs/guides/vector-search.html",
-      "title": "Vector and hybrid search"
-    },
-    {
-      "id": "/docs/project/architecture-decisions.html",
-      "title": "Architecture decisions"
-    },
-    {
-      "id": "/docs/project/governance.html",
-      "title": "Governance"
-    },
-    {
-      "id": "/docs/project/relevance-baselines.html",
-      "title": "Relevance baselines"
-    },
-    {
-      "id": "/docs/project/roadmap.html",
-      "title": "Roadmap"
-    },
-    {
-      "id": "/docs/reference/client-api.html",
-      "title": "Client API"
-    },
-    {
-      "id": "/docs/reference/cms-meta-tags.html",
-      "title": "CMS meta tags"
-    },
-    {
-      "id": "/docs/reference/compatibility.html",
-      "title": "Compatibility"
-    },
-    {
-      "id": "/docs/reference/configuration.html",
-      "title": "Configuration"
-    },
-    {
-      "id": "/index.html",
-      "title": "Searchable"
-    }
-  ],
+  "corpus": {
+    "kind": "generated-index",
+    "pages": [
+      {
+        "id": "/docs/adr/0001-pull-based-static-http.html",
+        "title": "ADR-0001: Pull-based static HTTP"
+      },
+      {
+        "id": "/docs/adr/0002-json-first-index-format.html",
+        "title": "ADR-0002: JSON-first index format"
+      },
+      {
+        "id": "/docs/adr/0003-bm25f-ranking-model.html",
+        "title": "ADR-0003: BM25F ranking model"
+      },
+      {
+        "id": "/docs/adr/0004-compatibility-policy.html",
+        "title": "ADR-0004: Compatibility policy"
+      },
+      {
+        "id": "/docs/adr/0005-plugin-opt-in-boundary.html",
+        "title": "ADR-0005: Plugin opt-in boundary"
+      },
+      {
+        "id": "/docs/concepts/architecture.html",
+        "title": "Architecture"
+      },
+      {
+        "id": "/docs/concepts/binary-storage.html",
+        "title": "Binary storage"
+      },
+      {
+        "id": "/docs/concepts/index-format.html",
+        "title": "Index format"
+      },
+      {
+        "id": "/docs/getting-started/first-search.html",
+        "title": "Your first search"
+      },
+      {
+        "id": "/docs/getting-started/installation.html",
+        "title": "Installation"
+      },
+      {
+        "id": "/docs/getting-started/overview.html",
+        "title": "Overview"
+      },
+      {
+        "id": "/docs/guides/facets.html",
+        "title": "Faceted search"
+      },
+      {
+        "id": "/docs/guides/indexing.html",
+        "title": "Indexing content"
+      },
+      {
+        "id": "/docs/guides/internationalization.html",
+        "title": "Internationalization"
+      },
+      {
+        "id": "/docs/guides/offline-search.html",
+        "title": "Offline search"
+      },
+      {
+        "id": "/docs/guides/pinning.html",
+        "title": "Pinned results"
+      },
+      {
+        "id": "/docs/guides/ranking-and-boosts.html",
+        "title": "Ranking and boosts"
+      },
+      {
+        "id": "/docs/guides/synonyms.html",
+        "title": "Synonyms"
+      },
+      {
+        "id": "/docs/guides/vector-search.html",
+        "title": "Vector and hybrid search"
+      },
+      {
+        "id": "/docs/project/architecture-decisions.html",
+        "title": "Architecture decisions"
+      },
+      {
+        "id": "/docs/project/governance.html",
+        "title": "Governance"
+      },
+      {
+        "id": "/docs/project/relevance-baselines.html",
+        "title": "Relevance baselines"
+      },
+      {
+        "id": "/docs/project/roadmap.html",
+        "title": "Roadmap"
+      },
+      {
+        "id": "/docs/reference/client-api.html",
+        "title": "Client API"
+      },
+      {
+        "id": "/docs/reference/cms-meta-tags.html",
+        "title": "CMS meta tags"
+      },
+      {
+        "id": "/docs/reference/compatibility.html",
+        "title": "Compatibility"
+      },
+      {
+        "id": "/docs/reference/configuration.html",
+        "title": "Configuration"
+      },
+      {
+        "id": "/index.html",
+        "title": "Searchable"
+      }
+    ]
+  },
   "queries": [
     {
       "id": "install-packages",

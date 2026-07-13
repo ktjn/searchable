@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validateDomainSuite } from "../src/validate-domain-suite.js";
 
 const validDomainSuite = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   id: "searchable-docs",
   version: "1.0.0",
   language: "en",
@@ -20,10 +20,13 @@ const validDomainSuite = {
     status: "draft",
     method: "Maintainer review of every query, grade, rationale, and result.",
   },
-  pages: [
-    { id: "/index.html", title: "Searchable" },
-    { id: "/docs/guides/offline-search.html", title: "Offline search" },
-  ],
+  corpus: {
+    kind: "generated-index",
+    pages: [
+      { id: "/index.html", title: "Searchable" },
+      { id: "/docs/guides/offline-search.html", title: "Offline search" },
+    ],
+  },
   queries: [
     {
       id: "offline-caching",
@@ -45,15 +48,41 @@ function copy(): MutableSuite {
   return structuredClone(validDomainSuite);
 }
 
+function snapshotCopy(): MutableSuite {
+  const suite = copy();
+  suite.corpus = {
+    kind: "snapshot",
+    documents: [
+      {
+        id: "/learn",
+        url: "https://www.gov.uk/learn",
+        title: "Learn to drive a car",
+        description: "The steps needed to learn to drive.",
+        body: "Apply for a provisional licence and prepare for your tests.",
+        contentHash: "a".repeat(64),
+      },
+    ],
+  };
+  suite.queries[0].judgments = { "/learn": 3 };
+  suite.queries[0].rationales = { "/learn": "Directly answers the query." };
+  return suite;
+}
+
 describe("validateDomainSuite", () => {
   it("accepts a valid draft suite", () => {
     expect(validateDomainSuite(copy())).toEqual(validDomainSuite);
   });
 
+  it("accepts a valid snapshot suite", () => {
+    const suite = snapshotCopy();
+    expect(validateDomainSuite(suite)).toEqual(suite);
+  });
+
   it.each([
     [
       "duplicate page IDs",
-      (suite: MutableSuite) => suite.pages.push({ ...suite.pages[0] }),
+      (suite: MutableSuite) =>
+        suite.corpus.pages.push({ ...suite.corpus.pages[0] }),
       /duplicate page id \/index\.html/,
     ],
     [
@@ -136,6 +165,102 @@ describe("validateDomainSuite", () => {
     ],
   ])("rejects %s", (_name, mutate, message) => {
     const suite = copy();
+    mutate(suite);
+    expect(() => validateDomainSuite(suite)).toThrow(message);
+  });
+
+  it.each([
+    [
+      "schema version 1",
+      (suite: MutableSuite) => {
+        suite.schemaVersion = 1;
+      },
+      /schemaVersion must be 2/,
+    ],
+    [
+      "unknown corpus kind",
+      (suite: MutableSuite) => {
+        suite.corpus.kind = "unknown";
+      },
+      /corpus.kind must be "generated-index" or "snapshot"/,
+    ],
+    [
+      "generated corpus carrying documents",
+      (suite: MutableSuite) => {
+        suite.corpus.kind = "generated-index";
+        suite.corpus.pages = [
+          { id: "/index.html", title: "Searchable" },
+          { id: "/docs/guides/offline-search.html", title: "Offline search" },
+        ];
+        suite.corpus.documents = [];
+        suite.queries[0].judgments = {
+          "/docs/guides/offline-search.html": 3,
+        };
+        suite.queries[0].rationales = {
+          "/docs/guides/offline-search.html": "Direct answer.",
+        };
+      },
+      /generated-index corpus must omit documents/,
+    ],
+    [
+      "snapshot corpus carrying pages",
+      (suite: MutableSuite) => {
+        suite.corpus.pages = [];
+      },
+      /snapshot corpus must omit pages/,
+    ],
+    [
+      "empty snapshot documents",
+      (suite: MutableSuite) => {
+        suite.corpus.documents = [];
+      },
+      /corpus.documents must be a non-empty array/,
+    ],
+    [
+      "duplicate snapshot document IDs",
+      (suite: MutableSuite) => {
+        suite.corpus.documents.push({ ...suite.corpus.documents[0] });
+      },
+      /duplicate document id \/learn/,
+    ],
+    [
+      "non-HTTPS snapshot URL",
+      (suite: MutableSuite) => {
+        suite.corpus.documents[0].url = "http://www.gov.uk/learn";
+      },
+      /url must be an HTTPS URL/,
+    ],
+    [
+      "snapshot URL pathname and ID mismatch",
+      (suite: MutableSuite) => {
+        suite.corpus.documents[0].url = "https://www.gov.uk/learn-to-drive";
+      },
+      /URL pathname must equal document id \/learn/,
+    ],
+    ...(["title", "description", "body"] as const).map((field) => [
+      `blank snapshot ${field}`,
+      (suite: MutableSuite) => {
+        suite.corpus.documents[0][field] = " ";
+      },
+      new RegExp(`${field} must be a non-blank string`),
+    ]),
+    [
+      "malformed snapshot content hash",
+      (suite: MutableSuite) => {
+        suite.corpus.documents[0].contentHash = "ABC";
+      },
+      /contentHash must be a lowercase SHA-256 hash/,
+    ],
+    [
+      "judgment outside the active snapshot corpus",
+      (suite: MutableSuite) => {
+        suite.queries[0].judgments = { "/index.html": 3 };
+        suite.queries[0].rationales = { "/index.html": "Direct answer." };
+      },
+      /judgment references unknown document \/index\.html/,
+    ],
+  ])("rejects %s", (_name, mutate, message) => {
+    const suite = snapshotCopy();
     mutate(suite);
     expect(() => validateDomainSuite(suite)).toThrow(message);
   });

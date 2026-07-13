@@ -32,6 +32,73 @@ function httpUrl(value: unknown, path: string, errors: string[]): void {
   }
 }
 
+function hasOwn(value: UnknownRecord, key: string): boolean {
+  return Object.hasOwn(value, key);
+}
+
+function validateCorpus(value: unknown, errors: string[]): Set<string> {
+  const corpus = record(value, "suite.corpus", errors);
+  const documentIds = new Set<string>();
+
+  if (corpus.kind === "generated-index") {
+    if (hasOwn(corpus, "documents"))
+      errors.push("generated-index corpus must omit documents");
+    const pages = Array.isArray(corpus.pages) ? corpus.pages : [];
+    if (!Array.isArray(corpus.pages) || pages.length === 0)
+      errors.push("suite.corpus.pages must be a non-empty array");
+    for (const [index, raw] of pages.entries()) {
+      const page = record(raw, `suite.corpus.pages[${index}]`, errors);
+      const id = nonBlank(page.id, `suite.corpus.pages[${index}].id`, errors);
+      if (id && !id.startsWith("/"))
+        errors.push(`suite.corpus.pages[${index}].id must start with /`);
+      if (documentIds.has(id)) errors.push(`duplicate page id ${id}`);
+      documentIds.add(id);
+      nonBlank(page.title, `suite.corpus.pages[${index}].title`, errors);
+    }
+    return documentIds;
+  }
+
+  if (corpus.kind === "snapshot") {
+    if (hasOwn(corpus, "pages")) errors.push("snapshot corpus must omit pages");
+    const documents = Array.isArray(corpus.documents) ? corpus.documents : [];
+    if (!Array.isArray(corpus.documents) || documents.length === 0)
+      errors.push("suite.corpus.documents must be a non-empty array");
+    for (const [index, raw] of documents.entries()) {
+      const path = `suite.corpus.documents[${index}]`;
+      const document = record(raw, path, errors);
+      const id = nonBlank(document.id, `${path}.id`, errors);
+      if (id && !id.startsWith("/"))
+        errors.push(`${path}.id must start with /`);
+      if (documentIds.has(id)) errors.push(`duplicate document id ${id}`);
+      documentIds.add(id);
+
+      const urlText = nonBlank(document.url, `${path}.url`, errors);
+      if (urlText) {
+        try {
+          const url = new URL(urlText);
+          if (url.protocol !== "https:")
+            errors.push(`${path}.url must be an HTTPS URL`);
+          if (id && url.pathname !== id)
+            errors.push(`${path}.URL pathname must equal document id ${id}`);
+        } catch {
+          errors.push(`${path}.url must be an HTTPS URL`);
+        }
+      }
+      for (const key of ["title", "description", "body"] as const)
+        nonBlank(document[key], `${path}.${key}`, errors);
+      if (
+        typeof document.contentHash !== "string" ||
+        !/^[a-f0-9]{64}$/.test(document.contentHash)
+      )
+        errors.push(`${path}.contentHash must be a lowercase SHA-256 hash`);
+    }
+    return documentIds;
+  }
+
+  errors.push('suite.corpus.kind must be "generated-index" or "snapshot"');
+  return documentIds;
+}
+
 function isoDate(value: unknown, path: string, errors: string[]): void {
   const text = nonBlank(value, path, errors);
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
@@ -62,7 +129,7 @@ function validateProvenance(value: unknown, errors: string[]): void {
 export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
   const errors: string[] = [];
   const suite = record(value, "suite", errors);
-  if (suite.schemaVersion !== 1) errors.push("suite.schemaVersion must be 1");
+  if (suite.schemaVersion !== 2) errors.push("suite.schemaVersion must be 2");
   nonBlank(suite.id, "suite.id", errors);
   nonBlank(suite.version, "suite.version", errors);
   if (
@@ -71,6 +138,7 @@ export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
   )
     errors.push("suite.language is not a supported baseline language");
   validateProvenance(suite.provenance, errors);
+  const documentIds = validateCorpus(suite.corpus, errors);
 
   const review = record(suite.review, "suite.review", errors);
   nonBlank(review.method, "suite.review.method", errors);
@@ -82,20 +150,6 @@ export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
     isoDate(review.reviewedAt, "suite.review.reviewedAt", errors);
   } else {
     errors.push('suite.review.status must be "draft" or "reviewed"');
-  }
-
-  const pages = Array.isArray(suite.pages) ? suite.pages : [];
-  if (!Array.isArray(suite.pages) || pages.length === 0)
-    errors.push("suite.pages must be a non-empty array");
-  const pageIds = new Set<string>();
-  for (const [index, raw] of pages.entries()) {
-    const page = record(raw, `suite.pages[${index}]`, errors);
-    const id = nonBlank(page.id, `suite.pages[${index}].id`, errors);
-    if (id && !id.startsWith("/"))
-      errors.push(`suite.pages[${index}].id must start with /`);
-    if (pageIds.has(id)) errors.push(`duplicate page id ${id}`);
-    pageIds.add(id);
-    nonBlank(page.title, `suite.pages[${index}].title`, errors);
   }
 
   const queries = Array.isArray(suite.queries) ? suite.queries : [];
@@ -121,8 +175,18 @@ export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
     );
     const positiveIds: string[] = [];
     for (const [pageId, grade] of Object.entries(judgments)) {
-      if (!pageIds.has(pageId))
-        errors.push(`query ${id} judgment references unknown page ${pageId}`);
+      if (!documentIds.has(pageId)) {
+        const noun =
+          suite.corpus &&
+          typeof suite.corpus === "object" &&
+          !Array.isArray(suite.corpus) &&
+          (suite.corpus as UnknownRecord).kind === "generated-index"
+            ? "page"
+            : "document";
+        errors.push(
+          `query ${id} judgment references unknown ${noun} ${pageId}`,
+        );
+      }
       if (!Number.isInteger(grade) || Number(grade) < 0 || Number(grade) > 3) {
         errors.push(`query ${id} judgment grade for ${pageId} must be 0..3`);
       } else if (Number(grade) >= 1) {

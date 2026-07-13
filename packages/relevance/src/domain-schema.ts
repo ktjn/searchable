@@ -21,6 +21,27 @@ export interface DomainPage {
   title: string;
 }
 
+export interface GeneratedIndexDomainCorpus {
+  kind: "generated-index";
+  pages: DomainPage[];
+}
+
+export interface SnapshotDomainDocument {
+  id: string;
+  url: string;
+  title: string;
+  description: string;
+  body: string;
+  contentHash: string;
+}
+
+export interface SnapshotDomainCorpus {
+  kind: "snapshot";
+  documents: SnapshotDomainDocument[];
+}
+
+export type DomainCorpus = GeneratedIndexDomainCorpus | SnapshotDomainCorpus;
+
 export interface DomainJudgedQuery {
   id: string;
   text: string;
@@ -39,12 +60,12 @@ export type JudgmentReview =
     };
 
 export interface DomainRelevanceSuite {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string;
   version: string;
   language: SupportedBaselineLanguage;
   provenance: SuiteProvenance;
   review: JudgmentReview;
-  pages: DomainPage[];
+  corpus: DomainCorpus;
   queries: DomainJudgedQuery[];
 }

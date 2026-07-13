@@ -1,7 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SearchClient } from "@ktjn/searchable-client";
-import type { DomainPage, DomainRelevanceSuite } from "./domain-schema.js";
+import type {
+  DomainPage,
+  DomainRelevanceSuite,
+  GeneratedIndexDomainCorpus,
+} from "./domain-schema.js";
 import { evaluateSuite, type SuiteReport } from "./evaluate.js";
 import type { RelevanceSuite } from "./schema.js";
 import { type StaticServer, serveDirectory } from "./static-server.js";
@@ -109,14 +113,27 @@ function assertMatchingInventory(
     throw new Error(`Documentation corpus drift:\n- ${details.join("\n- ")}`);
 }
 
-function toEvaluationSuite(suite: DomainRelevanceSuite): RelevanceSuite {
+type GeneratedDomainSuite = DomainRelevanceSuite & {
+  corpus: GeneratedIndexDomainCorpus;
+};
+
+function assertGeneratedCorpus(
+  suite: DomainRelevanceSuite,
+): asserts suite is GeneratedDomainSuite {
+  if (suite.corpus.kind !== "generated-index")
+    throw new Error(
+      "Generated domain evaluation requires a generated-index corpus",
+    );
+}
+
+function toEvaluationSuite(suite: GeneratedDomainSuite): RelevanceSuite {
   return {
     schemaVersion: 1,
     id: suite.id,
     version: suite.version,
     language: suite.language,
     provenance: suite.provenance,
-    documents: suite.pages.map((page) => ({
+    documents: suite.corpus.pages.map((page) => ({
       id: page.id,
       title: page.title,
       body: page.title,
@@ -136,8 +153,9 @@ export async function runGeneratedDomainSuite(
   k = 5,
 ): Promise<SuiteReport> {
   validateDomainSuite(suite);
+  assertGeneratedCorpus(suite);
   assertMatchingInventory(
-    suite.pages,
+    suite.corpus.pages,
     await readGeneratedPageInventory(showcaseDistDirectory),
   );
   let server: StaticServer | undefined;
