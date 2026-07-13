@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "nl-wikipedia-help-v1",
+  "version": "1.0.0",
+  "language": "nl",
+  "provenance": {
+    "publisher": "Nederlandstalige Wikipedia-gemeenschap",
+    "sourceTitle": "Help:Veelgestelde vragen",
+    "sourceUrl": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "retrievedAt": "2026-07-13",
+    "attribution": "Wikipedia-auteurs; de bewerkingsgeschiedenis staat op de bronpagina.",
+    "selectionNotes": "Acht oorspronkelijke Nederlandstalige vragen en antwoorden zijn verbatim geselecteerd; linkopmaak is verwijderd."
+  },
+  "documents": [
+    { "id": "wiki", "title": "Wat is een wiki?", "body": "Een wiki is een website die door de bezoekers kan worden bewerkt. Er zijn heel veel wiki's op het internet en Wikipedia is misschien wel de bekendste.", "url": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen#Wat_is_een_wiki?" },
+    { "id": "sinds", "title": "Sinds wanneer bestaat Wikipedia?", "body": "Wikipedia bestaat sinds 15 januari 2001. De Nederlandstalige Wikipedia is op 19 juni 2001 van start gegaan.", "url": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen#Sinds_wanneer_bestaat_Wikipedia?" },
+    { "id": "eigenaar", "title": "Wie is de eigenaar van Wikipedia?", "body": "De Wikimedia Foundation is voor de Wikimedia-websites verantwoordelijk en is eigenaar van de servers.", "url": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen#Wie_is_de_eigenaar_van_Wikipedia?" },
+    { "id": "teksten", "title": "Wie is de eigenaar van de teksten op Wikipedia?", "body": "De auteurs zijn eigenaar van het materiaal dat ze hebben vrijgegeven als vrije kennis.", "url": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen#Wie_is_de_eigenaar_van_de_teksten_op_Wikipedia?" },
+    { "id": "redactie", "title": "Wie vormt de redactie van Wikipedia?", "body": "Er bestaat geen redactie. Er is wel een harde kern van gebruikers die vaak met Wikipedia bezig zijn en er goed vertrouwd mee zijn.", "url": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen#Wie_vormt_de_redactie_van_Wikipedia?" },
+    { "id": "betrouwbaar", "title": "Als iedereen alles mag wijzigen, hoe betrouwbaar is Wikipedia dan?", "body": "Iedereen mag Wikipedia-pagina's bewerken, maar er zijn regels en afspraken. Bij onenigheid over inhoud moeten goede bronnen en referenties worden aangeleverd.", "url": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen#Als_iedereen_alles_mag_wijzigen,_hoe_betrouwbaar_is_Wikipedia_dan?" },
+    { "id": "taalcode", "title": "De nl van nl.wikipedia.org, staat dat voor Nederland?", "body": "De nl in nl.wikipedia.org staat niet voor Nederland maar voor Nederlandstalig. De Wikipedia's zijn per taal ingedeeld, niet per land.", "url": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen#De_‘nl’_van_nl.wikipedia.org,_staat_dat_voor_Nederland?" },
+    { "id": "reclame", "title": "Waarom zijn er geen reclamebanners en pop-ups op Wikipedia?", "body": "Reclame hoort niet in een encyclopedie omdat een reclameboodschap de objectiviteit en neutraliteit van een artikel ongeloofwaardig maakt. Benodigd geld komt via donaties binnen.", "url": "https://nl.wikipedia.org/wiki/Help:Veelgestelde_vragen#Waarom_zijn_er_geen_reclamebanners_en_pop-ups_op_Wikipedia?" }
+  ],
+  "queries": [
+    { "id": "betrouwbaar", "text": "Als iedereen alles mag wijzigen, hoe betrouwbaar is Wikipedia dan?", "judgments": { "betrouwbaar": 3 } },
+    { "id": "eigenaar", "text": "Wie is de eigenaar van Wikipedia?", "judgments": { "eigenaar": 3 } },
+    { "id": "reclame", "text": "Waarom zijn er geen reclamebanners en pop-ups op Wikipedia?", "judgments": { "reclame": 3 } },
+    { "id": "redactie", "text": "Wie vormt de redactie van Wikipedia?", "judgments": { "redactie": 3 } },
+    { "id": "sinds", "text": "Sinds wanneer bestaat Wikipedia?", "judgments": { "sinds": 3 } },
+    { "id": "taalcode", "text": "De nl van nl.wikipedia.org, staat dat voor Nederland?", "judgments": { "taalcode": 3 } },
+    { "id": "teksten", "text": "Wie is de eigenaar van de teksten op Wikipedia?", "judgments": { "teksten": 3 } },
+    { "id": "wiki", "text": "Wat is een wiki?", "judgments": { "wiki": 3 } }
+  ]
+}

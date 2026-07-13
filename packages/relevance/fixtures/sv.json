@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "sv-wikipedia-help-v1",
+  "version": "1.0.0",
+  "language": "sv",
+  "provenance": {
+    "publisher": "Svenskspråkiga Wikipedia-gemenskapen",
+    "sourceTitle": "Wikipedia:Vanliga frågor",
+    "sourceUrl": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "retrievedAt": "2026-07-13",
+    "attribution": "Wikipediaförfattare; versionshistoriken finns på källsidan.",
+    "selectionNotes": "Åtta svenska originalfrågor och motsvarande svar valdes verbatim; länkmarkering togs bort."
+  },
+  "documents": [
+    { "id": "vad", "title": "Vad är Wikipedia?", "body": "Wikipedia är ett gratis uppslagsverk på Internet och finns i många separata språkversioner. Innehållet är fritt för alla att redigera och återanvända.", "url": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor#Vad_är_Wikipedia?" },
+    { "id": "mal", "title": "Vad är Wikipedias mål?", "body": "Målet är att varje person ska ges tillgång till hela mänsklighetens samlade kunskap. Wikipedia delar arbetet med sina systerprojekt.", "url": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor#Vad_är_Wikipedias_mål?" },
+    { "id": "namn", "title": "Vad betyder namnet Wikipedia? Vad är en wiki?", "body": "Wikipedia är en sammanslagning av termerna wiki och -pedia. Wiki används om programvara som möjliggör snabbt och enkelt samarbete.", "url": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor#Vad_betyder_namnet_Wikipedia?_Vad_är_en_wiki?" },
+    { "id": "start", "title": "Hur länge har Wikipedia funnits? Hur startade Wikipedia?", "body": "Wikipedia grundades den 15 januari 2001 av Jimmy Wales och Larry Sanger. Projektet växte fram ur arbetet med uppslagsverket Nupedia.", "url": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor#Hur_länge_har_Wikipedia_funnits?_Hur_startade_Wikipedia?" },
+    { "id": "storlek", "title": "Hur stort är Wikipedia?", "body": "Wikipedia finns på många språk och de olika språkversionerna innehåller tillsammans miljontals artiklar skrivna av användare.", "url": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor#Hur_stort_är_Wikipedia?" },
+    { "id": "ager", "title": "Vem äger Wikipedia?", "body": "Upphovsrätten till innehållet ägs av de enskilda bidragsgivarna. Varumärket Wikipedia ägs av den ideella organisationen Wikimedia Foundation.", "url": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor#Vem_äger_Wikipedia?" },
+    { "id": "forsvinner", "title": "Finns det en risk att Wikipedia försvinner?", "body": "Artiklarna har en fri licens och programvaran har öppen källkod, så vem som helst kan sätta upp en kopia av Wikipedia.", "url": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor#Finns_det_en_risk_att_Wikipedia_försvinner?" },
+    { "id": "kontakt", "title": "Hur kontaktar jag Wikipedia?", "body": "Kontaktvägar för Wikipedia finns samlade på sidan Wikipedia:Kontakt.", "url": "https://sv.wikipedia.org/wiki/Wikipedia:Vanliga_frågor#Hur_kontaktar_jag_Wikipedia?" }
+  ],
+  "queries": [
+    { "id": "ager", "text": "Vem äger Wikipedia?", "judgments": { "ager": 3 } },
+    { "id": "forsvinner", "text": "Finns det en risk att Wikipedia försvinner?", "judgments": { "forsvinner": 3 } },
+    { "id": "kontakt", "text": "Hur kontaktar jag Wikipedia?", "judgments": { "kontakt": 3 } },
+    { "id": "mal", "text": "Vad är Wikipedias mål?", "judgments": { "mal": 3 } },
+    { "id": "namn", "text": "Vad betyder namnet Wikipedia? Vad är en wiki?", "judgments": { "namn": 3 } },
+    { "id": "start", "text": "Hur länge har Wikipedia funnits? Hur startade Wikipedia?", "judgments": { "start": 3 } },
+    { "id": "storlek", "text": "Hur stort är Wikipedia?", "judgments": { "storlek": 3 } },
+    { "id": "vad", "text": "Vad är Wikipedia?", "judgments": { "vad": 3 } }
+  ]
+}
