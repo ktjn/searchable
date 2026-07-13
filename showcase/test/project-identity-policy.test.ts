@@ -6,10 +6,6 @@ import { expect, test } from "vitest";
 const repositoryRoot = join(import.meta.dirname, "..", "..");
 const acronym = ["c", "s", "f"].join("");
 const oldSlug = ["client", "search", "framework"].join("-");
-const allowed = new Set([
-  "docs/superpowers/specs/2026-07-13-searchable-identity-migration-design.md",
-  "docs/superpowers/plans/2026-07-13-searchable-identity-migration.md",
-]);
 const forbidden = [
   new RegExp(oldSlug, "i"),
   new RegExp(`@${acronym}/`, "i"),
@@ -24,8 +20,7 @@ test("tracked files use only the Searchable identity", () => {
   })
     .split("\0")
     .filter(Boolean)
-    .map((path) => path.replaceAll("\\", "/"))
-    .filter((path) => !allowed.has(path));
+    .map((path) => path.replaceAll("\\", "/"));
 
   const violations: string[] = [];
   for (const path of files) {
@@ -38,4 +33,18 @@ test("tracked files use only the Searchable identity", () => {
   }
 
   expect(violations).toEqual([]);
+});
+
+test("tracked files exclude internal agent planning documents", () => {
+  const files = execFileSync("git", ["ls-files", "-z"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(Boolean)
+    .map((path) => path.replaceAll("\\", "/"));
+
+  expect(files.filter((path) => path.startsWith("docs/superpowers/"))).toEqual(
+    [],
+  );
 });
