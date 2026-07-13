@@ -1,6 +1,7 @@
 export type { Token } from "./analyze.js";
 export { analyze, normalizePhrase } from "./analyze.js";
 export { detectLanguage } from "./detect-language.js";
+export { generateDeletes } from "./generate-deletes.js";
 export { isRtlLanguage } from "./is-rtl.js";
 export type { LanguageProfile, TokenSpan } from "./language-profile.js";
 export {

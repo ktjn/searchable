@@ -1,4 +1,9 @@
-import { getLanguageProfile, normalizePhrase, ownProp } from "@csf/analysis";
+import {
+  generateDeletes,
+  getLanguageProfile,
+  normalizePhrase,
+  ownProp,
+} from "@csf/analysis";
 import type {
   DocStoreEntry,
   FacetShard,
@@ -426,41 +431,6 @@ function multiWordVariantsFor(
     }
   }
   return [...variants];
-}
-
-/**
- * Every string reachable by deleting up to `maxEdits` Unicode code
- * points from `term` (plus `term` itself, 0 deletions) — the
- * query-side half of the SymSpell candidate lookup, breadth-first one
- * deletion-level at a time so `maxEdits: 2` also includes every
- * deletion-of-a-deletion. Deliberately duplicated from the indexer's
- * near-identical helper (build-index.ts) rather than shared: it's a
- * small pure function with exactly two callers across two packages
- * that must never share a runtime dependency (the browser bundle can't
- * pull in indexer code), the same reasoning already applied to the
- * e2e-browser serve-dir.ts duplication. The query side must go exactly
- * as deep as the *dictionary* was built (`fuzzyShard.maxEdits`,
- * docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching) — a distance-2
- * pair found only via, say, a substitution (not a pure one-sided
- * deletion) requires both the indexed term's build-time deletions and
- * the query term's lookup-time deletions to reach the same depth
- * before they can meet at a common shorter string.
- */
-function generateDeletes(term: string, maxEdits: 1 | 2): string[] {
-  let frontier = new Set<string>([term]);
-  const all = new Set<string>(frontier);
-  for (let depth = 0; depth < maxEdits; depth++) {
-    const next = new Set<string>();
-    for (const variant of frontier) {
-      const chars = [...variant];
-      for (let i = 0; i < chars.length; i++) {
-        next.add(chars.slice(0, i).join("") + chars.slice(i + 1).join(""));
-      }
-    }
-    for (const v of next) all.add(v);
-    frontier = next;
-  }
-  return [...all];
 }
 
 /** Levenshtein edit distance, code-point aware. */

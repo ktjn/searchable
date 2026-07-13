@@ -1,5 +1,6 @@
 import {
   analyze,
+  generateDeletes,
   getLanguageProfile,
   getOrCreate,
   normalizePhrase,
@@ -146,34 +147,6 @@ function expandHierarchyPaths(fullPath: string, separator: string): string[] {
     paths.push(segments.slice(0, i + 1).join(separator));
   }
   return paths;
-}
-
-/**
- * Every string reachable by deleting up to `maxEdits` Unicode code
- * points from `term` (plus `term` itself, 0 deletions) — a breadth-
- * first expansion, one deletion-level at a time, so `maxEdits: 2` also
- * includes every deletion-of-a-deletion, not just direct 2-character
- * removals. Going a level deeper is what lets a *genuine* distance-2
- * typo be found (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching)
- * rather than only the distance-1 dictionary's occasional distance-2
- * hits via symmetric-delete coincidences (e.g. an adjacent-character
- * transposition).
- */
-function generateDeletes(term: string, maxEdits: 1 | 2): string[] {
-  let frontier = new Set<string>([term]);
-  const all = new Set<string>(frontier);
-  for (let depth = 0; depth < maxEdits; depth++) {
-    const next = new Set<string>();
-    for (const variant of frontier) {
-      const chars = [...variant];
-      for (let i = 0; i < chars.length; i++) {
-        next.add(chars.slice(0, i).join("") + chars.slice(i + 1).join(""));
-      }
-    }
-    for (const v of next) all.add(v);
-    frontier = next;
-  }
-  return [...all];
 }
 
 /**
