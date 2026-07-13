@@ -1,7 +1,13 @@
 import { writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { pageShell } from "./gallery-shared.js";
+import { highlightCode } from "./docs-site.js";
+import { escapeHtml, pageShell } from "./gallery-shared.js";
+import {
+  QUICK_EXAMPLES,
+  renderExampleCode,
+  renderRuntimeAttributes,
+} from "./quick-examples.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -38,16 +44,40 @@ const DEMOS: DemoLink[] = [
     description:
       "Parallel English/German articles: language partitioning (same word, isolated results per language) and diacritic-sensitive matching (schon vs. schön).",
   },
+  {
+    href: "../index.html",
+    title: "Documentation search",
+    description:
+      "Search the complete curated documentation set with the same static index and browser client.",
+  },
 ];
 
-function renderHubPage(): string {
-  const items = DEMOS.map(
+export function renderHubPage(): string {
+  const demoLinks = DEMOS.map(
     (demo) => `
         <li>
-          <a href="${demo.href}">${demo.title}</a>
-          <p>${demo.description}</p>
+          <a href="${escapeHtml(demo.href)}">${escapeHtml(demo.title)}</a>
+          <p>${escapeHtml(demo.description)}</p>
         </li>`,
   ).join("");
+  const quickCards = QUICK_EXAMPLES.map((example) => {
+    const source = renderExampleCode(example);
+    const highlightedSource = highlightCode("typescript", source);
+    const headingId = `example-${example.id}`;
+    return `
+          <article class="quick-example-card" aria-labelledby="${headingId}">
+            <h3 id="${headingId}">${escapeHtml(example.title)}</h3>
+            <p>${escapeHtml(example.description)}</p>
+            <div class="quick-example-widget"
+              ${renderRuntimeAttributes(example)}
+            ></div>
+            <p class="quick-example-guide"><a href="${escapeHtml(example.guideHref)}">Read the guide</a></p>
+            <details class="example-source">
+              <summary>View source</summary>
+              <pre><code class="hljs language-typescript">${highlightedSource}</code></pre>
+            </details>
+          </article>`;
+  }).join("");
   const bodyHtml = `
       <main>
         <p><a href="../index.html">&larr; Back to docs</a></p>
@@ -55,14 +85,23 @@ function renderHubPage(): string {
         <p>Small, purpose-built demo corpora, each showcasing one part of
         the engine end to end with real indexed pages and a real
         <code>@csf/client</code>-powered search box -- not mocked.</p>
-        <ul class="gallery-demo-list">${items}
-        </ul>
+        <section aria-labelledby="quick-examples">
+          <h2 id="quick-examples">Try individual features</h2>
+          <div class="quick-example-grid">${quickCards}
+          </div>
+        </section>
+        <section aria-labelledby="full-demos">
+          <h2 id="full-demos">Explore complete demos</h2>
+          <ul class="gallery-demo-list">${demoLinks}
+          </ul>
+        </section>
       </main>`;
   return pageShell({
     title: "Feature gallery",
     description: "Demos of facets, boosts, pins, fuzzy matching, and synonyms.",
     root: "../",
     bodyHtml,
+    withWidget: true,
   });
 }
 
@@ -71,4 +110,9 @@ async function main() {
   console.log(`built gallery hub page -> ${join(galleryDir, "index.html")}`);
 }
 
-main();
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  void main();
+}
