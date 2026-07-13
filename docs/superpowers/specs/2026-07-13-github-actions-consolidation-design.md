@@ -144,7 +144,9 @@ older supported interpreters.
 
 Before publication, verify:
 
-- workflow and composite-action YAML passes `actionlint`;
+- workflow YAML passes `actionlint`; composite-action metadata passes YAML
+  validation, matches GitHub's metadata structure, and is exercised on a
+  hosted runner because `actionlint` does not lint action definition files;
 - the active workflow files contain Node.js 24 and Python 3.14 only through
   the composite actions;
 - Playwright setup and execution occur only in CI's `test-browser` job;
@@ -174,3 +176,8 @@ the same static showcase artifact described by the existing documentation.
 - Replacing GitHub Pages, pnpm, Playwright, or `uv`.
 - Publishing Python packages.
 - Adding a release tag or testing npm credentials as part of this change.
+
+## Implementation plan
+
+The approved design is mapped to executable tasks in the
+[GitHub Actions consolidation implementation plan](../plans/2026-07-13-github-actions-consolidation.md).
