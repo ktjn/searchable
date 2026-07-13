@@ -10,7 +10,7 @@ The maintainer owns the visibility and commit-history decisions.
   GitHub Pages are configured.
 - [ ] Verify the repository topics describe static browser search.
 - [ ] Verify Wiki is disabled because checked-in documentation is canonical.
-- [ ] Create the `main` ruleset with pull requests, strict `lint`,
+- [ ] Create the main ruleset with pull requests, strict `lint`,
   `python-tests`, `test`, and `test-browser` checks, and force-push/deletion
   protection. If the private plan rejects it, complete this immediately after
   the repository becomes public.
@@ -40,7 +40,7 @@ The maintainer owns the visibility and commit-history decisions.
   remain enabled.
 - [ ] Enable TypeScript and Python **code scanning**, preferably with GitHub's
   default CodeQL setup, and triage the first result.
-- [ ] Verify the `main` ruleset exists and its required status-check names match
+- [ ] Verify the main ruleset exists and its required status-check names match
   the current CI jobs exactly.
 - [ ] Verify `https://ktjn.github.io/searchable/` and
   `https://ktjn.github.io/searchable/gallery/` return HTTP 200 with Searchable
@@ -55,4 +55,3 @@ Package publication is outside the visibility cutover. Before tagging
 `v1.0.0`, complete the release checklist in [Project governance](governance.md),
 inspect all four npm tarballs, confirm npm authentication or trusted publishing,
 and update preview wording only after the registry confirms publication.
-
