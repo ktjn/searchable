@@ -8,11 +8,10 @@ import { ByteReader } from "./byte-reader.js";
  * lazy: `decodeDirectory()` parses only the sorted term -> (byte
  * offset, byte length) table, never touching a posting byte, and
  * `decodeTermEntry()` decodes exactly one term's postings by seeking
- * directly to its byte range -- this is the design
- * `packages/indexer/bench/binary-lazy-decode.mjs` validated as
- * consistently faster than `JSON.parse`-ing the equivalent whole JSON
- * shard for a typical few-term query, and consistently slower (or a
- * wash) if the whole shard were decoded up front instead.
+ * directly to its byte range. The archived binary-vs-JSON investigation
+ * found this consistently faster than parsing the equivalent whole JSON
+ * shard for a typical few-term query, and slower or a wash when the
+ * whole binary shard was decoded up front.
  */
 
 export interface BinaryTermShardDirectory {

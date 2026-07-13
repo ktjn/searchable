@@ -101,13 +101,13 @@ describe("stemEnglish", () => {
       "utf8",
     )
       .trim()
-      .split("\n");
+      .split(/\r?\n/);
     const stems = readFileSync(
       join(__dirname, "fixtures/porter-output.txt"),
       "utf8",
     )
       .trim()
-      .split("\n");
+      .split(/\r?\n/);
     expect(words.length).toBe(stems.length);
     expect(words.length).toBeGreaterThan(20000);
 

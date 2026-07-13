@@ -222,9 +222,10 @@ numbers above), not the pre-fix unsharded one — the original 10k/100k/1M
 benchmarking plan in the roadmap's Phase 7 bullet still stands, just
 against the corrected reference point.
 
-**That benchmark is now done.**
-`packages/indexer/bench/binary-vs-json-postings.mjs` (`pnpm --filter @csf/indexer run bench:binary`)
-takes the same largest-single-prefix-shard baseline as the table above,
+**That benchmark is now done.** The one-off benchmark program was
+removed after the investigation concluded; the measurements and decision
+record remain here, and the shipped codecs are covered by package tests.
+The benchmark took the same largest-single-prefix-shard baseline as the table above,
 encodes it with a minimal delta+varint binary postings codec matching
 [../specs/binary-format.md](../specs/binary-format.md)'s own baseline
 recommendation (delta-encoded doc ids, varints throughout, delta-encoded
@@ -292,10 +293,11 @@ prove out empirically (measuring decode time for *only the matched
 term's postings*, not the whole shard) before recommending binary as a
 default, not an optional afterthought.
 
-**That prototype is now built and measured.**
-`packages/indexer/bench/binary-lazy-decode.mjs`
-(`pnpm --filter @csf/indexer run bench:binary-lazy`) re-encodes the same
-largest-single-prefix-shard baseline into a directory-based layout — a
+**That prototype is now built and measured.** The one-off benchmark
+program was removed after the investigation concluded; the measurements
+and decision record remain here, and the shipped codecs are covered by
+package tests. It re-encoded the same largest-single-prefix-shard baseline
+into a directory-based layout — a
 sorted term → (byte offset, length) table followed by a postings blob,
 per [spec-binary-format.md](../specs/binary-format.md#dictionary-encoding)'s
 own "sorted string table" baseline and

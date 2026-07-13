@@ -12,12 +12,10 @@ import { ByteWriter } from "./byte-writer.js";
  * (docs/archive/specs/binary-format.md#decoding-strategy's "decode only matching
  * posting lists") -- never the whole shard.
  *
- * Validated in `packages/indexer/bench/binary-lazy-decode.mjs` before
- * being promoted here: at 1k/10k docs, decoding a directory plus a
- * handful of matched terms measured 2.9x-9.5x faster than
- * `JSON.parse`-ing the equivalent whole JSON shard (see
- * docs/concepts/binary-storage.md for the full writeup and the
- * shard-vocabulary-size caveat that win depends on).
+ * The archived investigation measured a 2.9x-9.5x decode speedup at
+ * 1k/10k docs for a directory plus a handful of matched terms; see
+ * docs/archive/investigations/binary-vs-json-index.md for the full
+ * results and shard-vocabulary-size caveat.
  *
  * Layout: `[directory][postings blob]`. The directory is:
  * `varint(termCount)`, then per term (sorted): `string(term)`,

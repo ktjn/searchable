@@ -59,7 +59,7 @@ async function writeBinary(
 }
 
 /** Default per docs/concepts/index-format.md#size-targets-and-sharding-tuning ("e.g. ~50KB gzipped"). */
-export const DEFAULT_MAX_TERM_SHARD_GZIP_BYTES = 50 * 1024;
+const DEFAULT_MAX_TERM_SHARD_GZIP_BYTES = 50 * 1024;
 
 function groupByPrefixLength(
   termShard: TermShard,
@@ -231,9 +231,8 @@ export interface WriteIndexOptions {
   shardByPrefix?: boolean;
   /**
    * `"binary"` writes term shards with the directory-based delta+varint
-   * encoding (`./binary-term-shard.js`, validated in
-   * `packages/indexer/bench/binary-lazy-decode.mjs` — see
-   * docs/concepts/binary-storage.md), one `.bin` file per prefix bucket
+   * encoding (`./binary-term-shard.js`; see
+   * docs/archive/investigations/binary-vs-json-index.md), one `.bin` file per prefix bucket
    * with `format: "binary"` recorded on that shard's manifest entry, in
    * place of the plain-JSON `terms/<lang>/<prefix>.json` shape.
    * Defaults to `"json"`. Every other shard type (facets, doc store,
