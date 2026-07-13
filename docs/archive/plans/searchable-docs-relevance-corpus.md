@@ -1,5 +1,8 @@
 # Searchable Documentation Relevance Corpus Implementation Plan
 
+> Archived after implementation on `feat/searchable-docs-relevance-corpus`.
+> Durable operating guidance is in [Relevance baselines](../../project/relevance-baselines.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a reviewed 20-query relevance corpus that evaluates lexical ranking over the real 28-page generated Searchable documentation index.

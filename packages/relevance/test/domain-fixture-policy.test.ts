@@ -45,7 +45,13 @@ describe("committed documentation relevance fixture", () => {
     expect(
       queryWordCounts.filter((count) => count >= 6 && count <= 7),
     ).toHaveLength(3);
-    expect(suite.review.status).toBe("draft");
+    expect(suite.review).toEqual({
+      status: "reviewed",
+      method:
+        "Maintainer review of every query, grade, rationale, and measured top-five result.",
+      reviewer: "ktjn",
+      reviewedAt: "2026-07-13",
+    });
     expect(suite.pages).toEqual(expectedPages);
   });
 });

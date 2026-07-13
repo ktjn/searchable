@@ -14,8 +14,10 @@
     "selectionNotes": "All 28 generated documentation pages are included. Queries are task-oriented search intents authored for this judged domain corpus rather than copied page headings."
   },
   "review": {
-    "status": "draft",
-    "method": "Maintainer review of every query, grade, rationale, and measured top-five result."
+    "status": "reviewed",
+    "method": "Maintainer review of every query, grade, rationale, and measured top-five result.",
+    "reviewer": "ktjn",
+    "reviewedAt": "2026-07-13"
   },
   "pages": [
     {

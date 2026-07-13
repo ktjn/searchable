@@ -1,5 +1,8 @@
 # Searchable Documentation Relevance Corpus Design
 
+> Archived after implementation on `feat/searchable-docs-relevance-corpus`.
+> Durable operating guidance is in [Relevance baselines](../../project/relevance-baselines.md).
+
 ## Purpose
 
 Add the first representative domain relevance corpus to Searchable. The corpus
