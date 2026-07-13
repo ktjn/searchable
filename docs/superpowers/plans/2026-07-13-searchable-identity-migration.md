@@ -711,7 +711,7 @@ git commit -m "docs: remove legacy project identity"
 - Produces: package-content and full-suite evidence without publishing.
 - Consumes: final Searchable npm and Python package identities.
 
-- [ ] **Step 1: Verify workflow syntax and active identity**
+- [x] **Step 1: Verify workflow syntax and active identity**
 
 Run:
 
@@ -723,7 +723,7 @@ pnpm exec vitest run --config showcase/vitest.config.ts showcase/test/project-id
 
 Expected: all three gates exit 0.
 
-- [ ] **Step 2: Run both complete Python suites**
+- [x] **Step 2: Run both complete Python suites**
 
 Run:
 
@@ -734,7 +734,7 @@ Push-Location python/searchable-indexer; uv sync; uv run pytest -v; Pop-Location
 
 Expected: all analysis and indexer tests pass on Python 3.14.
 
-- [ ] **Step 3: Build and inspect Python wheels without publishing**
+- [x] **Step 3: Build and inspect Python wheels without publishing**
 
 Run:
 
@@ -747,7 +747,7 @@ python -c "import pathlib,zipfile; wheels=list(pathlib.Path('.artifacts/python')
 
 Expected: two wheels are produced; only the new import-package roots exist.
 
-- [ ] **Step 4: Pack and inspect all public npm packages without publishing**
+- [x] **Step 4: Pack and inspect all public npm packages without publishing**
 
 Run:
 
@@ -764,7 +764,7 @@ Expected: four non-empty `1.0.0` tarballs exist with Searchable package names.
 Inspect each with `tar -tf`; the client includes worker and service-worker
 entries, and the indexer includes its CLI.
 
-- [ ] **Step 5: Run every repository gate independently**
+- [x] **Step 5: Run every repository gate independently**
 
 Run each command separately and stop on the first non-zero exit:
 
@@ -785,7 +785,7 @@ On Windows, if Biome reports CRLF on untouched files, verify `pnpm lint` from a
 temporary LF-normalized local clone of this branch. Do not normalize the entire
 working tree or commit line-ending-only changes.
 
-- [ ] **Step 6: Delete generated packaging artifacts safely**
+- [x] **Step 6: Delete generated packaging artifacts safely**
 
 Resolve `.artifacts` to an absolute path and verify it is beneath the current
 worktree root before removing it recursively. Then run:
@@ -796,7 +796,7 @@ git status --short
 
 Expected: `.artifacts` is gone and the worktree contains no generated output.
 
-- [ ] **Step 7: Review the complete branch**
+- [x] **Step 7: Review the complete branch**
 
 Run:
 
