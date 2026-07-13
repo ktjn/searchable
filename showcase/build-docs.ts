@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { marked, type Tokens } from "marked";
 import { DOC_SECTIONS, type DocPage } from "./docs-nav.js";
 import {
+  createMarkdownRenderer,
   flattenNavigation,
-  highlightCode,
   renderSitePage,
   rewriteMarkdownLinks,
   type SitePage,
@@ -40,20 +40,15 @@ function extractTitleAndExcerpt(markdown: string): {
   };
 }
 
-const renderer = new marked.Renderer();
-renderer.code = ({ text, lang }) => {
-  const language = lang?.trim().split(/\s+/)[0] ?? "";
-  const languageClass = language.replace(/[^\w-]/g, "");
-  const classes = languageClass ? `hljs language-${languageClass}` : "hljs";
-  return `<pre><code class="${classes}">${highlightCode(language, text)}</code></pre>\n`;
-};
-
 async function renderPage(page: DocPage): Promise<SitePage> {
   const mdPath = join(repoRoot, page.source);
   const markdown = await readFile(mdPath, "utf8");
   const { excerpt } = extractTitleAndExcerpt(markdown);
   const bodyHtml = rewriteMarkdownLinks(
-    await marked.parse(markdown, { gfm: true, renderer }),
+    await marked.parse(markdown, {
+      gfm: true,
+      renderer: createMarkdownRenderer(),
+    }),
     page.source,
     DOC_SECTIONS,
   );
@@ -80,7 +75,10 @@ async function main() {
     title: homeMetadata.title,
     excerpt: homeMetadata.excerpt,
     bodyHtml: rewriteMarkdownLinks(
-      await marked.parse(homeMarkdown, { gfm: true, renderer }),
+      await marked.parse(homeMarkdown, {
+        gfm: true,
+        renderer: createMarkdownRenderer(),
+      }),
       "README.md",
       DOC_SECTIONS,
     ),

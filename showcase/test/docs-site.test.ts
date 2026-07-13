@@ -1,6 +1,8 @@
+import { marked } from "marked";
 import { describe, expect, test } from "vitest";
 import { DOC_SECTIONS } from "../docs-nav.js";
 import {
+  createMarkdownRenderer,
   flattenNavigation,
   highlightCode,
   renderSitePage,
@@ -208,6 +210,17 @@ describe("documentation navigation", () => {
 });
 
 describe("documentation rendering", () => {
+  test("renders stable unique heading IDs", async () => {
+    const html = await marked.parse(
+      "# Index format compatibility\n\n## Café & API!\n\n## Café & API!",
+      { renderer: createMarkdownRenderer() },
+    );
+
+    expect(html).toContain('<h1 id="index-format-compatibility">');
+    expect(html).toContain('<h2 id="café-api">');
+    expect(html).toContain('<h2 id="café-api-1">');
+  });
+
   test("highlights registered languages at build time", () => {
     expect(highlightCode("typescript", "const count: number = 1;")).toContain(
       '<span class="hljs-keyword">const</span>',

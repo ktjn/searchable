@@ -15,6 +15,8 @@
     "build:gallery-i18n": "tsx build-gallery-i18n.ts",
     "build:gallery-index": "tsx build-gallery-index.ts",
     "build": "pnpm build:docs && pnpm build:widget && pnpm build:search && pnpm build:gallery && pnpm build:gallery-synonyms && pnpm build:gallery-i18n && pnpm build:gallery-index",
+    "validate": "tsx validate-dist.ts",
+    "check": "pnpm build && pnpm validate && pnpm test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

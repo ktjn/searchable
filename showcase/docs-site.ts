@@ -5,6 +5,7 @@ import javascript from "highlight.js/lib/languages/javascript";
 import json from "highlight.js/lib/languages/json";
 import python from "highlight.js/lib/languages/python";
 import typescript from "highlight.js/lib/languages/typescript";
+import { Renderer } from "marked";
 import type { DocPage, DocSection } from "./docs-nav.js";
 
 hljs.registerLanguage("javascript", javascript);
@@ -113,6 +114,39 @@ export function highlightCode(language: string, source: string): string {
     return escapeHtml(source);
   }
   return hljs.highlight(source, { language }).value;
+}
+
+function headingSlug(text: string): string {
+  return (
+    text
+      .trim()
+      .toLocaleLowerCase("en")
+      .replace(/[^\p{Letter}\p{Number}\s-]/gu, "")
+      .replace(/[\s-]+/g, "-")
+      .replace(/^-|-$/g, "") || "section"
+  );
+}
+
+export function createMarkdownRenderer(): Renderer {
+  const renderer = new Renderer();
+  const slugCounts = new Map<string, number>();
+
+  renderer.code = ({ text, lang }) => {
+    const language = lang?.trim().split(/\s+/)[0] ?? "";
+    const languageClass = language.replace(/[^\w-]/g, "");
+    const classes = languageClass ? `hljs language-${languageClass}` : "hljs";
+    return `<pre><code class="${classes}">${highlightCode(language, text)}</code></pre>\n`;
+  };
+
+  renderer.heading = function ({ depth, text, tokens }) {
+    const baseSlug = headingSlug(text);
+    const count = slugCounts.get(baseSlug) ?? 0;
+    slugCounts.set(baseSlug, count + 1);
+    const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+    return `<h${depth} id="${slug}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
+  };
+
+  return renderer;
 }
 
 function depthPrefix(route: string): string {
