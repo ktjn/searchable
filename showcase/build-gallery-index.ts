@@ -42,7 +42,7 @@ const DEMOS: DemoLink[] = [
     href: "i18n/index.html",
     title: "Multi-language corpus",
     description:
-      "Parallel English/German articles: language partitioning (same word, isolated results per language) and diacritic-sensitive matching (schon vs. schön).",
+      "Articles in six languages: language partitioning, Snowball stemming, and German diacritic-sensitive matching (schon vs. schön).",
   },
   {
     href: "../index.html",

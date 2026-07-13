@@ -58,7 +58,7 @@ test("renders every optional behavior in attributes and displayed source", () =>
   );
   expect(
     renderRuntimeAttributes(byId.get("internationalization") as QuickExample),
-  ).toContain('data-languages="en,de"');
+  ).toContain('data-languages="en,de,sv,nl,nb,nn"');
   expect(
     renderExampleCode(byId.get("internationalization") as QuickExample),
   ).toContain('language: "en"');

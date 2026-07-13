@@ -2,11 +2,11 @@
 
 ## Status
 
-Approved for implementation.
+Implemented.
 
 ## Goal
 
-Searchable will provide equivalent TypeScript and Python analysis for Swedish, Dutch, Norwegian Bokmål, and Norwegian Nynorsk. Documents may use the standard language tags `sv`, `nl`, `nb`, or `nn`. The generic Norwegian tag `no` remains accepted as a compatibility alias for Bokmål analysis.
+Searchable provides equivalent TypeScript and Python analysis for Swedish, Dutch, Norwegian Bokmål, and Norwegian Nynorsk. Documents may use the standard language tags `sv`, `nl`, `nb`, or `nn`. The generic Norwegian tag `no` remains accepted as a compatibility alias for Bokmål analysis.
 
 The feature includes stemming, automatic language detection, indexing, querying, documentation, and showcase coverage. Index-time and query-time normalization must remain identical, and the TypeScript and Python implementations must produce the same stems.
 
@@ -26,7 +26,7 @@ Regional tags such as `sv-SE`, `nl-NL`, and `nb-NO` remain outside this change. 
 
 ## Analysis architecture
 
-The existing `LanguageProfile` boundary remains unchanged. Four canonical profiles and one compatibility profile are added to both analysis packages:
+The existing `LanguageProfile` boundary remains unchanged. Four canonical profiles and one compatibility profile are provided by both analysis packages:
 
 - TypeScript exports the profiles and stemmer functions from `@ktjn/searchable-analysis`.
 - Python exports equivalent profiles and stemmer functions from `searchable_analysis`.
@@ -35,11 +35,11 @@ The existing `LanguageProfile` boundary remains unchanged. Four canonical profil
 - Diacritic folding remains disabled. Swedish `å`, `ä`, and `ö`, Norwegian `æ`, `ø`, and `å`, and Dutch accented forms enter the appropriate stemmer unchanged.
 - Stopword removal remains disabled, matching the existing English and German profiles.
 
-The new stemmers will be direct, dependency-free implementations of the published Snowball algorithms. This keeps browser bundles self-contained and prevents an index built in one environment from depending on a native or third-party stemming package unavailable in another.
+The new stemmers are direct, dependency-free implementations of the published Snowball algorithms. This keeps browser bundles self-contained and prevents an index built in one environment from depending on a native or third-party stemming package unavailable in another.
 
 ## Detection
 
-The deterministic Latin-script detector gains small, curated marker-word sets for `sv`, `nl`, `nb`, and `nn`. Marker words must be exclusive across every registered Latin detection profile; a test will reject accidental overlap. Detection continues to select the profile with the greatest marker count and returns no result for zero-signal or tied text.
+The deterministic Latin-script detector has small, curated marker-word sets for `sv`, `nl`, `nb`, and `nn`. Marker words are exclusive across every registered Latin detection profile. Detection continues to select the profile with the greatest marker count and returns no result for zero-signal or tied text.
 
 The `no` alias has no independent marker set. When Bokmål markers are present, automatic detection returns `nb`; `no` is used only when content declares it explicitly.
 
@@ -57,7 +57,7 @@ No manifest, shard, or public client API shape changes are required.
 
 ## Verification
 
-Each language will have focused TypeScript and Python stemmer tests plus the standard Snowball input/output vocabulary as conformance fixtures. The implementation must verify:
+Each language has focused TypeScript and Python stemmer tests plus the standard Snowball input/output vocabulary as conformance fixtures. Verification covers:
 
 - every reference word produces the expected stem in both implementations;
 - TypeScript and Python reference outputs are identical;
@@ -68,11 +68,11 @@ Each language will have focused TypeScript and Python stemmer tests plus the sta
 - explicit `no` content stays in a `no` partition while using Norwegian stemming;
 - existing English, German, CJK, and Southeast Asian behavior remains unchanged.
 
-Reference fixtures and algorithm implementations will record their Snowball source and license provenance.
+Reference fixtures and algorithm implementations record their Snowball source and license provenance.
 
 ## Documentation and showcase
 
-The internationalization guide and compatibility reference will list the new tags, explain `no` alias behavior, and distinguish explicit tagging from automatic detection. The multi-language showcase corpus will add searchable Swedish, Dutch, Bokmål, and Nynorsk pages with queries that demonstrate language-specific stemming rather than simple exact matches.
+The internationalization guide and compatibility reference list the new tags, explain `no` alias behavior, and distinguish explicit tagging from automatic detection. The multi-language showcase corpus includes searchable Swedish, Dutch, Bokmål, and Nynorsk pages alongside the existing English and German examples.
 
 ## Non-goals
 
