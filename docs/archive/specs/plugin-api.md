@@ -2,7 +2,7 @@
 
 Status: Draft
 
-**Relationship to [17-plugin-architecture.md](17-plugin-architecture.md)**:
+**Relationship to [./plugin-architecture.md](./plugin-architecture.md)**:
 that doc is this project's concrete, decided plugin contract — a fixed
 six-stage hook pipeline (`analyzeQuery → expandQuery → planFetch →
 score → filter → assembleResults`) that every existing "plugin" concept

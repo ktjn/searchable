@@ -23,19 +23,19 @@ deployment's browser bundle must never pull in indexer-only code).
   `PluginContext` core hands it and the hook stage it registered for —
   it cannot reach into another plugin's state. Cross-plugin
   interactions (e.g. pins deferring to an active facet filter,
-  [16-term-to-page-pinning.md](16-term-to-page-pinning.md#what-happens-at-query-time))
+  [16-term-to-page-pinning.md](../../guides/pinning.md#what-happens-at-query-time))
   happen because both plugins read the same core-owned pipeline state
   (the candidate doc-id set), not because they call each other directly.
 - **A plugin is independently testable.** Every plugin ships with its
   own unit tests against a mocked `PluginContext`, per the "done" bar
-  in [10-testing-and-performance.md](10-testing-and-performance.md#3-what-done-looks-like-for-a-feature) —
+  in [10-testing-and-performance.md](../../project/governance.md) —
   if a plugin can't be tested without booting the whole engine, its
   boundary is drawn wrong.
 - **No dependency-injection framework.** Registration is a plain array
   of factory calls the caller writes out explicitly
   (`plugins: [fuzzy(), facets(['category'])]`) — matches the "simple
   over clever" principle in
-  [00-overview.md](00-overview.md#guiding-principles); a DI container
+  [00-overview.md](../../getting-started/overview.md); a DI container
   would be solving a problem this project doesn't have.
 
 ## Runtime plugin contract
@@ -68,20 +68,20 @@ in registration order. This fixed order is itself part of the contract
 (not an implementation detail) since e.g. pins must run after scoring/
 filtering to know the final candidate set, and fuzzy must run after
 exact matching to apply its score penalty relative to it
-([04-query-ranking-boosts.md](04-query-ranking-boosts.md#prefix--fuzzy-matching)).
+([04-query-ranking-boosts.md](../../guides/ranking-and-boosts.md)).
 
 ### Which existing feature is which plugin
 
 | Plugin | Hook(s) used | Doc |
 |---|---|---|
-| `fuzzy()` | `score` | [04](04-query-ranking-boosts.md#prefix--fuzzy-matching) |
-| `synonyms()` | `expandQuery` | [05-synonyms.md](05-synonyms.md) |
-| `facets(fields)` | `filter` | [06-faceted-search.md](06-faceted-search.md) |
-| `pins()` | `assembleResults` | [16-term-to-page-pinning.md](16-term-to-page-pinning.md) |
-| `highlight()` | `assembleResults` | [08-modern-features.md](08-modern-features.md#highlighting--snippets) |
-| `vector()` | `planFetch`, `score` | [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md) |
-| `lang(code)` | `analyzeQuery` (registers a `LanguageProfile` for that language) | [03-tokenization-i18n.md](03-tokenization-i18n.md) |
-| `wasmCore()` | replaces the default JS implementation of `score`'s built-in lexical step, rather than adding a new one | [08-modern-features.md](08-modern-features.md#optional-wasm-core) |
+| `fuzzy()` | `score` | [04](../../guides/ranking-and-boosts.md) |
+| `synonyms()` | `expandQuery` | [../../guides/synonyms.md](../../guides/synonyms.md) |
+| `facets(fields)` | `filter` | [../../guides/facets.md](../../guides/facets.md) |
+| `pins()` | `assembleResults` | [../../guides/pinning.md](../../guides/pinning.md) |
+| `highlight()` | `assembleResults` | [08-modern-features.md](../../concepts/architecture.md) |
+| `vector()` | `planFetch`, `score` | [../../guides/vector-search.md](../../guides/vector-search.md) |
+| `lang(code)` | `analyzeQuery` (registers a `LanguageProfile` for that language) | [../../guides/internationalization.md](../../guides/internationalization.md) |
+| `wasmCore()` | replaces the default JS implementation of `score`'s built-in lexical step, rather than adding a new one | [08-modern-features.md](../../concepts/architecture.md) |
 
 None of these plugins are special-cased in core — the table exists so
 this doc, not core's source, is the map from "feature" to "hook," which
@@ -107,13 +107,13 @@ Each plugin is its own npm package specifically so an unused plugin
 never enters the dependency graph at all (not just "tree-shaken out" —
 never installed), which is the strongest version of the bundle-size
 budget already committed to in
-[08-modern-features.md](08-modern-features.md#bundle-size-budget).
+[08-modern-features.md](../../concepts/architecture.md).
 
 ### Capability negotiation
 
 The manifest declares which optional shard types the index actually has
 (`facets`, `synonyms`, `pins`, `vectors` — see
-[02-index-format.md](02-index-format.md#manifest)). At init, core
+[02-index-format.md](../../concepts/index-format.md#manifest)). At init, core
 checks that declaration against the registered plugin set:
 
 - Manifest has a shard type with **no corresponding plugin registered**
@@ -122,7 +122,7 @@ checks that declaration against the registered plugin set:
   or a thrown `MissingPluginError` if the caller opts into strict mode
   (`strict: true`) — same soft/strict pattern already established for
   fetch errors in
-  [07-client-api.md](07-client-api.md#error-handling--degradation), so
+  [07-client-api.md](../../reference/client-api.md), so
   there's one consistent policy knob for "index/config mismatch"
   problems rather than a different one per feature.
 - Plugin registered with **no corresponding manifest shard** (e.g.
@@ -130,7 +130,7 @@ checks that declaration against the registered plugin set:
   an error, just a no-op for that plugin — a deployment might register
   plugins generically across multiple indexes with different feature
   sets (see federated search,
-  [07-client-api.md](07-client-api.md#federated--multi-index-search)),
+  [07-client-api.md](../../reference/client-api.md)),
   and forcing every index to support every registered plugin would
   defeat that.
 
@@ -164,11 +164,11 @@ interface ShardCodec extends IndexerPlugin {
 ```
 
 `SourceAdapter` formalizes what
-[01-architecture.md](01-architecture.md#offline-the-indexer) already
+[01-architecture.md](../../concepts/architecture.md) already
 described informally (HTML crawl, JSON feed, CMS API); `LanguageProfile`
-formalizes [03-tokenization-i18n.md](03-tokenization-i18n.md#pipeline-stages);
+formalizes [03-tokenization-i18n.md](../../guides/internationalization.md);
 `ShardCodec` formalizes the JSON/binary tier split in
-[02-index-format.md](02-index-format.md) — this doc doesn't introduce
+[../../concepts/index-format.md](../../concepts/index-format.md) — this doc doesn't introduce
 new capabilities, it's the interface layer that makes the capabilities
 already designed elsewhere actually swappable.
 

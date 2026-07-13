@@ -40,7 +40,7 @@ real local-model embedding integration via `@huggingface/transformers`
 (`createTransformersEmbedder`/`createTransformersEmbedQuery`, both ends
 kept to the same default model); a remote-API embedding option remains
 unbuilt, see below. The GitHub Pages showcase's first three stages
-([`showcase/`](../showcase/)) are also built and actually
+([`showcase/`](../../../showcase/)) are also built and actually
 deployed — see below. Stage 3 (a semantic search demo) is not yet built
 in this repo: doing so means running the indexer with a real model at
 build time, which needs network access to `huggingface.co` that this
@@ -48,16 +48,16 @@ development session's sandbox doesn't have — the mechanism itself is
 ready to use the moment that access exists (a contributor's machine, or
 a CI runner without this sandbox's restriction).
 
-A code/docs review ([`REVIEW.md`](archive/REVIEW.md), response noted
+A code/docs review ([`REVIEW.md`](../REVIEW.md), response noted
 inline there, archived now that its findings are all resolved) landed
 alongside a batch of new draft specs
-([spec-query-planner.md](spec-query-planner.md),
-[spec-storage-api.md](spec-storage-api.md),
-[spec-plugin-api.md](spec-plugin-api.md),
-[spec-diagnostics.md](spec-diagnostics.md),
-[spec-benchmarking.md](spec-benchmarking.md),
-[spec-binary-format.md](spec-binary-format.md),
-[21](21-architecture-principles.md)-[24](24-architecture-recommendations.md)) —
+([../specs/query-planner.md](../specs/query-planner.md),
+[../specs/storage-api.md](../specs/storage-api.md),
+[../specs/plugin-api.md](../specs/plugin-api.md),
+[../specs/diagnostics.md](../specs/diagnostics.md),
+[../specs/benchmarking.md](../specs/benchmarking.md),
+[../specs/binary-format.md](../specs/binary-format.md),
+[21](../../concepts/architecture.md)-[24](./architecture-recommendations.md)) —
 its findings (worker lifecycle, cache eviction, id validation, manifest
 mutation, canonical JSON output, manifest/shard-origin validation, and
 splitting docs/07 into implemented-vs-target) are all fixed with tests.
@@ -66,17 +66,17 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
 
 **Phase 0 — Spec & fixtures**
 - ✅ Manifest/shard JSON Schema frozen as machine-checkable files:
-  [`spec/schema/`](../spec/schema/) (manifest, term shard, facet shard,
+  [`spec/schema/`](../../../spec/schema/) (manifest, term shard, facet shard,
   doc store shard, synonym shard, pins shard).
 - ✅ Two independent reference generators proving the format needs no
-  library buy-in — [`spec/examples/`](../spec/examples/)
+  library buy-in — [`spec/examples/`](../../../spec/examples/)
   (Python + TypeScript), verified byte-for-byte structurally identical
   output and schema-valid against the files above.
 - ✅ Cross-implementation conformance (the stronger claim
-  [10-testing-and-performance.md](10-testing-and-performance.md#1-correctness-tests)'s
+  [10-testing-and-performance.md](../../project/governance.md)'s
   "Cross-implementation conformance" bullet describes, beyond the
   structural-comparison bullet above):
-  [`packages/client/test/cross-implementation-conformance.test.ts`](../packages/client/test/cross-implementation-conformance.test.ts)
+  [`packages/client/test/cross-implementation-conformance.test.ts`](../../../packages/client/test/cross-implementation-conformance.test.ts)
   shells out to the Python reference generator as a subprocess, serves
   its output over real HTTP, and runs the same `SearchClient` query
   assertions against it as against a real `@csf/indexer`-built index of
@@ -91,8 +91,8 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   different tokenization (see `spec/examples/README.md`), not a
   weakening of the test.
 - ✅ Realistically-shaped fixture corpus grounded in
-  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md):
-  [`@csf/fixtures`](../packages/fixtures) generates a deterministic,
+  [../../guides/indexing.md](../../guides/indexing.md):
+  [`@csf/fixtures`](../../../packages/fixtures) generates a deterministic,
   hand-written-prose (not lorem-ipsum) CMS-export-style corpus —
   marketing pages with authored pins, blog/docs-style pages with
   category/tag facets and boosts — parameterized by document count
@@ -102,30 +102,30 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   below); Japanese/Arabic remain unbuilt, so a fixture claiming to
   cover them would just crash `buildIndex`. Exercised end-to-end at
   realistic scale (hundreds of documents, not a handful) in both
-  [`packages/indexer/test/cms-2k-fixture.test.ts`](../packages/indexer/test/cms-2k-fixture.test.ts)
+  [`packages/indexer/test/cms-2k-fixture.test.ts`](../../../packages/indexer/test/cms-2k-fixture.test.ts)
   and
-  [`packages/client/test/cms-2k-fixture.test.ts`](../packages/client/test/cms-2k-fixture.test.ts) —
+  [`packages/client/test/cms-2k-fixture.test.ts`](../../../packages/client/test/cms-2k-fixture.test.ts) —
   the existing tiny inline fixtures stay in place for fast, targeted
   per-feature unit tests; this is additive, a real-scale correctness
   pass alongside them, not a replacement.
 
 **Phase 1 — Minimal viable engine (single language, JSON tier only)**
-- ✅ Reference indexer — [`packages/indexer/`](../packages/indexer/):
+- ✅ Reference indexer — [`packages/indexer/`](../../../packages/indexer/):
   parses rendered HTML (title, `<main>`/body-minus-boilerplate,
   `csf-noindex`, `data-csf-body`/`data-csf-ignore`, canonical URL, meta
   description) per the `csf-*` meta-tag control surface
-  ([15-cms-meta-tag-control.md](15-cms-meta-tag-control.md)), tokenizes
-  via the shared [`packages/analysis/`](../packages/analysis/) package,
+  ([../../reference/cms-meta-tags.md](../../reference/cms-meta-tags.md)), tokenizes
+  via the shared [`packages/analysis/`](../../../packages/analysis/) package,
   emits a content-hashed manifest + single term shard + doc store shard
   (English only, unsharded — "small corpus mode").
-- ✅ Browser runtime — [`packages/client/`](../packages/client/):
+- ✅ Browser runtime — [`packages/client/`](../../../packages/client/):
   manifest + shard fetch over plain HTTP (proven against a real, if
   tiny, HTTP server in tests, not just direct filesystem access),
   boolean AND query evaluation, full BM25F scoring (docs/04) with
   field boosts defaulting to 1.0 until Phase 2 sets real weights. No
   Worker yet (main thread), no fuzzy/synonyms/facets/pins plugins yet.
 - ✅ Goal met: an end-to-end Vitest suite
-  ([`packages/client/test/e2e.test.ts`](../packages/client/test/e2e.test.ts))
+  ([`packages/client/test/e2e.test.ts`](../../../packages/client/test/e2e.test.ts))
   builds a real index and queries it back over real HTTP, proving the
   shard-fetch-on-demand model works, not just each half in isolation.
 
@@ -144,7 +144,7 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   before analysis (so a trailing `*` survives tokenization), then
   expands against the already-fetched term dictionary.
 - ✅ Exact phrase queries (`"quoted phrase"`,
-  [04-query-ranking-boosts.md#phrase--proximity-queries](04-query-ranking-boosts.md#phrase--proximity-queries)):
+  [../../guides/ranking-and-boosts.md](../../guides/ranking-and-boosts.md)):
   `parse-query.ts`'s `parseQuery()` extracts every `"..."` segment from
   the raw query string into its own clause before the existing
   space-separated term parsing runs on what's left; `search()` resolves
@@ -152,7 +152,7 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   (no prefix/synonym/fuzzy expansion inside a phrase, out of scope for
   this first slice) plus a real position-adjacency check
   (`hasConsecutivePositions()`) against the stored per-field token
-  positions ([02-index-format.md](02-index-format.md#term-shard-inverted-index)) —
+  positions ([02-index-format.md](../../concepts/index-format.md#term-shard-inverted-index)) —
   a document where the words are present but in the wrong order,
   non-adjacent, or split across different fields correctly fails the
   clause even though it would satisfy a bare AND of the same words.
@@ -178,7 +178,7 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   incompatible convention at once. Proven correct in an actual browser
   (Playwright/Chromium, not Node/Vitest, since Node has no `Worker`
   global to meaningfully exercise this) — see
-  [`packages/client/e2e-browser/worker.spec.ts`](../packages/client/e2e-browser/worker.spec.ts).
+  [`packages/client/e2e-browser/worker.spec.ts`](../../../packages/client/e2e-browser/worker.spec.ts).
 - All of the above verified with real end-to-end tests (not just unit
   tests) proving the ranking/boost/worker effect actually changes what
   the real client returns, not just that the scoring function's math
@@ -189,7 +189,7 @@ Phase 2 is now fully implemented.
 
 **Phase 3 — Facets & curated pins**
 - ✅ Terms facets: extraction (repeatable `csf-facet-<field>` meta tags,
-  [15-cms-meta-tag-control.md](15-cms-meta-tag-control.md)), a
+  [../../reference/cms-meta-tags.md](../../reference/cms-meta-tags.md)), a
   shard-per-field format matching `spec/schema/facet-shard.schema.json`,
   `search()` options `filters` (OR within one field's array of values,
   AND across fields) and `facets` (contextual counts computed against
@@ -208,7 +208,7 @@ Phase 2 is now fully implemented.
   `SearchResult.facets`/`facetValues()`, as opposed to filtering,
   which was built separately above):
   `computeRangeFacetBucketsEqualWidth()` in
-  [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)
+  [`packages/indexer/src/build-index.ts`](../../../packages/indexer/src/build-index.ts)
   computes equal-width buckets spanning the corpus's observed
   `[min, max]` once every document has been processed, populating
   `FacetShard.values` with the same `{count, docs}` shape terms facets
@@ -234,8 +234,8 @@ Phase 2 is now fully implemented.
   non-finite, or non-strictly-ascending boundaries array throws at
   build time, same as an invalid count.
 - ✅ Hierarchical facets
-  ([06-faceted-search.md#facet-types](06-faceted-search.md#facet-types),
-  [`packages/indexer/src/build-index.ts`](../packages/indexer/src/build-index.ts)):
+  ([../../guides/facets.md#facet-types](../../guides/facets.md#facet-types),
+  [`packages/indexer/src/build-index.ts`](../../../packages/indexer/src/build-index.ts)):
   a build-time option, `buildIndex(sources, lang, {
   hierarchicalFacets: { category: { separator?: ">" } } })`, marks a
   `csf-facet-<field>` field as path-structured — each authored value
@@ -258,7 +258,7 @@ Phase 2 is now fully implemented.
   per-branch lazy shard fetching (every level still lives in one
   shard, same as an ordinary terms facet) and author-configurable
   min/max depth.
-- ✅ Term-to-page pinning ([16-term-to-page-pinning.md](16-term-to-page-pinning.md)):
+- ✅ Term-to-page pinning ([../../guides/pinning.md](../../guides/pinning.md)):
   extraction of `csf-pin`/`csf-pin-mode`/`csf-pin-priority`/
   `csf-pin-exclusive`, a pins shard keyed by the same normalized-phrase
   form as any indexed term, exact/contains matching at query time
@@ -292,9 +292,9 @@ Phase 2 is now fully implemented.
 
 **Phase 4 — I18n**
 - ✅ `LanguageProfile` abstraction with a second real profile
-  ([`packages/analysis`](../packages/analysis)'s `german`, `Intl.Segmenter`
+  ([`packages/analysis`](../../../packages/analysis)'s `german`, `Intl.Segmenter`
   locale `"de"`, `foldDiacritics: false` per
-  [03-tokenization-i18n.md](03-tokenization-i18n.md#case-folding--diacritics)) —
+  [03-tokenization-i18n.md](../../guides/internationalization.md)) —
   proves the abstraction actually varies per language, not just English
   reshaped.
 - ✅ True per-language corpus partitioning: `buildIndex` analyzes each
@@ -312,8 +312,8 @@ Phase 2 is now fully implemented.
   generators (`spec/examples/`) and re-verified they're still
   byte-for-byte identical and schema-valid after the change.
 - ✅ Real English stemmer
-  ([03-tokenization-i18n.md#stemming](03-tokenization-i18n.md#stemming),
-  [`packages/analysis/src/stemmer-en.ts`](../packages/analysis/src/stemmer-en.ts)):
+  ([../../guides/internationalization.md#stemming](../../guides/internationalization.md#stemming),
+  [`packages/analysis/src/stemmer-en.ts`](../../../packages/analysis/src/stemmer-en.ts)):
   the classic Porter algorithm (1980) — deliberately the original, not
   the later incompatible Snowball-framework "Porter2" English stemmer —
   verified against the standard 23,531-word public reference vocabulary
@@ -326,8 +326,8 @@ Phase 2 is now fully implemented.
   matches literal stored text and a stemmed query term wouldn't
   `\b`-match a document's actual surface spelling.
 - ✅ Real German stemmer
-  ([03-tokenization-i18n.md#stemming](03-tokenization-i18n.md#stemming),
-  [`packages/analysis/src/stemmer-de.ts`](../packages/analysis/src/stemmer-de.ts)):
+  ([../../guides/internationalization.md#stemming](../../guides/internationalization.md#stemming),
+  [`packages/analysis/src/stemmer-de.ts`](../../../packages/analysis/src/stemmer-de.ts)):
   the Snowball German algorithm — a from-scratch port, not a variant of
   the English one, since German has no pre-Snowball "classic" stemmer
   to implement instead — verified against the standard 35,053-word
@@ -343,13 +343,13 @@ Phase 2 is now fully implemented.
   German had no real stemmer at all) now both stem to `"schon"`, an
   accepted tradeoff of a real, spec-conforming stemmer over the earlier
   identity passthrough — see
-  [03-tokenization-i18n.md#case-folding--diacritics](03-tokenization-i18n.md#case-folding--diacritics).
+  [../../guides/internationalization.md](../../guides/internationalization.md).
   Wired into `german.stem`; the multi-language corpus showcase demo and
   its test were updated to match
-  ([19-github-pages-showcase.md](19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)).
+  ([19-github-pages-showcase.md](./github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)).
 - ✅ CJK bigram-fallback segmentation
-  ([03-tokenization-i18n.md#segmentation](03-tokenization-i18n.md#segmentation),
-  [`packages/analysis/src/segment-cjk.ts`](../packages/analysis/src/segment-cjk.ts)):
+  ([../../guides/internationalization.md#segmentation](../../guides/internationalization.md#segmentation),
+  [`packages/analysis/src/segment-cjk.ts`](../../../packages/analysis/src/segment-cjk.ts)):
   two new `LanguageProfile`s, `chinese` (`"zh"`) and `japanese`
   (`"ja"`), both using the same bigram segmenter — a run of consecutive
   Han/hiragana/katakana characters is split into overlapping
@@ -372,8 +372,8 @@ Phase 2 is now fully implemented.
   the original design called for remains a documented future upgrade,
   not built here.
 - ✅ Thai/Khmer/Lao trigram-fallback segmentation
-  ([03-tokenization-i18n.md#segmentation](03-tokenization-i18n.md#segmentation),
-  [`packages/analysis/src/segment-sea.ts`](../packages/analysis/src/segment-sea.ts)):
+  ([../../guides/internationalization.md#segmentation](../../guides/internationalization.md#segmentation),
+  [`packages/analysis/src/segment-sea.ts`](../../../packages/analysis/src/segment-sea.ts)):
   three new `LanguageProfile`s, `thai` (`"th"`), `khmer` (`"km"`), and
   `lao` (`"lo"`), all using the same trigram segmenter over their
   respective script ranges (Thai U+0E00-0E7F, Lao U+0E80-0EFF, Khmer
@@ -391,7 +391,7 @@ Phase 2 is now fully implemented.
   registry-consuming call site picked these up automatically, with zero
   code changes needed there.
 - ✅ Auto language detection + an RTL primitive
-  ([03-tokenization-i18n.md](03-tokenization-i18n.md#auto-language-detection),
+  ([03-tokenization-i18n.md](../../guides/internationalization.md),
   `packages/analysis/src/detect-language.ts`'s `detectLanguage()`,
   `packages/analysis/src/is-rtl.ts`'s `isRtlLanguage()`): a
   deterministic, zero-bundled-model fallback wired into
@@ -408,7 +408,7 @@ Phase 2 is now fully implemented.
   the two facts it needs to set `dir="rtl"` on a results container
   without re-deriving either itself — RTL *layout* stays a
   consuming-app concern
-  ([08-modern-features.md](08-modern-features.md#accessibility)), no
+  ([08-modern-features.md](../../concepts/architecture.md)), no
   Arabic/Hebrew `LanguageProfile` is built (a separate, much larger
   undertaking — real stemming/segmentation for those scripts), and no
   future `@csf/react` package exists yet to consume any of this — this
@@ -420,7 +420,7 @@ Phase 2 is now fully implemented.
   result comes from that single language's partition, so this is one
   value per result, not per-hit. Populated identically across
   `mode: "lexical"` (default), `"vector"`, and `"hybrid"` — see
-  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md).
+  [../../guides/vector-search.md](../../guides/vector-search.md).
 - All of the above verified with real end-to-end tests over real HTTP
   proving cross-language query isolation (a term never matches the
   wrong language's partition) and per-language BM25 stats, not just
@@ -429,7 +429,7 @@ Phase 2 is now fully implemented.
 
 **Phase 5 — Synonyms & fuzzy**
 - ✅ Query-time synonym expansion
-  ([05-synonyms.md](05-synonyms.md)): author-supplied (not extracted
+  ([../../guides/synonyms.md](../../guides/synonyms.md)): author-supplied (not extracted
   from HTML — synonyms are corpus-vocabulary curation, not per-page
   metadata) equivalence classes and directional maps, normalized
   through each language's own analysis pipeline at build time (same
@@ -439,9 +439,9 @@ Phase 2 is now fully implemented.
   contributing at a reduced score weight (default 0.5×, overridable via
   `synonymWeight`) so a literal match still outranks a synonym-only
   one. Off by default (opt-in per query, matching the option's original
-  design in [07-client-api.md](07-client-api.md)).
+  design in [../../reference/client-api.md](../../reference/client-api.md)).
 - ✅ `multiWord` phrase-level synonyms
-  ([05-synonyms.md](05-synonyms.md#synonym-file-format)): built on top
+  ([05-synonyms.md](../../guides/synonyms.md#synonym-file-format)): built on top
   of Phase 2's exact-phrase-query work above, which supplied the
   genuine position-adjacency matching path this needed (the
   originally-cited blocker — "no phrase-matching path exists at
@@ -472,7 +472,7 @@ Phase 2 is now fully implemented.
   and a variant still matching even when the literal phrase's own words
   don't exist anywhere in the corpus.
 - ✅ SymSpell fuzzy plugin, "did you mean"
-  ([04-query-ranking-boosts.md](04-query-ranking-boosts.md#prefix--fuzzy-matching)):
+  ([04-query-ranking-boosts.md](../../guides/ranking-and-boosts.md)):
   a precomputed deletion dictionary (`spec/schema/fuzzy-shard.schema.json`,
   one `fuzzy/<lang>.json` shard per language) built at index time via
   `buildIndex(sources, lang, { fuzzy: true })` — for every indexed term,
@@ -492,7 +492,7 @@ Phase 2 is now fully implemented.
   transpositions) that the strict matcher correctly excludes from
   scoring.
 - ✅ Distance-2 dictionaries and a length-dependent maxEdits cap
-  ([04-query-ranking-boosts.md#prefix--fuzzy-matching](04-query-ranking-boosts.md#prefix--fuzzy-matching)):
+  ([../../guides/ranking-and-boosts.md](../../guides/ranking-and-boosts.md)):
   `buildIndex(sources, lang, { fuzzy: true, fuzzyMaxEdits: 2 })`
   generates every deletion-of-a-deletion variant too, not just direct
   single deletions — a genuine breadth-first expansion
@@ -510,7 +510,7 @@ Phase 2 is now fully implemented.
   expansion regardless of what the dictionary supports
   (`effectiveMaxEdits()`) — this is also the answer to fuzzy
   matching's interaction with the CJK bigram profiles
-  ([03-tokenization-i18n.md#segmentation](03-tokenization-i18n.md#segmentation)):
+  ([../../guides/internationalization.md#segmentation](../../guides/internationalization.md#segmentation)):
   bigram terms are always 1-2 characters, so the length cap already
   restricts them to distance-1 fuzzy matching with no CJK-specific
   code needed. "Did you mean" deliberately ignores this cap (same
@@ -528,8 +528,8 @@ Phase 2 is now fully implemented.
 
 **Phase 6 — Modern features polish**
 - ✅ Cancellation
-  ([docs/08-modern-features.md#instant-search--debouncing--cancellation](08-modern-features.md#instant-search--debouncing--cancellation),
-  [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
+  ([docs/../../concepts/architecture.md](../../concepts/architecture.md),
+  [`packages/client/src/client.ts`](../../../packages/client/src/client.ts)):
   `search()`/`facetValues()` accept `options.signal: AbortSignal` — an
   already-aborted signal rejects immediately, before any fetch/worker
   round trip; a signal that fires mid-flight rejects the call with a
@@ -546,9 +546,9 @@ Phase 2 is now fully implemented.
   Playwright test proving identical behavior whether the aborted query
   executed inside a Worker or on the main thread.
 - ✅ Streaming/incremental results
-  ([docs/07-client-api.md#streamingincremental-results](07-client-api.md#streamingincremental-results),
-  [`packages/client/src/search.ts`](../packages/client/src/search.ts),
-  [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
+  ([docs/../../reference/client-api.md#streamingincremental-results](../../reference/client-api.md#streamingincremental-results),
+  [`packages/client/src/search.ts`](../../../packages/client/src/search.ts),
+  [`packages/client/src/client.ts`](../../../packages/client/src/client.ts)):
   `SearchClient.searchStream(query, { onPartial, ... })` resolves to the
   same final `SearchResult` `search()` would, but — only when the
   caller opted into `synonyms` and/or `fuzzy` — first invokes
@@ -574,10 +574,10 @@ Phase 2 is now fully implemented.
   proving identical partial/final events whether `searchStream()`
   executed inside a Worker or on the main thread.
 - ✅ Offline/Service Worker caching
-  ([docs/08-modern-features.md#caching--offline-support](08-modern-features.md#caching--offline-support),
-  [docs/07-client-api.md#offline-caching](07-client-api.md#offline-caching),
-  [`packages/client/src/sw.ts`](../packages/client/src/sw.ts),
-  [`packages/client/src/offline.ts`](../packages/client/src/offline.ts)):
+  ([docs/../../concepts/architecture.md](../../concepts/architecture.md),
+  [docs/../../reference/client-api.md](../../reference/client-api.md),
+  [`packages/client/src/sw.ts`](../../../packages/client/src/sw.ts),
+  [`packages/client/src/offline.ts`](../../../packages/client/src/offline.ts)):
   `registerOfflineCaching(swUrl, indexUrl, options)` registers a
   Service Worker (a separate Vite library entry, `dist/sw.js`, same
   pattern as `worker.js`) that precaches the manifest plus every shard
@@ -589,7 +589,7 @@ Phase 2 is now fully implemented.
   including fully offline, since the index is 100% static files to
   begin with. Built as a standalone opt-in module rather than gated
   behind the generic plugin system in
-  [17-plugin-architecture.md](17-plugin-architecture.md) (still
+  [../specs/plugin-architecture.md](../specs/plugin-architecture.md) (still
   design-only, no code yet) — building a whole plugin contract as a
   prerequisite for one caching feature would have been the wrong
   order. Only requests under the manifest's own directory are ever
@@ -609,8 +609,8 @@ Phase 2 is now fully implemented.
   cached, and `"stale-while-revalidate"` mode also serving successfully
   while offline.
 - ✅ Observability hooks, first slice
-  ([docs/08-modern-features.md#observability-hooks](08-modern-features.md#observability-hooks),
-  [`packages/client/src/client.ts`](../packages/client/src/client.ts)):
+  ([docs/../../concepts/architecture.md](../../concepts/architecture.md),
+  [`packages/client/src/client.ts`](../../../packages/client/src/client.ts)):
   `SearchClient.on("query" | "result", listener)` exposes the two
   lifecycle events named in the design doc — `"query"` fires
   synchronously the moment `search()` is called (before any
@@ -628,8 +628,8 @@ Phase 2 is now fully implemented.
   identically whether the query executed inside a Worker or on the
   main thread.
 - ✅ Result highlighting, first slice
-  ([docs/08-modern-features.md#highlighting--snippets](08-modern-features.md#highlighting--snippets),
-  [`packages/client/src/highlight.ts`](../packages/client/src/highlight.ts)):
+  ([docs/../../concepts/architecture.md](../../concepts/architecture.md),
+  [`packages/client/src/highlight.ts`](../../../packages/client/src/highlight.ts)):
   `search(query, { highlight: true })` populates `Hit.highlights` with
   match/non-match spans per stored field, matching the literal query
   terms typed (prefix-aware). Deliberately scoped narrower than the
@@ -640,8 +640,8 @@ Phase 2 is now fully implemented.
   only) — see the doc's Status note for why each is deferred rather
   than a redesign.
 - ✅ Bundle-size CI gate
-  ([docs/08-modern-features.md#bundle-size-budget](08-modern-features.md#bundle-size-budget),
-  [`packages/client/scripts/check-bundle-size.mjs`](../packages/client/scripts/check-bundle-size.mjs),
+  ([docs/../../concepts/architecture.md](../../concepts/architecture.md),
+  [`packages/client/scripts/check-bundle-size.mjs`](../../../packages/client/scripts/check-bundle-size.mjs),
   run via `pnpm size` in CI): gzips the real `dist/index.js` and
   `dist/worker.js` entry points and fails the build past a 15 KB
   budget each — both sit around 1-1.5 KB today. Scoped to today's
@@ -651,12 +651,12 @@ Phase 2 is now fully implemented.
   docs/08 remain the target design for whenever a plugin architecture
   actually ships, not what's checked now.
 - ✅ Configuration testbed for regression testing
-  ([10-testing-and-performance.md](10-testing-and-performance.md#1-correctness-tests),
-  [`packages/client/test/config-testbed.test.ts`](../packages/client/test/config-testbed.test.ts)):
+  ([10-testing-and-performance.md](../../project/governance.md),
+  [`packages/client/test/config-testbed.test.ts`](../../../packages/client/test/config-testbed.test.ts)):
   a declared matrix of build/query configurations (default field
   boosts, a per-query title-boost override, fuzzy matching at a strict
   vs. lenient `fuzzyWeight`) run against a shared slice of the
-  [`@csf/fixtures`](../packages/fixtures) CMS-2k corpus with a fixed
+  [`@csf/fixtures`](../../../packages/fixtures) CMS-2k corpus with a fixed
   query set, snapshotted per combination via Vitest — an intentional
   ranking change shows up as a reviewable snapshot diff across every
   configuration at once, the same way a UI screenshot test catches an
@@ -669,9 +669,9 @@ Phase 2 is now fully implemented.
   the framework (one array of `{name, build, search}` entries) makes
   adding either a data change, not new test code.
 - ✅ Accessibility pass, first slice
-  ([docs/08-modern-features.md#accessibility](08-modern-features.md#accessibility),
-  [`showcase/src/search-widget.ts`](../showcase/src/search-widget.ts),
-  [`showcase/src/gallery-widget.ts`](../showcase/src/gallery-widget.ts)):
+  ([docs/../../concepts/architecture.md](../../concepts/architecture.md),
+  [`showcase/src/search-widget.ts`](../../../showcase/src/search-widget.ts),
+  [`showcase/src/gallery-widget.ts`](../../../showcase/src/gallery-widget.ts)):
   the showcase's own widgets demonstrate the documented `aria-live`
   pattern as consuming-app code — the docs search box gets
   `aria-expanded`/`aria-controls` on its `<input>` plus a
@@ -690,7 +690,7 @@ Phase 2 is now fully implemented.
 **Phase 7 — Scale options**
 - ✅ Found and fixed a real O(n²) `buildIndex()` performance bug while
   establishing the JSON-tier scaling baseline this phase's investigation
-  needs ([11-binary-vs-json-index.md](11-binary-vs-json-index.md)):
+  needs ([../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md)):
   `addPostings()` (`packages/indexer/src/build-index.ts`) looked up a
   term's existing posting for a document via
   `entry.postings.find((p) => p.doc === docId)` — an O(current
@@ -723,7 +723,7 @@ Phase 2 is now fully implemented.
   resident memory in this reference (in-memory, non-streaming) indexer,
   and 1M would extrapolate past the ~15GB available on a typical CI/dev
   machine; that ceiling is itself a finding (see
-  [11-binary-vs-json-index.md](11-binary-vs-json-index.md)), not
+  [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md)), not
   something to push through by brute force. This benchmark's first run
   surfaced the headline finding below (`writeIndex()` had no real prefix
   sharding), which is now fixed; the table compares the two.
@@ -733,7 +733,7 @@ Phase 2 is now fully implemented.
   benchmark above initially found that `writeIndex()` emitted exactly
   *one* term shard per language (`terms/<lang>/all.json`, `prefix:
   "all"`), not the per-first-character-prefix sharding
-  [02-index-format.md](02-index-format.md#term-shard-inverted-index)
+  [02-index-format.md](../../concepts/index-format.md#term-shard-inverted-index)
   documents as the design — a known, already-recorded Phase 1 "small
   corpus mode" simplification, never revisited (Phase 1's bullet above),
   not a regression — with the measured consequence that every query
@@ -752,7 +752,7 @@ Phase 2 is now fully implemented.
     observed case at 100k docs: `docs/02`'s per-prefix sharding narrows
     *which terms* are in a shard, but can't shrink one term's own
     already-huge posting list) is exactly the kind of density the binary
-    tier ([11-binary-vs-json-index.md](11-binary-vs-json-index.md)) is
+    tier ([../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md)) is
     for, not further JSON prefix recursion. A `{ shardByPrefix: false }`
     option (docs/14's already-recommended small-corpus-mode) opts back
     into the single-shard-per-language behavior when a corpus is small
@@ -798,13 +798,13 @@ Phase 2 is now fully implemented.
   (`packages/indexer/bench/binary-vs-json-postings.mjs`, run via
   `pnpm --filter @csf/indexer run bench:binary`): a minimal delta+varint
   binary postings codec matching
-  [spec-binary-format.md](spec-binary-format.md)'s own baseline
+  [../specs/binary-format.md](../specs/binary-format.md)'s own baseline
   recommendation, benchmarked against the largest single prefix shard
   (the real per-query worst case, per the prefix-sharding fix above) at
   1k/10k/100k docs, every result round-trip-verified byte-identical to
   the JSON source. Deliberately investigation-only code (not part of
   `@csf/format`/`@csf/indexer`'s shipped API) — see
-  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) for the full
+  [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md) for the full
   writeup. Two findings, in opposite directions: the gzip size win is
   far larger than this investigation's earlier illustrative estimate and
   grows with corpus size (11x at 1k docs, 41x at 100k), but a naive
@@ -820,7 +820,7 @@ Phase 2 is now fully implemented.
   `pnpm --filter @csf/indexer run bench:binary-lazy`): re-encodes the
   same largest-shard baseline into a directory-based layout (sorted
   term → byte offset/length table + postings blob, per
-  [spec-binary-format.md](spec-binary-format.md#dictionary-encoding)'s
+  [spec-binary-format.md](../specs/binary-format.md#dictionary-encoding)'s
   own baseline) so a specific term's postings decode by seeking directly
   to its byte range, without touching any other term — every result
   round-trip-verified against the full JSON-parsed shard. **This does
@@ -833,7 +833,7 @@ Phase 2 is now fully implemented.
   largest shard), not as corpus size grows — because lazy decoding wins
   by skipping unused terms, and a shard with few terms has little to
   skip. Full numbers and interpretation in
-  [11-binary-vs-json-index.md](11-binary-vs-json-index.md). Building
+  [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md). Building
   the binary tier for real should use this directory-based, lazy-decode
   design, not a whole-shard decode step.
 - ✅ Binary tier codec — term shards
@@ -844,7 +844,7 @@ Phase 2 is now fully implemented.
   opt-in feature — the same directory-based, lazy-per-term-decode
   design, now wired end-to-end. Per-shard, not global (`format:
   "binary"` on that shard's manifest entry, per
-  [spec-binary-format.md](spec-binary-format.md#manifest-integration)'s
+  [spec-binary-format.md](../specs/binary-format.md#manifest-integration)'s
   "a deployment may mix JSON and binary files" allowance).
   `packages/client/test/binary-term-shard.test.ts` proves
   `spec-binary-format.md`'s success criterion directly: the same corpus
@@ -877,7 +877,7 @@ Phase 2 is now fully implemented.
   per-key decode a win — building one properly would need its own
   filter-only-vs-aggregate-results design, not a mechanical rename of
   the term-shard technique (see
-  [02-index-format.md](02-index-format.md#facet-shard)). Synonym/pins
+  [02-index-format.md](../../concepts/index-format.md)). Synonym/pins
   shards stay JSON too: both are small, author-curated data with no
   demonstrated size problem to justify the added complexity. Also
   extracted a shared `ByteWriter`/`ByteReader` (`packages/indexer/src/byte-writer.ts`,
@@ -921,10 +921,10 @@ Phase 2 is now fully implemented.
   Range-request-capable single-file postings variant, an optional WASM
   scoring core, federated multi-index search, and a facet-shard binary
   encoding with its own filter-vs-aggregate design — see
-  [11-binary-vs-json-index.md](11-binary-vs-json-index.md) and
-  [spec-binary-format.md](spec-binary-format.md) for what's left. A
-  query planner ([spec-query-planner.md](spec-query-planner.md)) and
-  storage abstraction ([spec-storage-api.md](spec-storage-api.md)) are
+  [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md) and
+  [../specs/binary-format.md](../specs/binary-format.md) for what's left. A
+  query planner ([../specs/query-planner.md](../specs/query-planner.md)) and
+  storage abstraction ([../specs/storage-api.md](../specs/storage-api.md)) are
   drafted extensibility groundwork for this phase's scale work, not yet
   built.
 
@@ -945,7 +945,7 @@ Phase 2 is now fully implemented.
   with `SearchClientOptions.embedQuery` as the query-time embedding seam
   and `VectorSearchNotConfiguredError` thrown clearly when it's missing.
   Full design in
-  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md), now
+  [../../guides/vector-search.md](../../guides/vector-search.md), now
   annotated with what's actually built. Proven end-to-end over real HTTP
   and through a real Worker
   (`packages/client/test/vector-hybrid-search.test.ts`,
@@ -978,14 +978,14 @@ Phase 2 is now fully implemented.
   blocking); binary (1-bit) quantization; IVF-style coarse clustering for
   larger corpora; WASM-accelerated scoring. All explicitly named as
   future opt-ins in
-  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md), not
+  [../../guides/vector-search.md](../../guides/vector-search.md), not
   day-one requirements.
 
 **Showcase (runs alongside, not a phase of its own)**
 - A GitHub Pages demo is staged against the phases above rather than
   built all at once — see
-  [19-github-pages-showcase.md](19-github-pages-showcase.md).
-  - ✅ Stage 0 (docs site) — [`showcase/`](../showcase/): every
+  [./github-pages-showcase.md](./github-pages-showcase.md).
+  - ✅ Stage 0 (docs site) — [`showcase/`](../../../showcase/): every
     `docs/*.md` + `README.md` rendered to a small static site (nav,
     cross-link rewriting), no framework.
   - ✅ Stage 1 ("search these docs") — the real `@csf/indexer` runs
@@ -996,7 +996,7 @@ Phase 2 is now fully implemented.
     bug (a dynamic `import()` resolving against its own module's URL,
     not the page's) that testing only at server root would have missed.
     Deploys via
-    [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml)
+    [`.github/workflows/deploy-pages.yml`](../../../.github/workflows/deploy-pages.yml)
     on every push to `main` and is **live** at Pages' Project Pages URL
     for this repo. Getting there caught a second real deploy-workflow
     bug beyond the browser one above: the `deploy` job's official-
@@ -1018,14 +1018,14 @@ Phase 2 is now fully implemented.
     full English/German/Japanese/Arabic list originally proposed —
     demonstrating real per-document-language partitioning and
     diacritic-sensitive matching) are all live at `gallery/index.html`
-    ([`showcase/build-gallery.ts`](../showcase/build-gallery.ts),
-    [`showcase/build-gallery-synonyms.ts`](../showcase/build-gallery-synonyms.ts),
-    [`showcase/build-gallery-i18n.ts`](../showcase/build-gallery-i18n.ts),
+    ([`showcase/build-gallery.ts`](../../../showcase/build-gallery.ts),
+    [`showcase/build-gallery-synonyms.ts`](../../../showcase/build-gallery-synonyms.ts),
+    [`showcase/build-gallery-i18n.ts`](../../../showcase/build-gallery-i18n.ts),
     verified end-to-end with real-browser Playwright tests). Each
     demo's manifest/shards are kept entirely separate from the docs
     site's search index and from each other (`build-search.ts` skips
     `dist/gallery/`), per
-    [19-github-pages-showcase.md](19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)'s
+    [19-github-pages-showcase.md](./github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5)'s
     "not one shared mega corpus" design. `Intl.Segmenter` CJK handling,
     RTL rendering, and per-language stemming differences remain
     unbuilt (blocked on Phase 4 itself, not this stage).
@@ -1052,13 +1052,13 @@ sequencing for incremental value, not a waterfall gate.
   target corpus sizes? Leaning toward the latter until a concrete
   use case proves otherwise — full rebuilds keep the whole system much
   simpler (see the simplicity principle in
-  [00-overview.md](00-overview.md)).
+  [../../getting-started/overview.md](../../getting-started/overview.md)).
 - **Personalization/ML ranking.** Out of scope for the core (see
   non-goals), but should the API leave a documented extension point
   (e.g. a client-side re-ranking hook fed a feature vector per hit) so
   consumers can layer their own signals without forking the engine?
 - ~~**Vector/semantic search.**~~ Resolved into a concrete design — see
-  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md) and
+  [../../guides/vector-search.md](../../guides/vector-search.md) and
   Phase 8 above. Remaining open sub-question: whether shipping a
   client-side embedding model (tens of MB) is an acceptable default cost
   for deployments that enable `plugin:vector`, or whether the remote-API
@@ -1076,7 +1076,7 @@ sequencing for incremental value, not a waterfall gate.
   explicit tagging remains strictly preferred whenever a deployment can
   provide it.
 - **Cross-index score normalization** (federated search,
-  [07-client-api.md](07-client-api.md#federated-multi-index-search)) —
+  [07-client-api.md](../../reference/client-api.md)) —
   min-max vs z-score vs learned normalization; needs empirical testing
   against real multi-corpus fixtures before picking a permanent default.
 - **Result diversification / near-duplicate collapsing.** Today every
@@ -1087,7 +1087,7 @@ sequencing for incremental value, not a waterfall gate.
   pages doesn't crowd out diverse results? No concrete driver yet;
   revisit once a real deployment's result pages show the symptom.
 - **Freshness decay and authority/importance boosting.** BM25F plus
-  configured field/doc/term boosts ([04-query-ranking-boosts.md](04-query-ranking-boosts.md))
+  configured field/doc/term boosts ([../../guides/ranking-and-boosts.md](../../guides/ranking-and-boosts.md))
   is purely content-relevance-based today — no notion of "this page is
   newer" or "this page is more authoritative" absent an explicit boost
   the deployment configures by hand. A generic time-decay function
@@ -1098,7 +1098,7 @@ sequencing for incremental value, not a waterfall gate.
   curve to no actual data.
 - **Query rewrite beyond "did you mean".** Fuzzy matching already
   surfaces a "did you mean" suggestion string
-  ([04-query-ranking-boosts.md](04-query-ranking-boosts.md#fuzzy--typo-tolerant-matching)),
+  ([04-query-ranking-boosts.md](../../guides/ranking-and-boosts.md)),
   but never auto-applies it — the consumer's UI decides whether to
   re-run the corrected query. Should the API offer an opt-in
   auto-rewrite-and-rerun mode (return the corrected-query's hits
@@ -1112,6 +1112,6 @@ sequencing for incremental value, not a waterfall gate.
 - Real-time index mutation from the browser (this is a read-only
   runtime by design).
 - Server-side query logging/analytics baked into core (left as an
-  observability hook, see [08-modern-features.md](08-modern-features.md#observability-hooks)).
+  observability hook, see [08-modern-features.md](../../concepts/architecture.md)).
 - Built-in UI components beyond example code (kept as separate optional
   packages so core stays framework-agnostic).

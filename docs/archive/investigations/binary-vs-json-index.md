@@ -1,14 +1,14 @@
 # Investigation: Should the Index Be Served as Binary?
 
-See [spec-binary-format.md](spec-binary-format.md) for the concrete
+See [../specs/binary-format.md](../specs/binary-format.md) for the concrete
 physical layout (sections, encoding, versioning) *if and when* this
 investigation concludes binary is worth building — that doc is the
 "what it would look like," this doc is the "should we, and when."
 
-[02-index-format.md](02-index-format.md) already proposes a binary tier
+[../../concepts/index-format.md](../../concepts/index-format.md) already proposes a binary tier
 as an opt-in. This doc works through *when that's actually worth it*,
 since it trades against the "open, trivially-generatable JSON spec"
-principle in [00-overview.md](00-overview.md) — binary shouldn't be
+principle in [../../getting-started/overview.md](../../getting-started/overview.md) — binary shouldn't be
 adopted as a default without a concrete reason, given that cost.
 
 ## What's actually being compared
@@ -43,7 +43,7 @@ Where binary still wins on bytes even after compression:
   fetch latency, since common terms are hit by nearly every query.
 
 Rough shape of the effect (illustrative, not a substitute for the real
-benchmark in [10-testing-and-performance.md](10-testing-and-performance.md#2-performance-test-suite)):
+benchmark in [10-testing-and-performance.md](../../project/governance.md)):
 JSON+brotli and a hand-rolled delta-varint binary+brotli tend to land
 within ~20-30% of each other for typical postings, widening toward
 ~2x for very dense, highly-clustered doc-id lists (e.g. a term present
@@ -92,10 +92,10 @@ this project's stated principles:
   looks fine but silently corrupts a lookup for a specific edge case.
   This directly increases the surface area the cross-implementation
   conformance tests in
-  [10-testing-and-performance.md](10-testing-and-performance.md#1-correctness-tests)
+  [10-testing-and-performance.md](../../project/governance.md)
   need to cover, and raises the bar for "an afternoon of scripting can
   produce a valid index" from Phase 0 of
-  [09-roadmap.md](09-roadmap.md#phase-0--spec--fixtures).
+  [09-roadmap.md](../roadmaps/implementation-history.md).
 - We should **not** reach for a heavyweight schema/serialization
   framework (FlatBuffers, Cap'n Proto, Protobuf) to get zero-copy
   binary access — that reintroduces a library/toolchain dependency on
@@ -104,11 +104,11 @@ this project's stated principles:
   need. If binary is used, it should be a small, fully hand-specifiable
   byte layout documented in plain prose + a JSON Schema-equivalent
   "binary layout" doc, matching the simplicity principle in
-  [00-overview.md](00-overview.md#guiding-principles).
+  [00-overview.md](../../getting-started/overview.md).
 
 ## Recommendation
 
-Keep the tiered design in [02-index-format.md](02-index-format.md), but
+Keep the tiered design in [../../concepts/index-format.md](../../concepts/index-format.md), but
 sharpen when each tier applies rather than leaving it a vague "opt-in for
 large corpora":
 
@@ -124,7 +124,7 @@ large corpora":
   the performance suite, *and* the corpus is large/dense enough that
   splitting into ever-smaller JSON prefix-shards stops being sufficient."
   The performance suite in
-  [10-testing-and-performance.md](10-testing-and-performance.md) should
+  [../../project/governance.md](../../project/governance.md) should
   report this threshold empirically (a corpus size / shard density
   number) rather than the docs asserting one without data.
 - **Binary format spec must be minimal and hand-rollable** — a sorted
@@ -140,14 +140,14 @@ large corpora":
   (JSON, no flags) the default experience even for authors who will
   eventually need binary.
 - Both tiers **must pass the same correctness and conformance test
-  suite** ([10-testing-and-performance.md](10-testing-and-performance.md))
+  suite** ([../../project/governance.md](../../project/governance.md))
   — a binary-tier index and a JSON-tier index built from the same source
   documents must be indistinguishable from the client's point of view
   for every query in the regression snapshot set.
 
 ## Follow-up work (tracked in the roadmap)
 
-Added to [09-roadmap.md](09-roadmap.md) Phase 7: build the binary codec
+Added to [../roadmaps/implementation-history.md](../roadmaps/implementation-history.md) Phase 7: build the binary codec
 *and* a Range-request-capable single-file postings variant, benchmark
 both against JSON at 10k/100k/1M synthetic corpus sizes, and use that
 data (not intuition) to set the size/density threshold at which the
@@ -156,7 +156,7 @@ indexer's auto-suggestion switches on.
 **Update**: while establishing the JSON-tier half of that baseline (a
 prerequisite to any JSON-vs-binary comparison), a real O(n²)
 `buildIndex()` performance bug was found and fixed — see the Phase 7
-bullet in [09-roadmap.md](09-roadmap.md#phase-7--scale-options) for the
+bullet in [09-roadmap.md](../roadmaps/implementation-history.md) for the
 details. Worth calling out here specifically because it changes this
 investigation's own premise: the "unsustainable build time at scale"
 concern a slow JSON-tier reference indexer might otherwise raise is a
@@ -179,7 +179,7 @@ term shard regardless of which term was searched, so per-query cost grew
 with total corpus vocabulary instead of staying flat. That's now fixed
 (real per-first-character-prefix sharding, auto-widening for over-large
 buckets — see the Phase 7 bullet in
-[09-roadmap.md](09-roadmap.md#phase-7--scale-options) for the
+[09-roadmap.md](../roadmaps/implementation-history.md) for the
 implementation). Re-running the same benchmark against the fix gives the
 real before/after this investigation's "should we build binary" question
 actually turns on:
@@ -207,7 +207,7 @@ can be evaluated against what a query actually fetches today — a
 size, JSON.parse is already single-digit-to-low-double-digit
 milliseconds (4.9-54.5ms across 1k-100k above), well inside "the whole
 point of the binary tier is avoiding whole-shard JSON parse cost"
-territory this doc's own [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md)
+territory this doc's own [../../guides/indexing.md](../../guides/indexing.md)
 cross-reference already argues doesn't matter below ~1MB. The remaining
 open question the binary tier would answer is narrower than it looked
 before this fix: not "avoid parsing the whole vocabulary" (prefix
@@ -226,7 +226,7 @@ against the corrected reference point.
 `packages/indexer/bench/binary-vs-json-postings.mjs` (`pnpm --filter @csf/indexer run bench:binary`)
 takes the same largest-single-prefix-shard baseline as the table above,
 encodes it with a minimal delta+varint binary postings codec matching
-[spec-binary-format.md](spec-binary-format.md)'s own baseline
+[../specs/binary-format.md](../specs/binary-format.md)'s own baseline
 recommendation (delta-encoded doc ids, varints throughout, delta-encoded
 positions), and measures real gzip size and decode time against the
 shard's existing JSON. Every result is round-trip-verified
@@ -257,7 +257,7 @@ Two real, somewhat surprising findings, in opposite directions:
 2. **Decoding is currently *slower* than `JSON.parse`, not faster, at
    small-to-medium scale — and only breaks even at 100k.** This directly
    contradicts the "avoid whole-shard JSON parse cost" framing
-   [spec-binary-format.md](spec-binary-format.md) leads with, *for this
+   [../specs/binary-format.md](../specs/binary-format.md) leads with, *for this
    specific implementation*: V8's native `JSON.parse` is extremely
    well-optimized C++, while this benchmark's decoder is a naive,
    hand-rolled JavaScript byte-at-a-time loop — a fair baseline
@@ -271,7 +271,7 @@ Two real, somewhat surprising findings, in opposite directions:
    that could plausibly flip this entirely: **lazy per-term decoding**
    (only decode the postings for terms the query actually matched,
    rather than every term in the shard up front, per
-   [spec-binary-format.md](spec-binary-format.md#decoding-strategy)'s
+   [spec-binary-format.md](../specs/binary-format.md#decoding-strategy)'s
    own "decode lazily" guidance — this benchmark decodes the whole
    shard for a fair apples-to-apples comparison, which is *not* how a
    real client would use it) and a more optimized decoder (a
@@ -297,9 +297,9 @@ default, not an optional afterthought.
 (`pnpm --filter @csf/indexer run bench:binary-lazy`) re-encodes the same
 largest-single-prefix-shard baseline into a directory-based layout — a
 sorted term → (byte offset, length) table followed by a postings blob,
-per [spec-binary-format.md](spec-binary-format.md#dictionary-encoding)'s
+per [spec-binary-format.md](../specs/binary-format.md#dictionary-encoding)'s
 own "sorted string table" baseline and
-[#decoding-strategy](spec-binary-format.md#decoding-strategy)'s "decode
+[#decoding-strategy](../specs/binary-format.md#decoding-strategy)'s "decode
 only matching posting lists" guidance — so a specific term's postings
 can be decoded by seeking directly to its byte range, without touching
 (let alone decoding) any other term. Every term's lazy-decoded result is
@@ -327,7 +327,7 @@ one term) not because binary got worse at scale, but because the
 terms (a consequence of this project's recursive prefix-splitting
 auto-widening down to individual terms once nothing else can be
 split off, see the Phase 7 bullet in
-[09-roadmap.md](09-roadmap.md#phase-7--scale-options)) — with only 3
+[09-roadmap.md](../roadmaps/implementation-history.md)) — with only 3
 terms in the whole shard, decoding "the 3 busiest" is decoding
 *almost the entire shard*, which is exactly the whole-shard case the
 previous benchmark already measured as a wash-to-slight-loss at that

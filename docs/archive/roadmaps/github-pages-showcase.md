@@ -4,11 +4,11 @@ A live demo is worth more than the docs for this project specifically,
 because GitHub Pages *is* the deployment model being designed for — a
 plain static host with no server-side logic. A showcase that actually
 works on Pages is a running proof of the core claim in
-[00-overview.md](00-overview.md#goals) ("static-hostable index"), not
+[00-overview.md](../../getting-started/overview.md) ("static-hostable index"), not
 just an illustration of it.
 
 This plan is staged against the phases in
-[09-roadmap.md](09-roadmap.md#phased-build-plan) rather than assuming
+[09-roadmap.md](./implementation-history.md#phased-build-plan) rather than assuming
 the whole engine exists — most of the showcase's *value* (a working
 demo, dogfooding the HTML ingestion path) is available well before the
 full feature set is built.
@@ -28,19 +28,19 @@ Two showcase surfaces, published from the same repo:
 
 ## Stage 0 — Docs site ✅ built
 
-- [`showcase/build-docs.ts`](../showcase/build-docs.ts) renders every
+- [`showcase/build-docs.ts`](../../../showcase/build-docs.ts) renders every
   `docs/*.md` file plus `README.md` to a small static site (landing
   page, one page per doc, an auto-generated nav sidebar in doc order),
   using `marked` for markdown → HTML and a hand-written ~150-line
   template/nav/link-rewriting step — no docs framework, consistent with
-  [00-overview.md](00-overview.md#guiding-principles)'s "simple over
+  [00-overview.md](../../getting-started/overview.md)'s "simple over
   clever." Cross-doc `.md` links are rewritten to the `.html` pages
   this build actually produces.
 - This *is* the first real instance of the HTML-ingestion design in
-  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#ingestion-from-rendered-html):
+  [14-reference-deployment-cms-2k.md](../../guides/indexing.md):
   the rendered doc pages are exactly the kind of `<main>`/`<title>`
   structure that adapter expects.
-- Deploys via [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml)
+- Deploys via [`.github/workflows/deploy-pages.yml`](../../../.github/workflows/deploy-pages.yml)
   (`actions/deploy-pages`) on push to `main` and is live. Enabling Pages
   itself — Settings → Pages → "GitHub Actions" as the source — was a
   one-time repo-settings change outside what a workflow file can do, a
@@ -54,16 +54,16 @@ Two showcase surfaces, published from the same repo:
 
 ## Stage 1 — "Search these docs" ✅ built
 
-- [`showcase/build-search.ts`](../showcase/build-search.ts) runs the
+- [`showcase/build-search.ts`](../../../showcase/build-search.ts) runs the
   real `@csf/indexer` against Stage 0's rendered HTML output and copies
   the built `@csf/client` bundle alongside it — the actual reference
   indexer and runtime from Phases 0-2, not a mock.
-- [`showcase/src/search-widget.ts`](../showcase/src/search-widget.ts) is
+- [`showcase/src/search-widget.ts`](../../../showcase/src/search-widget.ts) is
   a small (~100 line), unbundled glue script — loaded via a plain
   `<script type="module">` on every page — that constructs a real
   `SearchClient` (Worker execution included) and renders results.
   Verified end-to-end in a real browser via
-  [`showcase/e2e-browser/showcase.spec.ts`](../showcase/e2e-browser/showcase.spec.ts),
+  [`showcase/e2e-browser/showcase.spec.ts`](../../../showcase/e2e-browser/showcase.spec.ts),
   including that it works correctly when served from a subpath (as
   GitHub Project Pages does — `user.github.io/<repo>/`, not domain
   root) — every asset/result-link reference is resolved from
@@ -72,11 +72,11 @@ Two showcase surfaces, published from the same repo:
   testing at a subpath and not just at server root.
 - Dogfooding at the smallest possible scale (22 pages today) turned out
   to be a good stress-test of the "small corpus mode" simplifications
-  in [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale)
+  in [14-reference-deployment-cms-2k.md](../../guides/indexing.md#what-to-simplify-at-this-scale)
   — even smaller than the 2k-doc reference target.
 - Not yet done: a Lighthouse/PageSpeed run against a live deployed Pages
   URL to check the resource-aware loading claims in
-  [18-resource-aware-loading.md](18-resource-aware-loading.md) — worth
+  [../../guides/offline-search.md](../../guides/offline-search.md) — worth
   doing once this is actually deployed, not just built and tested
   locally.
 
@@ -90,12 +90,12 @@ live, editable example:
 
 | Demo | Corpus | Showcases | Status |
 |---|---|---|---|
-| Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `csf-boost` (7 "featured" products score-boosted), a `csf-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../showcase/gallery-data.ts), live at `gallery/products/index.html` |
-| Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," a checkbox toggle on the same page so the value is visible by comparison (same query, fuzzy off vs. on) | ✅ built — same demo, `data-fuzzy-toggle` on [`showcase/src/gallery-widget.ts`](../showcase/src/gallery-widget.ts) |
-| Synonym playground | 6 docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query, plus an unrelated control and a directional pair) | Synonym expansion, visibly labeled in the UI ("Synonym match" badge) so the mechanism is legible, not just "it worked" | ✅ built — [`showcase/build-gallery-synonyms.ts`](../showcase/build-gallery-synonyms.ts), [`showcase/gallery-synonyms-data.ts`](../showcase/gallery-synonyms-data.ts), live at `gallery/synonyms/index.html` |
-| Multi-language corpus | 6 short parallel articles, English + German only (docs/09-roadmap.md#status — the two LanguageProfiles that actually exist; Japanese/Arabic aren't built) | Language partitioning ("espresso," spelled identically in both languages, returns only the selected language's page) and the German stemmer's own umlaut-fold (`schon` vs. `schön` now both surface each other, despite reaching the stemmer as distinct strings) | ✅ built — [`showcase/build-gallery-i18n.ts`](../showcase/build-gallery-i18n.ts), [`showcase/gallery-i18n-data.ts`](../showcase/gallery-i18n-data.ts), live at `gallery/i18n/index.html`. `Intl.Segmenter` CJK handling and RTL rendering remain unbuilt |
+| Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `csf-boost` (7 "featured" products score-boosted), a `csf-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../../../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../../../showcase/gallery-data.ts), live at `gallery/products/index.html` |
+| Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," a checkbox toggle on the same page so the value is visible by comparison (same query, fuzzy off vs. on) | ✅ built — same demo, `data-fuzzy-toggle` on [`showcase/src/gallery-widget.ts`](../../../showcase/src/gallery-widget.ts) |
+| Synonym playground | 6 docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query, plus an unrelated control and a directional pair) | Synonym expansion, visibly labeled in the UI ("Synonym match" badge) so the mechanism is legible, not just "it worked" | ✅ built — [`showcase/build-gallery-synonyms.ts`](../../../showcase/build-gallery-synonyms.ts), [`showcase/gallery-synonyms-data.ts`](../../../showcase/gallery-synonyms-data.ts), live at `gallery/synonyms/index.html` |
+| Multi-language corpus | 6 short parallel articles, English + German only (docs/09-roadmap.md#status — the two LanguageProfiles that actually exist; Japanese/Arabic aren't built) | Language partitioning ("espresso," spelled identically in both languages, returns only the selected language's page) and the German stemmer's own umlaut-fold (`schon` vs. `schön` now both surface each other, despite reaching the stemmer as distinct strings) | ✅ built — [`showcase/build-gallery-i18n.ts`](../../../showcase/build-gallery-i18n.ts), [`showcase/gallery-i18n-data.ts`](../../../showcase/gallery-i18n-data.ts), live at `gallery/i18n/index.html`. `Intl.Segmenter` CJK handling and RTL rendering remain unbuilt |
 
-A `gallery/index.html` hub page ([`showcase/build-gallery-index.ts`](../showcase/build-gallery-index.ts)) links every built demo; the docs site header's "Feature gallery" link points there rather than at any one demo directly.
+A `gallery/index.html` hub page ([`showcase/build-gallery-index.ts`](../../../showcase/build-gallery-index.ts)) links every built demo; the docs site header's "Feature gallery" link points there rather than at any one demo directly.
 
 Each demo is intentionally small and self-contained (not one shared mega
 corpus) so a visitor can see *which* feature is responsible for a given
@@ -112,7 +112,7 @@ computed at corpus-generation time, not a true numeric range query.
 
 A `search(query, {facets, filters})`-driven checkbox UI needs a
 non-empty query to get any hits/facets back at all
-([`packages/client/src/search.ts`](../packages/client/src/search.ts)
+([`packages/client/src/search.ts`](../../../packages/client/src/search.ts)
 short-circuits on zero query terms) — there's no dedicated "browse all"
 mode. The demo works around this by defaulting the search box to a
 fixed word every product's body copy contains (`"product"`), giving a
@@ -147,7 +147,7 @@ switching the dropdown proves the partition is real: "espresso" is
 spelled identically in the English and German source text, and
 switching the language selector while searching it swaps which single
 page comes back, never both. The corpus's `schon`/`schön` pair (see
-[03-tokenization-i18n.md](03-tokenization-i18n.md#case-folding--diacritics))
+[03-tokenization-i18n.md](../../guides/internationalization.md))
 demonstrates the complementary, more nuanced point — `foldDiacritics:
 false` keeps these two *different* German words as distinct strings
 going into the stemmer, but the real Snowball German stemmer's own
@@ -160,7 +160,7 @@ either flag or a bug controls.
 
 A demo of semantic search on the docs corpus itself is the best fit
 here — "search for 'how do I stop the engine from bloating my bundle'"
-finding [08-modern-features.md](08-modern-features.md)'s bundle-size
+finding [../../concepts/architecture.md](../../concepts/architecture.md)'s bundle-size
 section via meaning rather than exact wording is a legible, honest
 demonstration of the feature working, using content that's already
 real rather than contrived. Side-by-side lexical vs. hybrid results
@@ -168,7 +168,7 @@ real rather than contrived. Side-by-side lexical vs. hybrid results
 
 ## Non-goals for the showcase
 
-- **Not the performance benchmark suite.** [10-testing-and-performance.md](10-testing-and-performance.md)'s
+- **Not the performance benchmark suite.** [../../project/governance.md](../../project/governance.md)'s
   perf suite runs against synthetic corpora at scale specifically to
   catch regressions before release; the showcase's corpora are small
   and curated for legibility, not scale-testing. A slow showcase and a
@@ -185,7 +185,7 @@ real rather than contrived. Side-by-side lexical vs. hybrid results
 
 ## Deployment mechanics
 
-- [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml):
+- [`.github/workflows/deploy-pages.yml`](../../../.github/workflows/deploy-pages.yml):
   builds every `packages/*`, then `showcase` (docs → search index →
   copy client bundle), uploads `showcase/dist` as the Pages artifact,
   deploys via `actions/deploy-pages`. Runs on every push to `main`
@@ -193,7 +193,7 @@ real rather than contrived. Side-by-side lexical vs. hybrid results
   should also redeploy the demo — the repo is small enough that a full
   rebuild on every push is cheap, same reasoning as the "just rebuild"
   answer to incremental indexing in
-  [09-roadmap.md](09-roadmap.md#open-questions)).
+  [09-roadmap.md](./implementation-history.md#open-questions)).
 - Project Pages are served under `/<repo>/`, not domain root — every
   `indexUrl`/asset/result-link reference in the showcase is resolved
   from `import.meta.url` rather than hardcoded to `/`, and this was
@@ -204,5 +204,5 @@ real rather than contrived. Side-by-side lexical vs. hybrid results
   URL, not the page's, catching a real bug testing-at-root alone would
   have missed.
 - Same content-hashed shard/manifest versioning as any other deployment
-  ([02-index-format.md](02-index-format.md#versioning--cache-strategy))
+  ([02-index-format.md](../../concepts/index-format.md))
   — no special-casing for Pages beyond the base-path detail above.

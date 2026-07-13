@@ -17,7 +17,7 @@ leaning on it for a decision.
 | Synonyms | Yes, query-time expansion | `unclear` | Not built-in | Not built-in | `unclear` | Not built-in |
 | Facets | Yes (terms/range/hierarchy, contextual counts) | Yes, built-in | Not built-in (DIY) | Not built-in (DIY) | Yes, via tag-based multi-tag search | Yes, `data-pagefind-filter` |
 | Fuzzy/typo tolerance | Yes (SymSpell-style) | Yes (Levenshtein) | Yes (edit distance) | Yes (edit distance + wildcards) | Yes (tolerant/phonetic encoders) | No true fuzzy — stemming only, no typo correction |
-| Vector/hybrid search | Roadmapped, opt-in plugin, RRF fusion — see [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md) | Yes, native (`plugin-embeddings`, vector + hybrid modes) | No | No | No | No |
+| Vector/hybrid search | Roadmapped, opt-in plugin, RRF fusion — see [../../guides/vector-search.md](../../guides/vector-search.md) | Yes, native (`plugin-embeddings`, vector + hybrid modes) | No | No | No | No |
 | Prefix/autocomplete | Yes | `unclear` | Yes, built-in | Yes, via wildcards | Yes (forward/reverse tokenizers) | Yes |
 | Multi-language | Per-language profiles, `Intl.Segmenter`, CJK bigram fallback | ~30 languages claimed | None by default (pluggable/DIY) | English core + `lunr-languages` plugin (30+) | Dedicated CJK/Arabic/Hebrew/Cyrillic encoders | Automatic per-`lang` stemming; CJK segmentation in "extended" build only |
 | Runtime | Browser (query) + any language (index build) | Isomorphic (browser/Node/edge) | Isomorphic | Browser + Node | Isomorphic, dedicated Worker index class | Offline Node/Rust build, browser+WASM query |
@@ -31,9 +31,9 @@ leaning on it for a decision.
 - **Orama is the only surveyed library with native vector/hybrid search**
   (`@orama/plugin-embeddings`, 512-dim vectors, RRF-less weighted hybrid
   mode). This was previously an open question in
-  [09-roadmap.md](09-roadmap.md) rather than a concrete plan; it's now a
+  [../roadmaps/implementation-history.md](../roadmaps/implementation-history.md) rather than a concrete plan; it's now a
   designed, sequenced feature (Phase 8) in
-  [13-vector-and-hybrid-search.md](13-vector-and-hybrid-search.md), kept
+  [../../guides/vector-search.md](../../guides/vector-search.md), kept
   opt-in and lazy-loaded like every other plugin so it doesn't tax
   deployments that don't need it. Where this design intentionally
   diverges from Orama's approach: query-time embedding computation is
@@ -58,7 +58,7 @@ leaning on it for a decision.
   spec.** Every library surveyed — including the architecturally closest,
   Pagefind — requires *their* tooling to produce the index. This
   design's Python/Node/Java-producible JSON spec
-  ([02-index-format.md](02-index-format.md#the-format-is-a-spec-not-a-library-dependency))
+  ([02-index-format.md](../../concepts/index-format.md))
   is a genuine point of difference, not just a nice-to-have.
 
 ## Features worth cherry-picking
@@ -70,21 +70,21 @@ this design* rather than just "that library is good":
    likely-needed index chunks (e.g., on search-box focus, before the
    user has typed anything) so the first keystroke feels instant. This
    design already prefetches configured facet shards
-   ([06-faceted-search.md](06-faceted-search.md#facet-shard-fetch-strategy))
+   ([06-faceted-search.md](../../guides/facets.md))
    but doesn't yet expose an equivalent term-shard warm-up hook. **Adopt**:
    add `client.preload(hint?)` to the API — see the addition in
-   [07-client-api.md](07-client-api.md#warm-uppreload).
+   [07-client-api.md](../../reference/client-api.md).
 2. **Pagefind's zero-config `data-*` attribute authoring.** For static
    sites, Pagefind lets authors mark boosts/filters directly in HTML
    (`data-pagefind-weight`, `data-pagefind-filter`) with no separate
    config file — the indexer just reads the DOM. **Adopted as the
    primary ingestion path** (not just an optional extra) for the initial
    deployment — see
-   [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md#ingestion-from-rendered-html),
+   [14-reference-deployment-cms-2k.md](../../guides/indexing.md),
    which indexes rendered HTML with a `data-csf-*`/`csf-*` meta-tag
    convention for title/body/boost/facets/excerpt, alongside the
    JSON-feed/CMS-API adapters in
-   [01-architecture.md](01-architecture.md#offline-the-indexer) for
+   [01-architecture.md](../../concepts/architecture.md) for
    cases that need fields HTML doesn't expose — so migrating a
    Pagefind-based site costs nothing.
 3. **FlexSearch's tunable memory/speed/accuracy presets.** FlexSearch
@@ -92,7 +92,7 @@ this design* rather than just "that library is good":
    `default`) trading index size against match quality/speed, rather
    than one fixed set of defaults. **Adopt**: expose an analogous
    coarse `profile` knob at build time (documented in an addition to
-   [08-modern-features.md](08-modern-features.md#index-build-profiles))
+   [08-modern-features.md](../../concepts/architecture.md))
    instead of only fine-grained BM25 k1/b tuning — most authors want a
    preset, not a formula.
 4. **FlexSearch's persistent-storage adapters (IndexedDB, etc.).** Rather
@@ -100,7 +100,7 @@ this design* rather than just "that library is good":
    there's value in also persisting to IndexedDB for instant warm-starts
    across page loads within the same origin. **Adopt** as an extension
    of the existing offline plugin
-   ([08-modern-features.md](08-modern-features.md#caching--offline-support)):
+   ([08-modern-features.md](../../concepts/architecture.md)):
    the Service Worker precache plan already covers this at the HTTP
    layer, but an IndexedDB layer for *parsed* shards (not just raw
    bytes) avoids re-parsing cost on repeat visits, which the Service
@@ -110,12 +110,12 @@ this design* rather than just "that library is good":
    tokenizer fully pluggable — it doesn't guess at "smart" defaults that
    might be wrong for a given corpus. This validates (rather than
    changes) this design's `LanguageProfile` approach
-   ([03-tokenization-i18n.md](03-tokenization-i18n.md#pipeline-stages)):
+   ([03-tokenization-i18n.md](../../guides/internationalization.md)):
    keep per-language defaults sensible out of the box, but never make
    them hard to override or disable per field.
 6. **Orama's exposed BM25 parameters (k1, b, d).** Confirms the choice
    already made in
-   [04-query-ranking-boosts.md](04-query-ranking-boosts.md#ranking-model-bm25f)
+   [04-query-ranking-boosts.md](../../guides/ranking-and-boosts.md#ranking-model-bm25f)
    to keep `k1`/`b` as documented, overridable manifest fields rather
    than hardcoding them — worth explicitly keeping parity with Orama's
    naming so anyone coming from Orama finds the knobs familiar.
@@ -123,7 +123,7 @@ this design* rather than just "that library is good":
    boost syntax is widely recognized (same idea appears in Lucene/
    Elasticsearch query strings). This design's plain-string query form
    already adopts the same `field:term^boost` shape
-   ([04-query-ranking-boosts.md](04-query-ranking-boosts.md#query-input-forms))
+   ([04-query-ranking-boosts.md](../../guides/ranking-and-boosts.md#query-input-forms))
    deliberately, so it isn't a new idea to learn for anyone with
    existing search-query-syntax experience.
 
@@ -137,10 +137,10 @@ this design* rather than just "that library is good":
   `writeIndex(built, outDir, { shardByPrefix: false })` opt-out flag
   rather than a reason to abandon sharding as the default (real
   per-first-character-prefix sharding, per
-  [02-index-format.md](02-index-format.md#term-shard-inverted-index),
+  [02-index-format.md](../../concepts/index-format.md#term-shard-inverted-index),
   is what `writeIndex()` does by default now). This has a concrete
   driver rather than being purely hypothetical: see
-  [14-reference-deployment-cms-2k.md](14-reference-deployment-cms-2k.md),
+  [../../guides/indexing.md](../../guides/indexing.md),
   which recommends exactly this (single term shard per language, no
   binary tier, no vector clustering) for a ~2,000-document CMS-sourced
   target — same shard *format* throughout, just configured with one
@@ -149,6 +149,6 @@ this design* rather than just "that library is good":
   BM25-family) is a legitimate alternative design, but mixing scoring
   paradigms would undermine the "one documented ranking formula" clarity
   goal — phrase/proximity is already incorporated as a *modifier* to
-  BM25F ([04-query-ranking-boosts.md](04-query-ranking-boosts.md#phrase--proximity-queries)),
+  BM25F ([04-query-ranking-boosts.md](../../guides/ranking-and-boosts.md)),
   which gets most of the benefit without a second ranking model to
   maintain and explain.

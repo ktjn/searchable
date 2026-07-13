@@ -28,6 +28,7 @@ test("displayed source and runtime attributes derive from one definition", () =>
   for (const example of QUICK_EXAMPLES) {
     const attributes = renderRuntimeAttributes(example);
     const code = renderExampleCode(example);
+    expect(attributes).toContain(`data-example-id="${example.id}"`);
     expect(attributes).toContain(`data-index-path="${example.indexPath}"`);
     expect(code).toContain(example.indexPath);
     expect(code).toContain(JSON.stringify(example.initialQuery));

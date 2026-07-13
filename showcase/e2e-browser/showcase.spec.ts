@@ -136,6 +136,35 @@ test.describe("feature gallery: quick examples (real browser)", () => {
     await expect(page.locator(".gallery-loading")).toHaveCount(0);
   });
 
+  test("quick examples expose identity and search busy state", async ({
+    page,
+  }) => {
+    let releaseManifest: (() => void) | undefined;
+    const manifestReleased = new Promise<void>((resolve) => {
+      releaseManifest = resolve;
+    });
+    await page.route(
+      "**/gallery/products/search-index/manifest.json",
+      async (route) => {
+        await manifestReleased;
+        await route.continue();
+      },
+    );
+
+    await page.goto(`${baseUrl}gallery/index.html`);
+    const basic = page.locator(
+      '[data-example-card="basic"] [data-gallery-root]',
+    );
+    await expect(basic).toHaveAttribute("data-example-id", "basic");
+    await expect(basic).toHaveAttribute("aria-busy", "true");
+
+    releaseManifest?.();
+    await expect(basic.locator(".gallery-results-summary")).toContainText(
+      /result/,
+    );
+    await expect(basic).toHaveAttribute("aria-busy", "false");
+  });
+
   for (const id of [
     "basic",
     "fuzzy",

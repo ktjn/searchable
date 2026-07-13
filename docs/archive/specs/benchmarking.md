@@ -1,11 +1,11 @@
 # Benchmarking Specification
 
-Status: Draft — listed in [23-implementation-roadmap.md](23-implementation-roadmap.md)'s
-Phase 3 and [24-architecture-recommendations.md](24-architecture-recommendations.md)'s
+Status: Draft — listed in [../roadmaps/specification-roadmap.md](../roadmaps/specification-roadmap.md)'s
+Phase 3 and [../roadmaps/architecture-recommendations.md](../roadmaps/architecture-recommendations.md)'s
 item 11 as the spec to write for this; both now point here rather than
 restating its contents. This doc's own [Corpus Sizes](#corpus-sizes)
 list below is likewise the one authoritative copy —
-[22-project-governance.md](22-project-governance.md)'s Benchmark
+[../../project/governance.md](../../project/governance.md)'s Benchmark
 Policy points here instead of keeping a separate copy.
 
 ## Purpose

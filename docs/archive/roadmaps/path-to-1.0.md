@@ -1,8 +1,8 @@
 # Path to 1.0
 
-**Relationship to other docs**: [09-roadmap.md](09-roadmap.md) tracks
+**Relationship to other docs**: [./implementation-history.md](./implementation-history.md) tracks
 *build* status (what has working code) and
-[23-implementation-roadmap.md](23-implementation-roadmap.md) tracks which
+[./specification-roadmap.md](./specification-roadmap.md) tracks which
 *specs* still need writing. Neither says when or how to actually cut a
 1.0 release. This doc is that plan — a release-engineering sequence, not
 another feature list. (A prior version of this idea,
@@ -14,7 +14,7 @@ deliberately does not repeat that mistake: everything below is about
 ## What 1.0 actually commits to
 
 Every package here is still `0.0.0`. Per
-[22-project-governance.md](22-project-governance.md)'s Compatibility
+[../../project/governance.md](../../project/governance.md)'s Compatibility
 Policy, "public APIs should remain stable within a major version" — that
 promise doesn't exist yet, because there's no major version. Cutting 1.0
 means:
@@ -88,11 +88,11 @@ storage abstraction / plugin API (specs stay draft per
 - Exit criteria: a table of every public export, stable vs experimental,
   committed to the repo (can live in this doc or a new `API.md`).
 
-**Done**: [`docs/adr/`](adr/) now holds five retroactive ADRs (pull-based
+**Done**: [`docs/../../adr/`](../../adr/) now holds five retroactive ADRs (pull-based
 static HTTP transport, JSON-first format with opt-in binary tier, BM25F
 ranking, the semver/manifest-version compatibility split, and the
 core-vs-opt-in plugin boundary), indexed in
-[`docs/adr/README.md`](adr/README.md). Export audit, from each package's
+[`docs/../../adr/README.md`](../../adr/README.md). Export audit, from each package's
 `index.ts` barrel:
 
 | Package | Stable for 1.0 | Experimental (may change in a minor) |
@@ -104,7 +104,7 @@ core-vs-opt-in plugin boundary), indexed in
 | `@csf/fixtures` | N/A — test-only tooling, not part of the public API at all (see Iteration 3: ships `"private": true`, never published) | — |
 
 A breaking change to a "stable" cell after 1.0.0 needs a major bump per
-[22-project-governance.md](22-project-governance.md); a breaking change
+[../../project/governance.md](../../project/governance.md); a breaking change
 to an "experimental" cell only needs a changelog note.
 
 ### Iteration 2 — Make the index-format version real
@@ -122,7 +122,7 @@ unsupported version"). Nothing to build here. The one remaining item:
 - Document the client-version ↔ index-version support matrix explicitly
   somewhere durable (today it's the trivial "client 1.x supports index
   format 1" — worth stating once in
-  [02-index-format.md](02-index-format.md) rather than only being
+  [../../concepts/index-format.md](../../concepts/index-format.md) rather than only being
   implicit in `validateManifest`'s error message) so a future format
   bump has a documented place to add its own row instead of just editing
   the check in isolation.
@@ -153,14 +153,14 @@ unsupported version"). Nothing to build here. The one remaining item:
 - Exit criteria: `CHANGELOG.md` exists and is accurate; a tag push
   publishes all four packages to npm without manual steps.
 
-**Done**: [`CHANGELOG.md`](../CHANGELOG.md) added at the repo root with
+**Done**: [`CHANGELOG.md`](../../../CHANGELOG.md) added at the repo root with
 a `1.0.0` entry summarizing everything in the Scope section above.
 Lockstep versioning chosen per the reasoning above — `@csf/client`,
 `@csf/indexer`, `@csf/format`, and `@csf/analysis` are all now
 `1.0.0`, each with `repository`/`homepage`/`bugs` fields added.
 `@csf/fixtures` is now `"private": true` (test-only tooling, never
 published — see Iteration 1's export audit). Added
-[`.github/workflows/publish.yml`](../.github/workflows/publish.yml):
+[`.github/workflows/publish.yml`](../../../.github/workflows/publish.yml):
 on a `v*` tag push, it re-runs every `ci.yml` check and then
 `pnpm publish -r --access public --provenance` (private packages are
 skipped automatically by `pnpm publish -r`), authenticating via an
@@ -183,7 +183,7 @@ because the code is unfinished:
   `createTransformersEmbedder`/`createTransformersEmbedQuery` against
   real downloaded model weights instead of only a mocked `pipeline`.
 - Build showcase Stage 3 (the semantic search demo,
-  [19-github-pages-showcase.md](19-github-pages-showcase.md)) once that
+  [./github-pages-showcase.md](./github-pages-showcase.md)) once that
   real-model path is validated — it needs the indexer to run with a
   real embedding model at build time, which the mechanism is ready for
   but has never actually been executed.

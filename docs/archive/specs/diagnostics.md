@@ -1,7 +1,7 @@
 # Diagnostics Specification
 
-Status: Draft — listed in [23-implementation-roadmap.md](23-implementation-roadmap.md)'s
-Phase 4 and [24-architecture-recommendations.md](24-architecture-recommendations.md)'s
+Status: Draft — listed in [../roadmaps/specification-roadmap.md](../roadmaps/specification-roadmap.md)'s
+Phase 4 and [../roadmaps/architecture-recommendations.md](../roadmaps/architecture-recommendations.md)'s
 item 2 (explain API and internal instrumentation, merged into this one
 spec) as the spec to write for this; all three now point here rather
 than restating its contents.

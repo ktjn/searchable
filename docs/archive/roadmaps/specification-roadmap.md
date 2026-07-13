@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-**Relationship to [09-roadmap.md](09-roadmap.md)**: the "Phase 1-4" below
+**Relationship to [./implementation-history.md](./implementation-history.md)**: the "Phase 1-4" below
 is a *specification-writing* sequence (which design docs to write next),
 a different axis from 09-roadmap.md's "Phase 0-8", which tracks actual
 *build* status (what has working code vs. what's design-only) and is
@@ -29,32 +29,32 @@ done — see below).
 
 ## Phase 1 – Core Specifications
 
-- **Binary Index Format**: written — [spec-binary-format.md](spec-binary-format.md)
+- **Binary Index Format**: written — [../specs/binary-format.md](../specs/binary-format.md)
   (term/fuzzy/doc-store shard encodings already implemented and shipped
   per that spec's own status note; facet/synonym/pins binary encoding
   remains draft-only).
-- **Query Planner**: written — [spec-query-planner.md](spec-query-planner.md)
+- **Query Planner**: written — [../specs/query-planner.md](../specs/query-planner.md)
   (draft, not implemented).
-- **Storage Layer**: written — [spec-storage-api.md](spec-storage-api.md)
+- **Storage Layer**: written — [../specs/storage-api.md](../specs/storage-api.md)
   (draft, not implemented).
 
 ## Phase 2 – Extensibility
 
-- **Plugin API**: written — [spec-plugin-api.md](spec-plugin-api.md),
+- **Plugin API**: written — [../specs/plugin-api.md](../specs/plugin-api.md),
   alongside the already-*decided* (not just drafted) contract in
-  [17-plugin-architecture.md](17-plugin-architecture.md) and the
-  core-vs-opt-in boundary in [ADR-0005](adr/0005-plugin-opt-in-boundary.md).
+  [../specs/plugin-architecture.md](../specs/plugin-architecture.md) and the
+  core-vs-opt-in boundary in [ADR-0005](../../adr/0005-plugin-opt-in-boundary.md).
   See spec-plugin-api.md's own header for how the draft and the decided
   contract relate — they're not competing designs.
 - **Ranking Framework**: not yet written. Document how multiple ranking
   strategies could coexist while preserving deterministic ordering —
-  today there is exactly one (BM25F, [ADR-0003](adr/0003-bm25f-ranking-model.md)),
+  today there is exactly one (BM25F, [ADR-0003](../../adr/0003-bm25f-ranking-model.md)),
   so this is genuinely future-looking, not a gap in describing what
   exists.
 
 ## Phase 3 – Performance
 
-- **Benchmark Methodology**: written — [spec-benchmarking.md](spec-benchmarking.md)
+- **Benchmark Methodology**: written — [../specs/benchmarking.md](../specs/benchmarking.md)
   (draft methodology; datasets/hardware/warm-cold/reporting format all
   covered there — that spec's Corpus Sizes list is the one authoritative
   copy, not repeated here or in 22/24).
@@ -63,14 +63,14 @@ done — see below).
 
 ## Phase 4 – Operational Features
 
-- **Diagnostics**: written — [spec-diagnostics.md](spec-diagnostics.md)
+- **Diagnostics**: written — [../specs/diagnostics.md](../specs/diagnostics.md)
   (draft, not implemented; explain API, tracing, metrics, profiling
   hooks all covered there).
 - **Compatibility Matrix**: partially done. The client-version ↔
   index-version half is real and shipped —
-  [02-index-format.md](02-index-format.md#versioning--cache-strategy)'s
+  [02-index-format.md](../../concepts/index-format.md)'s
   support matrix, enforced by `validateManifest()`, decided in
-  [ADR-0004](adr/0004-compatibility-policy.md). A plugin-version axis
+  [ADR-0004](../../adr/0004-compatibility-policy.md). A plugin-version axis
   isn't meaningful yet since there's no real plugin *registration*
   mechanism (see Phase 2's Plugin API note above) — nothing to version
   until that exists.
