@@ -59,7 +59,7 @@ See [First search](docs/getting-started/first-search.md) for a complete path and
 
 ## Development
 
-Requires Node.js 20 or newer and pnpm 11.
+Requires Node.js 24 or newer and pnpm 11.
 
 ```bash
 pnpm install

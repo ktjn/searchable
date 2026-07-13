@@ -9,7 +9,7 @@ pnpm add @csf/client
 pnpm add -D @csf/indexer
 ```
 
-The packages require Node.js 20 or newer for build tooling. `@csf/client` targets modern browsers with `fetch`, `URL`, and optional Web Worker and Service Worker support.
+The packages require Node.js 24 or newer for build tooling. `@csf/client` targets modern browsers with `fetch`, `URL`, and optional Web Worker and Service Worker support.
 
 The repository also contains Python reference implementations. They are development and interoperability tools checked out with this project, not a `csf-indexer` package published to PyPI. Use the explicit project path when running them; see [Indexing content](../guides/indexing.md).
 

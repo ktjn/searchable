@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_call:
   push:
     branches: [main]
   pull_request:
@@ -14,24 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-node
       - run: pnpm lint
 
   python-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - uses: astral-sh/setup-uv@v8.3.2
-        with:
-          enable-cache: true
+      - uses: ./.github/actions/setup-python
       - name: Install and test csf-analysis (Python)
         working-directory: python/csf-analysis
         run: |
@@ -47,21 +38,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - uses: astral-sh/setup-uv@v8.3.2
-        with:
-          enable-cache: true
+      - uses: ./.github/actions/setup-node
+      - uses: ./.github/actions/setup-python
       - name: Set up csf-indexer (Python, needed by the cross-implementation conformance test)
         working-directory: python/csf-indexer
         run: uv sync
-      - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm size
       - run: pnpm test
@@ -70,22 +51,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
+      - uses: ./.github/actions/setup-node
       - name: Cache Playwright browser binaries
         id: playwright-cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - run: pnpm install --frozen-lockfile
-      # A cache hit restores the browser binary but not the runner's
-      # apt-level OS dependencies (outside the cached path), so those
-      # still need installing every run either way -- only the browser
-      # download itself is skippable.
+      # A cache hit restores the browser binary but not the runner's apt-level
+      # OS dependencies, so only the browser download is skippable.
       - name: Install Playwright browser + OS dependencies (cache miss)
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium

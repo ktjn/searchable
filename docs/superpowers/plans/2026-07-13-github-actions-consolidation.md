@@ -215,8 +215,8 @@ Run:
 ```powershell
 go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 uvx yamllint -d "{extends: relaxed, rules: {line-length: disable}}" .github/actions
-if (rg -n 'node-version:\s*22|python-version:\s*"3\.12"' .github) { throw 'Obsolete active CI version remains' }
-if (rg -n 'actions/setup-node|actions/setup-python|pnpm/action-setup|setup-uv' .github/workflows/ci.yml) { throw 'CI bypasses the composite setup actions' }
+if (rg -n 'node-version:\s*22|python-version:\s*"3\.12"' .github/actions .github/workflows/ci.yml) { throw 'Obsolete CI version remains' }
+if (rg -n 'uses:\s+(actions/setup-node|actions/setup-python|pnpm/action-setup|astral-sh/setup-uv)@' .github/workflows/ci.yml) { throw 'CI bypasses the composite setup actions' }
 rg -n 'node-version:\s*24|python-version:\s*"3\.14"' .github/actions
 rg -n 'workflow_call|uses: \./\.github/actions/setup-(node|python)' .github/workflows/ci.yml
 ```
