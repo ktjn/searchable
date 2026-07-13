@@ -26,6 +26,10 @@ The core client, worker, and Service Worker share a 15 KB gzip budget enforced b
 
 ## Release checklist
 
+Repository visibility and its post-public security settings are tracked in the
+[Public launch checklist](public-launch-checklist.md). Package publication is a
+separate release operation.
+
 - public exports and docs agree;
 - package and format compatibility are explicit;
 - changelog and migration notes are current;
