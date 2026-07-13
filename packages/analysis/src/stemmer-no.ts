@@ -67,7 +67,19 @@ const MAIN_SUFFIXES = [
   "erte",
   "ert",
 ];
-const ERS_KEEP = ["amm", "ast", "ind", "kap", "kk", "lt", "nk", "omm", "pp", "v", "øst"];
+const ERS_KEEP = [
+  "amm",
+  "ast",
+  "ind",
+  "kap",
+  "kk",
+  "lt",
+  "nk",
+  "omm",
+  "pp",
+  "v",
+  "øst",
+];
 const ERS_DELETE = ["giv", "hav", "skap"];
 
 function markNorwegianRegion(word: string): number {

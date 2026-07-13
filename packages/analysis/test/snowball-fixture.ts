@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { gunzipSync } from "node:zlib";
 import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 
 export function readSnowballFixture(language: string): {
   words: string[];
@@ -16,9 +16,7 @@ export function readSnowballFixture(language: string): {
     "snowball",
   );
   const readLines = (kind: "input" | "output") =>
-    gunzipSync(
-      readFileSync(join(fixtureRoot, `${language}-${kind}.txt.gz`)),
-    )
+    gunzipSync(readFileSync(join(fixtureRoot, `${language}-${kind}.txt.gz`)))
       .toString("utf8")
       .trim()
       .split(/\r?\n/);
