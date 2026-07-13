@@ -137,7 +137,7 @@ TS design decision.
   byte difference here.
 - End-to-end: a Python-built binary index (all three formats set to
   `"binary"`) served over real HTTP and queried via the real
-  `SearchClient`, proving `@csf/client`'s actual binary decoder — the
+  `SearchClient`, proving `@ktjn/searchable-client`'s actual binary decoder — the
   real consumer — can read Python-produced binary shards, not merely
   that the bytes match TS's own output byte-for-byte (though the
   byte-identical test above already implies this, this is

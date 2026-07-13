@@ -8,7 +8,7 @@ import type {
 /**
  * Wire format between the main-thread SearchClient and the Worker,
  * shared by both sides (client.ts, worker.ts) so they can't drift on
- * message shape independently (same pattern as @csf/format between
+ * message shape independently (same pattern as @ktjn/searchable-format between
  * indexer and client).
  *
  * `WorkerRequestPayload` (no `id`) is what a caller constructs;

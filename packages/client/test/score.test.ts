@@ -1,4 +1,4 @@
-import type { Manifest, Posting } from "@csf/format";
+import type { Manifest, Posting } from "@ktjn/searchable-format";
 import { describe, expect, it } from "vitest";
 import { scoreTermForDoc } from "../src/score.js";
 

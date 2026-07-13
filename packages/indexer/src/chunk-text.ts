@@ -10,7 +10,7 @@ export interface Chunk {
 /**
  * Splits `text` into overlapping passages for embedding
  * (docs/guides/vector-search.md#chunking) -- a whitespace word
- * split, not the stemmed/lowercased tokens `@csf/analysis` produces for
+ * split, not the stemmed/lowercased tokens `@ktjn/searchable-analysis` produces for
  * lexical indexing: an embedding model wants natural surface text, not
  * an already-destemmed bag of words. `chunkTokens`/`overlapTokens` count
  * whitespace-split words, a deliberately simple proxy for "model tokens"

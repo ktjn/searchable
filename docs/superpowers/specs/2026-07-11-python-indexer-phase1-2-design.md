@@ -10,8 +10,8 @@ existing `spec/examples/python/generate_index.py` is deliberately minimal
 (~100 lines, stdlib-only) — a proof that the index *format*
 (`spec/schema/`) needs no particular language or library, not a
 feature-complete indexer. This spec is the first step toward full feature
-parity with the real reference indexer (`@csf/indexer` + `@csf/analysis` +
-`@csf/format`, ~4,000 lines of TypeScript), shipped as an installable,
+parity with the real reference indexer (`@ktjn/searchable-indexer` + `@ktjn/searchable-analysis` +
+`@ktjn/searchable-format`, ~4,000 lines of TypeScript), shipped as an installable,
 production-usable Python package rather than a one-off example script.
 
 ## Why this needs decomposition
@@ -31,7 +31,7 @@ Later, independently spec'd phases (not covered here):
 3. Facets, synonyms, fuzzy matching, term pinning.
 4. Vector shard building — the pluggable `embed()` callback and shard/
    quantization logic (`build-vectors.ts`), **without** a bundled default
-   embedding model. `@csf/indexer`'s `transformers-embed.ts` (a real ONNX
+   embedding model. `@ktjn/searchable-indexer`'s `transformers-embed.ts` (a real ONNX
    sentence-transformer runtime) is out of scope indefinitely for the
    Python port — Python callers supply their own embeddings (e.g. via
    `sentence-transformers`, an API, or precomputed vectors).
@@ -74,10 +74,10 @@ python/
     tests/
 ```
 
-`csf-indexer` depends on `csf-analysis`, mirroring `@csf/indexer` →
-`@csf/analysis`. There is no `csf-format` package — the manifest/shard
+`csf-indexer` depends on `csf-analysis`, mirroring `@ktjn/searchable-indexer` →
+`@ktjn/searchable-analysis`. There is no `csf-format` package — the manifest/shard
 shapes are plain dicts validated against `spec/schema/*.schema.json` in
-tests, the same role `@csf/format`'s types play in TypeScript
+tests, the same role `@ktjn/searchable-format`'s types play in TypeScript
 (compile-time only, no runtime behavior to port).
 
 **Tooling**: `uv` + `pyproject.toml` per package, `uv.lock` for

@@ -1,8 +1,8 @@
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { generateCms2kCorpus } from "@csf/fixtures";
-import type { TermShard } from "@csf/format";
+import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
+import type { TermShard } from "@ktjn/searchable-format";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildIndex } from "../src/build-index.js";
 import type { SourceDocument } from "../src/types.js";
@@ -218,7 +218,7 @@ describe("writeIndex", () => {
     // through a real client and return identical search results to the
     // JSON equivalent) is proven end-to-end in
     // packages/client/test/binary-term-shard.test.ts, which has both
-    // the encoder (this package) and the decoder (@csf/client)
+    // the encoder (this package) and the decoder (@ktjn/searchable-client)
     // available -- this test only checks the structural contract
     // writeIndex() itself owns: file extension and manifest entries.
     const built = buildIndex([docA, docB]);
@@ -544,7 +544,7 @@ describe("writeIndex", () => {
     // Binary-format decode-correctness for a multi-shard doc store is
     // proven end-to-end in packages/client/test/binary-doc-store.test.ts
     // (same split as the single-shard "writes a .bin doc store" case
-    // above -- @csf/client owns the binary decoder, not this package).
+    // above -- @ktjn/searchable-client owns the binary decoder, not this package).
     const outDir = await tempOutDir();
     const sources = generateCms2kCorpus({ count: 30, languages: ["en"] });
     await writeIndex(buildIndex(sources, "en"), outDir, {

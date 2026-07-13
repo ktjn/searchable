@@ -22,7 +22,7 @@ Two distinct opt-in mechanisms, chosen per feature by its actual cost
 shape, not one uniform plugin system:
 
 1. **Baked-in-but-inert-until-used** (facets, synonyms, pins, fuzzy
-   matching): shipped in the one `@csf/client` bundle unconditionally —
+   matching): shipped in the one `@ktjn/searchable-client` bundle unconditionally —
    `pnpm size`'s 15 KB budget is measured against this bundle including
    all of them.
    These stay small enough in code size that separate bundle-splitting

@@ -1,4 +1,4 @@
-import type { TermEntry, TermShard } from "@csf/format";
+import type { TermEntry, TermShard } from "@ktjn/searchable-format";
 import { ByteWriter } from "./byte-writer.js";
 
 /**

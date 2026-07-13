@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { escapeHtml, pageShell } from "./gallery-shared.js";
 import type { SynonymDoc } from "./gallery-synonyms-data.js";
 import { SYNONYM_CONFIG, SYNONYM_DOCS } from "./gallery-synonyms-data.js";

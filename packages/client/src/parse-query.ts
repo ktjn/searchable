@@ -1,12 +1,12 @@
-import type { LanguageProfile } from "@csf/analysis";
-import { analyze } from "@csf/analysis";
+import type { LanguageProfile } from "@ktjn/searchable-analysis";
+import { analyze } from "@ktjn/searchable-analysis";
 
 export interface QueryTerm {
   /** Analyzed (lowercased/stemmed) term or prefix, ready for lookup. */
   term: string;
   /** true for a trailing-`*` prefix query (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching). */
   prefix: boolean;
-  /** Lowercased but *not* stemmed surface form of this term (@csf/analysis's `Token.literal`) -- used for result highlighting, which matches raw stored text where a stemmed term wouldn't. */
+  /** Lowercased but *not* stemmed surface form of this term (@ktjn/searchable-analysis's `Token.literal`) -- used for result highlighting, which matches raw stored text where a stemmed term wouldn't. */
   literal: string;
 }
 

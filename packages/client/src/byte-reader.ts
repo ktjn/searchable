@@ -1,7 +1,7 @@
 /**
  * Little-endian byte buffer reader shared by every binary shard decoder
  * (`binary-term-shard.ts`, `binary-fuzzy-shard.ts`, `binary-doc-store.ts`),
- * mirroring `@csf/indexer`'s `ByteWriter`. Extracted once three decoders
+ * mirroring `@ktjn/searchable-indexer`'s `ByteWriter`. Extracted once three decoders
  * needed the exact same varint/string/float64 reader rather than
  * duplicated per file.
  */

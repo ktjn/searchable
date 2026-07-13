@@ -4,11 +4,11 @@ This page describes the shipped build-time and browser-runtime components, their
 
 ## Build time
 
-`@csf/indexer` discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis, and builds postings, facets, pins, synonyms, fuzzy dictionaries, stored documents, and optional vectors. `writeIndex` serializes an immutable manifest and content-hashed shards. The Python projects are independent reference producers for conformance, not runtime dependencies of the TypeScript packages.
+`@ktjn/searchable-indexer` discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis, and builds postings, facets, pins, synonyms, fuzzy dictionaries, stored documents, and optional vectors. `writeIndex` serializes an immutable manifest and content-hashed shards. The Python projects are independent reference producers for conformance, not runtime dependencies of the TypeScript packages.
 
 ## Query time
 
-`@csf/client` validates the manifest, resolves all shard files relative to it, analyzes the query, fetches only the required data, evaluates filters and ranking, and loads stored fields for the final hits. The same search code runs directly or behind `@csf/client/worker`. Optional Service Worker support caches the manifest and shards.
+`@ktjn/searchable-client` validates the manifest, resolves all shard files relative to it, analyzes the query, fetches only the required data, evaluates filters and ranking, and loads stored fields for the final hits. The same search code runs directly or behind `@ktjn/searchable-client/worker`. Optional Service Worker support caches the manifest and shards.
 
 ## Data flow for a query
 

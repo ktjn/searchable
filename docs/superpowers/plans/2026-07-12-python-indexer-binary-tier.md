@@ -827,7 +827,7 @@ git commit -m "feat(csf-indexer): wire binary term/doc-store/fuzzy shard formats
 
 **Interfaces:**
 - Consumes: the Python `build_index`/`write_index` API directly (not the CLI — the CLI has no format flags, and adding them is out of scope for this plan). Invoked via a small inline Python script run through `uv run python -c "..."` from `python/csf-indexer/` as the working directory.
-- Consumes: `buildIndex`/`writeIndex` from `@csf/indexer` with `termShardFormat`/`docStoreFormat`/`fuzzyShardFormat: "binary"`.
+- Consumes: `buildIndex`/`writeIndex` from `@ktjn/searchable-indexer` with `termShardFormat`/`docStoreFormat`/`fuzzyShardFormat: "binary"`.
 
 - [ ] **Step 1: Read the existing file to confirm its real structure**
 
@@ -862,7 +862,7 @@ write_index(built, sys.argv[1], term_shard_format="binary", doc_store_format="bi
 Write this to a temp file (`mkdtemp`), pass the Python-side output directory as `sys.argv[1]`.
 
 3. Reads the manifest from both output directories, finds the corresponding term-shard and doc-store `.bin` file paths, and asserts the raw file bytes read via `readFileSync` are **byte-identical** (`Buffer.compare(tsBytes, pyBytes) === 0` or `expect(tsBytes.equals(pyBytes)).toBe(true)`) — for at least the term shard and the doc store shard.
-4. Separately (defense-in-depth, not just byte comparison), serves the Python-built binary-format output over real HTTP via the existing `serveStatic` helper and confirms the real `SearchClient` can query it successfully (returns the expected doc for a known query word) — proving `@csf/client`'s actual binary decoder can read Python-produced binary shards, not just that the bytes happen to match TS's own output.
+4. Separately (defense-in-depth, not just byte comparison), serves the Python-built binary-format output over real HTTP via the existing `serveStatic` helper and confirms the real `SearchClient` can query it successfully (returns the expected doc for a known query word) — proving `@ktjn/searchable-client`'s actual binary decoder can read Python-produced binary shards, not just that the bytes happen to match TS's own output.
 
 Use your judgment on the exact assertion/fixture code structure based on what's real in the file from Step 1 — this is the same kind of adaptation-from-a-sketch situation as the prior phase's equivalent tasks, and the same latitude applies: correct the sketch against the real APIs, keep the actual intent (byte-identical binary output + a real end-to-end query working).
 

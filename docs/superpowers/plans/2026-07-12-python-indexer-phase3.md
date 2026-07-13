@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add facets (terms/hierarchy/range), synonyms, fuzzy matching, and term pinning to the Python `csf-indexer` package, matching `@csf/indexer`'s `buildIndex()`/`writeIndex()` behavior for these four features.
+**Goal:** Add facets (terms/hierarchy/range), synonyms, fuzzy matching, and term pinning to the Python `csf-indexer` package, matching `@ktjn/searchable-indexer`'s `buildIndex()`/`writeIndex()` behavior for these four features.
 
 **Architecture:** Four new, focused modules (`facets.py`, `synonyms.py`, `fuzzy.py`, `pins.py`) under `csf_indexer/`, each a direct port of the corresponding TS logic in `packages/indexer/src/build-index.ts`; `build_index.py` and `write_index.py` are extended (not rewritten) to wire them in, following the same pattern as Phase 1+2.
 
@@ -1507,7 +1507,7 @@ git commit -m "test(csf-indexer): validate facet/pins/synonym/fuzzy shards again
 - Modify: `packages/client/test/cross-implementation-conformance-python-indexer.test.ts`
 
 **Interfaces:**
-- Consumes: the installed `csf-indexer` Python CLI (already used by the existing tests in this file, from Phase 2); `SearchClient` from `@csf/client`.
+- Consumes: the installed `csf-indexer` Python CLI (already used by the existing tests in this file, from Phase 2); `SearchClient` from `@ktjn/searchable-client`.
 
 Note: the Python `csf-indexer` CLI (`cli.py`) currently calls `build_index(sources)` and `write_index(built, out_dir)` with no extra options — it does not yet expose a way to pass `hierarchical_facets`/`range_facet_buckets`/`synonyms`/`fuzzy`/`fuzzy_max_edits` from the command line. This task tests facets/pins (which are driven entirely by `csf-facet-*`/`csf-pin*` HTML meta tags, needing no CLI flag) and does NOT attempt to test synonyms/fuzzy cross-implementation conformance via the CLI, since neither the Python nor the TS `csf-indexer` CLI exposes those as CLI flags today — both require the programmatic `buildIndex()`/`build_index()` API. Cross-implementation conformance for synonyms/fuzzy is deferred to whenever CLI flag support for both sides is added (out of scope for this plan).
 

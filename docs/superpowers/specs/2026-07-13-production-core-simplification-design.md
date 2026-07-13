@@ -49,7 +49,7 @@ discarded format prototype.
 ### Consolidate genuine shared logic
 
 The client and indexer contain identical SymSpell deletion generation. Both
-already depend on `@csf/analysis`, so move the pure algorithm there and cover
+already depend on `@ktjn/searchable-analysis`, so move the pure algorithm there and cover
 it with focused tests. The client and indexer will import the shared function;
 neither gains a dependency on the other.
 
@@ -97,7 +97,7 @@ must use the same limit.
 
 Add or adjust tests before changing behavior-bearing code:
 
-- focused `@csf/analysis` tests define Unicode-aware deletion generation at
+- focused `@ktjn/searchable-analysis` tests define Unicode-aware deletion generation at
   edit distances one and two;
 - existing client and indexer fuzzy-search tests continue to prove integration
   with the shared helper;

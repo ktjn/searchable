@@ -3,8 +3,8 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";
@@ -14,10 +14,10 @@ import { serveStatic } from "./static-server.js";
  * "Cross-implementation conformance" bullet, tracked as a Phase 0/7
  * deliverable in spec/examples/README.md's own "note what this does and
  * doesn't prove" section): indexes the *same* fixture corpus
- * (spec/examples/documents.json) two ways -- the real `@csf/indexer`
+ * (spec/examples/documents.json) two ways -- the real `@ktjn/searchable-indexer`
  * reference indexer, and the independent, from-scratch Python generator
  * (spec/examples/python/generate_index.py, sharing no code with
- * `@csf/indexer` or `@csf/client`) -- and runs the *same* end-to-end
+ * `@ktjn/searchable-indexer` or `@ktjn/searchable-client`) -- and runs the *same* end-to-end
  * query assertions against both outputs over real HTTP via the real
  * `SearchClient`. spec/examples/README.md already proves the two
  * generators produce structurally comparable output; this is the
@@ -28,9 +28,9 @@ import { serveStatic } from "./static-server.js";
  *
  * The Python generator's tokenization (lowercase, strip tags, split on
  * `[a-z0-9]+`, no stemming, no stopwords, no field boosts) deliberately
- * differs from `@csf/analysis`'s real pipeline (Porter stemming, field
+ * differs from `@ktjn/searchable-analysis`'s real pipeline (Porter stemming, field
  * boosts, stopwords) -- see spec/examples/README.md's "note what this
- * does and doesn't prove". Since `@csf/client`'s query analysis always
+ * does and doesn't prove". Since `@ktjn/searchable-client`'s query analysis always
  * runs the real stemmer regardless of which backend built the index, a
  * query word only produces the same lookup key against *both* outputs
  * if its stem equals its own surface form (e.g. "support", not

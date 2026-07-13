@@ -9,7 +9,7 @@ import {
   buildIndex,
   discoverHtmlDocuments,
   writeIndex,
-} from "@csf/indexer";
+} from "@ktjn/searchable-indexer";
 
 const sources = await discoverHtmlDocuments("./dist/site");
 const built = buildIndex(sources);

@@ -61,7 +61,7 @@
 - Preserves: package exports and generic runtime APIs.
 - Consumes: existing workspace directory layout under `packages/*`.
 
-- [ ] **Step 1: Change consumer contracts to the new package and binary names**
+- [x] **Step 1: Change consumer contracts to the new package and binary names**
 
 In `packages/client/test/consumer-fixture.test.ts`, replace package resolution and imports with:
 
@@ -84,7 +84,7 @@ const cliPath = join(packageRoot, pkg.bin["searchable-indexer"]);
 Also update that test's temporary directory prefixes to
 `searchable-cli-in-` and `searchable-cli-out-`.
 
-- [ ] **Step 2: Run the consumer tests and verify RED**
+- [x] **Step 2: Run the consumer tests and verify RED**
 
 Run:
 
@@ -94,7 +94,7 @@ pnpm exec vitest run packages/client/test/consumer-fixture.test.ts packages/inde
 
 Expected: FAIL because the new package names cannot resolve and the indexer manifest still exposes the old binary.
 
-- [ ] **Step 3: Apply the exact npm identity mapping**
+- [x] **Step 3: Apply the exact npm identity mapping**
 
 Use a bounded mechanical replacement across tracked text files, excluding the
 design and this plan:
@@ -142,7 +142,7 @@ Update indexer diagnostic prefixes in TypeScript source to
 `[searchable-indexer]` and the opt-in test variable to
 `SEARCHABLE_TEST_REAL_TRANSFORMERS`.
 
-- [ ] **Step 4: Regenerate and audit the pnpm lockfile**
+- [x] **Step 4: Regenerate and audit the pnpm lockfile**
 
 Run:
 
@@ -155,7 +155,7 @@ rg -n '@csf/|csf-indexer' package.json packages showcase pnpm-lock.yaml -g '*.js
 Expected: both installs succeed; the final search has no matches outside files
 that belong to later Python or CMS tasks.
 
-- [ ] **Step 5: Verify the new npm graph and consumer contracts**
+- [x] **Step 5: Verify the new npm graph and consumer contracts**
 
 Run:
 
@@ -168,7 +168,7 @@ pnpm exec vitest run packages/client/test/consumer-fixture.test.ts packages/inde
 Expected: all commands pass and both consumer tests resolve only
 `@ktjn/searchable-*` packages.
 
-- [ ] **Step 6: Commit the npm identity**
+- [x] **Step 6: Commit the npm identity**
 
 ```powershell
 git add package.json pnpm-lock.yaml packages showcase/package.json docs README.md CHANGELOG.md spec

@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import type { Manifest } from "@csf/format";
+import type { Manifest } from "@ktjn/searchable-format";
 import { validateManifest } from "./validate-manifest.js";
 
 declare const self: ServiceWorkerGlobalScope;

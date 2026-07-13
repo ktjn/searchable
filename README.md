@@ -24,14 +24,14 @@
 ## Quick start
 
 ```bash
-pnpm add @csf/client
-pnpm add -D @csf/indexer
+pnpm add @ktjn/searchable-client
+pnpm add -D @ktjn/searchable-indexer
 ```
 
 Build and publish an index, then create a client that points at its manifest:
 
 ```ts
-import { SearchClient } from "@csf/client";
+import { SearchClient } from "@ktjn/searchable-client";
 
 const search = new SearchClient({
   indexUrl: "/search-index/manifest.json",

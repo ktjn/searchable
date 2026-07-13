@@ -1,5 +1,5 @@
 {
-  "name": "@csf/fixtures",
+  "name": "@ktjn/searchable-fixtures",
   "version": "0.0.0",
   "private": true,
   "description": "Phase 0 reference fixture corpus (docs/project/roadmap.md, docs/guides/indexing.md): a deterministic, realistically-shaped CMS-export-style HTML corpus generator, so correctness tests exercise the real indexer/client against content shaped like the target deployment instead of only tiny inline fixtures. Test-only tooling, not part of the public API (docs/reference/compatibility.md) — never published.",

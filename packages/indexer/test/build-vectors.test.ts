@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { VectorShard } from "@csf/format";
+import type { VectorShard } from "@ktjn/searchable-format";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildIndex } from "../src/build-index.js";
 import { buildVectorShards } from "../src/build-vectors.js";

@@ -5,7 +5,7 @@ import { writeIndex } from "./write-index.js";
 
 const [inputDir, outDir] = process.argv.slice(2);
 if (!inputDir || !outDir) {
-  console.error("usage: csf-indexer <inputDir> <outDir>");
+  console.error("usage: searchable-indexer <inputDir> <outDir>");
   process.exit(1);
 }
 

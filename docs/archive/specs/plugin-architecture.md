@@ -90,7 +90,7 @@ is exactly the property that keeps core from needing to know they exist.
 ### Registration
 
 ```ts
-import { SearchClient } from "@csf/client";
+import { SearchClient } from "@ktjn/searchable-client";
 import { fuzzy } from "@csf/plugin-fuzzy";
 import { synonyms } from "@csf/plugin-synonyms";
 import { facets } from "@csf/plugin-facets";
@@ -176,7 +176,7 @@ already designed elsewhere actually swappable.
 
 ```ts
 // csf.config.ts
-import { defineConfig } from "@csf/indexer";
+import { defineConfig } from "@ktjn/searchable-indexer";
 import { html } from "@csf/adapter-html";
 import { en, de } from "@csf/lang";
 import { binary } from "@csf/codec-binary";

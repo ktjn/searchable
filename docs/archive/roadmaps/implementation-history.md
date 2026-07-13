@@ -79,20 +79,20 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   [`packages/client/test/cross-implementation-conformance.test.ts`](../../../packages/client/test/cross-implementation-conformance.test.ts)
   shells out to the Python reference generator as a subprocess, serves
   its output over real HTTP, and runs the same `SearchClient` query
-  assertions against it as against a real `@csf/indexer`-built index of
+  assertions against it as against a real `@ktjn/searchable-indexer`-built index of
   the same fixture — proving an independent, non-TypeScript, non-
   stemming producer's output actually loads and queries correctly
   through this project's own client, not just that the on-disk bytes
   look structurally similar. `spec/examples/documents.json`'s fixture
   text was tuned so its key query words stem to themselves under the
-  real Porter stemmer, since `@csf/client`'s query analysis always
+  real Porter stemmer, since `@ktjn/searchable-client`'s query analysis always
   stems regardless of which backend built the index being queried — a
   necessary accommodation for the two implementations' deliberately
   different tokenization (see `spec/examples/README.md`), not a
   weakening of the test.
 - ✅ Realistically-shaped fixture corpus grounded in
   [../../guides/indexing.md](../../guides/indexing.md):
-  [`@csf/fixtures`](../../../packages/fixtures) generates a deterministic,
+  [`@ktjn/searchable-fixtures`](../../../packages/fixtures) generates a deterministic,
   hand-written-prose (not lorem-ipsum) CMS-export-style corpus —
   marketing pages with authored pins, blog/docs-style pages with
   category/tag facets and boosts — parameterized by document count
@@ -308,7 +308,7 @@ Phase 2 is now fully implemented.
   one number would skew both languages' idf and length normalization.
   This required a manifest format change (`docCount`/`avgFieldLength`
   keyed by language — `spec/schema/manifest.schema.json`,
-  `@csf/format`), which also fixed the two independent Phase 0 reference
+  `@ktjn/searchable-format`), which also fixed the two independent Phase 0 reference
   generators (`spec/examples/`) and re-verified they're still
   byte-for-byte identical and schema-valid after the change.
 - ✅ Real English stemmer
@@ -403,7 +403,7 @@ Phase 2 is now fully implemented.
   independent of `LanguageProfile.stopwords` (still empty everywhere,
   unrelated). An explicit `<html lang>` always wins; a low-confidence
   detection still falls back to `defaultLanguage`, exactly the prior
-  behavior. `isRtlLanguage(code)` (re-exported from `@csf/client`) plus
+  behavior. `isRtlLanguage(code)` (re-exported from `@ktjn/searchable-client`) plus
   the new `SearchResult.language` field (below) give a consuming app
   the two facts it needs to set `dir="rtl"` on a results container
   without re-deriving either itself — RTL *layout* stays a
@@ -646,7 +646,7 @@ Phase 2 is now fully implemented.
   `dist/worker.js` entry points and fails the build past a 15 KB
   budget each — both sit around 1-1.5 KB today. Scoped to today's
   single-bundle reality (facets/pins/synonyms/fuzzy are all baked into
-  one `@csf/client` bundle, not separate plugin entry points yet); the
+  one `@ktjn/searchable-client` bundle, not separate plugin entry points yet); the
   per-plugin budget table and tree-shaking verification in
   docs/08 remain the target design for whenever a plugin architecture
   actually ships, not what's checked now.
@@ -656,7 +656,7 @@ Phase 2 is now fully implemented.
   a declared matrix of build/query configurations (default field
   boosts, a per-query title-boost override, fuzzy matching at a strict
   vs. lenient `fuzzyWeight`) run against a shared slice of the
-  [`@csf/fixtures`](../../../packages/fixtures) CMS-2k corpus with a fixed
+  [`@ktjn/searchable-fixtures`](../../../packages/fixtures) CMS-2k corpus with a fixed
   query set, snapshotted per combination via Vitest — an intentional
   ranking change shows up as a reviewable snapshot diff across every
   configuration at once, the same way a UI screenshot test catches an
@@ -715,7 +715,7 @@ Phase 2 is now fully implemented.
   ~22x on this exact corpus shape.
 - ✅ JSON-tier scaling benchmark
   (`packages/indexer/bench/json-tier-scaling.mjs`, run via `pnpm bench`):
-  builds real synthetic corpora (`@csf/fixtures`'s `generateCms2kCorpus()`)
+  builds real synthetic corpora (`@ktjn/searchable-fixtures`'s `generateCms2kCorpus()`)
   at 1k/10k/100k documents through the actual `buildIndex()`/`writeIndex()`
   pipeline and measures build/write time, on-disk shard sizes (raw and
   gzip), and `JSON.parse` time on the shard(s) a query would actually
@@ -801,7 +801,7 @@ Phase 2 is now fully implemented.
   (the real per-query worst case, per the prefix-sharding fix above) at
   1k/10k/100k docs, every result round-trip-verified byte-identical to
   the JSON source. Deliberately investigation-only code (not part of
-  `@csf/format`/`@csf/indexer`'s shipped API) — see
+  `@ktjn/searchable-format`/`@ktjn/searchable-indexer`'s shipped API) — see
   [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md) for the full
   writeup. The one-off program was removed after the investigation
   concluded; the measurements remain in that decision record and the
@@ -990,8 +990,8 @@ Phase 2 is now fully implemented.
   - ✅ Stage 0 (docs site) — [`showcase/`](../../../showcase/): every
     `docs/*.md` + `README.md` rendered to a small static site (nav,
     cross-link rewriting), no framework.
-  - ✅ Stage 1 ("search these docs") — the real `@csf/indexer` runs
-    against Stage 0's rendered output, the real `@csf/client` (Worker
+  - ✅ Stage 1 ("search these docs") — the real `@ktjn/searchable-indexer` runs
+    against Stage 0's rendered output, the real `@ktjn/searchable-client` (Worker
     execution included) powers a search box on every page. Verified in
     a real browser via Playwright, including at a Pages-style subpath
     deployment (`/repo-name/`, not domain root) — which caught a real

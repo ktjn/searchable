@@ -3,7 +3,7 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { gzipSync } from "node:zlib";
-import { generateCms2kCorpus } from "@csf/fixtures";
+import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
 import { buildIndex, writeIndex } from "../dist/index.js";
 
 /**
@@ -19,7 +19,7 @@ import { buildIndex, writeIndex } from "../dist/index.js";
  * this is a one-shot corpus-scaling report meant to be read, not a
  * statistically-repeated micro-benchmark (docs/project/governance.md's
  * micro-benchmark category is a different, smaller-scoped thing). Run
- * via `pnpm --filter @csf/indexer bench`.
+ * via `pnpm --filter @ktjn/searchable-indexer bench`.
  *
  * Capped at 100k documents, not the 1M docs/concepts/binary-storage.md's follow-up note
  * mentions: the 100k build alone uses several GB of resident memory in

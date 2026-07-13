@@ -1,5 +1,5 @@
 {
-  "name": "@csf/client",
+  "name": "@ktjn/searchable-client",
   "version": "1.0.0",
   "description": "Browser runtime: fetch a manifest and shards over plain HTTP, evaluate a query, return ranked hits.",
   "license": "MIT",
@@ -28,12 +28,12 @@
     "check:bundle-size": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
-    "@csf/analysis": "workspace:*",
-    "@csf/format": "workspace:*"
+    "@ktjn/searchable-analysis": "workspace:*",
+    "@ktjn/searchable-format": "workspace:*"
   },
   "devDependencies": {
-    "@csf/fixtures": "workspace:*",
-    "@csf/indexer": "workspace:*",
+    "@ktjn/searchable-fixtures": "workspace:*",
+    "@ktjn/searchable-indexer": "workspace:*",
     "@huggingface/transformers": "^4.2.0",
     "@types/node": "^26.1.1",
     "typescript": "^7.0.2",

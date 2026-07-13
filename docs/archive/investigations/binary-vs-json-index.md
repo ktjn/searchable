@@ -162,7 +162,7 @@ investigation's own premise: the "unsustainable build time at scale"
 concern a slow JSON-tier reference indexer might otherwise raise is a
 fixed indexer bug, not evidence for or against binary — `buildIndex()`
 now scales roughly linearly (~11s at 10k docs, ~153s at 100k, measured
-on synthetic corpora via `@csf/fixtures`'s `generateCms2kCorpus()`),
+on synthetic corpora via `@ktjn/searchable-fixtures`'s `generateCms2kCorpus()`),
 so the actual JSON-vs-binary tradeoff this doc discusses (bytes on the
 wire, client-side parse/decode time, producibility) remains exactly as
 analyzed above and is unaffected by the fix.

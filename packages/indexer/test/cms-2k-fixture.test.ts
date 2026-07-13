@@ -1,4 +1,4 @@
-import { generateCms2kCorpus } from "@csf/fixtures";
+import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
 import { describe, expect, it } from "vitest";
 import { buildIndex } from "../src/build-index.js";
 import type { SourceDocument } from "../src/types.js";

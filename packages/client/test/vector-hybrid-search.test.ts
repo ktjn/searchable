@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, buildVectorShards, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, buildVectorShards, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import {

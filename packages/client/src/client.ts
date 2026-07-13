@@ -1,4 +1,4 @@
-import type { EmbeddingProviderConfig, Manifest } from "@csf/format";
+import type { EmbeddingProviderConfig, Manifest } from "@ktjn/searchable-format";
 import { ShardCache } from "./fetch-json.js";
 import type {
   FacetResult,
@@ -104,7 +104,7 @@ export interface SearchClientOptions {
    * esbuild...) has its own incompatible convention for referencing a
    * sibling worker file from a library, and guessing one would silently
    * break under the others. Pass whatever URL your build/CDN serves
-   * worker.js at — e.g. `new URL("@csf/client/dist/worker.js", import.meta.url)`
+   * worker.js at — e.g. `new URL("@ktjn/searchable-client/dist/worker.js", import.meta.url)`
    * if your bundler resolves bare specifiers there, or a plain string
    * pointing at wherever you've copied/deployed it. Omit to run on the
    * main thread regardless of `worker`.
@@ -135,7 +135,7 @@ export interface SearchClientOptions {
    * anything else) is a deployment choice this project stays agnostic
    * to — the resulting `number[]` must have the same dimensionality as
    * the manifest's vector shards (built with the same `embed()` given
-   * to `@csf/indexer`'s `buildVectorShards()`). Omitting this while
+   * to `@ktjn/searchable-indexer`'s `buildVectorShards()`). Omitting this while
    * requesting `mode: "vector"`/`"hybrid"` throws
    * `VectorSearchNotConfiguredError` rather than silently searching
    * lexical-only.

@@ -6,7 +6,7 @@ import type {
   PinsShard,
   SynonymShard,
   TermShard,
-} from "@csf/format";
+} from "@ktjn/searchable-format";
 
 export type {
   DocStoreEntry,
@@ -28,7 +28,7 @@ export type {
   TermShard,
   VectorEntry,
   VectorShard,
-} from "@csf/format";
+} from "@ktjn/searchable-format";
 
 export interface SourceDocument {
   id: number;

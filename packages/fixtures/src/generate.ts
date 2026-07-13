@@ -1,7 +1,7 @@
 import { MARKETING_PAGES, TOPICS } from "./content.js";
 
 /**
- * Structurally identical to @csf/indexer's SourceDocument -- not
+ * Structurally identical to @ktjn/searchable-indexer's SourceDocument -- not
  * imported from there on purpose, so this package has zero dependency
  * on the packages it exists to test (indexer, client), and can be a
  * devDependency of both without any risk of a cycle.

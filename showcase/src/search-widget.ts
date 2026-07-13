@@ -2,7 +2,7 @@
  * Loaded on every showcase page via <script type="module">. Not
  * bundled — plain TypeScript compiled to plain ES modules (see
  * ../tsconfig.widget.json) — this glue code has nothing to bundle, just
- * a dynamic import of the already-built @csf/client from a path
+ * a dynamic import of the already-built @ktjn/searchable-client from a path
  * computed at runtime.
  *
  * `import.meta.url` (not the page's own location) is the anchor for

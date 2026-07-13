@@ -133,7 +133,7 @@ describe("createTransformersEmbedQuery", () => {
  * Real, non-mocked run against the actual Hugging Face Hub -- requires
  * network access to huggingface.co (blocked in this project's own CI
  * sandbox and some contributors' environments), so it's opt-in only.
- * Run with: CSF_TEST_REAL_TRANSFORMERS=1 pnpm --filter @csf/client test
+ * Run with: CSF_TEST_REAL_TRANSFORMERS=1 pnpm --filter @ktjn/searchable-client test
  */
 describe.skipIf(!process.env.CSF_TEST_REAL_TRANSFORMERS)(
   "createTransformersEmbedQuery (real model, opt-in)",

@@ -9,9 +9,9 @@ import { describe, expect, it } from "vitest";
  * or `node` would resolve it -- not just "the file exists on disk at the
  * path we expect," but genuine package-name resolution through Node's
  * own module resolution algorithm, the same mechanism a consumer's
- * `import "@csf/client/worker"` goes through. `require.resolve()` (via
+ * `import "@ktjn/searchable-client/worker"` goes through. `require.resolve()` (via
  * `createRequire`) honors the `exports` field including conditional
- * subpaths, and resolves "@csf/client" as this package's own name with
+ * subpaths, and resolves "@ktjn/searchable-client" as this package's own name with
  * no `node_modules` symlink required (Node's self-referencing-package
  * feature) -- so this is a faithful test of the manifest shape itself,
  * not an artifact of the monorepo's workspace linking. (`import.meta.resolve`
@@ -24,20 +24,20 @@ const require = createRequire(import.meta.url);
 
 describe("package.json exports (consumer-fixture)", () => {
   it("resolves the main entry and it exports SearchClient", async () => {
-    const resolved = require.resolve("@csf/client");
+    const resolved = require.resolve("@ktjn/searchable-client");
     expect(existsSync(resolved)).toBe(true);
-    const mod = await import("@csf/client");
+    const mod = await import("@ktjn/searchable-client");
     expect(typeof mod.SearchClient).toBe("function");
   });
 
   it("resolves the ./worker subpath to a real, existing file", () => {
-    const resolved = require.resolve("@csf/client/worker");
+    const resolved = require.resolve("@ktjn/searchable-client/worker");
     expect(resolved.endsWith(join("dist", "worker.js"))).toBe(true);
     expect(existsSync(resolved)).toBe(true);
   });
 
   it("resolves the ./sw subpath to a real, existing file", () => {
-    const resolved = require.resolve("@csf/client/sw");
+    const resolved = require.resolve("@ktjn/searchable-client/sw");
     expect(resolved.endsWith(join("dist", "sw.js"))).toBe(true);
     expect(existsSync(resolved)).toBe(true);
   });

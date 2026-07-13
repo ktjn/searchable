@@ -113,7 +113,7 @@ export interface Manifest {
  * Identifies what produced a corpus's vectors (docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from) —
  * this project doesn't run or validate any embedding model itself, so
  * this is metadata for the runtime/caller to act on, not something
- * `@csf/indexer`/`@csf/client` interpret internally. `"local-model"` and
+ * `@ktjn/searchable-indexer`/`@ktjn/searchable-client` interpret internally. `"local-model"` and
  * `"remote-api"` mirror the two real query-time options the design doc
  * lays out; `"custom"` covers any other injectable `embed`/`embedQuery`
  * function a deployment supplies (including this repo's own tests,

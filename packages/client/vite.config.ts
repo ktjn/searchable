@@ -13,7 +13,7 @@ export default defineConfig({
       fileName: (_format, entryName) => `${entryName}.js`,
     },
     target: "es2022",
-    // @csf/analysis and @csf/format are bundled in (not external) here,
+    // @ktjn/searchable-analysis and @ktjn/searchable-format are bundled in (not external) here,
     // unlike the indexer's Node-only build — worker.js and sw.js in
     // particular are loaded via a raw `new Worker(url)` /
     // `navigator.serviceWorker.register(url)` reference that a

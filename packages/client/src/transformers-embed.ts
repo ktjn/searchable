@@ -24,7 +24,7 @@
  * consuming application has installed `@huggingface/transformers` itself.
  */
 
-import type { EmbeddingProviderConfig } from "@csf/format";
+import type { EmbeddingProviderConfig } from "@ktjn/searchable-format";
 
 /** `Xenova/all-MiniLM-L6-v2`: matches `packages/indexer/src/transformers-embed.ts`'s own default -- keep both ends on the same default unless a deployment explicitly overrides both. */
 export const DEFAULT_TRANSFORMERS_MODEL = "Xenova/all-MiniLM-L6-v2";

@@ -1,6 +1,6 @@
 # Client API
 
-This reference lists the implemented `@csf/client` surface and the exact option names used by the current `1.0.0` package.
+This reference lists the implemented `@ktjn/searchable-client` surface and the exact option names used by the current `1.0.0` package.
 
 ## SearchClient
 

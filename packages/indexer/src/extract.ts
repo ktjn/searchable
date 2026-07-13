@@ -2,7 +2,7 @@ import {
   detectLanguage,
   getOrCreate,
   getRegisteredLanguageCodes,
-} from "@csf/analysis";
+} from "@ktjn/searchable-analysis";
 import { parse } from "node-html-parser";
 
 export interface PinDeclaration {
@@ -95,14 +95,14 @@ function sanitizeCanonicalUrl(
     parsed = new URL(canonical, options.baseUrl);
   } catch {
     console.warn(
-      `[csf-indexer] canonical URL "${canonical}" for ${sourceUrl} is malformed or relative with no baseUrl configured -- ignoring, indexing with ${sourceUrl} instead. See docs/reference/cms-meta-tags.md#canonical-url.`,
+      `[searchable-indexer] canonical URL "${canonical}" for ${sourceUrl} is malformed or relative with no baseUrl configured -- ignoring, indexing with ${sourceUrl} instead. See docs/reference/cms-meta-tags.md#canonical-url.`,
     );
     return sourceUrl;
   }
 
   if (!SAFE_URL_PROTOCOLS.has(parsed.protocol)) {
     console.warn(
-      `[csf-indexer] canonical URL "${canonical}" for ${sourceUrl} uses a disallowed protocol (${parsed.protocol}) -- ignoring, indexing with ${sourceUrl} instead.`,
+      `[searchable-indexer] canonical URL "${canonical}" for ${sourceUrl} uses a disallowed protocol (${parsed.protocol}) -- ignoring, indexing with ${sourceUrl} instead.`,
     );
     return sourceUrl;
   }
@@ -112,7 +112,7 @@ function sanitizeCanonicalUrl(
     !options.allowedUrlOrigins.includes(parsed.origin)
   ) {
     console.warn(
-      `[csf-indexer] canonical URL "${canonical}" for ${sourceUrl} resolves to an origin (${parsed.origin}) not in allowedUrlOrigins -- ignoring, indexing with ${sourceUrl} instead.`,
+      `[searchable-indexer] canonical URL "${canonical}" for ${sourceUrl} resolves to an origin (${parsed.origin}) not in allowedUrlOrigins -- ignoring, indexing with ${sourceUrl} instead.`,
     );
     return sourceUrl;
   }

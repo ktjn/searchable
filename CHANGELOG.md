@@ -1,10 +1,10 @@
 # Changelog
 
-All notable changes to `@csf/client`, `@csf/indexer`, `@csf/format`, and
-`@csf/analysis` are documented here. These four packages are versioned
+All notable changes to `@ktjn/searchable-client`, `@ktjn/searchable-indexer`, `@ktjn/searchable-format`, and
+`@ktjn/searchable-analysis` are documented here. These four packages are versioned
 in lockstep (see [Compatibility](docs/reference/compatibility.md)) — one
 version number covers all of them.
-`@csf/fixtures` is internal test tooling and is never published, so it
+`@ktjn/searchable-fixtures` is internal test tooling and is never published, so it
 isn't covered by this changelog.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
@@ -25,7 +25,7 @@ version number.
 ### Added
 
 - **Lexical search core**: multi-language tokenization/analysis
-  (`@csf/analysis`), BM25F ranking with field/document/term boosts
+  (`@ktjn/searchable-analysis`), BM25F ranking with field/document/term boosts
   (docs/guides/ranking-and-boosts.md), prefix (`term*`) and exact `"quoted phrase"` matching.
 - **Facets & curated results**: terms, range (filter + aggregate
   bucket), and hierarchical facets; a filter-only `facetValues()` call;
@@ -38,12 +38,12 @@ version number.
   stemmers, CJK bigram and Thai/Khmer/Lao trigram segmentation
   fallbacks, zero-bundled-model auto language detection, an
   `isRtlLanguage()` primitive.
-- **Runtime/DX**: Web Worker execution (`@csf/client/worker`) with a
+- **Runtime/DX**: Web Worker execution (`@ktjn/searchable-client/worker`) with a
   main-thread fallback, `options.signal` cancellation, `searchStream()`
   incremental results, result highlighting, `on("query"|"result")`
   observability hooks.
 - **Offline support**: Service Worker precaching
-  (`registerOfflineCaching()`, `@csf/client/sw`), including
+  (`registerOfflineCaching()`, `@ktjn/searchable-client/sw`), including
   stale-while-revalidate and language-scoped caching.
 - **Scale options** (experimental): an opt-in, per-shard binary encoding
   for term shards, fuzzy shards, and the doc store

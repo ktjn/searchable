@@ -7,7 +7,7 @@ Pass both `worker: true` and `workerUrl` to move analysis and scoring off the ma
 Register static search assets for offline use with `registerOfflineCaching`:
 
 ```ts
-import { registerOfflineCaching } from "@csf/client";
+import { registerOfflineCaching } from "@ktjn/searchable-client";
 
 await registerOfflineCaching(
   "/assets/sw.js",

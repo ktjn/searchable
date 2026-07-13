@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { generateCms2kCorpus } from "@csf/fixtures";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";

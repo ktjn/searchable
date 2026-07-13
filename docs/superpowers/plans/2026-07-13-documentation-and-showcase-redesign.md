@@ -4,7 +4,7 @@
 
 **Goal:** Replace the flat, planning-heavy public documentation with an audience-first site, a guided interactive showcase, and a locally reproducible GitHub Pages validation gate.
 
-**Architecture:** Keep the existing custom Markdown-to-static-HTML build and real `@csf/indexer`/`@csf/client` demos. Add an explicit typed navigation manifest, small testable rendering/validation modules, and a typed showcase-example catalog that drives both runtime data attributes and displayed source. Historical material remains in git under unpublished archive directories.
+**Architecture:** Keep the existing custom Markdown-to-static-HTML build and real `@ktjn/searchable-indexer`/`@ktjn/searchable-client` demos. Add an explicit typed navigation manifest, small testable rendering/validation modules, and a typed showcase-example catalog that drives both runtime data attributes and displayed source. Historical material remains in git under unpublished archive directories.
 
 **Tech Stack:** TypeScript 7, Node.js 22, pnpm 11, marked, highlight.js (build-time only), Vitest, Playwright, GitHub Pages Actions.
 
@@ -13,7 +13,7 @@
 - Preserve the pull-based static HTTP deployment model and custom site generator; do not introduce a documentation framework.
 - Publish only pages explicitly listed in the navigation manifest.
 - Exclude `docs/archive/` and `docs/superpowers/` from rendered output and the docs search index.
-- Keep every interactive result backed by a real generated index and `@csf/client`; do not mock results.
+- Keep every interactive result backed by a real generated index and `@ktjn/searchable-client`; do not mock results.
 - Derive visible inline example code from the same typed definition that supplies runtime widget configuration.
 - Keep all generated URLs relative and valid when hosted below `/client-search-framework/`.
 - Do not preserve the numbered documentation URLs with redirect stubs.
@@ -152,7 +152,7 @@ git mv docs/spec-storage-api.md docs/archive/specs/storage-api.md
 The first-search page must contain one copyable path using only implemented exports:
 
 ```ts
-import { SearchClient } from "@csf/client";
+import { SearchClient } from "@ktjn/searchable-client";
 
 const search = new SearchClient({
   indexUrl: "/search-index/manifest.json",
@@ -169,8 +169,8 @@ for (const hit of result.hits) {
 Installation must show the published npm packages as the default path:
 
 ```bash
-pnpm add @csf/client
-pnpm add -D @csf/indexer
+pnpm add @ktjn/searchable-client
+pnpm add -D @ktjn/searchable-indexer
 ```
 
 The indexing guide may show the repository-local Python reference implementation, but must not imply that `csf-indexer` is published to PyPI. Use the checked-out project explicitly:

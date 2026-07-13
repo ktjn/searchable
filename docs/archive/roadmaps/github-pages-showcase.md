@@ -55,8 +55,8 @@ Two showcase surfaces, published from the same repo:
 ## Stage 1 — "Search these docs" ✅ built
 
 - [`showcase/build-search.ts`](../../../showcase/build-search.ts) runs the
-  real `@csf/indexer` against Stage 0's rendered HTML output and copies
-  the built `@csf/client` bundle alongside it — the actual reference
+  real `@ktjn/searchable-indexer` against Stage 0's rendered HTML output and copies
+  the built `@ktjn/searchable-client` bundle alongside it — the actual reference
   indexer and runtime from Phases 0-2, not a mock.
 - [`showcase/src/search-widget.ts`](../../../showcase/src/search-widget.ts) is
   a small (~100 line), unbundled glue script — loaded via a plain
@@ -178,7 +178,7 @@ real rather than contrived. Side-by-side lexical vs. hybrid results
   design flourishes beyond what's needed to make each demo legible —
   keeps it honest as a technical proof rather than a pitch.
 - **Not framework-heavy.** The showcase shell itself should be plain
-  HTML/CSS and vanilla JS calling `@csf/client` directly, not a
+  HTML/CSS and vanilla JS calling `@ktjn/searchable-client` directly, not a
   React/Vue app — partly to keep it simple, partly because "look, this
   is just a `<script type=module>` tag and a search box" is itself part
   of what the showcase should communicate.

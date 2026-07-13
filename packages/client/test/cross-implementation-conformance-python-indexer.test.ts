@@ -4,8 +4,8 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Manifest } from "@csf/format";
-import { buildIndex, discoverHtmlDocuments, writeIndex } from "@csf/indexer";
+import type { Manifest } from "@ktjn/searchable-format";
+import { buildIndex, discoverHtmlDocuments, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";
@@ -18,11 +18,11 @@ import { serveStatic } from "./static-server.js";
  * whole point is comparing the reference TS indexer against a minimal,
  * intentionally-non-conformant generator, this test's point is the
  * inverse: `csf-indexer` (python/) is a from-scratch Python re-
- * implementation of `@csf/indexer` intended to be a conformant, drop-in
+ * implementation of `@ktjn/searchable-indexer` intended to be a conformant, drop-in
  * peer -- same manifest/shard format, same tokenization pipeline
- * (`csf-analysis`, a Python port of `@csf/analysis`'s stemming/
+ * (`csf-analysis`, a Python port of `@ktjn/searchable-analysis`'s stemming/
  * segmentation). This test proves that claim by indexing the *same*
- * fixture corpus two ways -- `@csf/indexer`'s `buildIndex`/`writeIndex`,
+ * fixture corpus two ways -- `@ktjn/searchable-indexer`'s `buildIndex`/`writeIndex`,
  * and `uv run csf-indexer <src> <out>` -- and running the *same*
  * end-to-end query assertions against both outputs over real HTTP via
  * the real `SearchClient`.
@@ -263,7 +263,7 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
  * encoder and TS decoder could produce byte-identical-but-wrong shards
  * that still "worked" only because the same misencoding round-trips
  * through the same misdecoding. Querying the Python-built binary
- * output through `@csf/client`'s real binary decoder closes that gap.
+ * output through `@ktjn/searchable-client`'s real binary decoder closes that gap.
  */
 describe("cross-implementation conformance: binary storage tier byte-identity", () => {
   const FIXTURE = [

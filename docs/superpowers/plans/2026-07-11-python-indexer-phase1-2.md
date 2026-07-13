@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship two installable Python packages, `csf-analysis` and `csf-indexer`, giving full feature parity with `@csf/analysis` + the lexical-core subset of `@csf/indexer` — producing a JSON index `@csf/client` can query, with no facets/synonyms/fuzzy/pins/vectors/binary tier yet (those are later, separately spec'd phases).
+**Goal:** Ship two installable Python packages, `csf-analysis` and `csf-indexer`, giving full feature parity with `@ktjn/searchable-analysis` + the lexical-core subset of `@ktjn/searchable-indexer` — producing a JSON index `@ktjn/searchable-client` can query, with no facets/synonyms/fuzzy/pins/vectors/binary tier yet (those are later, separately spec'd phases).
 
 **Architecture:** Direct, faithful ports of the existing TypeScript source (`packages/analysis/src/*.ts`, `packages/indexer/src/{discover,extract,build-index,write-index,hash,cli}.ts`), file-for-file where practical, adjusted only where Python's language semantics force a difference (documented per-task below — e.g. no `Intl.Segmenter`, no JS-prototype-pollution risk on plain dicts, no type-only circular imports).
 
@@ -39,7 +39,7 @@
 [project]
 name = "csf-analysis"
 version = "0.1.0"
-description = "Multi-language tokenization, stemming, and language detection for client-search-framework (Python port of @csf/analysis)."
+description = "Multi-language tokenization, stemming, and language detection for client-search-framework (Python port of @ktjn/searchable-analysis)."
 requires-python = ">=3.10"
 dependencies = []
 
@@ -1806,7 +1806,7 @@ This completes `csf-analysis` (Phase 1).
 [project]
 name = "csf-indexer"
 version = "0.1.0"
-description = "Reference index-builder for client-search-framework (Python port of the lexical-core subset of @csf/indexer)."
+description = "Reference index-builder for client-search-framework (Python port of the lexical-core subset of @ktjn/searchable-indexer)."
 requires-python = ">=3.10"
 dependencies = [
     "csf-analysis",
@@ -3369,7 +3369,7 @@ Extends the existing pattern in `packages/client/test/cross-implementation-confo
 - Create: `packages/client/test/cross-implementation-conformance-python-indexer.test.ts`
 
 **Interfaces:**
-- Consumes: the installed `csf-indexer` Python CLI (via `uv run csf-indexer <src> <out>` subprocess, requires `python/csf-indexer` to have been `uv sync`-ed); `SearchClient` from `@csf/client`; the existing test's HTTP-serving helper utilities.
+- Consumes: the installed `csf-indexer` Python CLI (via `uv run csf-indexer <src> <out>` subprocess, requires `python/csf-indexer` to have been `uv sync`-ed); `SearchClient` from `@ktjn/searchable-client`; the existing test's HTTP-serving helper utilities.
 
 - [ ] **Step 1: Read the existing conformance test to match its structure**
 
@@ -3389,8 +3389,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/index.js";
-import { buildIndex } from "@csf/indexer/build-index.js";
-import { writeIndex } from "@csf/indexer/write-index.js";
+import { buildIndex } from "@ktjn/searchable-indexer/build-index.js";
+import { writeIndex } from "@ktjn/searchable-indexer/write-index.js";
 import { startStaticServer } from "./static-server.js";
 
 const execFileAsync = promisify(execFile);

@@ -1,5 +1,5 @@
-export { isRtlLanguage } from "@csf/analysis";
-export type { EmbeddingProviderConfig } from "@csf/format";
+export { isRtlLanguage } from "@ktjn/searchable-analysis";
+export type { EmbeddingProviderConfig } from "@ktjn/searchable-format";
 export type {
   SearchClientEventMap,
   SearchClientOptions,

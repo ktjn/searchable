@@ -203,7 +203,7 @@ Requires Node.js 24 or newer and pnpm 11.
 
 ```markdown
 <!-- docs/getting-started/installation.md -->
-The packages require Node.js 24 or newer for build tooling. `@csf/client` targets modern browsers with `fetch`, `URL`, and optional Web Worker and Service Worker support.
+The packages require Node.js 24 or newer for build tooling. `@ktjn/searchable-client` targets modern browsers with `fetch`, `URL`, and optional Web Worker and Service Worker support.
 ```
 
 Do not rewrite historical plans or design records that accurately record the versions used when those documents were created.

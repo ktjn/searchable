@@ -5,7 +5,7 @@ import {
   getOrCreate,
   normalizePhrase,
   ownProp,
-} from "@csf/analysis";
+} from "@ktjn/searchable-analysis";
 import { extractDocument } from "./extract.js";
 import type {
   BuiltIndex,
@@ -180,7 +180,7 @@ function buildFuzzyShard(termShard: TermShard, maxEdits: 1 | 2): FuzzyShard {
  * Normalizes author-supplied synonym data through each language's own
  * analysis pipeline (the same normalizePhrase() pins already use), so
  * a synonym entry authored as a surface form ("Couch") matches however
- * @csf/analysis actually stores that term, not the raw authored string.
+ * @ktjn/searchable-analysis actually stores that term, not the raw authored string.
  * Empty/blank entries (e.g. a term that stems to nothing) and
  * single-member equivalence groups (nothing left to expand to) are
  * dropped rather than carried into the shard as dead weight.
@@ -724,7 +724,8 @@ export function buildIndex(
   }
 
   const { pinsShards, warnings } = resolvePins(pinsAccByLanguage);
-  for (const warning of warnings) console.warn(`[csf-indexer] ${warning}`);
+  for (const warning of warnings)
+    console.warn(`[searchable-indexer] ${warning}`);
 
   // Postings/facet doc-id lists are appended in source-array processing
   // order, which is not a meaningful order (unlike pins' priority-based

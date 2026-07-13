@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * `@huggingface/transformers` pipeline fetches model weights from
  * `huggingface.co` on first use, which this sandboxed test environment
  * has no route to. The one test that talks to the real library is gated
- * behind `CSF_TEST_REAL_TRANSFORMERS` below and skipped by default.
+ * behind `SEARCHABLE_TEST_REAL_TRANSFORMERS` below and skipped by default.
  */
 const pipelineMock = vi.fn();
 vi.mock("@huggingface/transformers", () => ({
@@ -129,9 +129,9 @@ describe("createTransformersEmbedder", () => {
  * Real, non-mocked run against the actual Hugging Face Hub -- requires
  * network access to huggingface.co (blocked in this project's own CI
  * sandbox and some contributors' environments), so it's opt-in only.
- * Run with: CSF_TEST_REAL_TRANSFORMERS=1 pnpm --filter @csf/indexer test
+ * Run with: SEARCHABLE_TEST_REAL_TRANSFORMERS=1 pnpm --filter @ktjn/searchable-indexer test
  */
-describe.skipIf(!process.env.CSF_TEST_REAL_TRANSFORMERS)(
+describe.skipIf(!process.env.SEARCHABLE_TEST_REAL_TRANSFORMERS)(
   "createTransformersEmbedder (real model, opt-in)",
   () => {
     it("embeds real text into a 384-dim normalized vector", async () => {

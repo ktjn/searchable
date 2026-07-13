@@ -3,7 +3,7 @@ import {
   getLanguageProfile,
   normalizePhrase,
   ownProp,
-} from "@csf/analysis";
+} from "@ktjn/searchable-analysis";
 import type {
   DocStoreEntry,
   FacetShard,
@@ -15,7 +15,7 @@ import type {
   TermEntry,
   TermShard,
   VectorShard,
-} from "@csf/format";
+} from "@ktjn/searchable-format";
 import {
   decodeBinaryDocStoreDirectory,
   decodeBinaryDocStoreEntry,
@@ -94,7 +94,7 @@ export interface SearchResult {
    * `SearchResult` comes from that single language's partition (terms
    * are sharded per-language, docs/guides/internationalization.md#mixed-language-corpora-and-queries),
    * so this is one value for the whole result, not per-hit. Lets a
-   * consumer combine it with `@csf/analysis`'s `isRtlLanguage()`
+   * consumer combine it with `@ktjn/searchable-analysis`'s `isRtlLanguage()`
    * (re-exported from this package) to set `dir="rtl"` on a results
    * container without duplicating its own language-resolution logic —
    * see docs/reference/client-api.md. The actual RTL
@@ -1146,7 +1146,7 @@ async function lexicalSearch(
       const selectedValues = new Set(valuesFor(options.filters, field));
       // For a range-type shard, `shard.values` is always {} (no
       // precomputed buckets yet, see FacetShard.values doc comment in
-      // @csf/format) -- this naturally produces an empty `values`
+      // @ktjn/searchable-format) -- this naturally produces an empty `values`
       // array rather than a bucketed histogram, since aggregate range
       // facet results are deferred; range *filtering* (unionDocsForField
       // above) works today regardless.
