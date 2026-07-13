@@ -261,3 +261,8 @@ semver, and wire-format compatibility remains governed independently by
 - Changing runtime search behavior, ranking, index schema shapes, or format
   version.
 - Rewriting Git history or release dates.
+
+## Implementation plan
+
+The approved migration is mapped to executable tasks in the
+[Searchable identity migration implementation plan](../plans/2026-07-13-searchable-identity-migration.md).
