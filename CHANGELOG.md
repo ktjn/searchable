@@ -14,13 +14,15 @@ the "stable" API surface in
 the vector/hybrid search and binary storage tier surfaces
 are explicitly marked experimental and may change in a minor release.
 
-## [1.0.0]
+## [Unreleased]
 
-First stable release. Everything below was already built and tested
-across many prior (unreleased, `0.0.0`) commits; this entry is the
-retroactive summary the [release checklist](docs/project/governance.md#release-checklist)
-calls for, written once at the point the packages actually gain a real
-version number.
+The npm packages are not yet published. Their manifests and implemented API
+surface are prepared for a coordinated first release at `1.0.0`.
+
+### Prepared for 1.0.0
+
+This is the feature summary for the planned first stable release. Everything
+below was built and tested across prior unreleased commits.
 
 ### Added
 
@@ -70,8 +72,8 @@ version number.
 
 - The core runtime bundle (`index.js` + `worker.js` + `sw.js`) is held
   to a 15 KB gzip budget, enforced in CI (`pnpm size`).
-- 496 Vitest tests and 40 Playwright (real-Chromium) tests cover the
-  above end-to-end, not just in isolation.
+- Vitest and Playwright real-browser tests cover the above end-to-end, not just
+  in isolation; CI is the source of truth for the current test count.
 - See [docs/project/roadmap.md](docs/project/roadmap.md) for exactly what's built
   vs. still partial/design-only, and
   [docs/reference/compatibility.md](docs/reference/compatibility.md) for what's

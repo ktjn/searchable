@@ -10,7 +10,7 @@ The accepted ADR index is [Architecture decisions](architecture-decisions.md). D
 
 ## Compatibility
 
-Published packages follow semver and move in lockstep. The manifest format uses its own integer version and compatibility table; see [Compatibility](../reference/compatibility.md). Breaking API or format changes require migration documentation and focused compatibility tests.
+When published, the four public npm packages follow semver and move in lockstep. The manifest format uses its own integer version and compatibility table; see [Compatibility](../reference/compatibility.md). Breaking API or format changes require migration documentation and focused compatibility tests.
 
 ## Testing
 

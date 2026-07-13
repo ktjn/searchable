@@ -1,12 +1,12 @@
 # Compatibility
 
-This reference distinguishes package-version promises from index-format compatibility and records the current `1.0.0` public API boundary.
+This reference distinguishes the planned package-version promises from index-format compatibility and records the prepared `1.0.0` API boundary.
 
 ## Package semver
 
-`@ktjn/searchable-client`, `@ktjn/searchable-indexer`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis` are published in lockstep at `1.0.0`. Within the current major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
+`@ktjn/searchable-client`, `@ktjn/searchable-indexer`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis` are not yet published. Their manifests are prepared in lockstep at `1.0.0`, and the semver guarantees below begin with their coordinated first npm release. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
 
-The current public package API is the export surface in each package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered. Binary storage and vector/hybrid functionality are implemented but identified as experimental in the `1.0.0` changelog, so they may evolve in a minor release with explicit notes.
+The planned public package API is the export surface in each package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered. Binary storage and vector/hybrid functionality are implemented but identified as experimental in the prepared `1.0.0` changelog, so they may evolve in a minor release with explicit notes after publication.
 
 ## Index format compatibility
 
