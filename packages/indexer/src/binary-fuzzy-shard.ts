@@ -12,9 +12,9 @@ import { ByteWriter } from "./byte-writer.js";
  * (`packages/client/src/search.ts`'s `fuzzyCandidatesFor()`) -- the same
  * "large dictionary, few keys touched per query" shape the term-shard
  * binary tier was built and benchmarked for
- * (docs/concepts/binary-storage.md, `packages/indexer/bench/binary-lazy-decode.mjs`),
- * so the same directory + lazy-per-key-decode technique applies
- * directly without needing its own from-scratch benchmark.
+ * (docs/archive/investigations/binary-vs-json-index.md), so the same
+ * directory + lazy-per-key-decode technique applies directly without
+ * needing its own from-scratch benchmark.
  *
  * Layout: `[maxEdits][directory][deletions blob]`. `varint(maxEdits)`,
  * then the directory: `varint(variantCount)`, then per deletion-variant

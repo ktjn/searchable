@@ -794,10 +794,8 @@ Phase 2 is now fully implemented.
   candidate prefix bucket (recursively, for any over-budget one) instead
   of writing one shard outright — a one-time build-time cost, paid once
   per deploy, traded for the query-time win above.
-- ✅ Binary-vs-JSON postings benchmark
-  (`packages/indexer/bench/binary-vs-json-postings.mjs`, run via
-  `pnpm --filter @csf/indexer run bench:binary`): a minimal delta+varint
-  binary postings codec matching
+- ✅ Binary-vs-JSON postings benchmark: a minimal delta+varint binary
+  postings codec matching
   [../specs/binary-format.md](../specs/binary-format.md)'s own baseline
   recommendation, benchmarked against the largest single prefix shard
   (the real per-query worst case, per the prefix-sharding fix above) at
@@ -805,7 +803,10 @@ Phase 2 is now fully implemented.
   the JSON source. Deliberately investigation-only code (not part of
   `@csf/format`/`@csf/indexer`'s shipped API) — see
   [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md) for the full
-  writeup. Two findings, in opposite directions: the gzip size win is
+  writeup. The one-off program was removed after the investigation
+  concluded; the measurements remain in that decision record and the
+  shipped codecs are covered by package tests. Two findings, in opposite
+  directions: the gzip size win is
   far larger than this investigation's earlier illustrative estimate and
   grows with corpus size (11x at 1k docs, 41x at 100k), but a naive
   whole-shard binary decode is currently *slower* than native
@@ -815,10 +816,8 @@ Phase 2 is now fully implemented.
   lazy per-term posting decode (not whole-shard decode, which this
   benchmark only measures for a fair baseline) to plausibly turn that
   into a real win.
-- ✅ Lazy per-term decode prototype
-  (`packages/indexer/bench/binary-lazy-decode.mjs`, run via
-  `pnpm --filter @csf/indexer run bench:binary-lazy`): re-encodes the
-  same largest-shard baseline into a directory-based layout (sorted
+- ✅ Lazy per-term decode prototype: re-encoded the same largest-shard
+  baseline into a directory-based layout (sorted
   term → byte offset/length table + postings blob, per
   [spec-binary-format.md](../specs/binary-format.md#dictionary-encoding)'s
   own baseline) so a specific term's postings decode by seeking directly
@@ -835,7 +834,10 @@ Phase 2 is now fully implemented.
   skip. Full numbers and interpretation in
   [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md). Building
   the binary tier for real should use this directory-based, lazy-decode
-  design, not a whole-shard decode step.
+  design, not a whole-shard decode step. The one-off program was removed
+  after the investigation concluded; the measurements remain in the
+  linked decision record and the shipped codecs are covered by package
+  tests.
 - ✅ Binary tier codec — term shards
   (`packages/indexer/src/binary-term-shard.ts` for the encoder,
   `packages/client/src/binary-term-shard.ts` for the decoder,

@@ -758,11 +758,7 @@ async function lexicalSearch(
   await Promise.all(
     neededShardEntries.map(async (entry) => {
       if (entry.format === "binary") {
-        // Lazy per-term decode (docs/concepts/binary-storage.md,
-        // packages/indexer/bench/binary-lazy-decode.mjs): only the
-        // directory (every term name + byte range, no postings) and
-        // the specific terms this query needs are ever decoded, never
-        // the whole shard.
+        // Binary directories expose per-term offsets, so decode only matched entries.
         const bytes = await cache.fetchArrayBuffer(
           resolve(baseUrl, entry.file),
         );

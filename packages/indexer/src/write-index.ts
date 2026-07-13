@@ -231,9 +231,8 @@ export interface WriteIndexOptions {
   shardByPrefix?: boolean;
   /**
    * `"binary"` writes term shards with the directory-based delta+varint
-   * encoding (`./binary-term-shard.js`, validated in
-   * `packages/indexer/bench/binary-lazy-decode.mjs` — see
-   * docs/concepts/binary-storage.md), one `.bin` file per prefix bucket
+   * encoding (`./binary-term-shard.js`; see
+   * docs/archive/investigations/binary-vs-json-index.md), one `.bin` file per prefix bucket
    * with `format: "binary"` recorded on that shard's manifest entry, in
    * place of the plain-JSON `terms/<lang>/<prefix>.json` shape.
    * Defaults to `"json"`. Every other shard type (facets, doc store,
