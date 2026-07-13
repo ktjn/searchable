@@ -144,6 +144,8 @@ without mocking the indexer, fetch, or client.
 A committed fixture policy test requires:
 
 - exactly 20 queries;
+- 17 concise two-to-five-word searches plus three six-to-seven-word stress
+  queries, preserving task intent without copying page titles;
 - coverage of the documented topic groups;
 - at least five multi-relevant queries;
 - complete positive-judgment rationales;

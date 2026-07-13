@@ -36,6 +36,15 @@ describe("committed documentation relevance fixture", () => {
           1,
       ).length,
     ).toBeGreaterThanOrEqual(5);
+    const queryWordCounts = suite.queries.map(
+      (query) => query.text.trim().split(/\s+/u).length,
+    );
+    expect(
+      queryWordCounts.filter((count) => count >= 2 && count <= 5),
+    ).toHaveLength(17);
+    expect(
+      queryWordCounts.filter((count) => count >= 6 && count <= 7),
+    ).toHaveLength(3);
     expect(suite.review.status).toBe("draft");
     expect(suite.pages).toEqual(expectedPages);
   });

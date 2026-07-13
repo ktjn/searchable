@@ -538,26 +538,30 @@ shown grade and a sentence explaining the page-specific value:
 
 | Query ID | Query text | Topic | Positive pages |
 |---|---|---|---|
-| `install-packages` | `install the packages and build the project` | setup | installation 3, overview 1 |
-| `first-search-box` | `create my first search box` | setup | first-search 3, client-api 2, indexing 1 |
-| `index-rendered-html` | `build an index from rendered html pages` | indexing-deployment | indexing 3, architecture 2 |
-| `deploy-static-index` | `publish the search index on a static host` | indexing-deployment | indexing 3, pull-based ADR 2, architecture 2 |
-| `boost-important-fields` | `make title matches rank higher than body text` | lexical-features | ranking-and-boosts 3, configuration 2, BM25F ADR 2 |
-| `category-filters` | `add category filters with result counts` | lexical-features | facets 3, cms-meta-tags 2, client-api 1 |
-| `sofa-couch-synonyms` | `treat sofa and couch as the same search` | lexical-features | synonyms 3, configuration 2 |
-| `pin-promoted-result` | `force a promoted page to the top for one query` | lexical-features | pinning 3, cms-meta-tags 2 |
-| `language-analyzers` | `configure stemming and stopwords for multiple languages` | internationalization | internationalization 3, configuration 2, relevance-baselines 1 |
-| `offline-caching` | `keep search working without a network connection` | offline-worker | offline-search 3, client-api 2, architecture 1 |
-| `web-worker-search` | `run search outside the browser main thread` | offline-worker | client-api 3, architecture 2, first-search 1 |
-| `semantic-search` | `find conceptually related pages with semantic search` | vector-hybrid | vector-search 3, client-api 2, opt-in ADR 1 |
-| `hybrid-search` | `combine keyword ranking with vector similarity` | vector-hybrid | vector-search 3, ranking-and-boosts 2, BM25F ADR 1 |
-| `index-shards` | `understand the manifest and shard files` | indexing-deployment | index-format 3, architecture 2, JSON-first ADR 2 |
-| `binary-download-size` | `reduce index download size with binary storage` | indexing-deployment | binary-storage 3, index-format 2 |
-| `client-options` | `look up SearchClient options and result fields` | setup | client-api 3, configuration 2 |
-| `cms-controls` | `set boosts facets and pins from cms metadata` | lexical-features | cms-meta-tags 3, ranking-and-boosts 2, facets 2, pinning 2 |
-| `format-compatibility` | `check client compatibility with an index format version` | indexing-deployment | compatibility 3, compatibility ADR 2, governance 1 |
-| `measure-relevance` | `measure mrr ndcg recall and zero result rate` | relevance | relevance-baselines 3, roadmap 2, BM25F ADR 1 |
-| `public-index-security` | `can private or restricted content go in the generated index` | indexing-deployment | roadmap 3, architecture 2, indexing 1 |
+| `install-packages` | `install packages build project` | setup | installation 3, overview 1 |
+| `first-search-box` | `create first search box` | setup | first-search 3, client-api 2, indexing 1 |
+| `index-rendered-html` | `index rendered html pages` | indexing-deployment | indexing 3, architecture 2 |
+| `deploy-static-index` | `deploy static search index` | indexing-deployment | indexing 3, pull-based ADR 2, architecture 2 |
+| `boost-important-fields` | `boost title field matches` | lexical-features | ranking-and-boosts 3, configuration 2, BM25F ADR 2 |
+| `category-filters` | `category filters result counts` | lexical-features | facets 3, cms-meta-tags 2, client-api 1 |
+| `sofa-couch-synonyms` | `sofa couch synonyms` | lexical-features | synonyms 3, configuration 2 |
+| `pin-promoted-result` | `promoted page at top for one query` | lexical-features | pinning 3, cms-meta-tags 2 |
+| `language-analyzers` | `language stemming stopwords` | internationalization | internationalization 3, configuration 2, relevance-baselines 1 |
+| `offline-caching` | `offline search caching` | offline-worker | offline-search 3, client-api 2, architecture 1 |
+| `web-worker-search` | `web worker search` | offline-worker | client-api 3, architecture 2, first-search 1 |
+| `semantic-search` | `semantic vector search` | vector-hybrid | vector-search 3, client-api 2, opt-in ADR 1 |
+| `hybrid-search` | `hybrid keyword vector search` | vector-hybrid | vector-search 3, ranking-and-boosts 2, BM25F ADR 1 |
+| `index-shards` | `manifest shard files` | indexing-deployment | index-format 3, architecture 2, JSON-first ADR 2 |
+| `binary-download-size` | `binary index download size` | indexing-deployment | binary-storage 3, index-format 2 |
+| `client-options` | `SearchClient options result fields` | setup | client-api 3, configuration 2 |
+| `cms-controls` | `CMS boosts facets pins` | lexical-features | cms-meta-tags 3, ranking-and-boosts 2, facets 2, pinning 2 |
+| `format-compatibility` | `client compatibility with old index format version` | indexing-deployment | compatibility 3, compatibility ADR 2, governance 1 |
+| `measure-relevance` | `MRR nDCG recall zero results` | relevance | relevance-baselines 3, roadmap 2, BM25F ADR 1 |
+| `public-index-security` | `private or restricted content in generated index` | indexing-deployment | roadmap 3, architecture 2, indexing 1 |
+
+Maintainer calibration keeps 17 queries at two to five words and three at
+six to seven words as explicit strict-AND stress cases. This changes only query
+wording; intents, topics, judgments, and rationales remain fixed.
 
 Map shorthand names to canonical IDs exactly as follows:
 
@@ -604,9 +608,11 @@ pnpm relevance -- --suite searchable-docs --json > searchable-docs-relevance-dra
 
 Inspect every query whose first result is not grade 3, every zero-result query,
 and the returned top 5 for all multi-relevant queries. Correct only factual
-judgment/rationale mistakes; do not tune ranking or rewrite queries to inflate
-scores. Delete `searchable-docs-relevance-draft.json` after presenting its
-contents to the maintainer.
+judgment/rationale mistakes; do not tune ranking or rewrite queries to target a
+metric. A maintainer-approved representativeness calibration may shorten query
+wording while preserving intent, topic, judgments, and rationales. Delete
+`searchable-docs-relevance-draft.json` after presenting its contents to the
+maintainer.
 
 - [ ] **Step 5: Commit the reviewable draft**
 

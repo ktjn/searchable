@@ -134,7 +134,7 @@
   "queries": [
     {
       "id": "install-packages",
-      "text": "install the packages and build the project",
+      "text": "install packages build project",
       "topic": "setup",
       "judgments": {
         "/docs/getting-started/installation.html": 3,
@@ -147,7 +147,7 @@
     },
     {
       "id": "first-search-box",
-      "text": "create my first search box",
+      "text": "create first search box",
       "topic": "setup",
       "judgments": {
         "/docs/getting-started/first-search.html": 3,
@@ -162,7 +162,7 @@
     },
     {
       "id": "index-rendered-html",
-      "text": "build an index from rendered html pages",
+      "text": "index rendered html pages",
       "topic": "indexing-deployment",
       "judgments": {
         "/docs/guides/indexing.html": 3,
@@ -175,7 +175,7 @@
     },
     {
       "id": "deploy-static-index",
-      "text": "publish the search index on a static host",
+      "text": "deploy static search index",
       "topic": "indexing-deployment",
       "judgments": {
         "/docs/guides/indexing.html": 3,
@@ -190,7 +190,7 @@
     },
     {
       "id": "boost-important-fields",
-      "text": "make title matches rank higher than body text",
+      "text": "boost title field matches",
       "topic": "lexical-features",
       "judgments": {
         "/docs/guides/ranking-and-boosts.html": 3,
@@ -205,7 +205,7 @@
     },
     {
       "id": "category-filters",
-      "text": "add category filters with result counts",
+      "text": "category filters result counts",
       "topic": "lexical-features",
       "judgments": {
         "/docs/guides/facets.html": 3,
@@ -220,7 +220,7 @@
     },
     {
       "id": "sofa-couch-synonyms",
-      "text": "treat sofa and couch as the same search",
+      "text": "sofa couch synonyms",
       "topic": "lexical-features",
       "judgments": {
         "/docs/guides/synonyms.html": 3,
@@ -233,7 +233,7 @@
     },
     {
       "id": "pin-promoted-result",
-      "text": "force a promoted page to the top for one query",
+      "text": "promoted page at top for one query",
       "topic": "lexical-features",
       "judgments": {
         "/docs/guides/pinning.html": 3,
@@ -246,7 +246,7 @@
     },
     {
       "id": "language-analyzers",
-      "text": "configure stemming and stopwords for multiple languages",
+      "text": "language stemming stopwords",
       "topic": "internationalization",
       "judgments": {
         "/docs/guides/internationalization.html": 3,
@@ -261,7 +261,7 @@
     },
     {
       "id": "offline-caching",
-      "text": "keep search working without a network connection",
+      "text": "offline search caching",
       "topic": "offline-worker",
       "judgments": {
         "/docs/guides/offline-search.html": 3,
@@ -276,7 +276,7 @@
     },
     {
       "id": "web-worker-search",
-      "text": "run search outside the browser main thread",
+      "text": "web worker search",
       "topic": "offline-worker",
       "judgments": {
         "/docs/reference/client-api.html": 3,
@@ -291,7 +291,7 @@
     },
     {
       "id": "semantic-search",
-      "text": "find conceptually related pages with semantic search",
+      "text": "semantic vector search",
       "topic": "vector-hybrid",
       "judgments": {
         "/docs/guides/vector-search.html": 3,
@@ -306,7 +306,7 @@
     },
     {
       "id": "hybrid-search",
-      "text": "combine keyword ranking with vector similarity",
+      "text": "hybrid keyword vector search",
       "topic": "vector-hybrid",
       "judgments": {
         "/docs/guides/vector-search.html": 3,
@@ -321,7 +321,7 @@
     },
     {
       "id": "index-shards",
-      "text": "understand the manifest and shard files",
+      "text": "manifest shard files",
       "topic": "indexing-deployment",
       "judgments": {
         "/docs/concepts/index-format.html": 3,
@@ -336,7 +336,7 @@
     },
     {
       "id": "binary-download-size",
-      "text": "reduce index download size with binary storage",
+      "text": "binary index download size",
       "topic": "indexing-deployment",
       "judgments": {
         "/docs/concepts/binary-storage.html": 3,
@@ -349,7 +349,7 @@
     },
     {
       "id": "client-options",
-      "text": "look up SearchClient options and result fields",
+      "text": "SearchClient options result fields",
       "topic": "setup",
       "judgments": {
         "/docs/reference/client-api.html": 3,
@@ -362,7 +362,7 @@
     },
     {
       "id": "cms-controls",
-      "text": "set boosts facets and pins from cms metadata",
+      "text": "CMS boosts facets pins",
       "topic": "lexical-features",
       "judgments": {
         "/docs/reference/cms-meta-tags.html": 3,
@@ -379,7 +379,7 @@
     },
     {
       "id": "format-compatibility",
-      "text": "check client compatibility with an index format version",
+      "text": "client compatibility with old index format version",
       "topic": "indexing-deployment",
       "judgments": {
         "/docs/reference/compatibility.html": 3,
@@ -394,7 +394,7 @@
     },
     {
       "id": "measure-relevance",
-      "text": "measure mrr ndcg recall and zero result rate",
+      "text": "MRR nDCG recall zero results",
       "topic": "relevance",
       "judgments": {
         "/docs/project/relevance-baselines.html": 3,
@@ -409,7 +409,7 @@
     },
     {
       "id": "public-index-security",
-      "text": "can private or restricted content go in the generated index",
+      "text": "private or restricted content in generated index",
       "topic": "indexing-deployment",
       "judgments": {
         "/docs/project/roadmap.html": 3,
