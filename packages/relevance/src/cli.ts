@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  KNOWN_DOMAIN_SUITES,
+  type KnownDomainSuite,
+} from "./load-domain-suite.js";
 import { loadSuites } from "./load-suites.js";
 import { renderConsoleReport, serializeJsonReport } from "./report.js";
 import {
@@ -10,6 +14,7 @@ import { runSearchableSuite } from "./searchable-runner.js";
 
 export interface CliOptions {
   language?: SupportedBaselineLanguage;
+  suite?: KnownDomainSuite;
   k: number;
   json: boolean;
 }
@@ -26,6 +31,12 @@ export function parseCliArgs(args: readonly string[]): CliOptions {
       if (!SUPPORTED_BASELINE_LANGUAGES.includes(value as never))
         throw new Error(`unsupported language: ${value}`);
       options.language = value as SupportedBaselineLanguage;
+    } else if (arg === "--suite") {
+      const value = args[++index];
+      if (!value) throw new Error("--suite requires a value");
+      if (!KNOWN_DOMAIN_SUITES.includes(value as never))
+        throw new Error(`unknown domain suite: ${value}`);
+      options.suite = value as KnownDomainSuite;
     } else if (arg === "--k") {
       const value = args[++index];
       if (!value) throw new Error("--k requires a value");
@@ -37,6 +48,8 @@ export function parseCliArgs(args: readonly string[]): CliOptions {
       throw new Error(`unknown option: ${arg}`);
     }
   }
+  if (options.suite && options.language)
+    throw new Error("--suite and --language are mutually exclusive");
   return options;
 }
 

@@ -14,10 +14,26 @@ describe("parseCliArgs", () => {
     });
   });
 
+  it("parses a known domain suite", () => {
+    expect(parseCliArgs(["--suite", "searchable-docs", "--json"])).toEqual({
+      suite: "searchable-docs",
+      k: 5,
+      json: true,
+    });
+  });
+
+  it("rejects simultaneous suite and language selectors", () => {
+    expect(() =>
+      parseCliArgs(["--suite", "searchable-docs", "--language", "en"]),
+    ).toThrow(/mutually exclusive/);
+  });
+
   it.each([
     [["--unknown"], /unknown option/],
     [["--language"], /requires a value/],
     [["--language", "fr"], /unsupported language/],
+    [["--suite"], /requires a value/],
+    [["--suite", "missing"], /unknown domain suite/],
     [["--k", "0"], /positive integer/],
     [["--k", "1.5"], /positive integer/],
   ])("rejects invalid arguments %#", (args, message) => {

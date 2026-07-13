@@ -12,6 +12,11 @@ export type {
   SuiteReport,
 } from "./evaluate.js";
 export { evaluateSuite } from "./evaluate.js";
+export type { KnownDomainSuite } from "./load-domain-suite.js";
+export {
+  KNOWN_DOMAIN_SUITES,
+  loadDomainSuite,
+} from "./load-domain-suite.js";
 export { loadSuites } from "./load-suites.js";
 export type { Judgments, RankingMetrics } from "./metrics.js";
 export {
