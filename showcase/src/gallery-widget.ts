@@ -77,12 +77,29 @@ const galleryRoots = document.querySelectorAll<HTMLDivElement>(
   "[data-gallery-root]",
 );
 for (let i = 0; i < galleryRoots.length; i++) {
-  void initGallery(galleryRoots[i] as HTMLDivElement);
+  const root = galleryRoots[i] as HTMLDivElement;
+  void initGallery(root).catch((error: unknown) => {
+    root.replaceChildren();
+    const message = document.createElement("p");
+    message.className = "gallery-error";
+    message.setAttribute("role", "alert");
+    message.textContent =
+      "This example could not load. Try refreshing the page.";
+    root.append(message);
+    console.error("Failed to initialize showcase example", error);
+  });
 }
 
 async function initGallery(root: HTMLDivElement): Promise<void> {
   const indexPath = root.dataset.indexPath;
   if (!indexPath) return;
+
+  const loading = document.createElement("p");
+  loading.className = "gallery-loading";
+  loading.setAttribute("role", "status");
+  loading.textContent = "Loading example";
+  root.replaceChildren(loading);
+
   const defaultQuery = root.dataset.defaultQuery ?? "";
   const facetFields = (root.dataset.facets ?? "")
     .split(",")
@@ -175,7 +192,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   resultsPane.className = "gallery-results";
   body.append(resultsPane);
 
-  root.append(controls, body);
+  root.replaceChildren(controls, body);
 
   // field -> set of selected values, OR'd within a field (docs/guides/facets.md#filtering)
   const selectedFilters = new Map<string, Set<string>>();
@@ -292,50 +309,68 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     resultsPane.append(list);
   }
 
+  function renderSearchError(): void {
+    resultsPane.replaceChildren();
+    const message = document.createElement("p");
+    message.className = "gallery-error";
+    message.setAttribute("role", "alert");
+    message.textContent =
+      "This example could not load. Try refreshing the page.";
+    resultsPane.append(message);
+  }
+
   let latestQueryId = 0;
   async function runSearch(): Promise<void> {
     const queryId = ++latestQueryId;
     const query = input.value.trim() || defaultQuery;
     if (!query) return;
-    const filters = currentFilters();
-    const result = await client.search(query, {
-      limit: 24,
-      facets: facetFields,
-      ...(filters ? { filters } : {}),
-      ...(selectedLanguage ? { language: selectedLanguage } : {}),
-      fuzzy: fuzzyEnabled,
-      synonyms: synonymsEnabled,
-    });
-    if (queryId !== latestQueryId) return; // a newer request already superseded this one
-
-    // Only the toggles' own contribution is worth labeling -- if neither
-    // is on there's nothing expansion-only to diff against, so skip the
-    // extra baseline round trip in the common (non-demo-toggle) case.
-    let expandedOnlyIds = new Set<number>();
-    if (fuzzyEnabled || synonymsEnabled) {
-      const baseline = await client.search(query, {
+    root.setAttribute("aria-busy", "true");
+    try {
+      const filters = currentFilters();
+      const result = await client.search(query, {
         limit: 24,
         facets: facetFields,
         ...(filters ? { filters } : {}),
         ...(selectedLanguage ? { language: selectedLanguage } : {}),
-        fuzzy: false,
-        synonyms: false,
+        fuzzy: fuzzyEnabled,
+        synonyms: synonymsEnabled,
       });
-      if (queryId !== latestQueryId) return;
-      const baselineIds = new Set(baseline.hits.map((h) => h.id));
-      expandedOnlyIds = new Set(
-        result.hits.map((h) => h.id).filter((id) => !baselineIds.has(id)),
-      );
-    }
-    const expansionLabel =
-      fuzzyEnabled && synonymsEnabled
-        ? "Expanded match"
-        : fuzzyEnabled
-          ? "Fuzzy match"
-          : "Synonym match";
+      if (queryId !== latestQueryId) return; // a newer request already superseded this one
 
-    renderFacets(result.facets);
-    renderResults(result, expandedOnlyIds, expansionLabel);
+      // Only the toggles' own contribution is worth labeling -- if neither
+      // is on there's nothing expansion-only to diff against, so skip the
+      // extra baseline round trip in the common (non-demo-toggle) case.
+      let expandedOnlyIds = new Set<number>();
+      if (fuzzyEnabled || synonymsEnabled) {
+        const baseline = await client.search(query, {
+          limit: 24,
+          facets: facetFields,
+          ...(filters ? { filters } : {}),
+          ...(selectedLanguage ? { language: selectedLanguage } : {}),
+          fuzzy: false,
+          synonyms: false,
+        });
+        if (queryId !== latestQueryId) return;
+        const baselineIds = new Set(baseline.hits.map((h) => h.id));
+        expandedOnlyIds = new Set(
+          result.hits.map((h) => h.id).filter((id) => !baselineIds.has(id)),
+        );
+      }
+      const expansionLabel =
+        fuzzyEnabled && synonymsEnabled
+          ? "Expanded match"
+          : fuzzyEnabled
+            ? "Fuzzy match"
+            : "Synonym match";
+
+      renderFacets(result.facets);
+      renderResults(result, expandedOnlyIds, expansionLabel);
+    } catch (error: unknown) {
+      if (queryId === latestQueryId) renderSearchError();
+      console.error("Failed to search showcase example", error);
+    } finally {
+      if (queryId === latestQueryId) root.setAttribute("aria-busy", "false");
+    }
   }
 
   await runSearch();

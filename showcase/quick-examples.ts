@@ -78,6 +78,7 @@ function escapeAttribute(value: string): string {
 export function renderRuntimeAttributes(example: QuickExample): string {
   const attributes = [
     "data-gallery-root",
+    `data-example-id="${escapeAttribute(example.id)}"`,
     `data-index-path="${escapeAttribute(example.indexPath)}"`,
     `data-default-query="${escapeAttribute(example.initialQuery)}"`,
   ];

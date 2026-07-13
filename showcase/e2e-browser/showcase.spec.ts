@@ -42,7 +42,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
 
     await firstResult.click();
     await page.waitForLoadState("load");
-    await expect(page).toHaveTitle("Query Language, Ranking & Boosts");
+    await expect(page).toHaveTitle("Ranking and boosts");
   });
 
   test("shows a no-results state for a nonsense query", async ({ page }) => {
@@ -72,6 +72,156 @@ test.describe("showcase (docs site + real search, real browser)", () => {
 
     await input.fill("");
     await expect(input).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("mobile grouped navigation and gallery cards do not overflow the page", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
+
+    await expect(page.locator(".nav-section").first()).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await page.goto(`${baseUrl}gallery/index.html`);
+    await expect(page.locator(".quick-example-card")).toHaveCount(6);
+    await expect(page.locator(".gallery-results-summary")).toHaveCount(6);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+});
+
+test.describe("feature gallery: quick examples (real browser)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+
+  test.beforeAll(async () => {
+    const server = await serveDir(distDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+  });
+
+  test("quick examples expose a loading status before becoming ready", async ({
+    page,
+  }) => {
+    let releaseClient: (() => void) | undefined;
+    const clientReleased = new Promise<void>((resolve) => {
+      releaseClient = resolve;
+    });
+    await page.route("**/assets/index.js", async (route) => {
+      await clientReleased;
+      await route.continue();
+    });
+
+    await page.goto(`${baseUrl}gallery/index.html`);
+    await expect(page.locator('.gallery-loading[role="status"]')).toHaveCount(
+      6,
+    );
+
+    releaseClient?.();
+    await expect(
+      page.locator('[data-example-card="basic"] .gallery-results-summary'),
+    ).toContainText(/result/);
+    await expect(page.locator(".gallery-loading")).toHaveCount(0);
+  });
+
+  for (const id of [
+    "basic",
+    "fuzzy",
+    "facets",
+    "synonyms",
+    "pinning",
+    "internationalization",
+  ]) {
+    test(`quick example ${id} loads real results`, async ({ page }) => {
+      await page.goto(`${baseUrl}gallery/index.html`);
+      const card = page.locator(`[data-example-card="${id}"]`);
+      await expect(card.locator(".gallery-results-summary")).toContainText(
+        /result/,
+      );
+      await expect(card.locator(".gallery-error")).toHaveCount(0);
+    });
+  }
+
+  test("quick examples exercise their distinct search behaviors", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/index.html`);
+
+    const basic = page.locator('[data-example-card="basic"]');
+    await expect(basic.locator(".gallery-hit-title").first()).toContainText(
+      /desk/i,
+    );
+
+    const fuzzy = page.locator('[data-example-card="fuzzy"]');
+    await expect(fuzzy.locator(".gallery-empty")).toBeVisible();
+    await fuzzy.locator(".gallery-fuzzy-toggle input").check();
+    await expect(fuzzy.locator(".gallery-badge-expansion").first()).toHaveText(
+      "Fuzzy match",
+    );
+
+    const facets = page.locator('[data-example-card="facets"]');
+    await expect(facets.locator(".gallery-facet-group")).toBeVisible();
+
+    const synonyms = page.locator('[data-example-card="synonyms"]');
+    await synonyms.locator(".gallery-synonyms-toggle input").check();
+    await expect(
+      synonyms.locator(".gallery-badge-expansion").first(),
+    ).toHaveText("Synonym match");
+
+    const pinning = page.locator('[data-example-card="pinning"]');
+    await expect(pinning.locator(".gallery-badge").first()).toHaveText(
+      "Pinned",
+    );
+
+    const i18n = page.locator('[data-example-card="internationalization"]');
+    await expect(i18n.locator(".gallery-language-select")).toHaveValue("en");
+    await i18n.locator(".gallery-language-select").selectOption("de");
+    await expect(i18n.locator(".gallery-hit-title")).toContainText(
+      "Espresso Grundlagen",
+    );
+  });
+
+  test("inline source is keyboard-operable and links to its guide", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/index.html`);
+    const card = page.locator('[data-example-card="fuzzy"]');
+    await card.locator("summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(card.locator(".example-source")).toHaveAttribute("open", "");
+    await expect(card.locator("pre code")).toContainText("wirelss");
+    await expect(card.locator("a.example-guide")).toHaveAttribute(
+      "href",
+      /ranking-and-boosts\.html/,
+    );
+  });
+
+  test("one broken example does not prevent its siblings from loading", async ({
+    page,
+  }) => {
+    await page.route(
+      "**/gallery/products/search-index/manifest.json",
+      (route) => route.abort(),
+    );
+    await page.goto(`${baseUrl}gallery/index.html`);
+    await expect(
+      page.locator('[data-example-card="basic"] .gallery-error'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-example-card="synonyms"] .gallery-results-summary'),
+    ).toContainText(/result/);
   });
 });
 

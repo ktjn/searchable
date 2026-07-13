@@ -65,13 +65,13 @@ export function renderHubPage(): string {
     const highlightedSource = highlightCode("typescript", source);
     const headingId = `example-${example.id}`;
     return `
-          <article class="quick-example-card" aria-labelledby="${headingId}">
+          <article class="quick-example-card" data-example-card="${escapeHtml(example.id)}" aria-labelledby="${headingId}">
             <h3 id="${headingId}">${escapeHtml(example.title)}</h3>
             <p>${escapeHtml(example.description)}</p>
             <div class="quick-example-widget"
               ${renderRuntimeAttributes(example)}
             ></div>
-            <p class="quick-example-guide"><a href="${escapeHtml(example.guideHref)}">Read the guide</a></p>
+            <p class="quick-example-guide"><a class="example-guide" href="${escapeHtml(example.guideHref)}">Read the guide</a></p>
             <details class="example-source">
               <summary>View source</summary>
               <pre><code class="hljs language-typescript">${highlightedSource}</code></pre>
