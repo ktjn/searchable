@@ -53,4 +53,3 @@ Keep domain-specific suites separate from generic engine conformance tests. A ne
 - contain native-language queries and reviewed graded judgments;
 - remain deterministic and runnable without external network access;
 - explain its domain and limits before its metrics are used as a quality gate.
-

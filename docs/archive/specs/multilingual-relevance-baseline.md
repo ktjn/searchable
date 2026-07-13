@@ -1,6 +1,6 @@
 # 2026-07-13 Multilingual Relevance Baseline Design
 
-> **Archived:** Implemented on `feature/multilingual-relevance-baseline`. Current operating guidance and limitations are maintained in [Relevance baselines](../../project/relevance-baselines.md).
+> **Archived:** Implemented on `feature/multilingual-relevance-baseline` in commits `b1f1e4e` through `27c020b`. Current operating guidance and limitations are maintained in [Relevance baselines](../../project/relevance-baselines.md).
 
 ## Purpose
 

@@ -1,6 +1,6 @@
 # Multilingual Relevance Baseline Implementation Plan
 
-> **Archived:** Completed on `feature/multilingual-relevance-baseline`. Current operating guidance and limitations are maintained in [Relevance baselines](../../project/relevance-baselines.md).
+> **Archived:** Completed on `feature/multilingual-relevance-baseline` in commits `b1f1e4e` through `27c020b`. Current operating guidance and limitations are maintained in [Relevance baselines](../../project/relevance-baselines.md).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
