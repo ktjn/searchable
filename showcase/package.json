@@ -6,6 +6,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "test": "vitest run",
     "build:docs": "tsx build-docs.ts",
     "build:widget": "tsc -p tsconfig.widget.json",
     "build:search": "tsx build-search.ts",
@@ -17,6 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "highlight.js": "^11.11.1",
     "marked": "^18.0.6"
   },
   "devDependencies": {

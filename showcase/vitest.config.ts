@@ -1,7 +1,6 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  test: {
-    projects: ["packages/*", "showcase"],
-  },
+  root: import.meta.dirname,
+  test: { include: ["test/**/*.test.ts"] },
 });
