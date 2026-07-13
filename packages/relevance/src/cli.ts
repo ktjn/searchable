@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { runGeneratedDomainSuite } from "./domain-runner.js";
+import type { DomainRelevanceSuite } from "./domain-schema.js";
+import type { SuiteReport } from "./evaluate.js";
 import {
   KNOWN_DOMAIN_SUITES,
   type KnownDomainSuite,
+  loadDomainSuite,
 } from "./load-domain-suite.js";
 import { loadSuites } from "./load-suites.js";
+import { prepareShowcase } from "./prepare-showcase.js";
 import { renderConsoleReport, serializeJsonReport } from "./report.js";
 import {
+  type RelevanceSuite,
   SUPPORTED_BASELINE_LANGUAGES,
   type SupportedBaselineLanguage,
 } from "./schema.js";
@@ -17,6 +23,17 @@ export interface CliOptions {
   suite?: KnownDomainSuite;
   k: number;
   json: boolean;
+}
+
+export interface CliDependencies {
+  prepareShowcase(): Promise<void>;
+  loadBaselines(
+    language?: SupportedBaselineLanguage,
+  ): Promise<RelevanceSuite[]>;
+  loadDomain(name: KnownDomainSuite): Promise<DomainRelevanceSuite>;
+  runBaseline(suite: RelevanceSuite, k: number): Promise<SuiteReport>;
+  runDomain(suite: DomainRelevanceSuite, k: number): Promise<SuiteReport>;
+  writeOutput(text: string): void;
 }
 
 export function parseCliArgs(args: readonly string[]): CliOptions {
@@ -53,16 +70,45 @@ export function parseCliArgs(args: readonly string[]): CliOptions {
   return options;
 }
 
-export async function main(args = process.argv.slice(2)): Promise<void> {
+const fixtureDirectory = fileURLToPath(
+  new URL("../fixtures/", import.meta.url),
+);
+const domainFixtureDirectory = fileURLToPath(
+  new URL("../fixtures/domains/", import.meta.url),
+);
+const showcaseDistDirectory = fileURLToPath(
+  new URL("../../../showcase/dist/", import.meta.url),
+);
+
+export const defaultCliDependencies: CliDependencies = {
+  prepareShowcase,
+  loadBaselines: (language) => loadSuites(fixtureDirectory, language),
+  loadDomain: (name) => loadDomainSuite(domainFixtureDirectory, name),
+  runBaseline: runSearchableSuite,
+  runDomain: (suite, k) =>
+    runGeneratedDomainSuite(suite, showcaseDistDirectory, k),
+  writeOutput: (value) => process.stdout.write(value),
+};
+
+export async function main(
+  args = process.argv.slice(2),
+  dependencies = defaultCliDependencies,
+): Promise<void> {
   const options = parseCliArgs(args);
-  const fixtureDirectory = fileURLToPath(
-    new URL("../fixtures/", import.meta.url),
-  );
-  const suites = await loadSuites(fixtureDirectory, options.language);
-  const reports = [];
-  for (const suite of suites)
-    reports.push(await runSearchableSuite(suite, options.k));
-  process.stdout.write(
+  const reports: SuiteReport[] = [];
+  if (options.suite) {
+    await dependencies.prepareShowcase();
+    reports.push(
+      await dependencies.runDomain(
+        await dependencies.loadDomain(options.suite),
+        options.k,
+      ),
+    );
+  } else {
+    for (const suite of await dependencies.loadBaselines(options.language))
+      reports.push(await dependencies.runBaseline(suite, options.k));
+  }
+  dependencies.writeOutput(
     options.json
       ? serializeJsonReport(reports, options.k)
       : `${renderConsoleReport(reports)}\n`,

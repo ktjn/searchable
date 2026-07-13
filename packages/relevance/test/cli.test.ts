@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { parseCliArgs } from "../src/cli.js";
+import { describe, expect, it, vi } from "vitest";
+import { type CliDependencies, main, parseCliArgs } from "../src/cli.js";
+import type { DomainRelevanceSuite } from "../src/domain-schema.js";
+import type { SuiteReport } from "../src/evaluate.js";
+import type { RelevanceSuite } from "../src/schema.js";
 
 describe("parseCliArgs", () => {
   it("uses all-language defaults", () => {
@@ -38,5 +41,105 @@ describe("parseCliArgs", () => {
     [["--k", "1.5"], /positive integer/],
   ])("rejects invalid arguments %#", (args, message) => {
     expect(() => parseCliArgs(args)).toThrow(message);
+  });
+});
+
+const provenance = {
+  publisher: "Searchable contributors",
+  sourceTitle: "Searchable documentation",
+  sourceUrl: "https://ktjn.github.io/searchable/",
+  license: "MIT",
+  licenseUrl: "https://github.com/ktjn/searchable/blob/main/LICENSE",
+  retrievedAt: "2026-07-13",
+  attribution: "Searchable contributors",
+  selectionNotes: "Test fixture.",
+};
+
+const baselineSuite = {
+  schemaVersion: 1,
+  id: "en-suite",
+  version: "1.0.0",
+  language: "en",
+  provenance,
+  documents: [
+    {
+      id: "home",
+      title: "Home",
+      body: "Home page",
+      url: "https://example.test/",
+    },
+  ],
+  queries: [{ id: "home", text: "home", judgments: { home: 3 } }],
+} satisfies RelevanceSuite;
+
+const domainSuite = {
+  schemaVersion: 1,
+  id: "searchable-docs",
+  version: "1.0.0",
+  language: "en",
+  provenance,
+  review: { status: "draft", method: "Maintainer review." },
+  pages: [{ id: "/index.html", title: "Searchable" }],
+  queries: [
+    {
+      id: "home",
+      text: "home",
+      topic: "setup",
+      judgments: { "/index.html": 3 },
+      rationales: { "/index.html": "Introduces Searchable." },
+    },
+  ],
+} satisfies DomainRelevanceSuite;
+
+const report: SuiteReport = {
+  suiteId: "suite",
+  suiteVersion: "1.0.0",
+  language: "en",
+  k: 5,
+  documentCount: 1,
+  queryCount: 1,
+  provenance,
+  metrics: {
+    meanReciprocalRank: 1,
+    meanPrecisionAtK: 0.2,
+    meanRecallAtK: 1,
+    meanNdcgAtK: 1,
+    zeroResultRate: 0,
+  },
+  queries: [],
+};
+
+function dependencies(): CliDependencies {
+  return {
+    prepareShowcase: vi.fn(async () => undefined),
+    loadBaselines: vi.fn(async () => [baselineSuite]),
+    loadDomain: vi.fn(async () => domainSuite),
+    runBaseline: vi.fn(async () => report),
+    runDomain: vi.fn(async () => report),
+    writeOutput: vi.fn(),
+  };
+}
+
+describe("main", () => {
+  it("keeps baseline execution independent of the showcase", async () => {
+    const target = dependencies();
+    await main(["--language", "en", "--json"], target);
+
+    expect(target.prepareShowcase).not.toHaveBeenCalled();
+    expect(target.loadBaselines).toHaveBeenCalledWith("en");
+    expect(target.runBaseline).toHaveBeenCalledWith(baselineSuite, 5);
+    expect(target.loadDomain).not.toHaveBeenCalled();
+    expect(target.writeOutput).toHaveBeenCalledOnce();
+  });
+
+  it("prepares and evaluates a selected domain suite", async () => {
+    const target = dependencies();
+    await main(["--suite", "searchable-docs", "--json"], target);
+
+    expect(target.prepareShowcase).toHaveBeenCalledOnce();
+    expect(target.loadDomain).toHaveBeenCalledWith("searchable-docs");
+    expect(target.runDomain).toHaveBeenCalledWith(domainSuite, 5);
+    expect(target.loadBaselines).not.toHaveBeenCalled();
+    expect(target.writeOutput).toHaveBeenCalledOnce();
   });
 });

@@ -13,6 +13,7 @@ import { prepareShowcase } from "../src/prepare-showcase.js";
 const showcaseDist = fileURLToPath(
   new URL("../../../showcase/dist/", import.meta.url),
 );
+const relevancePackage = fileURLToPath(new URL("../", import.meta.url));
 const temporaryDirectories: string[] = [];
 let showcasePreparation: Promise<void> | undefined;
 
@@ -113,16 +114,19 @@ describe("readGeneratedPageInventory", () => {
   });
 });
 
-it("prepares the showcase without Node child-process deprecation warnings", async () => {
+it("prepares from the package directory without child-process warnings", async () => {
   const warnings: Error[] = [];
   const capture = (warning: Error) => warnings.push(warning);
+  const originalDirectory = process.cwd();
   process.on("warning", capture);
+  process.chdir(relevancePackage);
   try {
     await ensureShowcasePrepared();
     expect(warnings.map((warning) => warning.name)).not.toContain(
       "DeprecationWarning",
     );
   } finally {
+    process.chdir(originalDirectory);
     process.off("warning", capture);
   }
 }, 120_000);
