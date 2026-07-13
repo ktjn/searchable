@@ -5,7 +5,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Manifest } from "@ktjn/searchable-format";
-import { buildIndex, discoverHtmlDocuments, writeIndex } from "@ktjn/searchable-indexer";
+import {
+  buildIndex,
+  discoverHtmlDocuments,
+  writeIndex,
+} from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";
@@ -286,7 +290,9 @@ describe("cross-implementation conformance: binary storage tier byte-identity", 
 
   beforeAll(async () => {
     // --- TypeScript side: build the fixture in-memory and write it with the binary tier enabled ---
-    tsOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-conformance-ts-"));
+    tsOutDir = await mkdtemp(
+      join(tmpdir(), "searchable-binary-conformance-ts-"),
+    );
     const built = buildIndex(FIXTURE, "en");
     await writeIndex(built, tsOutDir, {
       termShardFormat: "binary",
@@ -296,7 +302,9 @@ describe("cross-implementation conformance: binary storage tier byte-identity", 
     // --- Python side: no CLI flags exist for the binary tier, so drive
     // build_index/write_index directly via a small script run through
     // `uv run python` from python/searchable-indexer/'s own venv. ---
-    pyOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-conformance-py-"));
+    pyOutDir = await mkdtemp(
+      join(tmpdir(), "searchable-binary-conformance-py-"),
+    );
     const scriptDir = await mkdtemp(
       join(tmpdir(), "searchable-binary-conformance-script-"),
     );

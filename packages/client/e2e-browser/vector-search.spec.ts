@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, buildVectorShards, writeIndex } from "@ktjn/searchable-indexer";
+import {
+  buildIndex,
+  buildVectorShards,
+  writeIndex,
+} from "@ktjn/searchable-indexer";
 import { expect, test } from "@playwright/test";
 import { serveDir } from "./serve-dir.js";
 

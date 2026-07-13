@@ -982,7 +982,9 @@ describe("multiWord phrase-level synonyms: literal phrase absent from the corpus
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-multiword-synonym-absent-"));
+    outDir = await mkdtemp(
+      join(tmpdir(), "searchable-e2e-multiword-synonym-absent-"),
+    );
     const built = buildIndex(nycOnlySources, "en", {
       synonyms: { en: { multiWord: [["new york", "nyc"]] } },
     });
@@ -1273,7 +1275,9 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
     // Reuses the plain "facet filtering and contextual counts" corpus's
     // shape via a fresh small index, confirming the new field is opt-in
     // per buildIndex() call, not a global default.
-    const plainOutDir = await mkdtemp(join(tmpdir(), "searchable-e2e-plain-facet-"));
+    const plainOutDir = await mkdtemp(
+      join(tmpdir(), "searchable-e2e-plain-facet-"),
+    );
     try {
       await writeIndex(
         buildIndex([

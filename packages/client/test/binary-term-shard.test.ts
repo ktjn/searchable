@@ -121,7 +121,9 @@ describe("binary term shards return identical results to JSON (real HTTP)", () =
     jsonBaseUrl = jsonServer.baseUrl;
     closeJsonServer = jsonServer.close;
 
-    binaryOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-shard-bin-"));
+    binaryOutDir = await mkdtemp(
+      join(tmpdir(), "searchable-binary-shard-bin-"),
+    );
     await writeIndex(buildIndex(sources, "en", buildOptions), binaryOutDir, {
       termShardFormat: "binary",
     });

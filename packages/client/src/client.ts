@@ -1,4 +1,7 @@
-import type { EmbeddingProviderConfig, Manifest } from "@ktjn/searchable-format";
+import type {
+  EmbeddingProviderConfig,
+  Manifest,
+} from "@ktjn/searchable-format";
 import { ShardCache } from "./fetch-json.js";
 import type {
   FacetResult,

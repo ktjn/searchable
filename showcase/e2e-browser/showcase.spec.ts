@@ -63,7 +63,9 @@ test.describe("showcase (docs site + real search, real browser)", () => {
 
     const input = page.locator(".searchable-search-input");
     await input.fill("prefix matching");
-    await expect(page.locator(".searchable-search-results")).toHaveClass(/is-open/);
+    await expect(page.locator(".searchable-search-results")).toHaveClass(
+      /is-open/,
+    );
 
     const firstResult = page.locator(".searchable-search-results li a").first();
     await expect(firstResult).toBeVisible();
@@ -75,7 +77,9 @@ test.describe("showcase (docs site + real search, real browser)", () => {
 
   test("shows a no-results state for a nonsense query", async ({ page }) => {
     await page.goto(`${baseUrl}index.html`);
-    await page.locator(".searchable-search-input").fill("zzzznonexistentqueryzzzz");
+    await page
+      .locator(".searchable-search-input")
+      .fill("zzzznonexistentqueryzzzz");
     await expect(page.locator(".searchable-empty")).toBeVisible();
   });
 

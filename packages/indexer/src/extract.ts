@@ -152,7 +152,8 @@ export function extractDocument(
 ): ExtractedDocument {
   const root = parse(html);
 
-  const noindex = root.querySelector('meta[name="searchable-noindex"]') !== null;
+  const noindex =
+    root.querySelector('meta[name="searchable-noindex"]') !== null;
 
   const title = collapseWhitespace(
     root.querySelector("title")?.structuredText ?? "",

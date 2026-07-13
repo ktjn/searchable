@@ -35,7 +35,9 @@ function renderProductPage(product: Product): string {
     ...product.tags.map(
       (t) => `<meta name="searchable-facet-tags" content="${escapeHtml(t)}">`,
     ),
-    ...(product.featured ? [`<meta name="searchable-boost" content="2.5">`] : []),
+    ...(product.featured
+      ? [`<meta name="searchable-boost" content="2.5">`]
+      : []),
   ].join("\n    ");
   const html = pageShell({
     title: product.name,

@@ -111,7 +111,9 @@ describe("fuzzy candidate cap (real HTTP)", () => {
   });
 
   it("does not warn for an ordinary, small fuzzy vocabulary (every other fuzzy test in this repo)", async () => {
-    const smallOutDir = await mkdtemp(join(tmpdir(), "searchable-fuzzy-cap-small-"));
+    const smallOutDir = await mkdtemp(
+      join(tmpdir(), "searchable-fuzzy-cap-small-"),
+    );
     const smallSources: SourceDocument[] = [
       {
         id: 1,

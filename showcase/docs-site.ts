@@ -54,8 +54,7 @@ export function validateNavigation(sections: readonly DocSection[]): void {
   }
 }
 
-const GITHUB_REPOSITORY_ROOT =
-  "https://github.com/ktjn/searchable";
+const GITHUB_REPOSITORY_ROOT = "https://github.com/ktjn/searchable";
 
 function isExternalLink(path: string): boolean {
   return /^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith("//");
