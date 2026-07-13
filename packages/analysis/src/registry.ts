@@ -1,11 +1,16 @@
 import type { LanguageProfile } from "./language-profile.js";
 import {
   chinese,
+  dutch,
   english,
   german,
   japanese,
   khmer,
   lao,
+  norwegian,
+  norwegianBokmal,
+  norwegianNynorsk,
+  swedish,
   thai,
 } from "./language-profile.js";
 import { ownProp } from "./safe-dict.js";
@@ -18,6 +23,11 @@ import { ownProp } from "./safe-dict.js";
 const PROFILES: Record<string, LanguageProfile> = {
   en: english,
   de: german,
+  sv: swedish,
+  nl: dutch,
+  nb: norwegianBokmal,
+  nn: norwegianNynorsk,
+  no: norwegian,
   zh: chinese,
   ja: japanese,
   th: thai,

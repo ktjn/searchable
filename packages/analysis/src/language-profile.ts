@@ -2,6 +2,9 @@ import { segmentCjkBigram } from "./segment-cjk.js";
 import { segmentSeaTrigram } from "./segment-sea.js";
 import { stemGerman } from "./stemmer-de.js";
 import { stemEnglish } from "./stemmer-en.js";
+import { stemDutch } from "./stemmer-nl.js";
+import { stemNorwegian } from "./stemmer-no.js";
+import { stemSwedish } from "./stemmer-sv.js";
 
 export interface TokenSpan {
   text: string;
@@ -72,6 +75,47 @@ export const german: LanguageProfile = {
   foldDiacritics: false,
   stopwords: new Set(),
   stem: stemGerman,
+};
+
+export const swedish: LanguageProfile = {
+  code: "sv",
+  segment: segmentWithIntl("sv"),
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: stemSwedish,
+};
+
+export const dutch: LanguageProfile = {
+  code: "nl",
+  segment: segmentWithIntl("nl"),
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: stemDutch,
+};
+
+export const norwegianBokmal: LanguageProfile = {
+  code: "nb",
+  segment: segmentWithIntl("nb"),
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: stemNorwegian,
+};
+
+export const norwegianNynorsk: LanguageProfile = {
+  code: "nn",
+  segment: segmentWithIntl("nn"),
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: stemNorwegian,
+};
+
+/** Generic Norwegian compatibility code. Detection returns `nb` or `nn`. */
+export const norwegian: LanguageProfile = {
+  code: "no",
+  segment: segmentWithIntl("no"),
+  foldDiacritics: false,
+  stopwords: new Set(),
+  stem: stemNorwegian,
 };
 
 /**
