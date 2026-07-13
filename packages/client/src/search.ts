@@ -41,11 +41,11 @@ export interface Hit {
   score: number;
   url: string;
   fields: Record<string, string>;
-  /** Placed by a csf-pin match (docs/16-term-to-page-pinning.md), not by relevance. */
+  /** Placed by a csf-pin match (docs/guides/pinning.md), not by relevance. */
   pinned?: boolean;
   /**
    * Per stored field, that field's text split into match/non-match
-   * spans for the literal query terms typed (docs/08-modern-features.md#highlighting--snippets).
+   * spans for the literal query terms typed (docs/reference/client-api.md#search-options-and-results).
    * Only present when `options.highlight` is true. A synonym- or
    * fuzzy-matched term that isn't also literally present in the query
    * is not highlighted — see packages/client/src/highlight.ts for why.
@@ -62,7 +62,7 @@ export interface FacetResultValue {
 export interface FacetResult {
   values: FacetResultValue[];
   /**
-   * Only present for a hierarchical facet field (docs/06-faceted-search.md#facet-types):
+   * Only present for a hierarchical facet field (docs/guides/facets.md#facet-types):
    * the path separator joining segments within each `value` (e.g.
    * `"electronics>audio"` with separator `">"`), so a consumer can
    * reconstruct the tree by splitting on it rather than hardcoding a
@@ -72,7 +72,7 @@ export interface FacetResult {
   separator?: string;
 }
 
-/** Inclusive bounds for a range-facet filter (docs/06-faceted-search.md#filtering). Omit either end for an open-ended range. */
+/** Inclusive bounds for a range-facet filter (docs/guides/facets.md#filtering). Omit either end for an open-ended range. */
 export interface RangeFilter {
   min?: number;
   max?: number;
@@ -87,12 +87,12 @@ export interface SearchResult {
    * The language this result set was actually resolved against
    * (`options.language ?? manifest.defaultLanguage`) — every hit in one
    * `SearchResult` comes from that single language's partition (terms
-   * are sharded per-language, docs/03-tokenization-i18n.md#mixed-language-corpora--queries),
+   * are sharded per-language, docs/guides/internationalization.md#mixed-language-corpora-and-queries),
    * so this is one value for the whole result, not per-hit. Lets a
    * consumer combine it with `@csf/analysis`'s `isRtlLanguage()`
    * (re-exported from this package) to set `dir="rtl"` on a results
    * container without duplicating its own language-resolution logic —
-   * see docs/08-modern-features.md#accessibility. The actual RTL
+   * see docs/reference/client-api.md. The actual RTL
    * *layout* stays a consuming-app concern; this is just the one fact
    * the library already knows.
    */
@@ -100,7 +100,7 @@ export interface SearchResult {
   /**
    * Nearest real term(s) in the corpus for a query term that failed to
    * match at all, byproduct of the fuzzy dictionary
-   * (docs/04-query-ranking-boosts.md#did-you-mean--query-suggestions).
+   * (docs/guides/ranking-and-boosts.md#did-you-mean-and-query-suggestions).
    * Only ever populated when `options.fuzzy` is true and the query
    * still returned zero hits (even after fuzzy expansion).
    */
@@ -115,7 +115,7 @@ export interface SearchOptions {
     fields?: Record<string, number>;
     /**
      * Per-query multiplier on one specific query term's score
-     * contribution (docs/04-query-ranking-boosts.md#boost-types-summarized).
+     * contribution (docs/guides/ranking-and-boosts.md#boost-types-summarized).
      * Keyed by the term as it appears *after* analysis (lowercased,
      * stemmed, etc.) — the same form stored in the term shard — not the
      * raw surface form the user typed.
@@ -123,10 +123,10 @@ export interface SearchOptions {
     terms?: Record<string, number>;
   };
   /**
-   * Facet filters (docs/06-faceted-search.md#filtering): a string or
+   * Facet filters (docs/guides/facets.md#filtering): a string or
    * string[] for a terms facet (OR across an array of values within
    * one field, AND across different fields); a `{min?, max?}` range
-   * for a range facet (docs/06-faceted-search.md#facet-index-structure) —
+   * for a range facet (docs/guides/facets.md#facet-index-structure) —
    * which shape applies is determined by the field's own facet shard
    * `type`, not declared here. A field with no matching facet shard in
    * the manifest is ignored rather than zeroing out the whole query —
@@ -146,8 +146,8 @@ export interface SearchOptions {
   /**
    * Expand each non-prefix query term through the manifest's synonym
    * shard for the resolved language, if one exists
-   * (docs/05-synonyms.md). Off by default — a caller opts in per query,
-   * matching this option's original design in docs/07-client-api.md.
+   * (docs/guides/synonyms.md). Off by default — a caller opts in per query,
+   * matching this option's original design in docs/reference/client-api.md.
    * Prefix clauses (`term*`) are not synonym-expanded; combining the two
    * expansion mechanisms for one query slot isn't specified anywhere,
    * so this scopes them as independent.
@@ -156,7 +156,7 @@ export interface SearchOptions {
   /**
    * Score multiplier applied to a hit's contribution *only* when it
    * came from a synonym-expanded variant, not the literal query term
-   * (docs/05-synonyms.md#scoring-impact) — a document containing the
+   * (docs/guides/synonyms.md#scoring-impact) — a document containing the
    * literal term still outranks one that only matches via synonym
    * expansion, all else equal. Only meaningful when `synonyms: true`.
    */
@@ -165,7 +165,7 @@ export interface SearchOptions {
    * Expand each non-prefix query term into typo-tolerant matches from
    * the manifest's fuzzy (SymSpell deletion dictionary) shard for the
    * resolved language, if one exists
-   * (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching). Off by
+   * (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching). Off by
    * default. Same independence-from-prefix scoping decision as
    * `synonyms`.
    */
@@ -180,7 +180,7 @@ export interface SearchOptions {
   fuzzyWeight?: number;
   /**
    * Compute `Hit.highlights` for every stored field of every hit
-   * (docs/08-modern-features.md#highlighting--snippets). Off by
+   * (docs/reference/client-api.md#search-options-and-results). Off by
    * default, matching every other opt-in query feature here — most
    * callers building a list UI want this, but it's extra work per hit
    * that a caller only rendering, say, a "did you mean" prompt doesn't
@@ -189,7 +189,7 @@ export interface SearchOptions {
   highlight?: boolean;
   /**
    * Reject the in-flight `SearchClient.search()` call as soon as this
-   * signal aborts (docs/08-modern-features.md#instant-search--debouncing--cancellation)
+   * signal aborts (docs/reference/client-api.md#search-options-and-results)
    * — the primary building block for a keystroke-driven instant-search
    * box, where a superseded query must never resolve after (or
    * overwrite the results of) a newer one. Handled entirely by
@@ -205,7 +205,7 @@ export interface SearchOptions {
    */
   signal?: AbortSignal;
   /**
-   * Retrieval strategy (docs/13-vector-and-hybrid-search.md#api-surface).
+   * Retrieval strategy (docs/guides/vector-search.md#api-surface).
    * `"lexical"` (default) is today's BM25F + boosts + synonyms/fuzzy
    * pipeline above, entirely unaffected by vector search. `"vector"`
    * embeds the query (via `SearchClientOptions.embedQuery`) and ranks
@@ -225,7 +225,7 @@ export interface SearchOptions {
   /**
    * Only meaningful for `mode: "hybrid"`. Omitted (the default) combines
    * the lexical and vector result lists via Reciprocal Rank Fusion
-   * (docs/13-vector-and-hybrid-search.md#hybrid-search-combining-lexical-and-vector-scores) —
+   * (docs/guides/vector-search.md#hybrid-search-combining-lexical-and-vector-scores) —
    * rank-based, so it needs no calibration between BM25F and cosine
    * similarity's incomparable scales. Passing a number in `[0, 1]`
    * switches to a min-max-normalized weighted-score combination instead
@@ -235,9 +235,9 @@ export interface SearchOptions {
   vectorWeight?: number;
 }
 
-/** docs/05-synonyms.md#scoring-impact. */
+/** docs/guides/synonyms.md#scoring-impact. */
 const DEFAULT_SYNONYM_WEIGHT = 0.5;
-/** docs/04-query-ranking-boosts.md#prefix--fuzzy-matching. */
+/** docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching. */
 const DEFAULT_FUZZY_WEIGHT = 0.5;
 /** How many "did you mean" suggestions to surface per unmatched query term. */
 const MAX_SUGGESTIONS_PER_TERM = 3;
@@ -246,7 +246,7 @@ function resolve(baseUrl: string, relPath: string): string {
   return new URL(relPath, baseUrl).toString();
 }
 
-/** Whether `phraseTokens` appears as a contiguous run inside `queryTokens` (docs/16-term-to-page-pinning.md#authoring, contains mode). */
+/** Whether `phraseTokens` appears as a contiguous run inside `queryTokens` (docs/guides/pinning.md#authoring, contains mode). */
 function containsPhrase(
   queryTokens: string[],
   phraseTokens: string[],
@@ -266,7 +266,7 @@ function containsPhrase(
  * consecutive positions matching that order -- i.e. the words
  * genuinely appear as an adjacent phrase in that field, not just
  * independently somewhere in the document
- * (docs/04-query-ranking-boosts.md#phrase--proximity-queries). A
+ * (docs/guides/ranking-and-boosts.md#phrase-and-proximity-queries). A
  * missing posting for any term (shouldn't happen -- callers only pass
  * doc ids already confirmed present in every term's postings) makes
  * this vacuously false rather than throwing.
@@ -367,7 +367,7 @@ function unionDocsForField(
     // Linear scan over the sorted array rather than a binary-search
     // range lookup -- correct either way since the array is sorted,
     // and a full scan is negligible at "small corpus" JSON-tier
-    // scale (docs/14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale).
+    // scale (docs/guides/indexing.md#what-to-simplify-at-this-scale).
     // Binary-searching the two endpoints is a documented future
     // optimization once shard size actually makes it matter.
     for (const entry of shard.sorted ?? []) {
@@ -383,7 +383,7 @@ function unionDocsForField(
   return ids;
 }
 
-/** Every other term `term` expands to via the synonym shard's equivalence classes and directional map (docs/05-synonyms.md). */
+/** Every other term `term` expands to via the synonym shard's equivalence classes and directional map (docs/guides/synonyms.md). */
 function synonymVariantsFor(
   term: string,
   synonymShard: SynonymShard | undefined,
@@ -408,7 +408,7 @@ function synonymVariantsFor(
 /**
  * Every other normalized phrase `normalizedPhrase` expands to via the
  * synonym shard's `multiWord` equivalence classes
- * (docs/05-synonyms.md#synonym-file-format) — symmetric only, no
+ * (docs/guides/synonyms.md#synonym-file-format) — symmetric only, no
  * directional multiWord form is defined. `normalizedPhrase` must
  * already be in the same space-joined-analyzed-terms shape
  * `normalizePhrase()`/the indexer's `buildSynonymShards()` produce.
@@ -440,7 +440,7 @@ function multiWordVariantsFor(
  * pull in indexer code), the same reasoning already applied to the
  * e2e-browser serve-dir.ts duplication. The query side must go exactly
  * as deep as the *dictionary* was built (`fuzzyShard.maxEdits`,
- * docs/04-query-ranking-boosts.md#prefix--fuzzy-matching) — a distance-2
+ * docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching) — a distance-2
  * pair found only via, say, a substitution (not a pure one-sided
  * deletion) requires both the indexed term's build-time deletions and
  * the query term's lookup-time deletions to reach the same depth
@@ -544,7 +544,7 @@ function fuzzyCandidatesFor(
   let candidateTerms = [...candidates];
   if (candidateTerms.length > MAX_FUZZY_CANDIDATES_PER_TERM) {
     console.warn(
-      `[csf-client] fuzzy lookup for "${term}" found ${candidateTerms.length} dictionary candidates, over the ${MAX_FUZZY_CANDIDATES_PER_TERM}-candidate cap -- scoring only the first ${MAX_FUZZY_CANDIDATES_PER_TERM} (not necessarily the closest). A dense vocabulary this large may want a shorter query term, a smaller fuzzyMaxEdits, or this project's benchmarking data to size the tradeoff (docs/10-testing-and-performance.md).`,
+      `[csf-client] fuzzy lookup for "${term}" found ${candidateTerms.length} dictionary candidates, over the ${MAX_FUZZY_CANDIDATES_PER_TERM}-candidate cap -- scoring only the first ${MAX_FUZZY_CANDIDATES_PER_TERM} (not necessarily the closest). A dense vocabulary this large may want a shorter query term, a smaller fuzzyMaxEdits, or this project's benchmarking data to size the tradeoff (docs/project/governance.md).`,
     );
     candidateTerms = candidateTerms.slice(0, MAX_FUZZY_CANDIDATES_PER_TERM);
   }
@@ -562,13 +562,13 @@ function fuzzyCandidatesFor(
 /**
  * The maximum edit distance to accept as a genuine fuzzy match for
  * `term`, capping `shardMaxEdits` down for short terms
- * (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching: fuzzy
+ * (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching: fuzzy
  * matching is "length- and language-dependent"). A term of 3 code
  * points or fewer is too short for a distance-2 match to mean much —
  * almost any other short term is within 2 edits of it — so it's capped
  * at distance-1 regardless of what the dictionary itself supports.
  * This same length rule doubles as the "language-dependent" half: CJK
- * bigram-indexed languages (docs/03-tokenization-i18n.md#segmentation)
+ * bigram-indexed languages (docs/guides/internationalization.md#segmentation)
  * index every term as a 1- or 2-character bigram, so this cap already
  * restricts them to distance-1 fuzzy matching with no CJK-specific
  * logic needed.
@@ -578,7 +578,7 @@ function effectiveMaxEdits(term: string, shardMaxEdits: 1 | 2): number {
 }
 
 /**
- * Real terms within `term`'s effective maxEdits (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching)
+ * Real terms within `term`'s effective maxEdits (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching)
  * — the strict subset of `fuzzyCandidatesFor` used for query expansion.
  */
 function fuzzyMatchesFor(
@@ -652,12 +652,12 @@ async function loadFuzzyLookup(
 }
 
 /**
- * `"all"` is a reserved shard-prefix value (docs/02-index-format.md#term-shard-inverted-index)
+ * `"all"` is a reserved shard-prefix value (docs/concepts/index-format.md#term-shard-inverted-index)
  * meaning "this shard holds the entire vocabulary for its language,"
  * not a literal character prefix -- unlike every other prefix value,
  * which *is* a real leading substring of every term inside it. Emitted
  * by `writeIndex(built, outDir, { shardByPrefix: false })`
- * (docs/14-reference-deployment-cms-2k.md's small-corpus mode) and by
+ * (docs/guides/indexing.md's small-corpus mode) and by
  * both independent reference generators
  * (spec/examples/{python,typescript}/), so any conformant producer's
  * output can use it, not just this project's own indexer.
@@ -666,7 +666,7 @@ const UNSHARDED_TERM_SHARD_PREFIX = "all";
 
 /**
  * The term shard entries a query actually needs, out of every shard for
- * `language` (docs/02-index-format.md#term-shard-inverted-index): shards
+ * `language` (docs/concepts/index-format.md#term-shard-inverted-index): shards
  * partition the vocabulary disjointly by first-character (or, for an
  * over-large bucket, first-two-character) prefix, so an exact term only
  * ever lives in the one shard whose prefix it starts with, and a prefix
@@ -679,7 +679,7 @@ const UNSHARDED_TERM_SHARD_PREFIX = "all";
  * (rather than every shard for the language, regardless of which terms
  * a query actually mentions) is the whole point of prefix sharding:
  * first-query cost stays flat as the corpus grows instead of scaling
- * with total vocabulary size (docs/11-binary-vs-json-index.md).
+ * with total vocabulary size (docs/concepts/binary-storage.md).
  */
 function shardEntriesForQuery(
   shardEntries: Manifest["shards"]["terms"],
@@ -700,7 +700,7 @@ function shardEntriesForQuery(
 
 /**
  * Boolean-AND query evaluation over the shards a query actually needs
- * (docs/01-architecture.md#data-flow-for-a-query): analyze the query
+ * (docs/concepts/architecture.md#data-flow-for-a-query): analyze the query
  * with the same LanguageProfile the indexer used, fetch only the term
  * shard(s) covering the matched language *and* the specific terms/prefixes
  * this query touches (`shardEntriesForQuery` above), intersect posting
@@ -708,7 +708,7 @@ function shardEntriesForQuery(
  * BM25F, and fetch doc-store data for only the final top-N hits. Facet
  * filters narrow the candidate set before scoring; pins are resolved
  * independently of the organic query and spliced onto the front of the
- * result (docs/16-term-to-page-pinning.md).
+ * result (docs/guides/pinning.md).
  */
 async function lexicalSearch(
   query: string,
@@ -788,7 +788,7 @@ async function lexicalSearch(
   await Promise.all(
     neededShardEntries.map(async (entry) => {
       if (entry.format === "binary") {
-        // Lazy per-term decode (docs/11-binary-vs-json-index.md,
+        // Lazy per-term decode (docs/concepts/binary-storage.md,
         // packages/indexer/bench/binary-lazy-decode.mjs): only the
         // directory (every term name + byte range, no postings) and
         // the specific terms this query needs are ever decoded, never
@@ -833,7 +833,7 @@ async function lexicalSearch(
   // literal term), a prefix (`term*`) matches every real term starting
   // with it — resolved here by scanning the already-fetched shard's
   // term dictionary (a contiguous range scan over a sorted structure at
-  // larger scale, per docs/02-index-format.md#size-targets--sharding-tuning,
+  // larger scale, per docs/concepts/index-format.md#size-targets-and-sharding-tuning,
   // but a plain filter is exact and sufficient at this corpus size). A
   // clause with zero matches fails the organic query (boolean AND) —
   // but not pin matching, which runs independently below. Every query
@@ -893,7 +893,7 @@ async function lexicalSearch(
   // Each `"quoted phrase"` clause resolves independently of the plain
   // terms above, as one or more "attempts": the literal phrase itself
   // (weight 1.0), plus -- when options.synonyms is on and a matching
-  // `multiWord` equivalence group exists (docs/05-synonyms.md#synonym-file-format) --
+  // `multiWord` equivalence group exists (docs/guides/synonyms.md#synonym-file-format) --
   // every other phrase in that group, each at `synonymWeight`, exactly
   // mirroring how a single-word synonym variant is an extra,
   // reduced-weight attempt alongside the literal term. Every attempt's
@@ -1062,7 +1062,7 @@ async function lexicalSearch(
     return (scores.get(id) ?? 0) * (docBoosts.get(id) ?? 1.0);
   }
 
-  // --- pins (docs/16-term-to-page-pinning.md), resolved independently
+  // --- pins (docs/guides/pinning.md), resolved independently
   // of whether the organic query matched anything ---
   const normalizedQuery = normalizePhrase(query, profile);
   const pinsFile = manifest.pins && ownProp(manifest.pins, language);
@@ -1089,7 +1089,7 @@ async function lexicalSearch(
     });
     // An explicit active filter that excludes a pinned page hides that
     // pin — a user's deliberate filter takes precedence over an
-    // author's pin (docs/16#authoring, "interaction with active facet filters").
+    // author's pin (docs/guides/pinning.md#authoring, "interaction with active facet filters").
     if (activeFilterFields.length > 0) {
       matchedPins = matchedPins.filter((d) =>
         activeFilterFields.every((f) => filterUnionSets.get(f)?.has(d.id)),
@@ -1103,7 +1103,7 @@ async function lexicalSearch(
   const pinnedIdSet = new Set(pinnedForDisplay.map((d) => d.id));
 
   // A matching exclusive pin skips the organic query entirely
-  // (docs/16#what-happens-at-query-time) — pinned hits are the whole result.
+  // (docs/guides/pinning.md#what-happens-at-query-time) — pinned hits are the whole result.
   const rankedOrganic = isExclusive
     ? []
     : candidateIds
@@ -1197,7 +1197,7 @@ async function lexicalSearch(
     }
   }
 
-  // --- "did you mean" (docs/04-query-ranking-boosts.md#did-you-mean--query-suggestions):
+  // --- "did you mean" (docs/guides/ranking-and-boosts.md#did-you-mean-and-query-suggestions):
   // a byproduct of the fuzzy dictionary, only computed when the caller
   // opted into fuzzy matching and the query still returned nothing ---
   let didYouMean: string[] | undefined;
@@ -1296,7 +1296,7 @@ function docStoreEntryToHit(
 /**
  * Runs brute-force cosine similarity (`./vector-search.js`) against the
  * manifest's vector shard for `language`, if one was built
- * (docs/13-vector-and-hybrid-search.md#storage-format) -- a language
+ * (docs/guides/vector-search.md#storage-format) -- a language
  * with no vector shard (e.g. an empty partition, or a corpus built
  * without a `vectors` option at all) simply has no vector matches,
  * mirroring how a language with no term shard returns no lexical
@@ -1363,8 +1363,8 @@ function minMaxNormalize(values: number[]): (value: number) => number {
  * Combines a lexical result (computed with a wider-than-requested limit
  * so fusion has real candidates to work with, per `fusionCandidateLimit`)
  * with an independent vector search over the same query
- * (docs/13-vector-and-hybrid-search.md#hybrid-search-combining-lexical-and-vector-scores).
- * Pinned hits (docs/16-term-to-page-pinning.md) are carried over
+ * (docs/guides/vector-search.md#hybrid-search-combining-lexical-and-vector-scores).
+ * Pinned hits (docs/guides/pinning.md) are carried over
  * unchanged and excluded from fusion entirely -- a pin is an editorial
  * override, not a candidate for a similarity-based reordering -- so only
  * the *organic* lexical hits are fused with the vector hits, then both
@@ -1453,7 +1453,7 @@ async function fuseHybridResult(
 
 /**
  * Public entry point dispatching on `options.mode`
- * (docs/13-vector-and-hybrid-search.md#api-surface). `"lexical"`
+ * (docs/guides/vector-search.md#api-surface). `"lexical"`
  * (default) delegates entirely to `lexicalSearch` above, unchanged from
  * before vector search existed. `"vector"`/`"hybrid"` require a
  * `queryVector` — computed by `SearchClient` from its configured
@@ -1479,7 +1479,7 @@ export async function search(
   }
   if (!queryVector) {
     throw new VectorSearchNotConfiguredError(
-      `search: mode "${mode}" requires a query embedding, but none was supplied — configure SearchClientOptions.embedQuery (docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from)`,
+      `search: mode "${mode}" requires a query embedding, but none was supplied — configure SearchClientOptions.embedQuery (docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from)`,
     );
   }
 
@@ -1515,7 +1515,7 @@ export async function search(
 
 /**
  * Streaming/incremental variant of search()
- * (docs/07-client-api.md#streamingincremental-results): resolves to the
+ * (docs/reference/client-api.md#streamingincremental-results): resolves to the
  * exact same final `SearchResult` `search()` would, but -- only when
  * the caller actually opted into `synonyms` and/or `fuzzy` -- first
  * invokes `onPartial` with the fast literal/prefix-only pass (the same
@@ -1531,7 +1531,7 @@ export async function search(
  * restructuring its clause-scoring loop into a genuinely shared
  * two-phase pass: `ShardCache` already memoizes the term-shard fetches
  * both passes need, so the only repeated work is the (cheap, in-memory,
- * corpus-scale-appropriate per docs/14-reference-deployment-cms-2k.md)
+ * corpus-scale-appropriate per docs/guides/indexing.md)
  * clause/candidate/scoring loop -- negligible next to the correctness
  * risk of threading a partial-emission callback through that loop's
  * single-pass control flow.
@@ -1572,20 +1572,20 @@ export interface FacetValuesOptions {
 
 /**
  * A filter-only facet panel query with no free-text search
- * (docs/07-client-api.md#facet-only-queries) — e.g. rendering a
+ * (docs/reference/client-api.md#facet-only-queries) — e.g. rendering a
  * category-landing-page sidebar before a visitor has typed anything.
  * Counts are contextual against every *other* active filter, same
  * convention as search()'s options.facets, but the base candidate set
  * here is the whole corpus rather than an organic query's matches
  * (there is none) — when no other filter is active, that base set is
  * "every doc with a value for this field," so the precomputed
- * build-time `entry.count` (docs/06-faceted-search.md#facet-counts) is
+ * build-time `entry.count` (docs/guides/facets.md#facet-counts) is
  * used directly instead of re-deriving it from `entry.docs.length`;
  * when another filter *is* active, the count is a live intersection of
  * `entry.docs` against that filter's matching doc-id set, just like
  * search()'s facets. A range-type `field` returns its precomputed
  * aggregate buckets the same way search()'s `facets` option does
- * (docs/06-faceted-search.md#facet-index-structure); a hierarchy-type
+ * (docs/guides/facets.md#facet-index-structure); a hierarchy-type
  * `field` returns `separator` alongside `values` the same way
  * search()'s `facets` option does too (see FacetResult).
  */

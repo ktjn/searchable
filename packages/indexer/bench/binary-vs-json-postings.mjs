@@ -8,19 +8,19 @@ import { buildIndex, writeIndex } from "../dist/index.js";
 
 /**
  * Binary-vs-JSON *postings encoding* benchmark for the Phase 7
- * investigation (docs/11-binary-vs-json-index.md, docs/09-roadmap.md#phase-7--scale-options,
- * docs/spec-binary-format.md): takes the single largest real term shard
+ * investigation (docs/concepts/binary-storage.md, docs/archive/roadmaps/implementation-history.md#phase-7--scale-options,
+ * docs/archive/specs/binary-format.md): takes the single largest real term shard
  * a query could actually have to fetch (per the now-fixed prefix
  * sharding, packages/indexer/bench/json-tier-scaling.mjs), encodes its
  * postings with a minimal delta+varint binary scheme matching
- * spec-binary-format.md's own baseline recommendation (delta-encoded
+ * archive/specs/binary-format.md's own baseline recommendation (delta-encoded
  * doc ids, varints throughout, delta-encoded positions), and measures
  * the real bytes-on-the-wire (gzip) and decode-time difference against
  * the same shard's existing JSON representation.
  *
  * This is deliberately investigation-only code: the encoder/decoder
  * here are NOT part of @csf/format or @csf/indexer's shipped API. Per
- * spec-binary-format.md's own "Success Criteria" ("Binary should only
+ * archive/specs/binary-format.md's own "Success Criteria" ("Binary should only
  * become the default when benchmarks prove it"), the point of this
  * script is to produce that proof (or disproof) with real numbers
  * before writing a single line of production binary-tier code -- not
@@ -151,7 +151,7 @@ class ByteReader {
 }
 
 /**
- * Baseline posting encoding per docs/spec-binary-format.md#posting-encoding:
+ * Baseline posting encoding per docs/archive/specs/binary-format.md#posting-encoding:
  * doc ids delta-encoded ascending, varints throughout, positions
  * delta-encoded per field. Terms are written in the shard's own
  * (canonical, sorted) key order for determinism, matching
@@ -354,7 +354,7 @@ async function main() {
   }
 
   console.log(
-    "\nSee docs/11-binary-vs-json-index.md and docs/spec-binary-format.md for interpretation.",
+    "\nSee docs/concepts/binary-storage.md and docs/archive/specs/binary-format.md for interpretation.",
   );
 
   console.log(

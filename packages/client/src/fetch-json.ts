@@ -30,7 +30,7 @@ export class ShardCache {
     return pending;
   }
 
-  /** Raw bytes, for binary-format term shards (docs/spec-binary-format.md) -- same caching/eviction-on-failure behavior as `fetchJson`, just no JSON decode. */
+  /** Raw bytes, for binary-format term shards (docs/archive/specs/binary-format.md) -- same caching/eviction-on-failure behavior as `fetchJson`, just no JSON decode. */
   async fetchArrayBuffer(url: string): Promise<Uint8Array> {
     let pending = this.#cache.get(url) as Promise<Uint8Array> | undefined;
     if (!pending) {

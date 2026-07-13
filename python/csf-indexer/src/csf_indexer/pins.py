@@ -1,6 +1,6 @@
 # Direct port of packages/indexer/src/build-index.ts's resolvePins:
 # applies the priority -> doc-boost -> insertion-order tie-break from
-# docs/16-term-to-page-pinning.md#conflicting-pins.
+# docs/guides/pinning.md#conflicting-pins.
 
 
 def resolve_pins(
@@ -29,7 +29,7 @@ def resolve_pins(
                     f'pin conflict: "{phrase}" ({language}) is pinned by '
                     f"{len(distinct_doc_ids)} pages (doc ids {ids_str}) -- "
                     "resolved by priority/boost/build order; see "
-                    "docs/16-term-to-page-pinning.md#conflicting-pins"
+                    "docs/guides/pinning.md#conflicting-pins"
                 )
             pins_shard[phrase] = {
                 "mode": acc["mode"],

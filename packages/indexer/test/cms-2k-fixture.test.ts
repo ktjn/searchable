@@ -5,8 +5,8 @@ import type { SourceDocument } from "../src/types.js";
 
 /**
  * Exercises the real indexer against a realistically-shaped,
- * moderate-scale corpus (docs/14-reference-deployment-cms-2k.md,
- * docs/09-roadmap.md#status Phase 0) rather than the handful of
+ * moderate-scale corpus (docs/guides/indexing.md,
+ * docs/project/roadmap.md#status Phase 0) rather than the handful of
  * one-off sentences used elsewhere in this file -- catches the class
  * of bug that only shows up with real prose and real volume (e.g. a
  * facet/tag/pin distribution that "happens to work" on three fixture
@@ -60,7 +60,7 @@ describe("buildIndex against the CMS-2k reference fixture", () => {
     const sources = generateCms2kCorpus({ count: 400, languages: ["en"] });
     const built = buildIndex(sources);
 
-    // "pricing" stems to "price" (docs/03-tokenization-i18n.md#stemming); "contact" is unaffected.
+    // "pricing" stems to "price" (docs/guides/internationalization.md#stemming); "contact" is unaffected.
     const pinsShard = built.pinsShards.en ?? {};
     expect(pinsShard.price?.docs.length).toBeGreaterThan(0);
     expect(pinsShard.contact?.docs.length).toBeGreaterThan(0);
@@ -82,7 +82,7 @@ describe("buildIndex against the CMS-2k reference fixture", () => {
   it("build time scales roughly linearly with corpus size, not quadratically, for a corpus with high posting-list density", () => {
     // Regression guard for a real O(n^2) bug found while establishing a
     // JSON-tier scaling baseline for the Phase 7 investigation
-    // (docs/11-binary-vs-json-index.md): addPostings() used to look up
+    // (docs/concepts/binary-storage.md): addPostings() used to look up
     // a term's existing posting for a doc via `entry.postings.find()`,
     // an O(df) scan repeated for every (term, doc) pair, making the
     // whole build O(n^2) in corpus size once a term's posting list grew

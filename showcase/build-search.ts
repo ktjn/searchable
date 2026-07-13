@@ -13,7 +13,7 @@ const clientDist = join(__dirname, "..", "packages", "client", "dist");
 /**
  * Skips dist/gallery -- the Stage 2 feature-gallery demos
  * (build-gallery.ts) are deliberately self-contained corpora with
- * their own manifests, not part of the docs search index (docs/19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5,
+ * their own manifests, not part of the docs search index (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5,
  * "not one shared mega corpus").
  */
 async function findHtmlFiles(dir: string, root = dir): Promise<string[]> {

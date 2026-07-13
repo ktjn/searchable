@@ -1,7 +1,7 @@
 import { ownProp } from "@csf/analysis";
 import type { Manifest, Posting } from "@csf/format";
 
-/** BM25F parameters (docs/04-query-ranking-boosts.md#ranking-model-bm25f). */
+/** BM25F parameters (docs/guides/ranking-and-boosts.md#ranking-model-bm25f). */
 const K1 = 1.2;
 const B = 0.75;
 
@@ -15,11 +15,11 @@ function idf(docCount: number, df: number): number {
  * to the corpus average), run through the BM25 saturation curve and
  * scaled by idf. `fieldBoostOverrides` lets a caller override the
  * manifest's build-time field weights per-query
- * (docs/04-query-ranking-boosts.md#boost-types-summarized). `language`
+ * (docs/guides/ranking-and-boosts.md#boost-types-summarized). `language`
  * selects which partition's corpus-wide stats (docCount, avgFieldLength)
  * to use — a manifest spanning multiple languages keeps these per
  * language, since mixing them would skew idf/length-norm for both
- * (docs/03-tokenization-i18n.md#mixed-language-corpora--queries).
+ * (docs/guides/internationalization.md#mixed-language-corpora-and-queries).
  */
 export function scoreTermForDoc(
   posting: Posting,

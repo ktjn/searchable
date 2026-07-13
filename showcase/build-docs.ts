@@ -8,7 +8,7 @@ const repoRoot = join(__dirname, "..");
 const outDir = join(__dirname, "dist");
 
 interface Page {
-  /** e.g. "index" or "docs/00-overview" */
+  /** e.g. "index" or "docs/getting-started/overview" */
   slug: string;
   title: string;
   excerpt: string;

@@ -20,9 +20,9 @@ export interface ExtractedDocument {
   url: string;
   noindex: boolean;
   boost: number;
-  /** Facet field name -> distinct values declared via csf-facet-<field> (docs/15-cms-meta-tag-control.md). */
+  /** Facet field name -> distinct values declared via csf-facet-<field> (docs/reference/cms-meta-tags.md). */
   facets: Record<string, string[]>;
-  /** Range-facet field name -> single numeric value declared via csf-facet-range-<field> (docs/06-faceted-search.md). One value per doc, unlike terms facets. */
+  /** Range-facet field name -> single numeric value declared via csf-facet-range-<field> (docs/guides/facets.md). One value per doc, unlike terms facets. */
   rangeFacets: Record<string, number>;
   pins: PinDeclaration[];
 }
@@ -55,7 +55,7 @@ export interface CanonicalUrlOptions {
 }
 
 /**
- * Schemes a canonical URL is allowed to resolve to (docs/15-cms-meta-tag-control.md#canonical-url):
+ * Schemes a canonical URL is allowed to resolve to (docs/reference/cms-meta-tags.md#canonical-url):
  * `javascript:`, `data:`, and other executable/non-web schemes are
  * rejected outright, since this value flows through to `Hit.url`, which
  * a consuming app may render directly into a link — untrusted/malformed
@@ -66,7 +66,7 @@ const SAFE_URL_PROTOCOLS = new Set(["http:", "https:"]);
 
 /**
  * Validates a `<link rel="canonical">` href before trusting it as a
- * document's `url` (docs/15-cms-meta-tag-control.md#canonical-url) —
+ * document's `url` (docs/reference/cms-meta-tags.md#canonical-url) —
  * malformed, non-web-scheme, or (when `allowedUrlOrigins` is set)
  * off-allowlist values fall back to `sourceUrl`, exactly as if no
  * canonical tag were present at all, rather than either throwing (one
@@ -95,7 +95,7 @@ function sanitizeCanonicalUrl(
     parsed = new URL(canonical, options.baseUrl);
   } catch {
     console.warn(
-      `[csf-indexer] canonical URL "${canonical}" for ${sourceUrl} is malformed or relative with no baseUrl configured -- ignoring, indexing with ${sourceUrl} instead. See docs/15-cms-meta-tag-control.md#canonical-url.`,
+      `[csf-indexer] canonical URL "${canonical}" for ${sourceUrl} is malformed or relative with no baseUrl configured -- ignoring, indexing with ${sourceUrl} instead. See docs/reference/cms-meta-tags.md#canonical-url.`,
     );
     return sourceUrl;
   }
@@ -139,10 +139,10 @@ function collapseWhitespace(text: string): string {
 
 /**
  * Extracts indexable fields from one rendered HTML page, honoring the
- * csf-* meta-tag control surface (docs/15-cms-meta-tag-control.md):
+ * csf-* meta-tag control surface (docs/reference/cms-meta-tags.md):
  * title/body/language/excerpt/canonical/noindex/boost plus facet
  * values (csf-facet-<field>) and pin declarations (csf-pin*, see
- * docs/16-term-to-page-pinning.md).
+ * docs/guides/pinning.md).
  */
 export function extractDocument(
   html: string,
@@ -188,8 +188,8 @@ export function extractDocument(
   const body = collapseWhitespace(bodyRoot?.structuredText ?? "");
 
   // Explicit <html lang> always wins; detectLanguage() is only a
-  // fallback for pages that declare none (docs/03-tokenization-i18n.md,
-  // docs/09-roadmap.md's "Auto language detection accuracy" open
+  // fallback for pages that declare none (docs/guides/internationalization.md,
+  // docs/project/roadmap.md's "Auto language detection accuracy" open
   // question) -- a deterministic, zero-bundled-model heuristic, not a
   // substitute for authoring real language metadata. Falls back to
   // defaultLanguage when detection itself has no confident signal

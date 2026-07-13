@@ -15,7 +15,7 @@ interface DemoLink {
 
 /**
  * Hardcoded rather than discovered from disk -- there are only ever a
- * handful of gallery demos (docs/19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5
+ * handful of gallery demos (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5
  * lists four total), so a static list here is simpler than a
  * filesystem scan and keeps the ordering/copy under editorial control.
  */

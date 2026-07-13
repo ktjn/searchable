@@ -21,7 +21,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
   });
 
   test("renders the docs site with working nav", async ({ page }) => {
-    await page.goto(`${baseUrl}docs/00-overview.html`);
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
     await expect(page).toHaveTitle("Overview");
     await expect(page.locator("main h1")).toHaveText("Overview");
     await page.click('nav a:has-text("Architecture")');
@@ -31,7 +31,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
   test("search returns ranked results and navigating to one loads the right page", async ({
     page,
   }) => {
-    await page.goto(`${baseUrl}docs/00-overview.html`);
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
 
     const input = page.locator(".csf-search-input");
     await input.fill("prefix matching");
@@ -51,10 +51,10 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await expect(page.locator(".csf-empty")).toBeVisible();
   });
 
-  test("accessibility: announces result count via aria-live and toggles aria-expanded (docs/08-modern-features.md#accessibility)", async ({
+  test("accessibility: announces result count via aria-live and toggles aria-expanded (docs/reference/client-api.md)", async ({
     page,
   }) => {
-    await page.goto(`${baseUrl}docs/00-overview.html`);
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
     const input = page.locator(".csf-search-input");
     const announcer = page.locator('[role="status"].csf-sr-only');
 
@@ -127,7 +127,7 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     }
   });
 
-  test("accessibility: result count is an aria-live region (docs/08-modern-features.md#accessibility)", async ({
+  test("accessibility: result count is an aria-live region (docs/reference/client-api.md)", async ({
     page,
   }) => {
     await page.goto(`${baseUrl}gallery/products/index.html`);
@@ -166,8 +166,8 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     // unchanged, unlike "wireles" (drop one "s"), which the stemmer
     // itself further reduces to "wirel" -- three edits from "wireless",
     // well past the strict maxEdits:1 fuzzy dictionary regardless of
-    // the toggle (docs/03-tokenization-i18n.md#stemming interacting
-    // with docs/04-query-ranking-boosts.md#prefix--fuzzy-matching).
+    // the toggle (docs/guides/internationalization.md#stemming interacting
+    // with docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching).
     await page.locator(".gallery-search-input").fill("wirelss");
 
     await expect(page.locator(".gallery-empty")).toBeVisible();
@@ -296,7 +296,7 @@ test.describe("feature gallery: multi-language corpus demo (real browser)", () =
     );
   });
 
-  test("the German stemmer's own umlaut-fold surfaces both schon and schön for either query (docs/03-tokenization-i18n.md#case-folding--diacritics)", async ({
+  test("the German stemmer's own umlaut-fold surfaces both schon and schön for either query (docs/guides/internationalization.md#case-folding-and-diacritics)", async ({
     page,
   }) => {
     await page.goto(`${baseUrl}gallery/i18n/index.html`);

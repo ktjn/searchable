@@ -12,12 +12,12 @@ import type {
 } from "./types.js";
 
 /**
- * Vector/hybrid search mechanics (docs/13-vector-and-hybrid-search.md),
+ * Vector/hybrid search mechanics (docs/guides/vector-search.md),
  * deliberately scoped to storage/similarity mechanics only: this project
  * doesn't ship or run any embedding model itself -- `embed` is an
  * injectable seam a deployment supplies (a real ONNX/transformers.js
  * pipeline, a remote API call, or -- as this package's own tests do -- a
- * deterministic synthetic embedder), matching docs/13's own
+ * deterministic synthetic embedder), matching docs/guides/vector-search.md's own
  * "model-agnostic... which model to embed with is a deployment choice"
  * framing. Kept as a standalone async function rather than folded into
  * `buildIndex()` (which is deliberately synchronous, and whose 300+
@@ -36,7 +36,7 @@ export interface VectorsBuildOptions {
   embed: (texts: string[]) => Promise<number[][]> | number[][];
   /** Recorded on the manifest as-is (@csf/format's EmbeddingProviderConfig doc comment) -- defaults to `{ type: "custom" }`, since `embed` is an arbitrary injectable function this package has no way to identify further. */
   provider?: EmbeddingProviderConfig;
-  /** Defaults to `"int8"` (docs/13's recommended default: ~4x smaller, negligible recall loss). `"float32"` stores `embed()`'s raw output as-is. */
+  /** Defaults to `"int8"` (docs/guides/vector-search.md's recommended default: ~4x smaller, negligible recall loss). `"float32"` stores `embed()`'s raw output as-is. */
   quantization?: "float32" | "int8";
   /** Passed straight to `chunkText()` -- see its own doc comment. */
   chunkTokens?: number;
@@ -54,7 +54,7 @@ export interface BuiltVectors {
 /**
  * Scalar-quantizes every dimension of every vector to a `[0, 255]`
  * integer against one shared min/max across the whole batch
- * (docs/13-vector-and-hybrid-search.md#storage-format's "per-shard
+ * (docs/guides/vector-search.md#storage-format's "per-shard
  * min/max scaling", not per-dimension). A zero-width range (every value
  * identical -- degenerate, but real for a trivial test embedder) maps
  * every value to `0` rather than dividing by zero; dequantizing then

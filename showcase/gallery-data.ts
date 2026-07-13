@@ -1,6 +1,6 @@
 /**
  * Synthetic product-catalog corpus for the Stage 2 feature gallery
- * (docs/19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5):
+ * (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5):
  * enough products, spread across categories/price buckets/tags, to make
  * facets, boosts, and pins demonstrable, without being a real dataset a
  * visitor might mistake for actual inventory.
@@ -12,7 +12,7 @@ export interface Product {
   name: string;
   category: string;
   price: number;
-  /** Bucketed rather than a true numeric range facet -- range facets remain design-only (docs/09-roadmap.md#status). */
+  /** Bucketed terms facet retained for this gallery UI; the engine also supports numeric range facets. */
   priceBucket: string;
   tags: string[];
   featured: boolean;

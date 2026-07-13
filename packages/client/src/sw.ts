@@ -5,7 +5,7 @@ import { validateManifest } from "./validate-manifest.js";
 declare const self: ServiceWorkerGlobalScope;
 
 /**
- * Offline Service Worker (docs/08-modern-features.md#caching--offline-support),
+ * Offline Service Worker (docs/guides/offline-search.md),
  * registered via `registerOfflineCaching()` (packages/client/src/offline.ts).
  * Config (`indexUrl`, `mode`, `languages`) travels as query params on
  * this script's own URL -- the standard way to pass data into a
@@ -14,7 +14,7 @@ declare const self: ServiceWorkerGlobalScope;
  *
  * Deliberately one flat cache (`CACHE_NAME`, not versioned per
  * `manifest.buildId`): every shard file this precaches is already
- * content-hashed (docs/02-index-format.md#versioning--cache-strategy),
+ * content-hashed (docs/concepts/index-format.md#versioning-and-cache-strategy),
  * so a new build's shard URLs simply differ from the old build's --
  * `cache.put()` naturally overwrites only the (non-hashed, stable)
  * manifest URL's entry on each install, and old shard entries just
@@ -59,7 +59,7 @@ function parseConfig(): {
  * to `languages` -- a per-language subset lets a deployment precache
  * only the visitor's current UI language instead of paying to cache
  * every language's shards. Facet and doc-store shards aren't
- * per-language (docs/02-index-format.md#manifest) so `languages`
+ * per-language (docs/concepts/index-format.md#manifest) so `languages`
  * doesn't apply to them. `fuzzy` is handled separately from
  * `pins`/`synonyms` below because its value is `{file, format?}`, not a
  * bare file string like those two -- iterating all three the same way

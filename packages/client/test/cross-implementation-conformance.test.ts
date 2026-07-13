@@ -10,7 +10,7 @@ import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";
 
 /**
- * Cross-implementation conformance (docs/10-testing-and-performance.md#2-performance-test-suite's
+ * Cross-implementation conformance (docs/project/governance.md#performance-policy's
  * "Cross-implementation conformance" bullet, tracked as a Phase 0/7
  * deliverable in spec/examples/README.md's own "note what this does and
  * doesn't prove" section): indexes the *same* fixture corpus

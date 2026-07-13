@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://client-search-framework/schema/facet-shard.schema.json",
   "title": "Facet shard",
-  "description": "One facets/<field>.<hash>.json file. See docs/06-faceted-search.md.",
+  "description": "One facets/<field>.<hash>.json file. See docs/guides/facets.md.",
   "type": "object",
   "additionalProperties": false,
   "required": ["type", "values"],
@@ -29,7 +29,7 @@
       }
     },
     "sorted": {
-      "description": "Only present for type: range -- every (value, doc) pair sorted ascending by value, so an arbitrary min/max filter can be resolved directly against it (docs/06-faceted-search.md#facet-index-structure). For a range shard, 'values' holds 5 equal-width aggregate buckets computed over the corpus's observed [min, max], keyed by a label like \"10-20\" or \"80+\" for the open-ended last bucket.",
+      "description": "Only present for type: range -- every (value, doc) pair sorted ascending by value, so an arbitrary min/max filter can be resolved directly against it (docs/guides/facets.md#facet-index-structure). For a range shard, 'values' holds 5 equal-width aggregate buckets computed over the corpus's observed [min, max], keyed by a label like \"10-20\" or \"80+\" for the open-ended last bucket.",
       "type": "array",
       "items": {
         "type": "object",

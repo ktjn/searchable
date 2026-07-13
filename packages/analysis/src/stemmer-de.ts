@@ -1,7 +1,7 @@
 /**
  * The Snowball German stemmer (https://snowballstem.org/algorithms/german/stemmer.html,
  * source: snowballstem/snowball's `algorithms/german.sbl`) -- the
- * affix-stripping algorithm docs/03-tokenization-i18n.md#stemming
+ * affix-stripping algorithm docs/guides/internationalization.md#stemming
  * commits to for languages with "a good affix-stripping stemmer".
  * Unlike English (`./stemmer-en.ts`, the classic 1980 Porter algorithm,
  * which predates Snowball), no pre-Snowball "classic" German stemmer
@@ -32,7 +32,7 @@
  *  4. postlude: undo the 'U'/'Y' marking back to 'u'/'y', and fold the
  *     umlauts (ä/ö/ü) down to their plain-vowel form (a/o/u) -- the
  *     final step, so "schön" and "schon" -- which
- *     docs/03-tokenization-i18n.md#case-folding--diacritics keeps
+ *     docs/guides/internationalization.md#case-folding-and-diacritics keeps
  *     distinct everywhere else (German's `foldDiacritics: false`) --
  *     still stem to the same term once suffix-stripping is involved,
  *     matching Snowball's own reference behavior.

@@ -1,7 +1,7 @@
 /**
  * The classic Porter stemming algorithm (M.F. Porter, "An algorithm for
  * suffix stripping", 1980) for English -- the affix-stripping algorithm
- * docs/03-tokenization-i18n.md#stemming commits to for languages with
+ * docs/guides/internationalization.md#stemming commits to for languages with
  * "a good affix-stripping stemmer". Deliberately the original 1980
  * algorithm, not the later Snowball-framework "Porter2" English
  * stemmer (a distinct, incompatible rule set) -- the original is what

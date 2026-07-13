@@ -1,6 +1,6 @@
 /**
  * Real, local (no query-time backend) query embedding for
- * `SearchClientOptions.embedQuery` (docs/13-vector-and-hybrid-search.md),
+ * `SearchClientOptions.embedQuery` (docs/guides/vector-search.md),
  * backed by `@huggingface/transformers` (ONNX Runtime Web under the
  * hood) -- the query-time half of the same model
  * `packages/indexer/src/transformers-embed.ts` runs offline at build
@@ -14,7 +14,7 @@
  * (`SearchClientOptions.validateVectorProvider`, on by default).
  *
  * Deliberately NOT a dependency of this package's core bundle
- * (docs/13's "pay only for what you use" — `@huggingface/transformers`
+ * (docs/guides/vector-search.md's "pay only for what you use" — `@huggingface/transformers`
  * is tens of MB, wildly over this package's own ~15KB core budget):
  * `@huggingface/transformers` is only a `devDependency` here (so this
  * file's own typecheck/build has its types available) and an *optional*

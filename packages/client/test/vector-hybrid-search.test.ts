@@ -12,7 +12,7 @@ import {
 import { serveStatic } from "./static-server.js";
 
 /**
- * Vector/hybrid search mechanics (docs/13-vector-and-hybrid-search.md),
+ * Vector/hybrid search mechanics (docs/guides/vector-search.md),
  * exercised end-to-end over real HTTP against an index built with a
  * deterministic, test-only "synthetic semantics" embedder: a small fixed
  * vocabulary is grouped into concept buckets, and a text's embedding is

@@ -1,7 +1,7 @@
 {
   "name": "@csf/format",
   "version": "1.0.0",
-  "description": "TypeScript types for the manifest/shard JSON format (docs/02-index-format.md, spec/schema/*.schema.json), shared by the indexer and the client so both sides can't silently drift on the format's shape.",
+  "description": "TypeScript types for the manifest/shard JSON format (docs/concepts/index-format.md, spec/schema/*.schema.json), shared by the indexer and the client so both sides can't silently drift on the format's shape.",
   "license": "MIT",
   "repository": {
     "type": "git",

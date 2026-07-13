@@ -61,7 +61,7 @@ interface FixtureSource {
   lang: string;
   title: string;
   body: string;
-  /** Extra <meta name="..." content="..."> tags to inject into <head>, verbatim -- used by the facets/pins fixture doc (csf-facet-<field>/csf-pin, docs/15-cms-meta-tag-control.md, docs/16-term-to-page-pinning.md). Both discover functions parse these identically on the TS and Python sides. */
+  /** Extra <meta name="..." content="..."> tags to inject into <head>, verbatim -- used by the facets/pins fixture doc (csf-facet-<field>/csf-pin, docs/reference/cms-meta-tags.md, docs/guides/pinning.md). Both discover functions parse these identically on the TS and Python sides. */
   meta?: { name: string; content: string }[];
 }
 
@@ -244,7 +244,7 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
  * (docs/superpowers/specs/2026-07-12-python-indexer-binary-tier-design.md):
  * unlike the JSON tier (where the two implementations only need to
  * agree on *content*), the binary term-shard/doc-store encoders are a
- * fully deterministic byte format (docs/spec-binary-format.md) --
+ * fully deterministic byte format (docs/archive/specs/binary-format.md) --
  * delta+varint postings, a fixed directory layout -- so there is no
  * legitimate source of byte-level divergence between a conformant TS
  * and Python encoder, unlike tokenization/stemming edge cases

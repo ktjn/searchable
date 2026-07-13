@@ -32,7 +32,7 @@ export type WorkerRequestPayload =
        * message is sent, when `options.mode` is `"vector"`/`"hybrid"` —
        * a query embedding function is arbitrary caller JS and can't
        * cross the postMessage boundary, only its plain-array *result*
-       * can (docs/13-vector-and-hybrid-search.md).
+       * can (docs/guides/vector-search.md).
        */
       queryVector?: number[];
     }
@@ -45,7 +45,7 @@ export type WorkerResponse =
   | { type: "result"; id: number; result: SearchResult | FacetResult }
   /**
    * The literal/prefix-only pass of a `searchStream` request
-   * (docs/07-client-api.md#streamingincremental-results) -- sent
+   * (docs/reference/client-api.md#streamingincremental-results) -- sent
    * *in addition to*, and always before, the final `"result"` message
    * for the same `id`. The pending request stays open after this
    * arrives; only `"result"`/`"error"` settle it.

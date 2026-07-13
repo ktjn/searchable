@@ -52,10 +52,10 @@ describe("termsWithBinaryPrefix (binary search over a sorted term directory)", (
 });
 
 /**
- * Binary term shards (docs/11-binary-vs-json-index.md, docs/spec-binary-format.md,
+ * Binary term shards (docs/concepts/binary-storage.md, docs/archive/specs/binary-format.md,
  * `writeIndex(built, outDir, { termShardFormat: "binary" })`) must return
  * exactly the same logical search results as the equivalent JSON-shard
- * index (`spec-binary-format.md#success-criteria`: "Binary and JSON
+ * index (`archive/specs/binary-format.md#success-criteria`: "Binary and JSON
  * indexes must return identical logical search results for the same
  * corpus, configuration and query"). This builds the *same* corpus both
  * ways and runs the same real-HTTP `SearchClient` query across every

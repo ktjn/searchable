@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://client-search-framework/schema/fuzzy-shard.schema.json",
   "title": "Fuzzy shard",
-  "description": "One fuzzy/<lang>.<hash>.json file: a SymSpell-style precomputed deletion dictionary for typo-tolerant matching. See docs/04-query-ranking-boosts.md#prefix--fuzzy-matching.",
+  "description": "One fuzzy/<lang>.<hash>.json file: a SymSpell-style precomputed deletion dictionary for typo-tolerant matching. See docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching.",
   "type": "object",
   "additionalProperties": false,
   "required": ["maxEdits", "deletions"],

@@ -121,7 +121,7 @@ export interface MarketingPage {
   de: { title: string; body: string; pin?: string };
 }
 
-/** Fixed, non-generated pages with authored pins — the kind of high-intent page docs/14 calls out ("pricing," "contact"). */
+/** Fixed, non-generated pages with authored pins — the kind of high-intent page docs/guides/indexing.md calls out ("pricing," "contact"). */
 export const MARKETING_PAGES: MarketingPage[] = [
   {
     slug: "pricing",

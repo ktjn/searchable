@@ -1,5 +1,5 @@
 /**
- * Result highlighting (docs/08-modern-features.md#highlighting--snippets):
+ * Result highlighting (docs/reference/client-api.md#search-options-and-results):
  * splits a stored field's text into match/non-match spans for the
  * literal query terms actually typed, so a consumer can render its own
  * `<mark>` (or any other) wrapper around `isMatch` spans without a
@@ -11,7 +11,7 @@
  * matching, when building these. A stemmed term wouldn't reliably
  * `\b`-match a document's actual stored spelling (e.g. a stemmed
  * "widget" doesn't match inside the literal stored text "Widgets";
- * docs/03-tokenization-i18n.md#stemming).
+ * docs/guides/internationalization.md#stemming).
  *
  * Scoped to literal terms only (prefix-aware for `term*`) -- a hit
  * that only matched via synonym expansion or fuzzy correction won't
@@ -27,7 +27,7 @@
  *
  * Also scoped to whatever text is already stored (title, excerpt) --
  * not the full body, which the doc store deliberately doesn't retain
- * (docs/02-index-format.md). Stored per-field token *positions*
+ * (docs/concepts/index-format.md). Stored per-field token *positions*
  * (`FieldPosting.pos`) exist for the full body's tokenization, but an
  * excerpt is either author-supplied (`<meta name="description">`) or a
  * plain character-length truncation of the body -- neither reliably

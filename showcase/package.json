@@ -2,7 +2,7 @@
   "name": "showcase",
   "private": true,
   "version": "0.0.0",
-  "description": "GitHub Pages demo: this repo's own docs, rendered as a static site and searched by @csf/client (docs/19-github-pages-showcase.md).",
+  "description": "GitHub Pages demo: this repo's own docs, rendered as a static site and searched by @csf/client (docs/archive/roadmaps/github-pages-showcase.md).",
   "license": "MIT",
   "type": "module",
   "scripts": {

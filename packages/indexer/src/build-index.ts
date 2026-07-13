@@ -26,7 +26,7 @@ interface FieldBoosts {
   body: number;
 }
 
-/** Realistic defaults matching the example in docs/04-query-ranking-boosts.md. */
+/** Realistic defaults matching the example in docs/guides/ranking-and-boosts.md. */
 const DEFAULT_FIELD_BOOSTS: FieldBoosts = { title: 3.0, body: 1.0 };
 
 export interface BuildIndexOptions {
@@ -36,7 +36,7 @@ export interface BuildIndexOptions {
    * Author-supplied synonym data, keyed by language — unlike facets/
    * pins, synonyms are corpus-vocabulary curation, not per-page
    * metadata, so there's no csf-* meta tag for this
-   * (docs/05-synonyms.md). Entries are single words/phrases as authored
+   * (docs/guides/synonyms.md). Entries are single words/phrases as authored
    * (surface form or already-stemmed, either works); buildIndex
    * normalizes each one through that language's analysis pipeline so
    * lookups at query time match however the term is actually stored.
@@ -52,7 +52,7 @@ export interface BuildIndexOptions {
     Pick<SynonymShard, "equivalences" | "directional" | "multiWord">
   >;
   /**
-   * Build a SymSpell-style deletion dictionary (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching)
+   * Build a SymSpell-style deletion dictionary (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching)
    * from each language's own indexed term vocabulary, enabling
    * typo-tolerant fuzzy matching at query time. Off by default: the
    * dictionary adds real index size (roughly proportional to total
@@ -75,7 +75,7 @@ export interface BuildIndexOptions {
    */
   fuzzyMaxEdits?: 1 | 2;
   /**
-   * Facet fields to build as hierarchical (docs/06-faceted-search.md#facet-types),
+   * Facet fields to build as hierarchical (docs/guides/facets.md#facet-types),
    * keyed by field name. A build-time decision, not a per-page csf-*
    * meta tag, like fieldBoosts/synonyms/fuzzy above — hierarchy-vs-terms
    * is a corpus-wide schema property of a field, not something one page
@@ -88,7 +88,7 @@ export interface BuildIndexOptions {
   hierarchicalFacets?: Record<string, { separator?: string }>;
   /**
    * Per-field override of a range facet's histogram results
-   * (docs/06-faceted-search.md#facet-index-structure), for any range
+   * (docs/guides/facets.md#facet-index-structure), for any range
    * field not listed here defaulting to `RANGE_FACET_BUCKET_COUNT` (5)
    * equal-width buckets. Two shapes:
    *  - a `number`: that many equal-width buckets spanning the corpus's
@@ -108,7 +108,7 @@ export interface BuildIndexOptions {
   rangeFacetBuckets?: Record<string, number | number[]>;
   /**
    * Restricts an absolute `<link rel="canonical">` href to one of these
-   * exact origins (docs/15-cms-meta-tag-control.md#canonical-url) —
+   * exact origins (docs/reference/cms-meta-tags.md#canonical-url) —
    * anything else falls back to the document's own crawled `url`, same
    * as a missing/invalid canonical tag. `javascript:`/`data:`/other
    * non-web schemes are always rejected regardless of this option
@@ -130,7 +130,7 @@ const DEFAULT_HIERARCHY_SEPARATOR = ">";
  * Expands a hierarchical facet value into every ancestor path plus
  * itself, e.g. `"a>b>c"` -> `["a", "a>b", "a>b>c"]` — so each level is
  * its own addressable terms-shaped entry in `FacetShard.values`
- * (docs/06-faceted-search.md#facet-index-structure), and a client can
+ * (docs/guides/facets.md#facet-index-structure), and a client can
  * filter/count at any depth via a direct lookup rather than a runtime
  * tree-walk. A value with no separator in it (a bare top-level path
  * segment) expands to just itself.
@@ -154,7 +154,7 @@ function expandHierarchyPaths(fullPath: string, separator: string): string[] {
  * first expansion, one deletion-level at a time, so `maxEdits: 2` also
  * includes every deletion-of-a-deletion, not just direct 2-character
  * removals. Going a level deeper is what lets a *genuine* distance-2
- * typo be found (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching)
+ * typo be found (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching)
  * rather than only the distance-1 dictionary's occasional distance-2
  * hits via symmetric-delete coincidences (e.g. an adjacent-character
  * transposition).
@@ -342,7 +342,7 @@ function addFacetValues(
 }
 
 /**
- * Range facets (docs/06-faceted-search.md#facet-index-structure) store
+ * Range facets (docs/guides/facets.md#facet-index-structure) store
  * every (value, doc) pair -- an arbitrary min/max *filter* is resolved
  * directly against this sorted array (sorted once, after every
  * document is processed) rather than being limited to precomputed
@@ -371,7 +371,7 @@ function addRangeFacetValues(
   }
 }
 
-/** Default number of equal-width buckets computed for a range facet's aggregate results (docs/06-faceted-search.md#facet-index-structure), for any field not given its own count via BuildIndexOptions.rangeFacetBuckets. */
+/** Default number of equal-width buckets computed for a range facet's aggregate results (docs/guides/facets.md#facet-index-structure), for any field not given its own count via BuildIndexOptions.rangeFacetBuckets. */
 const RANGE_FACET_BUCKET_COUNT = 5;
 
 /** Formats a bucket boundary without a trailing ".00" for whole numbers. */
@@ -393,7 +393,7 @@ function addToBucket(shard: FacetShard, label: string, doc: number): void {
 /**
  * Populates a range facet shard's `values` with equal-width aggregate
  * buckets computed over the corpus's full observed [min, max] --
- * docs/06-faceted-search.md#facet-index-structure's aggregate range
+ * docs/guides/facets.md#facet-index-structure's aggregate range
  * *results*, as opposed to filtering (which resolves directly against
  * `sorted` and doesn't need buckets at all). Reuses the exact same
  * `FacetValueEntry` shape (`{count, docs}`) terms facets use, keyed by
@@ -484,7 +484,7 @@ interface PinAccumulatorEntry {
 /**
  * Resolves the accumulated per-language, per-phrase pin declarations
  * into the final shard shapes, applying the tie-break order from
- * docs/16-term-to-page-pinning.md#conflicting-pins (priority, then doc
+ * docs/guides/pinning.md#conflicting-pins (priority, then doc
  * boost, then build/insertion order — the last relies on Array#sort
  * being a stable sort, guaranteed since ES2019). Returns the finished
  * shards plus one warning string per phrase pinned by more than one
@@ -508,7 +508,7 @@ function resolvePins(
       const distinctDocIds = new Set(sortedDocs.map((d) => d.id));
       if (distinctDocIds.size > 1) {
         warnings.push(
-          `pin conflict: "${phrase}" (${language}) is pinned by ${distinctDocIds.size} pages (doc ids ${[...distinctDocIds].join(", ")}) — resolved by priority/boost/build order; see docs/16-term-to-page-pinning.md#conflicting-pins`,
+          `pin conflict: "${phrase}" (${language}) is pinned by ${distinctDocIds.size} pages (doc ids ${[...distinctDocIds].join(", ")}) — resolved by priority/boost/build order; see docs/guides/pinning.md#conflicting-pins`,
         );
       }
       pinsShard[phrase] = {
@@ -536,7 +536,7 @@ function resolvePins(
  * full document frequency, making a common term's total insertion
  * cost O(df²) and the whole build effectively O(n²) in corpus size
  * (measured: ~31s to index 10k synthetic docs, vs. ~1.1s for 1k --
- * see docs/11-binary-vs-json-index.md's Phase 7 investigation, where
+ * see docs/concepts/binary-storage.md's Phase 7 investigation, where
  * this was found while establishing a JSON-tier scaling baseline).
  * Doesn't change `entry.postings`' insertion order or any output
  * shape -- purely a lookup-cost fix.
@@ -594,7 +594,7 @@ interface LanguageLengthStats {
 /**
  * Builds an in-memory index from rendered HTML source documents,
  * matching the "small corpus mode" sizing in
- * docs/14-reference-deployment-cms-2k.md (single, unsharded term shard
+ * docs/guides/indexing.md (single, unsharded term shard
  * per language, single doc store). Each document is analyzed under
  * *its own* declared language (`<html lang>`, extract.ts), not a single
  * language for the whole batch — `defaultLanguage` is only the fallback

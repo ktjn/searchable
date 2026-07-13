@@ -11,7 +11,7 @@ export interface TokenSpan {
 /**
  * Per-language analysis behavior. Indexer and runtime both consume the
  * same profile via `analyze()` so index-time and query-time tokenization
- * can never drift apart (see docs/03-tokenization-i18n.md).
+ * can never drift apart (see docs/guides/internationalization.md).
  */
 export interface LanguageProfile {
   code: string;
@@ -39,7 +39,7 @@ function stripDiacritics(term: string): string {
 }
 
 /**
- * Real affix-stripping stemming (docs/03-tokenization-i18n.md#stemming)
+ * Real affix-stripping stemming (docs/guides/internationalization.md#stemming)
  * via the classic Porter algorithm (`./stemmer-en.ts`) — no stopword
  * removal yet.
  */
@@ -63,7 +63,7 @@ export const english: LanguageProfile = {
  * (matches Lucene's and PyStemmer's German stemmers too) — so `schon`
  * and `schön` now both stem to `"schon"` even though `foldDiacritics:
  * false` keeps them distinct going *into* `stem()`. See
- * docs/03-tokenization-i18n.md#case-folding--diacritics for the full
+ * docs/guides/internationalization.md#case-folding-and-diacritics for the full
  * writeup of this tradeoff.
  */
 export const german: LanguageProfile = {
@@ -77,7 +77,7 @@ export const german: LanguageProfile = {
 /**
  * Bigram (n-gram) fallback segmentation (`./segment-cjk.ts`) rather
  * than dictionary-based `Intl.Segmenter("zh"|"ja")` word segmentation
- * (docs/03-tokenization-i18n.md#segmentation) — guarantees correct
+ * (docs/guides/internationalization.md#segmentation) — guarantees correct
  * substring matching in any environment without a bundled dictionary,
  * at the cost of index size (overlapping bigrams) and some relevance
  * precision (no real word boundaries), a documented, accepted
@@ -97,7 +97,7 @@ export const chinese: LanguageProfile = {
   stem: (term) => term,
 };
 
-/** Same bigram-fallback segmentation as `chinese` above -- the fallback mechanism doesn't depend on which CJK language the text is in, only its script (docs/03-tokenization-i18n.md#segmentation). */
+/** Same bigram-fallback segmentation as `chinese` above -- the fallback mechanism doesn't depend on which CJK language the text is in, only its script (docs/guides/internationalization.md#segmentation). */
 export const japanese: LanguageProfile = {
   code: "ja",
   segment: segmentCjkBigram,
@@ -127,7 +127,7 @@ export const thai: LanguageProfile = {
   stem: (term) => term,
 };
 
-/** Same trigram-fallback segmentation as `thai` above -- the fallback mechanism doesn't depend on which of the three scripts the text is in (docs/03-tokenization-i18n.md#segmentation). */
+/** Same trigram-fallback segmentation as `thai` above -- the fallback mechanism doesn't depend on which of the three scripts the text is in (docs/guides/internationalization.md#segmentation). */
 export const khmer: LanguageProfile = {
   code: "km",
   segment: segmentSeaTrigram,
@@ -136,7 +136,7 @@ export const khmer: LanguageProfile = {
   stem: (term) => term,
 };
 
-/** Same trigram-fallback segmentation as `thai` above -- the fallback mechanism doesn't depend on which of the three scripts the text is in (docs/03-tokenization-i18n.md#segmentation). */
+/** Same trigram-fallback segmentation as `thai` above -- the fallback mechanism doesn't depend on which of the three scripts the text is in (docs/guides/internationalization.md#segmentation). */
 export const lao: LanguageProfile = {
   code: "lo",
   segment: segmentSeaTrigram,

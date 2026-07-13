@@ -145,7 +145,7 @@ main a {
   max-width: 320px;
 }
 
-/* Screen-reader-only (docs/08-modern-features.md#accessibility): present
+/* Screen-reader-only (docs/reference/client-api.md): present
    in the accessibility tree for aria-live announcements, invisible and
    out of the flow for sighted users. */
 .csf-sr-only {

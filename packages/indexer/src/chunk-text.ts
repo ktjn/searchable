@@ -1,4 +1,4 @@
-/** docs/13-vector-and-hybrid-search.md#chunking's "~200 tokens with ~20-token overlap" example. */
+/** docs/guides/vector-search.md#chunking's "~200 tokens with ~20-token overlap" example. */
 export const DEFAULT_CHUNK_TOKENS = 200;
 export const DEFAULT_CHUNK_OVERLAP_TOKENS = 20;
 
@@ -9,7 +9,7 @@ export interface Chunk {
 
 /**
  * Splits `text` into overlapping passages for embedding
- * (docs/13-vector-and-hybrid-search.md#chunking) -- a whitespace word
+ * (docs/guides/vector-search.md#chunking) -- a whitespace word
  * split, not the stemmed/lowercased tokens `@csf/analysis` produces for
  * lexical indexing: an embedding model wants natural surface text, not
  * an already-destemmed bag of words. `chunkTokens`/`overlapTokens` count

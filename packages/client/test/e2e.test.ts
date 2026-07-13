@@ -611,7 +611,7 @@ describe("prefix matching (term*)", () => {
   });
 });
 
-describe("prefix-sharded term shard fetching (docs/02-index-format.md#term-shard-inverted-index)", () => {
+describe("prefix-sharded term shard fetching (docs/concepts/index-format.md#term-shard-inverted-index)", () => {
   // A vocabulary spread across distinct leading characters -- with the
   // default sharding budget this produces one tiny term shard per
   // character, exactly the scenario prefix sharding exists for: a query
@@ -703,8 +703,8 @@ describe("prefix-sharded term shard fetching (docs/02-index-format.md#term-shard
   });
 });
 
-describe("shardByPrefix:false (docs/14-reference-deployment-cms-2k.md's small-corpus mode)", () => {
-  // The `prefix: "all"` sentinel (docs/02-index-format.md#term-shard-inverted-index)
+describe("shardByPrefix:false (docs/guides/indexing.md's small-corpus mode)", () => {
+  // The `prefix: "all"` sentinel (docs/concepts/index-format.md#term-shard-inverted-index)
   // is not a real character prefix, so the shard-selection logic in
   // shardEntriesForQuery() has to special-case it rather than test it
   // with String.prototype.startsWith() like every other prefix value --
@@ -758,7 +758,7 @@ describe("shardByPrefix:false (docs/14-reference-deployment-cms-2k.md's small-co
   });
 });
 
-describe('"quoted phrase" matching (position-adjacency, docs/04-query-ranking-boosts.md#phrase--proximity-queries)', () => {
+describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-boosts.md#phrase-and-proximity-queries)', () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
@@ -865,7 +865,7 @@ describe('"quoted phrase" matching (position-adjacency, docs/04-query-ranking-bo
   });
 });
 
-describe("multiWord phrase-level synonym expansion (csf synonyms, docs/05-synonyms.md#synonym-file-format)", () => {
+describe("multiWord phrase-level synonym expansion (csf synonyms, docs/guides/synonyms.md#synonym-file-format)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
@@ -1141,7 +1141,7 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   let outDir: string;
 
   // All four organically match "device"; category is a hierarchical
-  // facet (docs/06-faceted-search.md#facet-types) three levels deep for
+  // facet (docs/guides/facets.md#facet-types) three levels deep for
   // three of them, and a bare top-level value (no separator) for the
   // fourth, to prove both shapes coexist in one shard.
   const hierarchySources: SourceDocument[] = [
@@ -1756,7 +1756,7 @@ describe("multi-language corpora", () => {
   });
 });
 
-describe("CJK bigram fallback segmentation (docs/03-tokenization-i18n.md#segmentation)", () => {
+describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#segmentation)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
@@ -2056,7 +2056,7 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
   it("still caps a short (<=3 code point) query term's fuzzy matching at distance 1, even though the dictionary supports distance 2", async () => {
     const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
     // "cop" is a genuine distance-2 substitution typo of "cat"
-    // (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching:
+    // (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching:
     // fuzzy matching is "length- and language-dependent") -- a
     // 3-character term is too short for a distance-2 match to mean
     // anything, so it's rejected even though the same dictionary just

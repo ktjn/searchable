@@ -1,6 +1,6 @@
 /**
  * Trigram (n-gram) fallback segmentation for Thai/Khmer/Lao text
- * (docs/03-tokenization-i18n.md#segmentation): none of these scripts use
+ * (docs/guides/internationalization.md#segmentation): none of these scripts use
  * spaces between words, and dictionary-based word segmentation isn't
  * reliably available across every environment this runtime targets, so
  * — same reasoning and same tradeoff as `./segment-cjk.ts`'s bigram CJK

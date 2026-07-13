@@ -8,8 +8,8 @@ import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";
 
 /**
- * The Phase 0 fixture end-to-end pass (docs/09-roadmap.md#status,
- * docs/14-reference-deployment-cms-2k.md): a realistically-shaped,
+ * The Phase 0 fixture end-to-end pass (docs/project/roadmap.md#status,
+ * docs/guides/indexing.md): a realistically-shaped,
  * moderate-scale corpus rather than the handful of one-off sentences
  * the rest of this file uses -- a shard built from a few hundred real
  * paragraphs across two languages is a meaningfully different fetch/

@@ -1,7 +1,7 @@
 /**
  * Growable little-endian byte buffer writer shared by every binary shard
  * encoder (`binary-term-shard.ts`, `binary-fuzzy-shard.ts`,
- * `binary-doc-store.ts`), per docs/spec-binary-format.md's "little-endian"
+ * `binary-doc-store.ts`), per docs/archive/specs/binary-format.md's "little-endian"
  * / "variable-length integers" format principles. Extracted once three
  * encoders needed the exact same varint/string/float64 writer rather
  * than duplicated per file.

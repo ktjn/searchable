@@ -13,7 +13,7 @@ import { ownProp } from "./safe-dict.js";
 /**
  * The one place indexer and runtime both look up a LanguageProfile by
  * code, so "is language X supported" and "which profile does X get"
- * can never answer differently on the two sides (docs/03).
+ * can never answer differently on the two sides (docs/guides/internationalization.md).
  */
 const PROFILES: Record<string, LanguageProfile> = {
   en: english,

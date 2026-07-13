@@ -8,7 +8,7 @@ import { buildIndex, writeIndex } from "../dist/index.js";
 
 /**
  * Follow-up to binary-vs-json-postings.mjs, answering the question that
- * benchmark's own writeup left open (see docs/11-binary-vs-json-index.md's
+ * benchmark's own writeup left open (see docs/concepts/binary-storage.md's
  * "Revised recommendation"): does *lazy per-term* posting decode -- only
  * decoding the postings for terms a query actually matched, not the
  * whole shard -- flip the earlier finding that whole-shard binary
@@ -21,7 +21,7 @@ import { buildIndex, writeIndex } from "../dist/index.js";
  * binary-vs-json-postings.mjs), so a specific term's postings can be
  * decoded by seeking directly to its byte range -- without touching any
  * other term's bytes at all, let alone decoding them. This is
- * `spec-binary-format.md#dictionary-encoding`'s "sorted string table"
+ * `archive/specs/binary-format.md#dictionary-encoding`'s "sorted string table"
  * baseline recommendation, and `#decoding-strategy`'s "decode only
  * matching posting lists" guidance, neither of which
  * binary-vs-json-postings.mjs's whole-shard encoding attempted.
@@ -215,7 +215,7 @@ function decodePostings(bytes, startPos) {
 /**
  * Directory-based layout: [directory][postings blob]. The directory is
  * a sorted term -> (offset, length) table, decodable on its own without
- * touching a single posting byte -- spec-binary-format.md's "sorted
+ * touching a single posting byte -- archive/specs/binary-format.md's "sorted
  * string table + binary search" baseline recommendation.
  */
 function encodeShardWithDirectory(termShard) {
@@ -402,7 +402,7 @@ async function main() {
   }
 
   console.log(
-    "\nSee docs/11-binary-vs-json-index.md and docs/spec-binary-format.md for interpretation.",
+    "\nSee docs/concepts/binary-storage.md and docs/archive/specs/binary-format.md for interpretation.",
   );
 
   console.log(

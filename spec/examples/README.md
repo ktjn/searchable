@@ -1,9 +1,9 @@
 # Reference index generators
 
 Two independent, from-scratch, ~100-line generators proving the index
-format ([../schema/](../schema/), [docs/02-index-format.md](../../docs/02-index-format.md))
+format ([../schema/](../schema/), [docs/concepts/index-format.md](../../docs/concepts/index-format.md))
 needs no library beyond a JSON encoder — see
-[docs/20-tech-stack.md](../../docs/20-tech-stack.md#reference-index-generators-python-and-typescript).
+[Architecture](../../docs/concepts/architecture.md).
 
 Neither generator shares any code with `@csf/indexer` (the real
 reference indexer) or with each other. Both take the same input shape
@@ -24,7 +24,7 @@ Running both against [`documents.json`](documents.json) and comparing
 output (ignoring `buildId`/content-hash filenames, which are expected to
 differ) confirms: identical term set, identical postings for every
 term, identical doc store. This is the concrete proof behind the claim
-in [docs/02-index-format.md](../../docs/02-index-format.md#the-format-is-a-spec-not-a-library-dependency) —
+in [Index format](../../docs/concepts/index-format.md) —
 the format itself doesn't secretly assume TypeScript, Node, or this
 project's own tooling.
 
@@ -40,7 +40,7 @@ implementation.
 
 The stronger "does a real index built by an independent generator load
 and query correctly through `@csf/client`" claim
-([docs/10-testing-and-performance.md](../../docs/10-testing-and-performance.md#1-correctness-tests)'s
+([Project governance](../../docs/project/governance.md#testing)'s
 "Cross-implementation conformance" bullet, a Phase 0/7 deliverable) is
 now built:
 [`packages/client/test/cross-implementation-conformance.test.ts`](../../packages/client/test/cross-implementation-conformance.test.ts)

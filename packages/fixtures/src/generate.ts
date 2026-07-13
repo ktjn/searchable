@@ -18,18 +18,16 @@ export interface GenerateCms2kCorpusOptions {
   /**
    * Total generated (non-marketing-page) documents across every
    * requested language, roughly evenly split between them. Named after
-   * docs/14-reference-deployment-cms-2k.md's target deployment size,
+   * docs/guides/indexing.md's target deployment size,
    * but any size is valid -- pass a smaller count for fast correctness
    * tests, or up to the full ~2000 (or beyond, for Phase 7 macro-
    * benchmarks) to approximate a real CMS export's scale.
    */
   count?: number;
   /**
-   * English and German only -- the two LanguageProfiles that actually
-   * exist (docs/09-roadmap.md#status, Phase 4). Requesting "ja" or "ar"
-   * here would build pages `getLanguageProfile()` has no profile for
-   * and buildIndex() would throw; add them once Phase 4 lands those
-   * profiles, not before.
+   * English and German only because this fixture's generated vocabulary
+   * and assertions exercise the two full stemming profiles. Other shipped
+   * fallback profiles use their own focused fixtures.
    */
   languages?: FixtureLanguage[];
 }

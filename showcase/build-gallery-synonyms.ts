@@ -40,7 +40,7 @@ function renderPlaygroundIndexPage(): string {
         equivalence class; "laptop" &rarr; "notebook" is directional (try
         searching "notebook" with expansion on: it won't pull in the laptop
         page, but searching "laptop" pulls in the notebook page). See
-        <a href="../../docs/05-synonyms.html">synonyms</a> for how the
+        <a href="../../docs/guides/synonyms.html">synonyms</a> for how the
         mechanism works.</p>
         <div
           data-gallery-root

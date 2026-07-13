@@ -1,6 +1,6 @@
 /**
  * Bigram (n-gram) fallback segmentation for CJK text
- * (docs/03-tokenization-i18n.md#segmentation): "no whitespace between
+ * (docs/guides/internationalization.md#segmentation): "no whitespace between
  * words, so naive word segmentation is wrong... falling back to n-gram
  * (bigram) indexing as a robustness net for locales/environments where
  * `Intl.Segmenter` support is incomplete — bigram indexing trades some
@@ -34,7 +34,7 @@ import { segmentByScriptNgram } from "./segment-ngram.js";
 
 // Han ideographs (+ Extension A), hiragana, katakana -- deliberately
 // excludes Hangul (Korean is whitespace-delimited at the word level,
-// docs/03-tokenization-i18n.md#segmentation) and Thai/Khmer/Lao (see
+// docs/guides/internationalization.md#segmentation) and Thai/Khmer/Lao (see
 // `./segment-sea.ts`'s own trigram profile with its own script ranges).
 const CJK_CHAR = /[\u{3040}-\u{30FF}\u{3400}-\u{4DBF}\u{4E00}-\u{9FFF}]/u;
 

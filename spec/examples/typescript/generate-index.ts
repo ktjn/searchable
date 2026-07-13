@@ -2,7 +2,7 @@
 // Minimal reference generator proving the index format needs no library
 // beyond a JSON encoder — deliberately independent of this repo's own
 // @csf/* packages (no shared code with the real indexer). See
-// docs/02-index-format.md and docs/20-tech-stack.md. Usage:
+// docs/concepts/index-format.md and docs/concepts/architecture.md. Usage:
 //   node --experimental-strip-types generate-index.ts documents.json out/
 //   (or: npx tsx generate-index.ts documents.json out/)
 import { createHash } from "node:crypto";

@@ -1,6 +1,6 @@
 /**
  * Loaded on every Stage 2 feature-gallery demo page via
- * <script type="module"> (docs/19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5).
+ * <script type="module"> (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5).
  * Unlike search-widget.ts (a fixed docs-search-box UX), this widget is
  * data-driven off its mount point's attributes so one script serves
  * every gallery demo (product catalog today, synonym playground /
@@ -18,7 +18,7 @@
  *
  * When a fuzzy/synonyms toggle is on, a hit that only appears because of
  * that expansion (not found by a literal-only baseline search) is
- * labeled with a badge -- docs/19-github-pages-showcase.md's Stage 2
+ * labeled with a badge -- docs/archive/roadmaps/github-pages-showcase.md's Stage 2
  * asks for the mechanism to be "visibly labeled ... not just 'it
  * worked'", so this diffs against a second, unexpanded search rather
  * than asserting the toggle worked without evidence.
@@ -177,7 +177,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
 
   root.append(controls, body);
 
-  // field -> set of selected values, OR'd within a field (docs/06-faceted-search.md#filtering)
+  // field -> set of selected values, OR'd within a field (docs/guides/facets.md#filtering)
   const selectedFilters = new Map<string, Set<string>>();
 
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -238,7 +238,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     resultsPane.replaceChildren();
     const summary = document.createElement("p");
     summary.className = "gallery-results-summary";
-    // docs/08-modern-features.md#accessibility: this text is already
+    // docs/reference/client-api.md: this text is already
     // visible to sighted users, so making it an aria-live region
     // announces the same result-count change to screen reader users
     // too, rather than needing a separate hidden element.

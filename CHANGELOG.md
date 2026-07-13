@@ -2,23 +2,23 @@
 
 All notable changes to `@csf/client`, `@csf/indexer`, `@csf/format`, and
 `@csf/analysis` are documented here. These four packages are versioned
-in lockstep (see [docs/25-path-to-1.0.md](docs/25-path-to-1.0.md)'s
-Iteration 3) — one version number covers all of them.
+in lockstep (see [Compatibility](docs/reference/compatibility.md)) — one
+version number covers all of them.
 `@csf/fixtures` is internal test tooling and is never published, so it
 isn't covered by this changelog.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semantic Versioning](https://semver.org/), scoped to
 the "stable" API surface in
-[docs/25-path-to-1.0.md](docs/25-path-to-1.0.md#iteration-1--api-surface-audit--freeze)'s
-export table — the vector/hybrid search and binary storage tier surfaces
+[package semver policy](docs/reference/compatibility.md#package-semver) —
+the vector/hybrid search and binary storage tier surfaces
 are explicitly marked experimental and may change in a minor release.
 
 ## [1.0.0]
 
 First stable release. Everything below was already built and tested
 across many prior (unreleased, `0.0.0`) commits; this entry is the
-retroactive summary the [Release Quality Checklist](docs/22-project-governance.md#release-quality-checklist)
+retroactive summary the [release checklist](docs/project/governance.md#release-checklist)
 calls for, written once at the point the packages actually gain a real
 version number.
 
@@ -26,10 +26,10 @@ version number.
 
 - **Lexical search core**: multi-language tokenization/analysis
   (`@csf/analysis`), BM25F ranking with field/document/term boosts
-  (docs/04), prefix (`term*`) and exact `"quoted phrase"` matching.
+  (docs/guides/ranking-and-boosts.md), prefix (`term*`) and exact `"quoted phrase"` matching.
 - **Facets & curated results**: terms, range (filter + aggregate
   bucket), and hierarchical facets; a filter-only `facetValues()` call;
-  term-to-page pinning (docs/16) with priority/exclusive-mode
+  term-to-page pinning (docs/guides/pinning.md) with priority/exclusive-mode
   resolution.
 - **Relevance aids**: query-time synonym expansion (single-word,
   directional, and phrase-level `multiWord`), SymSpell fuzzy/typo
@@ -58,9 +58,9 @@ version number.
 - **Validation & compatibility**: `validateManifest()` rejects a
   structurally invalid, cross-origin-shard, or unsupported-`version`
   manifest with a named `InvalidManifestError` before any query runs
-  (docs/02#versioning--cache-strategy).
+  ([Compatibility](docs/reference/compatibility.md#index-format-compatibility)).
 - **Reference indexer CLI** (`csf-indexer`): parses rendered HTML via
-  the `csf-*` meta-tag control surface (docs/15) and emits a
+  the [`csf-*` meta-tag control surface](docs/reference/cms-meta-tags.md) and emits a
   content-hashed manifest + shards.
 - Five retroactive ADRs (`docs/adr/`) recording the transport, index
   format, ranking model, compatibility policy, and plugin/opt-in-tier
@@ -72,7 +72,7 @@ version number.
   to a 15 KB gzip budget, enforced in CI (`pnpm size`).
 - 496 Vitest tests and 40 Playwright (real-Chromium) tests cover the
   above end-to-end, not just in isolation.
-- See [docs/09-roadmap.md](docs/09-roadmap.md) for exactly what's built
+- See [docs/project/roadmap.md](docs/project/roadmap.md) for exactly what's built
   vs. still partial/design-only, and
-  [docs/25-path-to-1.0.md](docs/25-path-to-1.0.md) for what's
+  [docs/reference/compatibility.md](docs/reference/compatibility.md) for what's
   deliberately out of scope for this release.
