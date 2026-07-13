@@ -1,4 +1,12 @@
 export type {
+  DomainJudgedQuery,
+  DomainPage,
+  DomainQueryTopic,
+  DomainRelevanceSuite,
+  JudgmentReview,
+} from "./domain-schema.js";
+export { DOMAIN_QUERY_TOPICS } from "./domain-schema.js";
+export type {
   QueryReport,
   SearchForEvaluation,
   SuiteReport,
@@ -25,4 +33,5 @@ export type {
 } from "./schema.js";
 export { SUPPORTED_BASELINE_LANGUAGES } from "./schema.js";
 export { runSearchableSuite } from "./searchable-runner.js";
+export { validateDomainSuite } from "./validate-domain-suite.js";
 export { validateSuite } from "./validate-suite.js";
