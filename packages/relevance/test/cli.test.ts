@@ -35,6 +35,14 @@ describe("parseCliArgs", () => {
     });
   });
 
+  it("parses the GOV.UK domain suite", () => {
+    expect(parseCliArgs(["--suite", "govuk-learn-to-drive"])).toEqual({
+      suite: "govuk-learn-to-drive",
+      k: 5,
+      json: false,
+    });
+  });
+
   it("rejects simultaneous suite and language selectors", () => {
     expect(() =>
       parseCliArgs(["--suite", "searchable-docs", "--language", "en"]),
@@ -190,8 +198,9 @@ describe("main", () => {
   it("prepares and evaluates a selected snapshot suite", async () => {
     const target = dependencies();
     vi.mocked(target.loadDomain).mockResolvedValue(snapshotSuite);
-    await main(["--suite", "searchable-docs", "--json"], target);
+    await main(["--suite", "govuk-learn-to-drive", "--json"], target);
 
+    expect(target.loadDomain).toHaveBeenCalledWith("govuk-learn-to-drive");
     expect(target.prepareDomain).toHaveBeenCalledWith(snapshotSuite);
     expect(target.runDomain).toHaveBeenCalledWith(snapshotSuite, 5);
   });

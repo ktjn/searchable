@@ -15,7 +15,10 @@ export type {
   SnapshotDomainCorpus,
   SnapshotDomainDocument,
 } from "./domain-schema.js";
-export { DOMAIN_QUERY_TOPICS } from "./domain-schema.js";
+export {
+  DOMAIN_QUERY_TOPICS,
+  GOVUK_DOMAIN_QUERY_TOPICS,
+} from "./domain-schema.js";
 export type {
   QueryReport,
   SearchForEvaluation,

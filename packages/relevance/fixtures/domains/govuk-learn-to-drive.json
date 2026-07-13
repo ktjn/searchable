@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 2,
+  "id": "govuk-learn-to-drive",
+  "version": "1.0.0",
+  "language": "en",
+  "provenance": {
+    "publisher": "Government Digital Service and GOV.UK publishing organisations",
+    "sourceTitle": "Learn to drive a car: step by step",
+    "sourceUrl": "https://www.gov.uk/learn-to-drive-a-car",
+    "license": "Open Government Licence v3.0",
+    "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+    "retrievedAt": "2026-07-13",
+    "attribution": "Contains public sector information licensed under the Open Government Licence v3.0.",
+    "selectionNotes": "The journey hub and its 21 internal GOV.UK destinations are included. The external theory-test application and neighboring pages are excluded. Searchable text is normalized from the GOV.UK Content API."
+  },
+  "review": {
+    "status": "draft",
+    "method": "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result."
+  },
+  "corpus": {
+    "kind": "snapshot",
+    "documents": [
+      {
+        "id": "/learn-to-drive-a-car",
+        "url": "https://www.gov.uk/learn-to-drive-a-car",
+        "title": "Learn to drive a car: step by step",
+        "description": "Learn to drive a car in the UK - get a provisional licence, take driving lessons, prepare for your theory test, book your practical test",
+        "body": "Check what you need to do to learn to drive.\nCheck you're allowed to drive\nMost people can start learning to drive when they’re 17.\nCheck what age you can drive\nRequirements for driving legally\nDriving eyesight rules\nGet a provisional licence\nApply for your first provisional driving licence\n£34 to £43\nDriving lessons and practice\nYou need a provisional driving licence to take lessons or practise.\nThe Highway Code\nTaking driving lessons\nFind driving schools, lessons and instructors\nPractise vehicle safety questions\nPrepare for your theory test\nTheory test revision and practice\nTake a practice theory test\nTheory and hazard perception test app\nBook and manage your theory test\nYou need a provisional driving licence to book your theory test.\nBook your theory test\n£23\nWhat to take to your test\nChange your theory test appointment\nCheck your theory test appointment details\nCancel your theory test\nBook and manage your driving test\nYou must pass your theory test before you can book your driving test.\nBook your driving test\n£62 to £75\nWhat to take to your test\nChange your driving test appointment\nCheck your driving test appointment details\nCancel your driving test\nWhen you pass\nYou can start driving as soon as you pass your driving test.\nYou must have an insurance policy that allows you to drive without supervision.\nFind out about Pass Plus training courses",
+        "contentHash": "838b3dac8803b100ae76ec63003229efc2d6fa11567424397fc702b54aa91423"
+      },
+      {
+        "id": "/vehicles-can-drive",
+        "url": "https://www.gov.uk/vehicles-can-drive",
+        "title": "Vehicles you can drive",
+        "description": "Check if you're old enough, or have the right kind of driving licence, to drive different kinds of vehicle",
+        "body": "Check if you’re old enough, or have the right kind of driving licence, to drive different kinds of vehicle.\nChoose the kind of vehicle you want to drive from the list. If you know the vehicle category these are also shown.\nCar (category B)\nMotorbike (categories A1, A2 and A)\nMoped (category P or AM)\nMedium-sized vehicles (category C1)\nLarge vehicles and lorries (category C)\nMinibus (category D1)\nBus (category D)\nAgricultural tractor (category F)\nOther specialist vehicles (categories G, H and K)\nQuad bikes (category B1, B, AM)\nMotor tricycle (categories A and A1)\nWhat kind of vehicle do you want to drive?\nUnder 16\n16\n17 or over\nHow old are you?\nUnder 17\n17 to 18\n19 to 23\n24 or over\nHow old are you?\nYes\nNo\nDo you already have a full car driving licence?\nYes\nNo\nWas your licence issued before 1 February 2001?\nUnder 16\n16 or over\nHow old are you?\nChoose no if you only have a provisional car licence.\nYes\nNo\nDo you have a full UK car driving licence?\nBefore 1 January 1997\nOn or after 1 January 1997\nWhen did you pass your car driving test?\nUnder 18\n18 or over\nHow old are you?\nUnder 18\n18 to 20\n21 or over\nHow old are you?\nYes\nNo\nDo you have a full car driving licence?\nYes\nNo\nDo you have a full UK car driving licence\nYes\nNo\nDo you have a full UK car driving licence?\nBefore 1 January 1997\nOn or after 1 January 1997\nWhen did you pass your car driving test?\nYes\nNo\nDo you have a full car driving licence?\nUnder 24\n24 or above\nHow old are you?\nYes\nNo\nDo you have a full car driving licence?\nUnder 16\n16\n17 and over\nHow old are you?\nYes\nNo\nDo you have a full car driving licence?\n17 to 20\n21 and over\nHow old are you?\nUnder 16\n16\n17 and over\n21 and over\nHow old are you?\nChoose what the vehicle weighs without fuel or anything on it.\n425kg or under\nOver 425kg\nHow much does it weigh?\n28 miles per hour or under\nOver 28 miles per hour\nWhat's the maximum speed?\nFull car driving licence\nFull motorcycle licence\nProvisional driving licence\nWhat type of driving licence do you have?\nYes\nNo\nDo you have a full car driving licence issued before 19 January 2013?\nUnder 16\n16 or over\nHow old are you?\nYes - a full car licence\nYes - a provisional licence\nNo\nDo you have a driving licence?\nUnder 16\n16\n17 or over\nHow old are you?\nYou can apply for a provisional licence at 15 years and 9 months old. You can learn to drive a car and take a test at 17.\nIf you already have a provisional licence to ride a moped, you do not need to reapply.\nIf you have a disability or long-term health condition\nIn England and Wales\nYou can learn to drive a car and take a test when you’re 16 if you get either:\nthe ‘mobility part’ of Personal Independence Payment (PIP) at the higher rate\nthe ‘mobility component’ at the higher rate of Disability Living Allowance (DLA) for children and have applied for PIP - you must be receiving DLA before you turn 16 to be eligible\nIn Scotland\nYou can learn to drive a car and take a test when you’re 16 if you get any of the following:\nthe ‘mobility component’ of Child Disability Payment (CDP) at the higher rate - you must be receiving CDP before you turn 16 to be eligible\nthe ‘mobility component’ at the higher rate of DLA for children and are waiting to be transferred to get CDP\nthe ‘mobility part’ of Adult Disability Payment (ADP) at the enhanced rate\nthe ‘mobility part’ of PIP at the higher rate and are waiting to be transferred to get ADP\nYou’re not old enough to learn to drive a car yet\nYou can apply for a provisional licence. You can learn to drive a car and take a test at 17.\nIf you already have a provisional licence to ride a moped, you do not need to reapply.\nIf you have a disability or long-term health condition\nIn England and Wales\nYou can learn to drive a car and take a test when you’re 16 if you get any of the following:\nthe ‘mobility part’ of Personal Independence Payment (PIP) at the higher rate\nthe ‘mobility component’ at the higher rate of Disability Living Allowance (DLA) for children and have applied for PIP - you must be receiving DLA before you turn 16 to be eligible\nIn Scotland\nthe ‘mobility component’ of Child Disability Payment (CDP) at the higher rate - you must be receiving CDP before you turn 16 to be eligible\nthe ‘mobility component’ at the higher rate of DLA for children and are waiting to be transferred to get CDP\nthe ‘mobility part’ of Adult Disability Payment (ADP) at the enhanced rate\nthe ‘mobility part’ of PIP at the higher rate and are waiting to be transferred to get ADP\nYou normally need to be 17 to learn to drive a car\nApply for a provisional licence. If you already have a provisional licence to ride a moped, you do not need to reapply.\nYou must obey the rules for learning to drive a car.\nIf you take your driving test in an automatic car you can only drive automatic cars.\nYou can apply for a provisional licence and learn to drive a car\nYou can apply for a provisional licence to ride a moped when you’re 16.\nYou cannot start learning to ride a motorbike until you’re 17\nYou’ll then need to compete compulsory basic training (CBT) and take the A1 theory and practical tests within 2 years to get a full A1 licence.\nCategory A1 covers motorbikes not exceeding:\n125cc engine size\n11kW power output\n0.1kW/kg power to weight ratio\nExisting licence holders\nYou can ride the category of motorbike you’ve got on your licence.\nIf you want to ride larger motorbikes you need to follow the rules below.\nThe rules for motorbike driving licences changed in January 2013, but it does not matter when you got your licence - if you want to ride a larger motorbike, the new rules will still apply to you.\nRiding larger motorbikes\nIf you want to ride larger bikes you’ve got 2 options.\nDirect access\nYou can wait until you’re old enough to ride the kind of bike you want, then take the theory and practical tests for that type of bike. You need to be 19 to ride medium-sized motorbikes (category A2). You need to be 24 to take the large motorbike direct access test.\nProgressive access\nFirst get a full licence for a category A1 small motorbike.\nOnce you’ve had 2 years’ experience on this licence you can take the practical test for an A2 medium-sized motorbike.\nOnce you’ve had a full A2 licence for 2 years you can take the practical test for category A large motorbikes.\nMotorbike categories\nCategory A1 small motorbikes\nThese are motorbikes not exceeding:\n125cc engine size\n11kW power output\n0.1kW/kg power to weight ratio\nCategory A2 medium-sized motorbikes\nThese are motorbikes, with or without a sidecar not exceeding:\n35kW power output\n0.2kW/kg power to weight ratio\nThey also cannot be derived from a vehicle of more than double its power.\nCategory A large motorbikes\nThese are bikes unlimited in size and power, with or without a sidecar.\nYou can apply for a provisional licence for a small motorbike (category A1)\nYou’ll then need to compete compulsory basic training (CBT) and take the theory and practical tests for the kind of motorbike you want to ride within 2 years.\nExisting licence holders\nIf you’ve already got a motorbike licence you can ride the category of motorbike you’ve got on your licence.\nIf you want to ride larger motorbikes you need to follow the rules below.\nRiding larger motorbikes\nIf you want to ride larger bikes (category A) you’ve got 2 options.\nDirect access\nYou can wait until you’re 24 then take the theory and practical tests for that type of bike.\nProgressive access\nFirst get a full licence for a category A2 medium-sized motorbike.\nOnce you’ve had 2 years’ experience on this licence you can take the practical test for a category A large motorbike.\nMotorbike categories\nCategory A1 small motorbikes\nThese are motorbikes not exceeding: - 125cc engine size - 11kW power output - 0.1kW/kg power to weight ratio\nCategory A2 medium-sized motorbikes\nThese are motorbikes, with or without a sidecar not exceeding:\n35kW power output\n0.2kW/kg power to weight ratio\nCategory A2 motorbikes cannot be derived from a vehicle of more than double its power.\nCategory A large motorbikes\nThese are bikes unlimited in size and power, with or without a sidecar.\nYou can apply for a provisional licence for either a category A1 small motorbike or a category A2 medium-sized motorbike\nYou’ll then need to complete compulsory basic training (CBT) and take the theory and practical tests for the kind of motorbike you want to ride within 2 years.\nYou’ll need to pass the practical test on a bike with a power output of at least 50kW and a minimum kerb weight of 180kg to ride any size of bike.\nMotorbike categories\nCategory A1 small motorbikes\nThese are motorbikes not exceeding:\n125cc engine size\n11kW power output\n0.1kW/kg power to weight ratio\nCategory A2 medium-sized motorbikes\nThese are motorbikes, with or without a sidecar not exceeding:\n35kW power output\n0.2kW/kg power to weight ratio\nThey also cannot be derived from a vehicle of more than double its power.\nCategory A large motorbikes\nThese are bikes unlimited in size and power, with or without a sidecar. You can ride the category of motorbike you took your test on.\nYou can apply for a provisional licence then learn to ride any size of motorbike\nThis is shown as category P on your licence.\nYou will not need to take compulsory basic training (CBT) or a full practical test.\nMopeds have a maximum speed of 31mph and an engine size of up to 50cc.\nYou can already ride a moped up to a maximum speed of 50km/h\nThis covers mopeds with a maximum speed of 50km/h.\nYou’ll need to take compulsory basic training (CBT). You can then ride mopeds for as long as your car driving licence is valid.\nYou’ll already have category P moped entitlement on your licence\nYou can apply for a provisional licence at 15 years and 9 months old. You can learn to ride a moped and take a moped test at 16.\nYou must take:\ncompulsory basic training before you ride on the road\nthe moped test within 2 years\nThe same licence covers you to learn to drive a car at 17. You do not need to reapply.\nYou cannot learn to ride a moped until you’re 16\nYou can apply for a provisional licence. You can learn to ride a moped and take a moped test.\nYou must take:\ncompulsory basic training before you ride on the road\nthe moped test within 2 years\nThe same licence covers you to learn to drive a car at 17. You do not need to reapply.\nCategory AM mopeds have a maximum speed between 25km/h and 45km/h.\nCategory Q mopeds are 2 or 3-wheeled mopeds with a maximum speed of 25km/h.\nYou can apply for a provisional licence and learn to ride a moped\nCheck if you have a category D1 entitlement online.\nTowing\nYou may also have the C1+E towing entitlement, which means you can drive C1 vehicles with a trailer up to a combined weight of 8,250kg.\nThe fully loaded trailer cannot weigh more than the unladen (empty) weight of the vehicle, however.\nYou may be able to drive medium sized vehicles\nOnce you’re 18 you can apply for a provisional medium-sized vehicle entitlement (category C1) and take the C1 test.\nYou cannot drive a medium-sized vehicle until you’re 18\nYou’ll then need to take the C1 test.\nTowing\nIf you’re 21 or over and have your C1 entitlement you can then apply for a provisional C1+E towing entitlement then take the C1+E test.\nYou can apply for a provisional medium-sized vehicle entitlement\nYou’ll then have to pass the medium-sized vehicle (category C1) test.\nYou need to have a full car licence and be at least 18 before applying for a provisional entitlement to drive medium-sized vehicles\nYou cannot drive large vehicles and lorries\nYou can drive large vehicles professionally if both of the following apply:\nyou’re between 18 and 20\nyou take a CPC qualification\nYou’ll also need:\na full car licence\nto apply for provisional category C entitlement\nto take the category C test\nYou can drive large vehicles if you have a CPC qualification\nYou’ll then need to take a category C test.\nTowing\nOnce you’ve passed your test you can apply for a provisional towing entitlement (category C+E).\nYou can apply for provisional large vehicle and lorry entitlement (category C)\nYou’ll then need to apply for provisional large vehicle and lorry provisional entitlement (category C) and take the category C test.\nTowing\nOnce you’ve passed your category C test you can then apply for a provisional towing entitlement (category C+E) then take the towing test.\nYou’ll need to first get your full car driving licence\nYou’ll then have to pass the minibus (category D1 test).\nYou need to have a full car licence to apply for a provisional entitlement to drive a minibus\nYou can drive a minibus with your car licence (category B) if both of the following apply:\nthe vehicle has no more than 16 passenger seats\nyou’re not towing a trailer\nBeing paid to drive (driving for ‘hire or reward’)\nYou usually cannot drive a minibus for ‘hire or reward’ (for example, as part of your job) if you have code 101 on your driving licence. You might be able to drive for hire or reward for an organisation like a school or local authority if you meet certain conditions.\nYou might be able to get a permit if all of the following apply:\nyou’re driving for a non-profit organisation (such as a charity or school)\nyou need to charge passengers to cover the costs of driving the minibus\nyou’re not making a profit\nRead the guide on permits for more information.\nYou might be able to drive a minibus abroad. Contact the driving licence authority in the country you’re visiting.\nAdd category D1 to your licence\nFill in a D2 application form if you do not meet the conditions and want to drive a minibus.\nYou must also ask a doctor to fill in a D4 medical report.\nYou may be able to drive a minibus with your car licence (category B)\nCheck if you have a D1 entitlement on your licence online.\nYou may still be able to drive a minibus with your car licence (category B) as long as all the following apply:\nyou’re 21 or older\nyou’ve had your driving licence for at least 2 years\nthe maximum weight of the minibus is 3,500kg (or 4,250kg including specialist equipment for disabled passengers, such as a wheelchair ramp)\nyou’re not towing a trailer\nthe minibus is used by a non-commercial body for social purposes\nyou do not get paid except for expenses, for example fuel and parking costs\nyou provide the service on a voluntary basis\nBeing paid to drive (driving for ‘hire or reward’)\nYou usually cannot drive a minibus for ‘hire or reward’ (for example, as part of your job) unless you’re driving for an organisation like a local authority and you meet certain conditions.\nYou might be able to get a permit if all of the following apply:\nyou’re driving for a non-profit organisation (such as a charity or school)\nyou need to charge passengers to cover the costs of driving the minibus\nyou’re not making a profit\nRead the guide on permits for more information.\nYou might also be able to drive a minibus abroad. Contact the driving licence authority in the country you’re visiting.\nDriving a minibus professionally\nYou must take a D1 minibus test if you want to drive minibuses professionally. Apply for a provisional D1 licence by filling in a D2 application form.\nYou must also ask a doctor to fill in a D4 medical report.\nYou can drive a minibus if you have category D1 entitlement on your licence\nYou can drive a minibus in the UK with your car licence (category B) if all of the following apply:\nyou’re 21 or older\nyou’re not using the minibus ‘for hire or reward’ (you may see ‘code 101’ written on your licence)\nyou’ve had your driving licence for 2 years or more\nthe minibus is 3.5 tonnes or less (or 4.25 tonnes including specialist equipment for disabled passengers, such as a wheelchair ramp)\nyou’re not towing a trailer\nAdd category D1 to your licence\nFill in a D2 application form if you do not meet the conditions and you want to drive a minibus.\nYou must also ask a doctor to fill in a D4 medical report.\nYou may be able drive a minibus in the UK with your car licence (category B)\nCheck if you have a category D entitlement online.\nOtherwise, you’ll normally have to wait until you’re 24 to drive one.\nDriving a bus at 17\nYou can only drive a bus when you’re 17 if you’re a member of the armed forces.\nDriving a bus at 18\nYou can drive a bus when you’re 18 if you’re learning to either:\ntake your Passenger Carrying Vehicle (PCV) driving test\nget your Driver Certificate of Professional Competence (CPC)\nYou can only drive this type of vehicle if any of the following also apply:\nyou’re not carrying any passengers\nyou are carrying passengers, but driving on a regular route that’s less than 31 miles\nyou do not drive the vehicle abroad\nIf you’ve passed your PCV driving test\nYou can drive a category D1 vehicle (such as a minibus) if you’ve passed your PCV driving test and have one of the following:\na Driver CPC\na bus operator’s licence\na minibus permit\na community bus permit\nDriving a bus at 20\nYou can drive a bus in the UK when you’re 20 if you’ve passed your PCV driving test and got your Driver CPC. You cannot drive a bus abroad.\nDriving a bus at 21\nYou can drive a bus in the UK or abroad when you’re 21 if you’ve passed your PCV driving test and got your Driver CPC.\nYou can also drive a bus in the UK when you’re 21 if the bus is either:\nbeing used by the fire service or by the police to maintain public order\nbeing road tested after it’s been repaired or serviced\nYou might be able to drive a bus if you have a category D entitlement on your licence\nYou’ll need to apply for provisional bus entitlement (category D) then take a category D test.\nYou can learn to drive a bus\nYou must also normally be 24 or over.\nYou’ll need a full car driving licence before you can apply for provisional bus entitlement (category D) and take a category D test\nYou can view your driving licence entitlement online.\nYou can drive a tractor and do not need to take a test\nOnce you’re 16 you can apply for provisional tractor entitlement (category F) then take a tractor test.\nYou’ll then be able to drive smaller tractors less than 2.45m wide and tow trailers less than 2.45m wide with 2 wheels or 4 close-coupled wheels.\nAlternatively you can wait until you’re 17 then take a tractor test to drive any size of tractor.\nIf you get a full car licence you can drive a tractor without having to take a special tractor test.\nYou cannot drive a tractor until you’re 16\nYou’ll then be able to drive smaller tractors less than 2.45m wide and tow trailers less than 2.45m wide with 2 wheels or 4 close-coupled wheels.\nAlternatively you can wait until you’re 17 then take a tractor test to drive any size of tractor.\nIf you get a full car licence you can drive a tractor without having to take a special tractor test.\nYou can apply for a provisional tractor entitlement (category F) then take a test\nYou’ll then have to take a test to drive any type of tractor.\nIf you get a full car licence you can drive a tractor without having to take a special tractor test.\nYou can apply for a provisional tractor entitlement (category F)\nYou’ll also have provisional entitlement to drive some road rollers and tracked vehicles.\nRoad rollers (category G)\nYou already have provisional entitlement to drive non-steam road rollers up to 11,690kg and not made for carrying loads. You’ll have to take a category G test to get full entitlement for these vehicles.\nTracked vehicles (category H)\nYou already have provisional entitlement to drive tracked vehicles up to 3,500kg. You’ll have to take a category H test to get full entitlement for these vehicles.\nYou can already drive mowing machines or pedestrian-controlled vehicles (category K) without taking a special test\nYou’ll also have provisional entitlement to drive all kinds of road rollers and tracked vehicles. You’ll need to take tests in these vehicles to get full entitlement for them.\nYou can already drive mowing machines or pedestrian-controlled vehicles (category K) without taking a special test\nYou cannot drive category G, H or K vehicles\nYou’ll need to apply for a provisional category K licence then take a test.\nYou can drive mowing machines or pedestrian-controlled vehicles (category K)\nYou’ll then need to take the right type of test.\nRoad rollers (category G)\nYou can apply for entitlement to drive small non-steam powered road rollers up to 11,690kg. They must have metal or hard rollers and not be made for carrying loads.\nIf you get a full car licence you automatically get provisional entitlement to drive these kinds of road rollers.\nTracked vehicles (category H)\nYou can apply for provisional entitlement to drive tracked vehicles up to 3,500kg.\nIf you get a full car licence you automatically get provisional entitlement to drive these kinds of road rollers.\nYou can apply for a provisional licence to drive mowing machines or pedestrian-controlled vehicles (category K) and some road rollers (category G) and tracked vehicles (category H)\nIf you get a full car licence you can drive category K vehicles without a special test and automatically get provisional entitlement to drive all kinds of road rollers and tracked vehicles.\nYou can apply for provisional entitlement then take the right test to drive mowing machines or pedestrian-controlled vehicles (category K) and all types of road rollers and tracked vehicles\nYou must take compulsory basic training (CBT) before you ride a light quad bike.\nYou must take a moped test within 2 years.\nYou can ride a light quad bike after you've done compulsory basic training\nYou can apply for a provisional licence at 15 years and 9 months old. You can learn to ride a light quad bike and take a moped test at 16.\nYou must take:\ncompulsory basic training before you ride on the road\nthe moped test within 2 years\nThe same licence covers you to learn to drive a car at 17. You do not need to reapply.\nIf you have a physical disability\nYou can learn to ride or take a test on a quad bike if you have a physical disability. You may also be eligible for Personal Independence Payment (PIP).\nYou cannot learn to ride a light quad bike until you’re 16\nYou can apply for a provisional licence. You can learn to ride a light quad bike and take a moped test. You must take:\ncompulsory basic training before you ride on the road\nthe moped test within 2 years\nThe same licence covers you to learn to drive a car at 17. You do not need to reapply.\nIf you have a physical disability\nYou can learn to ride or take a test on a light quad bike if you have a physical disability. You may also be eligible for Personal Independence Payment (PIP).\nYou can apply for a provisional licence and learn to ride a light quad bike\nYou can already drive motor tricycles and do not need to take a special test\nGo back to the start of this tool and choose the motorbike option to see how to get these licence entitlements.\nYou’ll need a category A1 motorbike licence to ride motor tricycles up to power output 15kW, and a category A motorbike licence to ride trikes with a power output more than 15kW\nYou’ll then have to pass the minibus (category D1) test.\nYou need to have a full car licence to apply for a provisional entitlement to drive a minibus\nYou can ride a heavy quad bike\nYou can start learning and take the test at 17. You’ll need to apply for a provisional licence first.\nIf you already have a provisional licence to ride a moped and drive a car, you do not need to reapply.\nIf you have a disability or long-term health condition\nYou can learn to ride or take a test on a quad bike if you have a physical disability.\nIn England and Wales\nYou can start learning and take the test at 16 if you get either:\nthe ‘mobility part’ of Personal Independence Payment (PIP) at the higher rate\nthe ‘mobility component’ at the higher rate of Disability Living Allowance (DLA) for children and have applied for PIP - you must be receiving DLA before you turn 16 to be eligible\nIn Scotland\nYou can start learning and take the test at 16 if you get any of the following:\nthe ‘mobility component’ of Child Disability Payment (CDP) at the higher rate - you must be receiving CDP before you turn 16 to be eligible\nthe ‘mobility component’ at the higher rate of DLA for children and are waiting to be transferred to get CDP\nthe ‘mobility part’ of Adult Disability Payment (ADP) at the enhanced rate\nthe ‘mobility part’ of PIP at the higher rate and are waiting to be transferred to get ADP\nYou need a full driving licence (category B) to ride a heavy quad bike\nYou can start learning and take the test at 17.\nYou can apply for a provisional licence when you’re 15 years and 9 months old.\nIf you already have a provisional licence to ride a moped and drive a car, you do not need to reapply.\nIf you have a disability or long-term health condition\nYou can learn to ride or take a test on a quad bike if you have a physical disability.\nIn England and Wales\nYou can start learning and take the test at 16 if you get either:\nthe ‘mobility part’ of Personal Independence Payment (PIP) at the higher rate\nthe ‘mobility component’ at the higher rate of Disability Living Allowance (DLA) for children and have applied for PIP - you must be receiving DLA before you turn 16 to be eligible\nIn Scotland\nYou can start learning and take the test at 16 if you get any of the following:\nthe ‘mobility component’ of Child Disability Payment (CDP) at the higher rate - you must be receiving CDP before you turn 16 to be eligible\nthe ‘mobility component’ at the higher rate of DLA for children and are waiting to be transferred to get CDP\nthe ‘mobility part’ of Adult Disability Payment (ADP) at the enhanced rate\nthe ‘mobility part’ of PIP at the higher rate and are waiting to be transferred to get ADP\nYou need a full driving licence (category B) to ride a heavy quad bike\nYou need to have your full car driving licence (category B) before you can drive a heavy quad bike.\nYou’ll need to apply for a provisional licence and then pass a driving test.\nIf you have a physical disability\nYou can learn to ride or take a test on a quad bike if you have a physical disability.\nYou cannot ride a heavy quad bike until you have your full car driving licence\nYou must keep to the rules for learning to drive a car.\nIf you have a physical disability\nYou can learn to ride or take a test on a quad bike if you have a physical disability.\nYou cannot ride a heavy quad bike until you have your full car driving licence\nYou’ll need to take:\ncompulsory basic training before you ride on the road\na moped test within 2 years\nYou will not need to take compulsory basic training if your licence was issued before 1 February 2001.\nIf you have a physical disability\nYou can learn to ride or take a test on a quad bike if you have a physical disability.\nYou can ride a light quad bike if you take compulsory basic training and pass a moped test\nYou can ride a light quad bike\nYou’ll need to complete compulsory basic training (CBT) before you ride on the road.\nYou will not need to take compulsory basic training if your licence was issued before 1 February 2001.\nYou can ride a light quad bike if you take compulsory basic training",
+        "contentHash": "23672f58b6da339dea68e0aea4c293a82f4c4f4a26a2546918c7638ba17ff9cf"
+      },
+      {
+        "id": "/legal-obligations-drivers-riders",
+        "url": "https://www.gov.uk/legal-obligations-drivers-riders",
+        "title": "Legal obligations of drivers and riders",
+        "description": "What you need to do before you can drive a car or ride a motorcycle - driving licence, registering your vehicle, insurance, vehicle tax, MOT",
+        "body": "You must do several things before you drive a car or ride a motorcycle. These include getting a driving licence, registering, insuring and taxing your vehicle, and getting an MOT.\nThese are legal requirements and apply to everyone.\nYou may hold personal views about the law, but these do not change your legal responsibilities.\nIf you do not meet your obligations, you may be taken to court or have to pay a fine.\nThis page is also available in Welsh (Cymraeg).\nBefore you drive or ride\nYou must:\nhave the correct driving licence\nbe the minimum driving or riding age\nmeet the minimum eyesight rules\nLearner drivers\nYou must:\nbe supervised by a qualified driver (except if riding a motorcycle)\ndisplay L plates (L plates or D plates in Wales)\nVehicle requirements\nThe vehicle must:\nbe registered with DVLA\nhave up to date vehicle tax (check if your vehicle is taxed online)\nhave a current MOT certificate (if your vehicle needs one)\nbe roadworthy\nYou must also have a minimum of third party insurance that covers your use of the vehicle.\nChanges to personal or vehicle details\nYou must tell DVLA if you:\nchange your name or gender\nchange your address\nmake any alterations to your vehicle\nsell your vehicle\nhave or develop a medical condition\nYou’ll need to change your name on both your driving licence and your vehicle log book (V5C).\nDriving larger vehicles or buses\nThere are higher medical and eyesight standards for driving larger vehicles.\nYou must tell DVLA if you have any driving convictions.\nIf you’re applying for a passenger-carrying vehicle (PCV) licence then you must also tell DVLA if you have any other convictions.\nShowing your driving documents\nIf a police officer asks you to, you must be able to show:\nyour driving licence\na valid insurance certificate\na valid MOT certificate (if your vehicle needs one)\nIf you do not have the documents with you at the time, you may be asked to take them to a police station within 7 days.",
+        "contentHash": "425cef069b6381f4a88f68b907649e9b8cace3f0d4f7e2dc628dab702c317a3f"
+      },
+      {
+        "id": "/driving-eyesight-rules",
+        "url": "https://www.gov.uk/driving-eyesight-rules",
+        "title": "Driving eyesight rules",
+        "description": "The eyesight rules to pass your driving test and for whenever you're driving.",
+        "body": "You must wear glasses or contact lenses every time you drive if you need them to meet the ‘standards of vision for driving’.\nThis guide is also available in Welsh (Cymraeg).\nYou must tell DVLA if you’ve got any problem with your eyesight that affects both of your eyes, or the remaining eye if you only have one eye.\nThis does not include being short or long sighted or colour blind. You also do not need to say if you’ve had surgery to correct short sightedness and can meet the eyesight standards.\nCheck if you need to tell DVLA about your eyesight problem by searching the A to Z of medical conditions that could affect your driving.\nIf you need an eye test\nIf you report a medical condition that affects your vision, DVLA may refer you for an eyesight test with their contracted optician. You do not have to pay for the test.\nDVLA then considers all medical evidence provided as part of a driving licence application, including the result of the eyesight test.\nIf you choose to get your eyesight test from somewhere else\nYou can submit the results of an eyesight test done by another optician as long as it includes an ‘Esterman visual test’. DVLA do not guarantee they will accept an eyesight test done by other opticians.\nYou’ll need to pay for the test yourself.\nYou could be prosecuted if you drive without meeting the standards of vision for driving.\nStandards of vision for driving\nYou must be able to read a number plate from 20 meters away (about the length of 5 parked cars). You can wear your glasses or contact lenses if you use them for driving.\nYou must also meet the minimum eyesight standard for driving by having a visual acuity of at least decimal 0.5 (6/12) measured on the Snellen scale (with glasses or contact lenses, if necessary) using both eyes together or, if you have sight in one eye only, in that eye.\nYou must also have an adequate field of vision - your optician can tell you about this and do a test.\nLorry and bus drivers\nYou must have a visual acuity at least 0.8 (6/7.5) measured on the Snellen scale in your best eye and at least 0.1 (6/60) on the Snellen scale in the other eye.\nYou can reach this standard using glasses with a corrective power not more than (+) 8 dioptres, or with contact lenses. There’s no specific limit for the corrective power of contact lenses.\nYou must have an uninterrupted horizontal visual field of at least 160 degrees with an extension of at least 70 degrees left and right and 30 degrees up and down. No defects should be present within a radius of the central 30 degrees.\nYou must tell DVLA if you’ve got any problem with your eyesight that affects either eye.\nYou may still be able to renew your lorry or bus licence if you cannot meet these standards but held your licence before 1 January 1997.\nThe practical driving test eyesight test\nAt the start of your practical driving test you have to correctly read a number plate on a parked vehicle.\nIf you cannot, you’ll fail your driving test and the test will not continue. DVLA will be told and your licence will be revoked.\nWhen you reapply for your driving licence, DVLA will ask you to have an eyesight test with DVSA. This will be at a driving test centre. If you’re successful, you’ll still have to pass the DVSA standard eyesight test at your next practical driving test.",
+        "contentHash": "5bce94484bc60bedd805051261c241b88977af1bc0fcb80cb738a3d1c715e984"
+      },
+      {
+        "id": "/apply-first-provisional-driving-licence",
+        "url": "https://www.gov.uk/apply-first-provisional-driving-licence",
+        "title": "Apply for your first provisional driving licence",
+        "description": "Apply for your first provisional driving licence from DVLA online to drive a car, motorbike or moped.",
+        "body": "Get your first provisional driving licence for a car, motorbike, moped or other vehicle from DVLA online. To apply you must:\nbe at least 15 years and 9 months old\nbe able to read a number plate from 20 metres away\nhave been given permission to live in Great Britain (England, Scotland and Wales) for at least 185 days\nIt costs £34 when you apply online.\nIf you applied for a provisional licence before 1 March 1973 you’ll need to use this service to get a new licence.\nThis service is also available in Welsh (Cymraeg).\nSign in to apply\nYou’ll need to sign in to use this service. If you do not already have sign in details, you’ll be able to create them.\nYou’ll be told when you sign in if you need to prove your identity. This is to keep your details safe and usually involves using photo ID like a passport.\nStart now\nAfter you apply\nDVLA will send you a confirmation email once you’ve applied.\nYour licence should arrive within one week if you apply online. It may take longer if DVLA need to make additional checks.\nHow much it costs\nIt costs £34 to apply online. You can pay by MasterCard, Visa, Electron or Delta debit or credit card.\nWhen you can drive with a provisional licence\nThere are different rules depending on your age and the type of vehicle. Check what vehicles you can drive and when before you start to learn.\nIf you already have a provisional licence\nIf you already have a provisional licence you can:\nrenew your provisional licence\nreplace your provisional licence if it’s lost, stolen, damaged or destroyed\nreapply for your provisional licence if you’ve been disqualified\nchange the address on your provisional licence\nApply by post\nComplete form D1 ‘Application for a driving licence’, available from most Post Offices.\nSend your application to the address on the form, along with a cheque or postal order for £43.",
+        "contentHash": "828c0cafd3860fdf25b197896c2043144201fd98cf3e3b38867193bdf45c899d"
+      },
+      {
+        "id": "/guidance/the-highway-code",
+        "url": "https://www.gov.uk/guidance/the-highway-code",
+        "title": "The Highway Code",
+        "description": "The Highway Code is essential reading for all road users, including pedestrians, mobility scooter users, cyclists, horse riders, drivers and motorcyclists.",
+        "body": "Applies to England, Scotland and Wales\nGuidance for Northern Ireland\nYou can:\norder a copy of The Highway Code book online\nbuy a copy from most high street bookshops\nbuy the app for Apple phones and tablets\nbuy the app for Android phones and tablets\nTo stay up to date:\nsign up to get email alerts when the rules change\nfollow The Highway Code on Facebook\nThis guide is also available in Welsh (Cymraeg).\nContents\nIntroduction\nWho The Highway Code is for, how it's worded, the consequences of not following the rules, self-driving vehicles, and the hierarchy of road users (Rules H1 to H3).\nRules for pedestrians (1 to 35)\nRules for pedestrians, including general guidance, crossing the road, crossings, and situations needing extra care.\nRules for users of powered wheelchairs and mobility scooters (36 to 46)\nRules for powered wheelchairs and mobility scooters, including on pavements and on the road.\nRules about animals (47 to 58)\nRules about animals, including horse-drawn vehicles, horse riders and other animals.\nRules for cyclists (59 to 82)\nRules for cyclists, including an overview, road junctions, roundabouts and crossing the road.\nRules for motorcyclists (83 to 88)\nRules for motorcyclists, including helmets, carrying passengers, daylight riding and riding in the dark.\nRules for drivers and motorcyclists (89 to 102)\nRules for drivers and motorcyclists, including vehicle condition, fitness to drive, alcohol and drugs, what to do before setting off, vehicle towing and loading, and seat belts and child restraints.\nGeneral rules, techniques and advice for all drivers and riders (103 to 158)\nSignals, stopping procedures, lighting, control of the vehicle, speed limits, stopping distances, lines and lane markings and multi-lane carriageways, smoking, mobile phones and sat nav.\nUsing the road (159 to 203)\nRules for using the road, including general rules, overtaking, road junctions, roundabouts, pedestrian crossings and reversing.\nRoad users requiring extra care (204 to 225)\nRules for road users requiring extra care, including pedestrians, motorcyclists and cyclists, other road users and other vehicles.\nDriving in adverse weather conditions (226 to 237)\nRules for driving in adverse weather conditions, including wet weather, icy and snowy weather, windy weather, fog and hot weather.\nWaiting and parking (238 to 252)\nRules for waiting and parking, including rules on parking at night and decriminalised parking enforcement.\nMotorways (253 to 274)\nRules for motorways, including rules for signals, joining the motorway, driving on the motorway, lane discipline, overtaking, stopping and leaving the motorway. A number of the rules for motorways also apply to other high-speed roads.\nBreakdowns and incidents (275 to 287)\nRules for breakdowns and incidents, including rules for motorways, obstructions, incidents, incidents involving dangerous goods and documents.\nRoad works, level crossings and tramways (288 to 307)\nRules for road works (including on motorways and other high-speed roads), level crossings and tramways.\nLight signals controlling traffic\nLight signals used to control traffic, including traffic light signals, flashing red lights, motorway signals and lane control signals.\nSignals to other road users\nSignals used to other road users, including direction indicator signals, brake light signals, reversing light signals and arm signals.\nSignals by authorised persons\nSignals used by authorised persons, including police officers, arm signals to persons controlling traffic, Driver and Vehicle Standards Agency officers and traffic officers and school crossing patrols.\nTraffic signs\nTraffic signs used, including signs giving orders, warning signs, direction signs, information signs and road works signs.\nRoad markings\nRoad markings used, including those across the carriageway, along the carriageway, along the edge of the carriageway, on the kerb or at the edge of the carriageway and other road markings.\nVehicle markings\nVehicle markings used, including large goods vehicle rear markings, hazard warning plates, projection markers and other markings.\nAnnex 1. You and your bicycle\nInformation and rules about you and your bicycle.\nAnnex 2. Motorcycle licence requirements\nInformation and rules about motorcycle licence requirements.\nAnnex 3. Motor vehicle documentation and learner driver requirements\nInformation and rules about motor vehicle documentation and learner driver requirements.\nAnnex 4. The road user and the law\nInformation about the road user and the law, including acts and regulations.\nAnnex 5. Penalties\nInformation and rules about penalties, including points and disqualification, a penalty table, new drivers and other consequences of offending.\nAnnex 6. Vehicle maintenance, safety and security\nInformation and rules about vehicle maintenance, safety and security.\nAnnex 7. First aid on the road\nInformation about first aid on the road, including dealing with danger, getting help, helping those involved, and providing emergency care.\nAnnex 8. Safety code for new drivers\nInformation about the safety code for new drivers, including the New Drivers Act and further training.\nOther information\nMetric conversions, useful websites, further reading, the blue badge scheme and code of practice horse-drawn vehicles.\nIndex\nAn A to Z index of topics covered by The Highway Code.",
+        "contentHash": "85da67d5641fedf1842e1e35c775d5072f6a4b36528bde8d1e6b837d36f2e49b"
+      },
+      {
+        "id": "/driving-lessons-learning-to-drive",
+        "url": "https://www.gov.uk/driving-lessons-learning-to-drive",
+        "title": "Driving lessons and learning to drive",
+        "description": "Who can teach you to drive, practising with friends and family, driving lessons, insurance, using L and P plates.",
+        "body": "You can apply for a provisional driving licence when you’re 15 years and 9 months old.\nYou can usually start driving a car when you’re 17.\nThe rules are different if you have a disability or long-term health condition.\nCheck which vehicles you can learn to drive.\nRules for learning to drive\nYou must have a provisional driving licence for Great Britain or Northern Ireland when you’re learning to drive or ride.\nYou must be supervised when you’re learning to drive a car. This can be by a driving instructor or someone else who meets the rules, for example family or friends.\nThe car you learn in must display ‘L’ plates.\nYou can drive at any time, day and night.\nYou can only drive on motorways if all of the following apply:\nyou’re driving in England, Scotland or Wales\nyou’re with an approved driving instructor\nthe car is fitted with dual controls\nSpeed limits\nIn England, Scotland and Wales the speed limits when driving with ‘L’ plates are the same as when you’ve passed your test.\nIn Northern Ireland the speed limit is 45 miles per hour when you’re learning to drive a car.",
+        "contentHash": "e88821c192681baec13f14b242e40ce84f1b4d3a80875d86d153553f7f828264"
+      },
+      {
+        "id": "/find-driving-schools-and-lessons",
+        "url": "https://www.gov.uk/find-driving-schools-and-lessons",
+        "title": "Find driving schools, lessons and instructors",
+        "description": "Find driving instructors near you who are approved by the Driver and Vehicle Standards Agency (DVSA)",
+        "body": "Find driving instructors who are approved by the Driver and Vehicle Standards Agency (DVSA) and check their grade (if they declare it).\nApproved driving instructors (ADIs) choose whether or not to be on this service, so not all ADIs will be listed.\nCheck a driving instructor who is not listed\nContact DVSA to check if the driving instructor is qualified.\nYou need their name and ADI number (if you have it).\nDVSA driving test enquiries\ncustomerservices@dvsa.gov.uk\nTelephone: 0300 200 1122\nWhatsApp (message only, no calls): +44 (0)1908 787001\nWebchat\nMonday to Friday, 8am to 5pm\nFind out about call charges",
+        "contentHash": "37e6284ae834883342a641984d8fac6b1eefcb7fe3c97873df2dd0e8eac59601"
+      },
+      {
+        "id": "/government/publications/car-show-me-tell-me-vehicle-safety-questions",
+        "url": "https://www.gov.uk/government/publications/car-show-me-tell-me-vehicle-safety-questions",
+        "title": "'Show me, tell me' questions: car driving test",
+        "description": "The 'show me, tell me' vehicle safety questions that driving examiners can ask in car driving tests.",
+        "body": "You’ll be asked 2 vehicle safety questions during your car driving test. The questions will be taken from this list.",
+        "contentHash": "bf5c374f354c0afe90cf500ef023df1d4d28af103c7139ffe178637b61772aa0"
+      },
+      {
+        "id": "/theory-test/revision-and-practice",
+        "url": "https://www.gov.uk/theory-test/revision-and-practice",
+        "title": "Theory test revision and practice",
+        "description": "When to book your car theory test, what to take with you, what happens at the test centre, how the multiple-choice questions and hazard perception test work, and the pass mark.",
+        "body": "You can use books and software to revise for the theory test and take practice tests.\nMultiple-choice questions\nThe multiple-choice questions in the theory test are based on 3 books:\nThe Highway Code\nKnow your traffic signs\nDriving - the essential skills\nStudy these to learn the rules and skills you’ll be tested on.\nYou can buy them from most high street and online book shops.\nYou can also study using:\nthe Official DVSA Theory Test kit online for your PC or Mac (this also includes help for the hazard perception part of the test)\nthe Official DVSA Theory Test kit app for Apple phones and tablets\nthe Official DVSA Theory Test kit app for Android phones and tablets\nthe Official DVSA Theory Test for Car drivers book\ntraffic sign flashcards (128 flash cards to help you learn traffic signs)\nTake a free practice test\nTake a practice theory test to check how much you’ve learnt.\nThe questions are not used in the real test, but they are based on the same topics as the test.\nHazard perception test\nTo prepare for this test you can use the official guide to hazard perception.\nYou can buy:\nthe Official DVSA Theory Test kit online for your PC or Mac (this also includes help for the multiple-choice questions part of the test)\nthe Official DVSA Hazard Perception app for Apple phones and tablets\nthe Official DVSA Hazard Perception app for Android phones and tablets\nTranslations into foreign languages\nSome official books and software are translated into other languages by approved organisations.\nHowever, you can only take the test in English, Welsh or British Sign Language.",
+        "contentHash": "3668f45ce5c722b39e5073e6d46dbc589b5ead9bfda05e8cb0fabe8ff2585ada"
+      },
+      {
+        "id": "/take-practice-theory-test",
+        "url": "https://www.gov.uk/take-practice-theory-test",
+        "title": "Take a practice theory test",
+        "description": "Take free official practice theory tests from the Driver and Vehicle Standards Agency (DVSA) for cars, motorcycles, lorries and buses",
+        "body": "You can practise both parts of the theory test online.\nMultiple-choice questions\nYou can:\ntake free mock tests for cars\ntake free mock tests for motorcycles\ntake free mock tests for lorries\ntake free mock tests for buses and coaches\nThe practice questions are not used in the real test, but they’re based on the same topics as the test.\nHazard perception test\nTake a practice hazard perception test. You can practise with 3 test clips for free.\nThese clips are not used in the real test, but they show you how the test works.\nOther ways to practise\nThere are apps, software and books available from the Driver and Vehicle Standards Agency (DVSA) to help you practise both parts of the test. You can:\nbuy practice materials for cars\nbuy practice materials for motorcycles\nbuy practice materials for lorries\nbuy practice materials for buses and coaches\nYou can also buy them from most online and high street book shops.",
+        "contentHash": "8ceaae09bd555f6056b87b3b9658322e4fb40b0c6d6bcd7b89a982ce3cbe5827"
+      },
+      {
+        "id": "/book-theory-test",
+        "url": "https://www.gov.uk/book-theory-test",
+        "title": "Book your theory test",
+        "description": "Book your official DVSA car or motorcycle theory test for £23, or other lorry, bus and Driver CPC theory tests.",
+        "body": "Book your driving theory test for:\ncars\nmotorcycles\nlorries, buses and coaches, including the Driver Certificate of Professional Competence (CPC) part 1a and 1b (theory) and part 2 (case studies)\nThis page is also available in Welsh (Cymraeg).\nBook a test online\nYou need your:\nUK driving licence number\nemail address\ncredit or debit card\nYou must have lived in England, Wales or Scotland for at least 185 days in the last 12 months before the day you take your theory or driving test.\nCar and motorcycle tests cost £23.\nLorry and bus tests cost:\npart 1a (multiple-choice questions) - £26\npart 1b (hazard perception) - £11\npart 2 (case studies) - £23\nWhen you book your test, say if you have a reading difficulty, health condition or disability.\nWhen you do not need a theory test\nYou do not need to take a theory test before you book a driving test to upgrade:\nan automatic car licence to a manual car licence\nfrom category A1 (small motorcycle) to category A2 (medium motorcycle) if you’ve had the licence for at least 2 years\nfrom category C1 (medium vehicles) to category C (large vehicles) unless you got your C1 entitlement from passing a car driving test\nfrom category D1 (minibus) to category D (bus)\nany licence to be able to tow a trailer\nYou do not need to take a theory test before you book a:\ntaxi driving test\ntractor driving test\nHelp with your booking\nContact the Driver and Vehicle Standards Agency (DVSA) to get help booking your theory test.\nDVSA theory test enquiries\ntheorycustomerservices@dvsa.gov.uk\nTelephone: 0300 200 1122\nMonday to Friday, 8am to 5pm\nFind out about call charges\nThere’s a different service to book your theory test in Northern Ireland.",
+        "contentHash": "6daf37195edbf0d52f5e58aedad73c386d7e62924de62cb1db1eafd27aec8d6a"
+      },
+      {
+        "id": "/theory-test/what-to-take",
+        "url": "https://www.gov.uk/theory-test/what-to-take",
+        "title": "What to take to your test",
+        "description": "When to book your car theory test, what to take with you, what happens at the test centre, how the multiple-choice questions and hazard perception test work, and the pass mark.",
+        "body": "You must take your UK photocard driving licence to your test.\nIf you have a licence from Northern Ireland, bring the photocard and paper counterpart licence.\nYour test will be cancelled and you will not get your money back if you do not take the right things with you.\nLost your licence\nYou need to apply for a replacement driving licence if you lose yours. This could take up to 15 days to arrive.\nRearrange your test if you do not get the new licence in enough time.\nIf you have a paper licence\nBring a valid passport as well as your paper licence.\nIf you do not have a passport, you need to get a photocard licence.\nIf you changed your name after booking your test\nYou’ll need to bring proof of your name change to your test — for example, a marriage certificate or deed poll.\nIf you do not have proof, you must cancel your theory test and book a new theory test in your new name using your new driving licence number.",
+        "contentHash": "9d6acc73f11320ecb23851361aedd34cac015fa34be3cb6a81959b6efbc729f4"
+      },
+      {
+        "id": "/change-theory-test",
+        "url": "https://www.gov.uk/change-theory-test",
+        "title": "Change your theory test appointment",
+        "description": "Find an earlier driving theory test, move it to a later date, or change the test centre you take it at.",
+        "body": "Use this service to:\nfind an earlier driving theory test\nmove your theory test to a later date\nchange which test centre you take your test at\nYou must give at least 3 full working days’ notice to change your test or you’ll have to pay again. Monday to Saturday count as working days but Sundays and public holidays do not.\nIf you change your test at short notice\nIf you change your test within 3 full working days of the test date, you’ll have to pay again.\nGet a refund after you’ve changed your test\nYou can get a refund if you have:\nan illness or injury that means you cannot take your test\nsuffered a bereavement\nto take an exam at a school or college\nhad your driving licence stolen\nEmail the Driver and Vehicles Standard Agency (DVSA) with the subject title ‘Unavoidable short notice cancellation’.\nAttach proof of the reason you’ve had to change your appointment. This can be:\na letter from your school or college confirming you have an exam at the same time as your appointment\na crime number and contact name of the police officer if you’ve had your driving licence stolen\na fit note or medical certificate from a healthcare professional such as your GP\nIf you were sick for 7 days or fewer, you might have to pay for a private medical certificate.\nAs well as attaching the proof, you’ll need to include your full name (as it appears on your driving licence), address, postcode and date of birth in your email.\nYou must also include either:\nyour driving licence number\nyour booking reference number\nDVSA customer services\ntheorycustomerservices@dvsa.gov.uk\nDVSA will tell you when you’ve been refunded the fee.\nChange your appointment online\nYou’ll need your UK driving licence number.",
+        "contentHash": "3e8bbdea8df244464282511e4aac9815fc27af2acfaefa703c00d262966a47c5"
+      },
+      {
+        "id": "/check-theory-test",
+        "url": "https://www.gov.uk/check-theory-test",
+        "title": "Check your theory test appointment details",
+        "description": "Check the date and time of your theory test appointment if you've lost or deleted your theory test confirmation email",
+        "body": "Use this service to check your driving theory test appointment details if you’ve lost or deleted your email confirmation. You can check the:\ndate and time of your theory test\naddress of the theory test centre\nYou’ll need your UK driving licence number.\nYou do not need to take your booking confirmation to your theory test.",
+        "contentHash": "9fe238bd5c5f240cf93c9d740c4781b6ea4cff5d6f8654e33b7a80c9d427d3cc"
+      },
+      {
+        "id": "/cancel-theory-test",
+        "url": "https://www.gov.uk/cancel-theory-test",
+        "title": "Cancel your theory test",
+        "description": "Cancel your driving theory test if you no longer need your appointment - give 3 working days' notice to get a refund.",
+        "body": "Cancel your driving theory test if you no longer need your appointment.\nYou must give at least 3 full working days’ notice to change your test or you’ll have to pay again. Monday to Saturday count as working days but Sundays and public holidays do not.\nIf you cancel your test at short notice\nIf you cancel within 3 full working days of the test date, you’ll lose the original fee.\nGet a refund after you’ve cancelled your test\nYou can get a refund if you have:\nan illness or injury that means you cannot take your test\nsuffered a bereavement\nto take an exam at a school or college\nhad your driving licence stolen\nEmail the Driver and Vehicles Standard Agency (DVSA) with the subject title ‘Unavoidable short notice cancellation’.\nAttach proof of the reason you’ve had to change your appointment. This can be:\na letter from your school or college confirming you have an exam at the same time as your appointment\na crime number and contact name of the police officer if you’ve had your driving licence stolen\na fit note or medical certificate from a healthcare professional such as your GP\nIf you were sick for 7 days or fewer, you might have to pay for a private medical certificate.\nAs well as attaching the proof, you’ll need to include your full name (as it appears on your driving licence), address, postcode and date of birth in your email.\nYou must also include either:\nyour driving licence number\nyour booking reference number\nDVSA customer services\ntheorycustomerservices@dvsa.gov.uk\nDVSA will tell you when you’ve been refunded the fee.\nCancel your test online\nYou’ll need your UK driving licence number.",
+        "contentHash": "ab4a44757451c9c1b78e905087b2ccf5ba2b1fbc774a0711fbbea6f2b8916b83"
+      },
+      {
+        "id": "/book-driving-test",
+        "url": "https://www.gov.uk/book-driving-test",
+        "title": "Book your driving test",
+        "description": "Book your official DVSA practical driving test for cars from £62, or other types of practical driving tests, including motorcycle and driving instructor tests.",
+        "body": "Book your practical driving test for:\ncars\nmotorcycles\nlorries, buses and coaches\napproved driving instructor (ADI) part 2 and 3 tests\nThis page is also available in Welsh (Cymraeg).\nWho can book a car driving test\nYou must book your driving test yourself. If you need to change, swap or cancel it, you’ll also need to do this yourself.\nYour driving instructor is not allowed to do this for you.\nIt’s against the law to book a car driving test for someone else.\nBook a test online\nYou’ll be put in a queue when you start booking your driving test - you’ll be told how long you’ll need to wait once you begin. This is faster than booking by phone because the phone lines are very busy at the moment.\nYou can book a test up to 24 weeks in the future. There is no waiting list or cancellation list.\nThis service is available from 6am to 11:40pm.\nYou need your:\nUK driving licence number\ncredit or debit card\ndriving instructor’s personal reference number if you want to check they’re available\nYou can check the cost of your driving test before you start.\nYou must have lived in England, Wales or Scotland for at least 185 days in the last 12 months before the day you take your test.\nThere’s a different service to book your driving test in Northern Ireland.\nYou can change when and where you’ll take your test after you’ve booked. You can also check for earlier appointments. These are sometimes called ‘cancellation appointments’.\nIf you’re booking a car driving test\nBook at the test centre you intend to use. If you need to change where you take your test, you’ll only be able to move it to a nearby centre.\nBook a test to upgrade your licence\nYou must call the Driver and Vehicle Standards Agency (DVSA) if you need an ‘upgrade’ test, such as automatic to manual car, or medium-sized lorry to a large lorry.\nDVSA driving test booking support\nTelephone: 0300 200 1122\nMonday to Friday, 8am to 5pm\nFind out about call charges\nWhen you do not need a theory test\nYou must usually have passed your theory test before booking.\nYou do not need a theory test to book a:\ntractor test\ntest to upgrade from automatic to manual\ntest to progress through the motorcycle categories (progressive access)\nlorry and trailer test, when you’ve got a lorry licence\nbus and trailer test, when you’ve got a bus licence\nlorry test, when you’ve got a medium lorry licence\nbus test, when you’ve got a minibus licence\nHelp with your booking\nHelp accessing the online service\nFind out what to do if you’re having problems accessing the online service, for example:\nyou get an ‘error 15’ message after selecting ‘Start now’\nthe service does not load after selecting ‘Start now’\nyou get a ‘search limit reached’ message\nGet help booking your test\nContact DVSA to get help booking your test.\nDVSA driving test booking support\ncustomerservices@dvsa.gov.uk\nTelephone: 0300 200 1122\nMonday to Friday, 8am to 5pm\nFind out about call charges",
+        "contentHash": "fbd544d41f0a05be09e0b257f9c17b9fb469f279bd815ffbc00c279a9eab7e7c"
+      },
+      {
+        "id": "/driving-test/what-to-take",
+        "url": "https://www.gov.uk/driving-test/what-to-take",
+        "title": "What to take to your test",
+        "description": "When to book your car driving test, what to take with you, what happens during the test, major and minor faults, and what happens if your test is cancelled.",
+        "body": "You must take:\nyour UK driving licence\nyour theory test pass certificate, if you have it\na car - most people use their driving instructor’s, but you can use your own car if it meets the rules\nYour test will be cancelled and you will not get your money back if you do not take the right things with you.\nYour driving licence\nYou need to apply for a replacement driving licence if you lose yours before your test. This could take up to 15 days to arrive.\nRearrange your test if you do not get the new licence in enough time.\nPhoto on your driving licence\nYou must be recognisable from the photo on your driving licence.\nYou must change the photo on your driving licence if you cannot be recognised from your photo, for example, if you’ve had plastic surgery.\nYou do not need to change the photo if you’ve changed your appearance slightly, for example, if you’ve dyed your hair or grown a beard.\nIf you do not have a photocard licence\nBring a valid passport and your paper licence.\nIf you have a licence from Northern Ireland\nBring the Northern Ireland photocard and paper counterpart.\nIf you’ve lost your theory test certificate\nYou do not need to get a replacement theory test certificate. Your driving examiner will check that you’ve passed your theory test before your driving test starts.",
+        "contentHash": "f214e90703fdc2dffaec57ef9fd16d7ba3b7824bb4905b9054451ce913561d78"
+      },
+      {
+        "id": "/change-driving-test",
+        "url": "https://www.gov.uk/change-driving-test",
+        "title": "Change your driving test appointment",
+        "description": "Find an earlier practical driving test, move it to a later date, or change the test centre you take it at.",
+        "body": "You can change your driving test appointment:\n2 times if you’re changing a car driving test\n6 times if you’re changing any other type of test\nWhat you can change\nWhen you change your appointment, you can:\nfind an earlier driving test (sometimes called a ‘cancellation appointment’)\nmove your driving test to a later date\nchange which test centre you take your test at\nYou can change more than one thing at the same time.\nExample\nIf you change your test from Northampton on 4 June to Kettering on 12 May, this counts as one change.\nYou can change your test up to the time your test starts. You must give notice to change or cancel a test, or you’ll have to pay again.\nWhen you’ll have to pay again\nYou’ll have to pay again if you give less than:\n10 full working days’ notice for car driving tests\n3 full working days’ notice for all other tests\nMonday to Saturday count as working days but Sundays and public holidays do not.\nIf you cannot change your driving test appointment, cancel your test.\nWhat you need\nTo change your test you need your:\nUK driving licence number\ndriving test reference number or theory test pass certificate number (from the letter you got when you passed your theory test)\nIf you’ve lost your letter, you can find your theory test pass certificate number.\nWho can change a car driving test\nYou must make any changes to your appointment yourself.\nYour driving instructor is not allowed to change it for you.\nYou’re not allowed to change, swap or cancel a car driving test for someone else. It’s also against the law to book a car driving test for someone else.\nChange your appointment online\nThis service is available from 6am to 11:40pm. You can find and book appointments up to 24 weeks in advance.\nThere’s a different service to change your driving test in Northern Ireland.",
+        "contentHash": "52abdf6dc4732e0021af2e0ba6e5ef2713ff2f57693c3cbc9af1a68eb4adaeb7"
+      },
+      {
+        "id": "/check-driving-test",
+        "url": "https://www.gov.uk/check-driving-test",
+        "title": "Check your driving test appointment details",
+        "description": "Check the date and time of your driving test appointment if you've lost or deleted your driving test confirmation email.",
+        "body": "Use this service to check your driving test appointment details. You can check the:\ndate and time of your driving test\naddress of the driving test centre\nemail address and phone number on your booking\nYou must have your own contact details on your booking. You cannot use someone else’s details, for example your driving instructor’s. You can change the email address and phone number on your booking by viewing the booking and selecting ‘change’ next to ‘candidate details’.\nYou do not need to take your booking confirmation to your driving test.\nThis service is available from 6am to 11:40pm.\nYou need your:\nUK driving licence number\ntheory test pass certificate number (from the letter you got when you passed your theory test) or your driving test reference number if you have it\nYou can find your theory test pass certificate number if you’ve lost your letter.\nHelp with your booking\nHelp accessing the online service\nFind out what to do if you’re having problems accessing the online service, for example:\nyou get an ‘error 15’ message after selecting ‘Start now’\nthe service does not load after selecting ‘Start now’\nyou get a ‘search limit reached’ message\nGet help checking your appointment details\nContact the Driver and Vehicle Standards Agency (DVSA) to get help checking your appointment details.\nDVSA driving test booking support\ncustomerservices@dvsa.gov.uk\nTelephone: 0300 200 1122\nMonday to Friday, 8am to 5pm\nFind out about call charges",
+        "contentHash": "076fb35ddaf411ba25f24ec677a512a5c3b45fead65dfdb4d447c8c2dfe19c82"
+      },
+      {
+        "id": "/cancel-driving-test",
+        "url": "https://www.gov.uk/cancel-driving-test",
+        "title": "Cancel your driving test",
+        "description": "Cancel your practical driving or riding test if you no longer need your appointment - give 3 working days' notice to get a refund.",
+        "body": "Cancel your driving or riding test if you no longer need your appointment.\nYou can cancel your test up to the time your test starts. You must give notice to change or cancel a test, or you’ll have to pay again.\nWhen you will not get a refund\nYou will not automatically get a refund if you give less than:\n10 full working days’ notice for car driving tests\n3 full working days’ notice for all other tests\nMonday to Saturday count as working days but Sundays and public holidays do not.\nWhat you need\nTo cancel your test you need:\nyour UK driving licence number\nyour driving test reference number or theory test pass certificate number (from the letter you got when you passed your theory test)\nIf you’ve lost your letter, you can find your theory test pass certificate number.\nWho can cancel your car driving test\nYou must cancel your driving test yourself.\nYour driving instructor is not allowed to cancel it for you.\nYou’re not allowed to cancel, change or swap a car driving test for someone else. It’s also against the law to book a car driving test for someone else.\nCancel your appointment online\nThis service is available from 6am to 11:40pm.\nFind out what to do if you’re having problems accessing the online service.\nTo get a refund, you must give at least:\n10 full working days’ notice for car driving tests\n3 full working days’ notice for all other tests\nMonday to Saturday count as working days but Sundays and public holidays do not.\nIf you cancel your test at short notice\nIf you cancel your test at short notice, you can get a refund if you have:\nan illness or injury that means you cannot take your test\nsuffered a bereavement\nto take an exam at a school or college\nhad your driving licence stolen\nEmail the Driver and Vehicles Standard Agency (DVSA) with the subject title ‘Unavoidable short notice cancellation’.\nAttach proof of the reason you’ve had to change or cancel your appointment. This can be:\na letter from your school or college confirming you have an exam at the same time as your appointment\na crime number and contact name of the police officer if you’ve had your driving licence stolen\na fit note or medical certificate from a healthcare professional such as your GP\nIf you were sick for 7 days or fewer, you might have to pay for a private medical certificate.\nAs well as attaching the proof, you’ll need to include your full name (as it appears on your driving licence), address, postcode and date of birth in your email.\nYou must also include at least 2 of these in your email:\ndriving licence number\ntheory test pass certificate number\ndriving test booking reference\nDVSA customer services\ncustomerservices@dvsa.gov.uk\nDVSA will tell you when you’ve been refunded the fee and can help you find a new test appointment.\nGet help cancelling your driving test appointment\nYou must cancel your driving test appointment online. You can contact DVSA to get help by phone or email.\nYou’ll need to give DVSA at least 2 of the following:\ndriving licence number\ntheory test pass certificate number\ndriving test booking reference\nDVSA driving test booking support\ncustomerservices@dvsa.gov.uk\nTelephone: 0300 200 1122\nMonday to Friday, 8am to 5pm\nFind out about call charges",
+        "contentHash": "7bb1d3cd340951d13aa01b9fcd7f8d47fac33cdf066185538e93e52ca2fe65db"
+      },
+      {
+        "id": "/pass-plus",
+        "url": "https://www.gov.uk/pass-plus",
+        "title": "Pass Plus",
+        "description": "Pass Plus is a practical course to improve your driving skills - once completed you may get a discount on your car insurance",
+        "body": "Pass Plus is a practical training course that takes at least 6 hours and is for drivers to improve their skills and drive more safely.\nIt can be taken at any time although it should be most useful to new drivers in the year after passing their test.\nYou’ll need a Pass Plus registered approved driving instructor (ADI) to teach you.\nIt may help you get a car insurance discount if you successfully complete the course.",
+        "contentHash": "1783fafec4225382c3aee0e4cce8e80ba68a2782bba05cd6e47b70b11d5f4418"
+      }
+    ]
+  },
+  "queries": [
+    {
+      "id": "minimum-driving-age",
+      "text": "minimum age learn drive",
+      "topic": "eligibility-eyesight",
+      "judgments": {
+        "/vehicles-can-drive": 3,
+        "/learn-to-drive-a-car": 2
+      },
+      "rationales": {
+        "/vehicles-can-drive": "Gives vehicle-specific minimum ages and licence eligibility.",
+        "/learn-to-drive-a-car": "States the usual starting age and links to the detailed check."
+      }
+    },
+    {
+      "id": "eyesight-number-plate",
+      "text": "eyesight test number plate",
+      "topic": "eligibility-eyesight",
+      "judgments": {
+        "/driving-eyesight-rules": 3,
+        "/learn-to-drive-a-car": 1
+      },
+      "rationales": {
+        "/driving-eyesight-rules": "States the number-plate reading and visual-acuity rules.",
+        "/learn-to-drive-a-car": "Links eyesight checks from the eligibility step."
+      }
+    },
+    {
+      "id": "legal-driving-requirements",
+      "text": "what do I need before driving legally",
+      "topic": "eligibility-eyesight",
+      "judgments": {
+        "/legal-obligations-drivers-riders": 3,
+        "/learn-to-drive-a-car": 2
+      },
+      "rationales": {
+        "/legal-obligations-drivers-riders": "Lists licence, insurance, tax, registration, and MOT obligations.",
+        "/learn-to-drive-a-car": "Orders the legal eligibility steps for a learner."
+      }
+    },
+    {
+      "id": "first-provisional-licence",
+      "text": "first provisional licence online",
+      "topic": "provisional-licence",
+      "judgments": {
+        "/apply-first-provisional-driving-licence": 3,
+        "/learn-to-drive-a-car": 2
+      },
+      "rationales": {
+        "/apply-first-provisional-driving-licence": "Gives the first-licence online application requirements and process.",
+        "/learn-to-drive-a-car": "Places the provisional licence before lessons and tests."
+      }
+    },
+    {
+      "id": "lessons-without-provisional",
+      "text": "can I take lessons without provisional licence",
+      "topic": "provisional-licence",
+      "judgments": {
+        "/driving-lessons-learning-to-drive": 3,
+        "/apply-first-provisional-driving-licence": 2,
+        "/learn-to-drive-a-car": 2
+      },
+      "rationales": {
+        "/driving-lessons-learning-to-drive": "Explains the licence and supervision requirements for lessons and practice.",
+        "/apply-first-provisional-driving-licence": "Provides the required provisional-licence application.",
+        "/learn-to-drive-a-car": "Explicitly says a provisional licence is needed for lessons or practice."
+      }
+    },
+    {
+      "id": "approved-instructor",
+      "text": "approved driving instructor near me",
+      "topic": "lessons-practice",
+      "judgments": {
+        "/find-driving-schools-and-lessons": 3,
+        "/driving-lessons-learning-to-drive": 2
+      },
+      "rationales": {
+        "/find-driving-schools-and-lessons": "Provides the approved-instructor search service.",
+        "/driving-lessons-learning-to-drive": "Explains who may teach a learner and how lessons work."
+      }
+    },
+    {
+      "id": "family-practice",
+      "text": "practise driving family insurance",
+      "topic": "lessons-practice",
+      "judgments": {
+        "/driving-lessons-learning-to-drive": 3,
+        "/legal-obligations-drivers-riders": 1
+      },
+      "rationales": {
+        "/driving-lessons-learning-to-drive": "Covers practice with family or friends, supervision, and insurance.",
+        "/legal-obligations-drivers-riders": "Provides supporting insurance and legal obligations."
+      }
+    },
+    {
+      "id": "show-tell-questions",
+      "text": "show me tell me questions",
+      "topic": "lessons-practice",
+      "judgments": {
+        "/government/publications/car-show-me-tell-me-vehicle-safety-questions": 3,
+        "/driving-test/what-to-take": 1
+      },
+      "rationales": {
+        "/government/publications/car-show-me-tell-me-vehicle-safety-questions": "Publishes the exact vehicle-safety questions used in the car test.",
+        "/driving-test/what-to-take": "Gives supporting practical-test preparation context."
+      }
+    },
+    {
+      "id": "highway-code",
+      "text": "highway code road rules",
+      "topic": "theory-preparation",
+      "judgments": {
+        "/guidance/the-highway-code": 3,
+        "/theory-test/revision-and-practice": 1
+      },
+      "rationales": {
+        "/guidance/the-highway-code": "Is the authoritative road-user rules manual.",
+        "/theory-test/revision-and-practice": "Explains using official materials to revise for the theory test."
+      }
+    },
+    {
+      "id": "practice-theory-test",
+      "text": "free practice theory test",
+      "topic": "theory-preparation",
+      "judgments": {
+        "/take-practice-theory-test": 3,
+        "/theory-test/revision-and-practice": 2
+      },
+      "rationales": {
+        "/take-practice-theory-test": "Links the free official practice tests.",
+        "/theory-test/revision-and-practice": "Explains revision and the tested question formats."
+      }
+    },
+    {
+      "id": "hazard-perception",
+      "text": "hazard perception revision",
+      "topic": "theory-preparation",
+      "judgments": {
+        "/theory-test/revision-and-practice": 3,
+        "/take-practice-theory-test": 1
+      },
+      "rationales": {
+        "/theory-test/revision-and-practice": "Explains hazard-perception preparation and test structure.",
+        "/take-practice-theory-test": "Supplies related official practice material."
+      }
+    },
+    {
+      "id": "book-theory-test",
+      "text": "book theory test cost",
+      "topic": "theory-test-management",
+      "judgments": {
+        "/book-theory-test": 3,
+        "/learn-to-drive-a-car": 1
+      },
+      "rationales": {
+        "/book-theory-test": "Provides the official booking service and current fee.",
+        "/learn-to-drive-a-car": "Shows booking within the learner journey."
+      }
+    },
+    {
+      "id": "move-theory-test",
+      "text": "move theory test earlier",
+      "topic": "theory-test-management",
+      "judgments": {
+        "/change-theory-test": 3
+      },
+      "rationales": {
+        "/change-theory-test": "Explains finding an earlier date, moving the appointment, or changing centre."
+      }
+    },
+    {
+      "id": "lost-theory-confirmation",
+      "text": "lost theory confirmation email",
+      "topic": "theory-test-management",
+      "judgments": {
+        "/check-theory-test": 3
+      },
+      "rationales": {
+        "/check-theory-test": "Retrieves appointment details when the confirmation email is lost or deleted."
+      }
+    },
+    {
+      "id": "cancel-theory-refund",
+      "text": "how late can I cancel theory test for refund",
+      "topic": "theory-test-management",
+      "judgments": {
+        "/cancel-theory-test": 3
+      },
+      "rationales": {
+        "/cancel-theory-test": "States the cancellation notice and refund rules."
+      }
+    },
+    {
+      "id": "book-practical-test",
+      "text": "book practical driving test",
+      "topic": "practical-test-management",
+      "judgments": {
+        "/book-driving-test": 3,
+        "/learn-to-drive-a-car": 1
+      },
+      "rationales": {
+        "/book-driving-test": "Provides the official practical-test booking service.",
+        "/learn-to-drive-a-car": "Shows when practical booking becomes available."
+      }
+    },
+    {
+      "id": "bring-to-driving-test",
+      "text": "what bring driving test",
+      "topic": "practical-test-management",
+      "judgments": {
+        "/driving-test/what-to-take": 3,
+        "/theory-test/what-to-take": 2
+      },
+      "rationales": {
+        "/driving-test/what-to-take": "Lists the documents and items required at the practical test.",
+        "/theory-test/what-to-take": "Materially helps when “driving test” refers to the theory stage rather than the practical test."
+      }
+    },
+    {
+      "id": "manage-practical-appointment",
+      "text": "manage practical test appointment",
+      "topic": "practical-test-management",
+      "judgments": {
+        "/change-driving-test": 3,
+        "/check-driving-test": 2,
+        "/cancel-driving-test": 2
+      },
+      "rationales": {
+        "/change-driving-test": "Changes date, time, or test centre.",
+        "/check-driving-test": "Retrieves existing appointment details.",
+        "/cancel-driving-test": "Cancels an appointment that is no longer needed."
+      }
+    },
+    {
+      "id": "cancel-practical-refund",
+      "text": "practical test refund cancellation",
+      "topic": "practical-test-management",
+      "judgments": {
+        "/cancel-driving-test": 3
+      },
+      "rationales": {
+        "/cancel-driving-test": "States practical-test cancellation and refund conditions."
+      }
+    },
+    {
+      "id": "after-passing",
+      "text": "what happens after I pass my driving test",
+      "topic": "after-passing",
+      "judgments": {
+        "/learn-to-drive-a-car": 3,
+        "/pass-plus": 2,
+        "/legal-obligations-drivers-riders": 1
+      },
+      "rationales": {
+        "/learn-to-drive-a-car": "States when a successful candidate may drive and the insurance requirement.",
+        "/pass-plus": "Explains optional post-test training and possible insurance discounts.",
+        "/legal-obligations-drivers-riders": "Supplies continuing legal obligations for drivers."
+      }
+    }
+  ]
+}

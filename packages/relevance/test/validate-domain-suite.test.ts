@@ -79,6 +79,20 @@ describe("validateDomainSuite", () => {
   });
 
   it.each([
+    "eligibility-eyesight",
+    "provisional-licence",
+    "lessons-practice",
+    "theory-preparation",
+    "theory-test-management",
+    "practical-test-management",
+    "after-passing",
+  ])("accepts the GOV.UK topic %s", (topic) => {
+    const suite = copy();
+    suite.queries[0].topic = topic;
+    expect(validateDomainSuite(suite).queries[0].topic).toBe(topic);
+  });
+
+  it.each([
     [
       "duplicate page IDs",
       (suite: MutableSuite) =>
