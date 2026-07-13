@@ -1,0 +1,66 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { SearchClient } from "@ktjn/searchable-client";
+import {
+  buildIndex,
+  writeIndex,
+  type SourceDocument,
+} from "@ktjn/searchable-indexer";
+import { evaluateSuite, type SuiteReport } from "./evaluate.js";
+import type { RelevanceSuite } from "./schema.js";
+import { serveDirectory, type StaticServer } from "./static-server.js";
+
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+export async function runSearchableSuite(
+  suite: RelevanceSuite,
+  k = 5,
+): Promise<SuiteReport> {
+  const outDirectory = await mkdtemp(join(tmpdir(), "searchable-relevance-"));
+  let server: StaticServer | undefined;
+  let client: SearchClient | undefined;
+  try {
+    const sortedDocuments = [...suite.documents].sort((a, b) => a.id.localeCompare(b.id));
+    const fixtureIdByNumericId = new Map<number, string>();
+    const sources: SourceDocument[] = sortedDocuments.map((document, index) => {
+      const id = index + 1;
+      fixtureIdByNumericId.set(id, document.id);
+      return {
+        id,
+        url: document.url,
+        html: `<!doctype html><html lang="${suite.language}"><head><title>${escapeHtml(document.title)}</title></head><body><main>${escapeHtml(document.body)}</main></body></html>`,
+      };
+    });
+    await writeIndex(buildIndex(sources, suite.language), outDirectory);
+    server = await serveDirectory(outDirectory);
+    client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+      worker: false,
+      strict: true,
+    });
+    await client.ready();
+    return await evaluateSuite(
+      suite,
+      async (query, options) => {
+        const result = await client?.search(query, options);
+        return (result?.hits ?? []).map((hit) => {
+          const fixtureId = fixtureIdByNumericId.get(hit.id);
+          if (!fixtureId) throw new Error(`Unknown numeric result id ${hit.id}`);
+          return fixtureId;
+        });
+      },
+      k,
+    );
+  } finally {
+    client?.dispose();
+    await server?.close();
+    await rm(outDirectory, { recursive: true, force: true });
+  }
+}

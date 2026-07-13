@@ -23,3 +23,4 @@ export type {
   SuiteReport,
 } from "./evaluate.js";
 export { evaluateSuite } from "./evaluate.js";
+export { runSearchableSuite } from "./searchable-runner.js";
