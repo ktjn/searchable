@@ -69,10 +69,12 @@ fixture notice record:
 - attribution to GOV.UK under the OGL;
 - the exact journey-link selection and normalization method.
 
-The refresh command rejects any selected page that declares an exception or
-does not expose the expected GOV.UK licensing boundary. No logos, photographs,
-videos, downloadable attachments, personal data, or third-party application
-content are copied.
+The refresh command validates exact GOV.UK origins and the fixture's expected
+OGL provenance fields. The Content API does not expose per-page licence
+metadata, so the initial snapshot and every refresh require a maintainer source
+credit audit for stated exceptions. No logos, photographs, videos,
+downloadable attachments, personal data, or third-party application content
+are copied.
 
 Authoritative sources:
 
@@ -162,7 +164,7 @@ Live network access is isolated in a manual maintenance command:
 
 ```sh
 pnpm relevance:refresh -- --suite govuk-learn-to-drive --check
-pnpm relevance:refresh -- --suite govuk-learn-to-drive --write --version 1.1.0
+pnpm relevance:refresh -- --suite govuk-learn-to-drive --write --version 1.1.0 --source-credit-audit
 ```
 
 `--check` fetches and validates all source content, then reports:
@@ -179,11 +181,14 @@ review metadata to `draft` and requires a fresh measured-result review before
 publication. `--write` also requires an explicit `--version` that is a valid
 semantic version and greater than the committed suite version; the command
 stores that exact version rather than guessing the release significance.
+`--source-credit-audit` is also required for writes as an explicit maintainer
+attestation that the selected live pages were checked for stated licensing
+exceptions which the Content API cannot expose.
 
 HTTP failures, non-JSON responses, redirects outside `www.gov.uk`, inventory
-drift, unexpected schemas, malformed content, duplicate routes, or licensing
-exceptions abort the refresh without partial changes. Normal relevance tests
-and evaluation never call the network.
+drift, unexpected schemas, malformed content, duplicate routes, or fixture OGL
+provenance changes abort the refresh without partial changes. Normal relevance
+tests and evaluation never call the network.
 
 ## Evaluation
 
@@ -242,8 +247,8 @@ Implementation follows red-green-refactor cycles. Tests cover:
 - schema-specific normalization for every selected GOV.UK content type;
 - guide-part selection by requested route;
 - HTML-to-text normalization and deterministic content hashing;
-- duplicate, redirect, malformed-payload, unexpected-schema, HTTP, and
-  licensing failures;
+- duplicate, redirect, malformed-payload, unexpected-schema, HTTP, and OGL
+  provenance failures;
 - `--check` no-write behavior and atomic `--write` behavior;
 - automatic reset from reviewed metadata to draft after a refresh write;
 - exact fixture counts, topic coverage, query-length mix, attribution,
