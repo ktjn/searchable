@@ -16,6 +16,6 @@ await registerOfflineCaching(
 );
 ```
 
-The Service Worker precaches the manifest and loads shards on demand into a build-specific cache. A new manifest build ID creates a new cache generation. Runtime fetches remain relative to the manifest, and cross-origin shards are rejected unless `allowCrossOriginShards` is explicitly enabled.
+During installation, the Service Worker precaches the manifest, every language-scoped shard for the selected languages, and all shared facet and document-store shards. It uses one flat, non-build-versioned cache named `csf-offline`: each install replaces the manifest entry, while content-hashed shard filenames ensure the new manifest never refers to stale shard contents. Runtime fetches remain relative to the manifest, and cross-origin shards are rejected unless `allowCrossOriginShards` is explicitly enabled.
 
-Current loading is already lazy by term prefix and optional feature: facet, synonym, fuzzy, pin, binary directory, and vector resources are requested only by queries that need them. More elaborate network-condition, memory-budget, priority, and prefetch policies remain proposals in the [roadmap](../project/roadmap.md); the historical design is archived under `docs/archive/specs/`.
+Without offline precaching, normal query-time loading is lazy by term prefix and optional feature: facet, synonym, fuzzy, pin, binary directory, and vector resources are requested only by queries that need them. More elaborate network-condition, memory-budget, priority, and speculative-prefetch policies remain proposals in the [roadmap](../project/roadmap.md); the historical design is archived under `docs/archive/specs/`.

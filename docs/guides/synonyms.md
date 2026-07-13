@@ -7,7 +7,7 @@ This guide describes authored query-time synonym expansion and its scoring behav
 Synonyms are supplied to `buildIndex` by language, not through page metadata. The indexer normalizes them with the same language profile used for documents and writes a language-specific shard.
 
 ```ts
-const built = buildIndex(documents, {
+const built = buildIndex(documents, "en", {
   synonyms: {
     en: {
       equivalences: [["laptop", "notebook"]],
