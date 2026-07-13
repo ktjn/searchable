@@ -1,4 +1,4 @@
-# Public Repository Readiness Design
+# 2026-07-13 Public repository readiness design
 
 ## Goal
 
@@ -6,6 +6,10 @@ Prepare Searchable for public source visibility without claiming that its npm
 or Python packages have been published. A visitor should understand what the
 project does, what is implemented, how to evaluate it today, how to contribute,
 and what remains before the first package release.
+
+This is an operational documentation and repository-settings change. It does
+not alter product architecture, the deployment model, the index format, or a
+technology choice, so no ADR is required.
 
 ## Launch position
 
@@ -129,6 +133,10 @@ design-file comment and simplify the project-identity policy test. It will then
 verify that no tracked file links to a removed planning document. The cleanup
 does not remove `docs/archive/`, accepted ADRs, the roadmap, or implementation
 history.
+
+Execution is split between the [public-readiness implementation
+plan](../plans/2026-07-13-public-repository-readiness.md) and the gated
+[post-merge cleanup plan](../plans/2026-07-13-post-merge-planning-cleanup.md).
 
 ## Verification
 
