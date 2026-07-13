@@ -36,10 +36,9 @@ function renderI18nIndexPage(): string {
       <main>
         <p><a href="../../index.html">&larr; Back to docs</a></p>
         <h1>Multi-language corpus</h1>
-        <p>${I18N_DOCS.length} short articles split across English and German
-        (the two full stemming profiles used by this demo; Japanese has a
-        fallback segmentation profile and Arabic direction detection). "Espresso" is spelled
-        identically in both languages: pick a language below and search it
+        <p>${I18N_DOCS.length} short articles across English, German, Swedish,
+        Dutch, Norwegian Bokmål, and Norwegian Nynorsk. "Espresso" is spelled
+        identically in all six languages: pick a language below and search it
         to see that each language's index only ever returns its own
         page, not the other's. German's "schon" (already) and "schön"
         (beautiful) differ only by an umlaut -- searching either now finds
@@ -52,13 +51,13 @@ function renderI18nIndexPage(): string {
           data-gallery-root
           data-index-path="gallery/i18n/search-index/manifest.json"
           data-default-query="espresso"
-          data-languages="en,de"
+          data-languages="en,de,sv,nl,nb,nn"
         ></div>
       </main>`;
   return pageShell({
     title: "Multi-language corpus demo",
     description:
-      "Parallel English/German articles demonstrating per-language partitioning and diacritic-sensitive matching.",
+      "Articles in six languages demonstrating partitioning, stemming, and diacritic-sensitive matching.",
     root: "../../",
     bodyHtml,
     withWidget: true,

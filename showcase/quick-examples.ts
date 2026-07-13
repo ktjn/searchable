@@ -63,7 +63,7 @@ export const QUICK_EXAMPLES: readonly QuickExample[] = [
     guideHref: "../docs/guides/internationalization.html",
     indexPath: "gallery/i18n/search-index/manifest.json",
     initialQuery: "espresso",
-    languages: ["en", "de"],
+    languages: ["en", "de", "sv", "nl", "nb", "nn"],
   },
 ];
 

@@ -17,3 +17,7 @@ The over-HTTP index has an independent integer `Manifest.version`, currently `1`
 | `1.0.x` | `1` |
 
 Content hashes and `buildId` identify a build, not a compatibility level. Producers should validate output against `spec/schema/` and the cross-implementation examples. See ADR-0004 through [Architecture decisions](../project/architecture-decisions.md).
+
+## Language codes
+
+The analysis registry accepts the exact base codes `en`, `de`, `sv`, `nl`, `nb`, `nn`, `no`, `zh`, `ja`, `th`, `km`, and `lo`. Regional BCP 47 tags are not normalized yet. For Norwegian, prefer `nb` or `nn`; `no` is retained as an explicit compatibility tag and is never returned by automatic detection.

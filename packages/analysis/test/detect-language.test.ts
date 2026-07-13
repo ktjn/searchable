@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { detectLanguage } from "../src/detect-language.js";
 
-const ALL = ["en", "de", "zh", "ja", "th", "km", "lo"];
+const ALL = [
+  "en",
+  "de",
+  "sv",
+  "nl",
+  "nb",
+  "nn",
+  "no",
+  "zh",
+  "ja",
+  "th",
+  "km",
+  "lo",
+];
 
 describe("detectLanguage", () => {
   it("detects clear English prose via function-word markers", () => {
@@ -20,6 +33,21 @@ describe("detectLanguage", () => {
         ALL,
       ),
     ).toBe("de");
+  });
+
+  it.each([
+    ["sv", "och är att inte också detta"],
+    ["nl", "het een van niet zijn wij"],
+    ["nb", "ikke jeg hva også hvordan hvem"],
+    ["nn", "ikkje eg kva òg korleis kven"],
+  ])("detects %s from exclusive marker words", (code, text) => {
+    expect(detectLanguage(text, ALL)).toBe(code);
+  });
+
+  it("never autodetects the generic Norwegian compatibility code", () => {
+    expect(
+      detectLanguage("ikke jeg hva også hvordan hvem", ["no"]),
+    ).toBeUndefined();
   });
 
   it("detects Chinese text (Han script, no kana) as zh", () => {

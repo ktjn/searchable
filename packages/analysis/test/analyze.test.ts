@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   analyze,
   chinese,
+  dutch,
   english,
   japanese,
   khmer,
   lao,
+  norwegianBokmal,
+  swedish,
   thai,
 } from "../src/index.js";
 
@@ -34,6 +37,14 @@ describe("analyze (english)", () => {
   it("also exposes each token's lowercased-but-unstemmed literal surface form", () => {
     const tokens = analyze("the running dogs", english);
     expect(tokens.map((t) => t.literal)).toEqual(["the", "running", "dogs"]);
+  });
+});
+
+describe("analyze (Swedish, Norwegian, and Dutch)", () => {
+  it("uses each language's Snowball stemmer", () => {
+    expect(analyze("husets", swedish)[0]?.term).toBe("hus");
+    expect(analyze("husets", norwegianBokmal)[0]?.term).toBe("hus");
+    expect(analyze("huizen", dutch)[0]?.term).toBe("huis");
   });
 });
 

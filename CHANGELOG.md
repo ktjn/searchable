@@ -36,8 +36,8 @@ below was built and tested across prior unreleased commits.
 - **Relevance aids**: query-time synonym expansion (single-word,
   directional, and phrase-level `multiWord`), SymSpell fuzzy/typo
   matching with "did you mean" suggestions.
-- **Internationalization**: real English (Porter) and German (Snowball)
-  stemmers, CJK bigram and Thai/Khmer/Lao trigram segmentation
+- **Internationalization**: real English (Porter), German, Swedish, Dutch,
+  and Norwegian Bokmål/Nynorsk (Snowball) stemmers; CJK bigram and Thai/Khmer/Lao trigram segmentation
   fallbacks, zero-bundled-model auto language detection, an
   `isRtlLanguage()` primitive.
 - **Runtime/DX**: Web Worker execution (`@ktjn/searchable-client/worker`) with a

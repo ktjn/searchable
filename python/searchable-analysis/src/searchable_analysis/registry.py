@@ -1,11 +1,16 @@
 from searchable_analysis.language_profile import (
     LanguageProfile,
     chinese,
+    dutch,
     english,
     german,
     japanese,
     khmer,
     lao,
+    norwegian,
+    norwegian_bokmal,
+    norwegian_nynorsk,
+    swedish,
     thai,
 )
 
@@ -17,6 +22,11 @@ from searchable_analysis.language_profile import (
 _PROFILES: dict[str, LanguageProfile] = {
     "en": english,
     "de": german,
+    "sv": swedish,
+    "nl": dutch,
+    "nb": norwegian_bokmal,
+    "nn": norwegian_nynorsk,
+    "no": norwegian,
     "zh": chinese,
     "ja": japanese,
     "th": thai,

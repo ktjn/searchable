@@ -6,12 +6,17 @@ export { isRtlLanguage } from "./is-rtl.js";
 export type { LanguageProfile, TokenSpan } from "./language-profile.js";
 export {
   chinese,
+  dutch,
   english,
   german,
   japanese,
   khmer,
   lao,
+  norwegian,
+  norwegianBokmal,
+  norwegianNynorsk,
   stripDiacritics,
+  swedish,
   thai,
 } from "./language-profile.js";
 export {
@@ -23,3 +28,6 @@ export { segmentCjkBigram } from "./segment-cjk.js";
 export { segmentSeaTrigram } from "./segment-sea.js";
 export { stemGerman } from "./stemmer-de.js";
 export { stemEnglish } from "./stemmer-en.js";
+export { stemDutch } from "./stemmer-nl.js";
+export { stemNorwegian } from "./stemmer-no.js";
+export { stemSwedish } from "./stemmer-sv.js";

@@ -7,6 +7,9 @@ from searchable_analysis.segment_latin import segment_latin_words
 from searchable_analysis.segment_sea import segment_sea_trigram
 from searchable_analysis.stemmer_de import stem_german as _stem_german
 from searchable_analysis.stemmer_en import stem_english as _stem_english
+from searchable_analysis.stemmer_nl import stem_dutch as _stem_dutch
+from searchable_analysis.stemmer_no import stem_norwegian as _stem_norwegian
+from searchable_analysis.stemmer_sv import stem_swedish as _stem_swedish
 from searchable_analysis.token_span import TokenSpan
 
 
@@ -43,6 +46,12 @@ german = LanguageProfile(
     stopwords=frozenset(),
     stem=_stem_german,
 )
+
+swedish = LanguageProfile("sv", segment_latin_words, False, frozenset(), _stem_swedish)
+dutch = LanguageProfile("nl", segment_latin_words, False, frozenset(), _stem_dutch)
+norwegian_bokmal = LanguageProfile("nb", segment_latin_words, False, frozenset(), _stem_norwegian)
+norwegian_nynorsk = LanguageProfile("nn", segment_latin_words, False, frozenset(), _stem_norwegian)
+norwegian = LanguageProfile("no", segment_latin_words, False, frozenset(), _stem_norwegian)
 
 chinese = LanguageProfile(
     code="zh",

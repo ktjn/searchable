@@ -15,7 +15,7 @@ Searchable builds a static search index ahead of time and searches it in the bro
 - BM25F lexical ranking, field and document boosts, prefix queries, quoted phrases, and fuzzy matching
 - Terms, range, and hierarchical facets with contextual counts
 - Query-time synonyms and editorial term-to-page pins
-- English and German analysis plus fallback segmenters for CJK and Southeast Asian scripts
+- English, German, Swedish, Dutch, Bokmål, and Nynorsk analysis plus fallback segmenters for CJK and Southeast Asian scripts
 - Web Worker execution, cancellation, streaming partial results, highlighting, and lifecycle events
 - Service Worker caching for offline search
 - Optional binary term, fuzzy, and document-store shards

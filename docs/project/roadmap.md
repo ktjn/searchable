@@ -8,7 +8,7 @@ This page is the single current list of shipped capability and remaining work; d
 |---|---|---|
 | Lexical search | Stable | Query-planner abstraction |
 | Facets, synonyms, fuzzy search, and pins | Stable | No required 1.0 work |
-| Internationalization | English and German profiles; fallback segmenters | Additional language profiles |
+| Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora |
 | Offline and worker execution | Stable | Resource-aware loading refinements |
 | Binary storage | Term, fuzzy, and document-store codecs | Evaluate remaining shard formats from evidence |
 | Vector and hybrid search | Storage, similarity, and local embeddings implemented | Public semantic showcase |
