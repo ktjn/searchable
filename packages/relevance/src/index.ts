@@ -28,6 +28,17 @@ export {
   htmlToText,
   normalizeGovukDocument,
 } from "./govuk-normalize.js";
+export type {
+  RefreshOptions,
+  SnapshotComparison,
+} from "./govuk-refresh.js";
+export {
+  compareSnapshot,
+  extractJourneyRoutes,
+  GOVUK_EXPECTED_ROUTES,
+  GOVUK_JOURNEY_PATH,
+  refreshGovukSuite,
+} from "./govuk-refresh.js";
 export type { KnownDomainSuite } from "./load-domain-suite.js";
 export {
   KNOWN_DOMAIN_SUITES,

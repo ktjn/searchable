@@ -17,7 +17,8 @@
     "build": "tsc",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "evaluate": "node dist/cli.js"
+    "evaluate": "node dist/cli.js",
+    "refresh": "node dist/refresh-cli.js"
   },
   "dependencies": {
     "@ktjn/searchable-client": "workspace:*",
