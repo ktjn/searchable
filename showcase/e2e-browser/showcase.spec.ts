@@ -28,6 +28,15 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await expect(page).toHaveTitle("Architecture");
   });
 
+  test("homepage introduces the live feature gallery", async ({ page }) => {
+    await page.goto(`${baseUrl}index.html`);
+    await expect(
+      page.locator(
+        'main > p:first-of-type a[href="https://ktjn.github.io/client-search-framework/gallery/"]',
+      ),
+    ).toHaveText("Try the live feature gallery");
+  });
+
   test("docs search has stable form metadata and accessible page landmarks", async ({
     page,
   }) => {
@@ -201,6 +210,17 @@ test.describe("feature gallery: quick examples (real browser)", () => {
     });
   }
 
+  test("quick examples render at most four results", async ({ page }) => {
+    await page.goto(`${baseUrl}gallery/index.html`);
+    const cards = page.locator(".quick-example-card");
+    await expect(page.locator(".gallery-loading")).toHaveCount(0);
+    for (let index = 0; index < (await cards.count()); index++) {
+      expect(
+        await cards.nth(index).locator(".gallery-hit-list li").count(),
+      ).toBeLessThanOrEqual(4);
+    }
+  });
+
   test("quick examples exercise their distinct search behaviors", async ({
     page,
   }) => {
@@ -291,7 +311,7 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
   }) => {
     await page.goto(`${baseUrl}gallery/products/index.html`);
     await expect(page.locator(".gallery-search-input")).toHaveValue("product");
-    await expect(page.locator(".gallery-hit-list li")).not.toHaveCount(0);
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(4);
     await expect(
       page.locator(".gallery-facet-group:has-text('category')"),
     ).toBeVisible();
@@ -314,7 +334,9 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
   }) => {
     await page.goto(`${baseUrl}gallery/products/index.html`);
     await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
-    const beforeCount = await page.locator(".gallery-hit-list li").count();
+    const beforeHrefs = await page
+      .locator(".gallery-hit-list li a")
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
 
     await page
       .locator(
@@ -324,9 +346,13 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
       .check();
 
     await expect(async () => {
-      const afterCount = await page.locator(".gallery-hit-list li").count();
-      expect(afterCount).toBeLessThan(beforeCount);
-      expect(afterCount).toBeGreaterThan(0);
+      const links = page.locator(".gallery-hit-list li a");
+      const afterHrefs = await links.evaluateAll((items) =>
+        items.map((item) => item.getAttribute("href")),
+      );
+      expect(afterHrefs.length).toBeGreaterThan(0);
+      expect(afterHrefs.length).toBeLessThanOrEqual(4);
+      expect(afterHrefs).not.toEqual(beforeHrefs);
     }).toPass();
 
     for (const title of await page

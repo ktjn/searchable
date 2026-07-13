@@ -1,6 +1,6 @@
 # client-search-framework
 
-`client-search-framework` builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill.
+`client-search-framework` builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/client-search-framework/gallery/) to see real generated indexes searched by the browser client.
 
 ## Why client-search-framework
 
@@ -56,10 +56,6 @@ See [First search](docs/getting-started/first-search.md) for a complete path and
 - [Client API](docs/reference/client-api.md)
 - [Configuration](docs/reference/configuration.md)
 - [Roadmap](docs/project/roadmap.md)
-
-## Showcase
-
-Explore the interactive [feature gallery](https://ktjn.github.io/client-search-framework/gallery/), where every example uses a real generated index and the browser client. The `showcase/` application builds the public documentation search and gallery; run `pnpm --filter showcase build` to generate it locally.
 
 ## Development
 

@@ -72,6 +72,7 @@ interface SearchClientLike {
 }
 
 const siteRoot = new URL(".", import.meta.url);
+const RESULT_LIMIT = 4;
 
 const galleryRoots = document.querySelectorAll<HTMLDivElement>(
   "[data-gallery-root]",
@@ -331,7 +332,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     try {
       const filters = currentFilters();
       const result = await client.search(query, {
-        limit: 24,
+        limit: RESULT_LIMIT,
         facets: facetFields,
         ...(filters ? { filters } : {}),
         ...(selectedLanguage ? { language: selectedLanguage } : {}),
@@ -346,7 +347,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       let expandedOnlyIds = new Set<number>();
       if (fuzzyEnabled || synonymsEnabled) {
         const baseline = await client.search(query, {
-          limit: 24,
+          limit: RESULT_LIMIT,
           facets: facetFields,
           ...(filters ? { filters } : {}),
           ...(selectedLanguage ? { language: selectedLanguage } : {}),
