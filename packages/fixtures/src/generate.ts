@@ -243,15 +243,15 @@ function renderPage(opts: {
     `<meta name="description" content="${escapeHtml(opts.excerpt)}">`,
     ...(opts.category
       ? [
-          `<meta name="csf-facet-category" content="${escapeHtml(opts.category)}">`,
+          `<meta name="searchable-facet-category" content="${escapeHtml(opts.category)}">`,
         ]
       : []),
     ...(opts.tags ?? []).map(
-      (t) => `<meta name="csf-facet-tags" content="${escapeHtml(t)}">`,
+      (t) => `<meta name="searchable-facet-tags" content="${escapeHtml(t)}">`,
     ),
-    ...(opts.featured ? [`<meta name="csf-boost" content="1.8">`] : []),
+    ...(opts.featured ? [`<meta name="searchable-boost" content="1.8">`] : []),
     ...(opts.pin
-      ? [`<meta name="csf-pin" content="${escapeHtml(opts.pin)}">`]
+      ? [`<meta name="searchable-pin" content="${escapeHtml(opts.pin)}">`]
       : []),
   ].join("\n    ");
   const body = opts.paragraphs

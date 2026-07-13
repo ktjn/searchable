@@ -28,8 +28,8 @@ describe("extractDocument", () => {
     expect(extractDocument(html, "/x", "de").language).toBe("de");
   });
 
-  it("respects csf-noindex", () => {
-    const html = `<html><head><title>Draft</title><meta name="csf-noindex"></head><body>x</body></html>`;
+  it("respects searchable-noindex", () => {
+    const html = `<html><head><title>Draft</title><meta name="searchable-noindex"></head><body>x</body></html>`;
     expect(extractDocument(html, "/draft").noindex).toBe(true);
   });
 
@@ -45,11 +45,11 @@ describe("extractDocument", () => {
     expect(doc.excerpt).toBe("Simple pricing.");
   });
 
-  it("respects data-csf-body as an explicit content boundary", () => {
+  it("respects data-searchable-body as an explicit content boundary", () => {
     const html = `
       <html><body>
         <main>ignored default region</main>
-        <div data-csf-body>the real content</div>
+        <div data-searchable-body>the real content</div>
       </body></html>`;
     expect(extractDocument(html, "/x").body).toBe("the real content");
   });
@@ -64,24 +64,24 @@ describe("extractDocument", () => {
     expect(extractDocument(html, "/x").body).toBe("actual page content");
   });
 
-  it("defaults boost to 1.0 when csf-boost is absent", () => {
+  it("defaults boost to 1.0 when searchable-boost is absent", () => {
     const html =
       "<html><head><title>Normal</title></head><body>x</body></html>";
     expect(extractDocument(html, "/x").boost).toBe(1.0);
   });
 
-  it("parses csf-boost", () => {
-    const html = `<html><head><title>Featured</title><meta name="csf-boost" content="2.5"></head><body>x</body></html>`;
+  it("parses searchable-boost", () => {
+    const html = `<html><head><title>Featured</title><meta name="searchable-boost" content="2.5"></head><body>x</body></html>`;
     expect(extractDocument(html, "/x").boost).toBe(2.5);
   });
 
-  it("ignores a malformed csf-boost and falls back to 1.0", () => {
-    const html = `<html><head><title>Bad</title><meta name="csf-boost" content="not-a-number"></head><body>x</body></html>`;
+  it("ignores a malformed searchable-boost and falls back to 1.0", () => {
+    const html = `<html><head><title>Bad</title><meta name="searchable-boost" content="not-a-number"></head><body>x</body></html>`;
     expect(extractDocument(html, "/x").boost).toBe(1.0);
   });
 
-  it("ignores a non-positive csf-boost and falls back to 1.0", () => {
-    const html = `<html><head><title>Bad</title><meta name="csf-boost" content="-3"></head><body>x</body></html>`;
+  it("ignores a non-positive searchable-boost and falls back to 1.0", () => {
+    const html = `<html><head><title>Bad</title><meta name="searchable-boost" content="-3"></head><body>x</body></html>`;
     expect(extractDocument(html, "/x").boost).toBe(1.0);
   });
 
@@ -93,18 +93,18 @@ describe("extractDocument", () => {
     expect(doc.pins).toEqual([]);
   });
 
-  it("parses a csf-facet-range-<field> tag as a single numeric value", () => {
+  it("parses a searchable-facet-range-<field> tag as a single numeric value", () => {
     const html = `<html><head><title>Product</title>
-      <meta name="csf-facet-range-price" content="49.99">
+      <meta name="searchable-facet-range-price" content="49.99">
       </head><body>x</body></html>`;
     const doc = extractDocument(html, "/x");
     expect(doc.rangeFacets).toEqual({ price: 49.99 });
     expect(doc.facets).toEqual({}); // not also parsed as a terms facet
   });
 
-  it("ignores a non-numeric csf-facet-range-<field> value", () => {
+  it("ignores a non-numeric searchable-facet-range-<field> value", () => {
     const html = `<html><head><title>Product</title>
-      <meta name="csf-facet-range-price" content="call-for-quote">
+      <meta name="searchable-facet-range-price" content="call-for-quote">
       </head><body>x</body></html>`;
     const doc = extractDocument(html, "/x");
     expect(doc.rangeFacets).toEqual({});
@@ -112,19 +112,19 @@ describe("extractDocument", () => {
 
   it("keeps the first declared value when a range facet field is repeated", () => {
     const html = `<html><head><title>Product</title>
-      <meta name="csf-facet-range-price" content="10">
-      <meta name="csf-facet-range-price" content="20">
+      <meta name="searchable-facet-range-price" content="10">
+      <meta name="searchable-facet-range-price" content="20">
       </head><body>x</body></html>`;
     const doc = extractDocument(html, "/x");
     expect(doc.rangeFacets).toEqual({ price: 10 });
   });
 
-  it("collects repeated csf-facet-<field> tags into arrays, deduping repeats", () => {
+  it("collects repeated searchable-facet-<field> tags into arrays, deduping repeats", () => {
     const html = `<html><head><title>Product</title>
-      <meta name="csf-facet-category" content="electronics">
-      <meta name="csf-facet-category" content="audio">
-      <meta name="csf-facet-category" content="audio">
-      <meta name="csf-facet-brand" content="acme">
+      <meta name="searchable-facet-category" content="electronics">
+      <meta name="searchable-facet-category" content="audio">
+      <meta name="searchable-facet-category" content="audio">
+      <meta name="searchable-facet-brand" content="acme">
       </head><body>x</body></html>`;
     const doc = extractDocument(html, "/x");
     expect(doc.facets).toEqual({
@@ -133,13 +133,13 @@ describe("extractDocument", () => {
     });
   });
 
-  it("collects repeated csf-pin tags with page-level mode/priority/exclusive", () => {
+  it("collects repeated searchable-pin tags with page-level mode/priority/exclusive", () => {
     const html = `<html><head><title>Pricing</title>
-      <meta name="csf-pin" content="pricing">
-      <meta name="csf-pin" content="how much does it cost">
-      <meta name="csf-pin-mode" content="contains">
-      <meta name="csf-pin-priority" content="10">
-      <meta name="csf-pin-exclusive">
+      <meta name="searchable-pin" content="pricing">
+      <meta name="searchable-pin" content="how much does it cost">
+      <meta name="searchable-pin-mode" content="contains">
+      <meta name="searchable-pin-priority" content="10">
+      <meta name="searchable-pin-exclusive">
       </head><body>x</body></html>`;
     const doc = extractDocument(html, "/x");
     expect(doc.pins).toEqual([
@@ -155,17 +155,17 @@ describe("extractDocument", () => {
 
   it("defaults pin mode to exact, priority to 0, and exclusive to false", () => {
     const html = `<html><head><title>Pricing</title>
-      <meta name="csf-pin" content="pricing"></head><body>x</body></html>`;
+      <meta name="searchable-pin" content="pricing"></head><body>x</body></html>`;
     const doc = extractDocument(html, "/x");
     expect(doc.pins).toEqual([
       { phrase: "pricing", mode: "exact", priority: 0, exclusive: false },
     ]);
   });
 
-  it("falls back to exact for an unrecognized csf-pin-mode value", () => {
+  it("falls back to exact for an unrecognized searchable-pin-mode value", () => {
     const html = `<html><head><title>Pricing</title>
-      <meta name="csf-pin" content="pricing">
-      <meta name="csf-pin-mode" content="bogus">
+      <meta name="searchable-pin" content="pricing">
+      <meta name="searchable-pin-mode" content="bogus">
       </head><body>x</body></html>`;
     expect(extractDocument(html, "/x").pins[0]?.mode).toBe("exact");
   });

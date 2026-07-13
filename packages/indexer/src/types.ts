@@ -43,7 +43,7 @@ export interface BuiltIndex {
   docStore: DocStoreShard;
   /** Facet field name -> its shard, only for fields with at least one value. Corpus-wide, not partitioned by language. */
   facetShards: Record<string, FacetShard>;
-  /** Language -> its pins shard, only for languages with at least one csf-pin. */
+  /** Language -> its pins shard, only for languages with at least one searchable-pin. */
   pinsShards: Record<string, PinsShard>;
   /** Language -> its synonym shard, only for languages with an authored synonym set (BuildIndexOptions.synonyms). */
   synonymShards: Record<string, SynonymShard>;

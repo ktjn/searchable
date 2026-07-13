@@ -13,7 +13,7 @@ import { serveStatic } from "./static-server.js";
  * same rigor as binary-term-shard.test.ts: the same corpus built both
  * ways, queried through a real `SearchClient`, asserting identical
  * `url`/stored `fields`/`score` (the last exercising the float64
- * `csf-boost` round-trip) across a plain query, a multi-field-stored
+ * `searchable-boost` round-trip) across a plain query, a multi-field-stored
  * hit, and a query whose hit count is a small fraction of the corpus
  * (the actual scenario the binary doc store's lazy per-id decode is
  * for) -- not just that both return non-empty results.
@@ -23,7 +23,7 @@ const sources: SourceDocument[] = [
     id: 1,
     url: "/widgets",
     html: `<html lang="en"><head><title>Amazing Widgets</title>
-      <meta name="csf-boost" content="1.8">
+      <meta name="searchable-boost" content="1.8">
       <meta name="description" content="Premium widgets for every need.">
       </head>
       <body><main><p>Our widgets are wonderful. Buy widgets today.</p></main></body></html>`,
@@ -109,7 +109,7 @@ describe("binary doc store returns identical results to JSON (real HTTP)", () =>
     expect(jsonResult.hits[0]?.url).toBe("/sofa");
   });
 
-  it("document boost (csf-boost, a float64 round-trip) ranks identically and the score matches exactly", async () => {
+  it("document boost (searchable-boost, a float64 round-trip) ranks identically and the score matches exactly", async () => {
     const { json, binary } = clients();
     const [jsonResult, binaryResult] = await Promise.all([
       json.search("widgets"),
@@ -121,7 +121,7 @@ describe("binary doc store returns identical results to JSON (real HTTP)", () =>
     expect(binaryResult.hits.map((h) => h.score)).toEqual(
       jsonResult.hits.map((h) => h.score),
     );
-    // doc 1 has csf-boost content="1.8" and should rank first identically.
+    // doc 1 has searchable-boost content="1.8" and should rank first identically.
     expect(jsonResult.hits[0]?.id).toBe(1);
   });
 

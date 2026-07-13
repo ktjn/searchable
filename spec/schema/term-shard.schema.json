@@ -22,7 +22,7 @@
             "boost": {
               "type": "number",
               "exclusiveMinimum": 0,
-              "description": "Document-level static boost, e.g. from a csf-boost meta tag. Absent means 1.0."
+              "description": "Document-level static boost, e.g. from a searchable-boost meta tag. Absent means 1.0."
             },
             "fields": {
               "type": "object",

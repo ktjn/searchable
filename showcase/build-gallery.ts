@@ -30,12 +30,12 @@ function renderProductPage(product: Product): string {
         </p>
       </main>`;
   const meta = [
-    `<meta name="csf-facet-category" content="${escapeHtml(product.category)}">`,
-    `<meta name="csf-facet-price" content="${escapeHtml(product.priceBucket)}">`,
+    `<meta name="searchable-facet-category" content="${escapeHtml(product.category)}">`,
+    `<meta name="searchable-facet-price" content="${escapeHtml(product.priceBucket)}">`,
     ...product.tags.map(
-      (t) => `<meta name="csf-facet-tags" content="${escapeHtml(t)}">`,
+      (t) => `<meta name="searchable-facet-tags" content="${escapeHtml(t)}">`,
     ),
-    ...(product.featured ? [`<meta name="csf-boost" content="2.5">`] : []),
+    ...(product.featured ? [`<meta name="searchable-boost" content="2.5">`] : []),
   ].join("\n    ");
   const html = pageShell({
     title: product.name,
@@ -71,7 +71,7 @@ function renderReturnsPolicyPage(): string {
   });
   return html.replace(
     '<link rel="stylesheet" href="../../style.css" />',
-    `<meta name="csf-pin" content="returns policy">\n    <link rel="stylesheet" href="../../style.css" />`,
+    `<meta name="searchable-pin" content="returns policy">\n    <link rel="stylesheet" href="../../style.css" />`,
   );
 }
 

@@ -46,7 +46,7 @@ export interface Hit {
   score: number;
   url: string;
   fields: Record<string, string>;
-  /** Placed by a csf-pin match (docs/guides/pinning.md), not by relevance. */
+  /** Placed by a searchable-pin match (docs/guides/pinning.md), not by relevance. */
   pinned?: boolean;
   /**
    * Per stored field, that field's text split into match/non-match

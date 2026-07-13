@@ -20,15 +20,15 @@ export interface ExtractedDocument {
   url: string;
   noindex: boolean;
   boost: number;
-  /** Facet field name -> distinct values declared via csf-facet-<field> (docs/reference/cms-meta-tags.md). */
+  /** Facet field name -> distinct values declared via searchable-facet-<field> (docs/reference/cms-meta-tags.md). */
   facets: Record<string, string[]>;
-  /** Range-facet field name -> single numeric value declared via csf-facet-range-<field> (docs/guides/facets.md). One value per doc, unlike terms facets. */
+  /** Range-facet field name -> single numeric value declared via searchable-facet-range-<field> (docs/guides/facets.md). One value per doc, unlike terms facets. */
   rangeFacets: Record<string, number>;
   pins: PinDeclaration[];
 }
 
-const FACET_TAG_PREFIX = "csf-facet-";
-const RANGE_FACET_TAG_PREFIX = "csf-facet-range-";
+const FACET_TAG_PREFIX = "searchable-facet-";
+const RANGE_FACET_TAG_PREFIX = "searchable-facet-range-";
 
 export interface CanonicalUrlOptions {
   /**
@@ -141,7 +141,7 @@ function collapseWhitespace(text: string): string {
  * Extracts indexable fields from one rendered HTML page, honoring the
  * csf-* meta-tag control surface (docs/reference/cms-meta-tags.md):
  * title/body/language/excerpt/canonical/noindex/boost plus facet
- * values (csf-facet-<field>) and pin declarations (csf-pin*, see
+ * values (searchable-facet-<field>) and pin declarations (searchable-pin*, see
  * docs/guides/pinning.md).
  */
 export function extractDocument(
@@ -152,7 +152,7 @@ export function extractDocument(
 ): ExtractedDocument {
   const root = parse(html);
 
-  const noindex = root.querySelector('meta[name="csf-noindex"]') !== null;
+  const noindex = root.querySelector('meta[name="searchable-noindex"]') !== null;
 
   const title = collapseWhitespace(
     root.querySelector("title")?.structuredText ?? "",
@@ -175,12 +175,12 @@ export function extractDocument(
   );
 
   const bodyRoot =
-    root.querySelector("[data-csf-body]") ??
+    root.querySelector("[data-searchable-body]") ??
     root.querySelector("main") ??
     root.querySelector("body");
 
   for (const el of bodyRoot?.querySelectorAll(
-    [...BOILERPLATE_SELECTORS, "[data-csf-ignore]"].join(","),
+    [...BOILERPLATE_SELECTORS, "[data-searchable-ignore]"].join(","),
   ) ?? []) {
     el.remove();
   }
@@ -201,7 +201,7 @@ export function extractDocument(
     defaultLanguage;
 
   const boostAttr = root
-    .querySelector('meta[name="csf-boost"]')
+    .querySelector('meta[name="searchable-boost"]')
     ?.getAttribute("content");
   const parsedBoost = boostAttr ? Number.parseFloat(boostAttr) : Number.NaN;
   const boost =
@@ -211,8 +211,8 @@ export function extractDocument(
   const rangeFacets: Record<string, number> = {};
   for (const meta of root.querySelectorAll("meta")) {
     const name = meta.getAttribute("name") ?? "";
-    // Checked first: csf-facet-range-<field> also starts with the plain
-    // csf-facet- prefix below, so it would otherwise be misparsed as a
+    // Checked first: searchable-facet-range-<field> also starts with the plain
+    // searchable-facet- prefix below, so it would otherwise be misparsed as a
     // terms facet field literally named "range-<field>".
     if (name.startsWith(RANGE_FACET_TAG_PREFIX)) {
       const field = name.slice(RANGE_FACET_TAG_PREFIX.length);
@@ -238,29 +238,29 @@ export function extractDocument(
   }
 
   const pinPhrases = root
-    .querySelectorAll('meta[name="csf-pin"]')
+    .querySelectorAll('meta[name="searchable-pin"]')
     .map((el) => el.getAttribute("content")?.trim())
     .filter((v): v is string => Boolean(v));
 
   const pinModeAttr = root
-    .querySelector('meta[name="csf-pin-mode"]')
+    .querySelector('meta[name="searchable-pin-mode"]')
     ?.getAttribute("content")
     ?.trim();
   const pinMode: "exact" | "contains" =
     pinModeAttr === "contains" ? "contains" : "exact";
 
   const pinPriorityAttr = root
-    .querySelector('meta[name="csf-pin-priority"]')
+    .querySelector('meta[name="searchable-pin-priority"]')
     ?.getAttribute("content");
   const parsedPriority = pinPriorityAttr
     ? Number.parseFloat(pinPriorityAttr)
     : Number.NaN;
   const pinPriority = Number.isFinite(parsedPriority) ? parsedPriority : 0;
 
-  // Presence-based, like csf-noindex above: the tag's content isn't
+  // Presence-based, like searchable-noindex above: the tag's content isn't
   // interpreted, only whether the tag exists on the page at all.
   const pinExclusive =
-    root.querySelector('meta[name="csf-pin-exclusive"]') !== null;
+    root.querySelector('meta[name="searchable-pin-exclusive"]') !== null;
 
   const pins: PinDeclaration[] = pinPhrases.map((phrase) => ({
     phrase,

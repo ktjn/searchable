@@ -58,14 +58,14 @@ const docA: SourceDocument = {
   id: 1,
   url: "/alpha",
   html: `<html lang="en"><head><title>Alpha</title>
-    <meta name="csf-facet-category" content="shared"></head>
+    <meta name="searchable-facet-category" content="shared"></head>
     <body><main><p>alpha widgets shared term</p></main></body></html>`,
 };
 const docB: SourceDocument = {
   id: 2,
   url: "/beta",
   html: `<html lang="en"><head><title>Beta</title>
-    <meta name="csf-facet-category" content="shared"></head>
+    <meta name="searchable-facet-category" content="shared"></head>
     <body><main><p>beta widgets shared term</p></main></body></html>`,
 };
 
@@ -326,14 +326,14 @@ describe("writeIndex", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-range-price" content="29.99"></head>
+          <meta name="searchable-facet-range-price" content="29.99"></head>
           <body><main>a</main></body></html>`,
       },
       {
         id: 2,
         url: "/b",
         html: `<html lang="en"><head><title>B</title>
-          <meta name="csf-facet-range-price" content="9.5"></head>
+          <meta name="searchable-facet-range-price" content="9.5"></head>
           <body><main>b</main></body></html>`,
       },
     ];
@@ -572,12 +572,12 @@ describe("writeIndex", () => {
     }
   });
 
-  it("still writes exactly one, empty doc-store shard for a corpus where every document is csf-noindex", async () => {
+  it("still writes exactly one, empty doc-store shard for a corpus where every document is searchable-noindex", async () => {
     const outDir = await tempOutDir();
     const noindexOnly: SourceDocument = {
       id: 1,
       url: "/draft",
-      html: `<html lang="en"><head><title>Draft</title><meta name="csf-noindex"></head><body><main>x</main></body></html>`,
+      html: `<html lang="en"><head><title>Draft</title><meta name="searchable-noindex"></head><body><main>x</main></body></html>`,
     };
     await writeIndex(buildIndex([noindexOnly]), outDir, {
       docStoreShardSize: 5,

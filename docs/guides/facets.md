@@ -4,7 +4,7 @@ This guide covers the implemented terms, range, and hierarchical facets, their f
 
 ## Facet types
 
-Authors declare terms values with repeatable `csf-facet-<field>` meta tags and one numeric range value with `csf-facet-range-<field>`. Configure hierarchical fields through `BuildIndexOptions.hierarchicalFacets`.
+Authors declare terms values with repeatable `searchable-facet-<field>` meta tags and one numeric range value with `searchable-facet-range-<field>`. Configure hierarchical fields through `BuildIndexOptions.hierarchicalFacets`.
 
 ## Facet index structure
 

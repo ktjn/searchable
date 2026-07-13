@@ -55,7 +55,7 @@ describe("buildIndex with Object.prototype-colliding content", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-constructor" content="toString"></head>
+          <meta name="searchable-facet-constructor" content="toString"></head>
           <body><main><p>x</p></main></body></html>`,
       },
     ];
@@ -74,7 +74,7 @@ describe("buildIndex with Object.prototype-colliding content", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-range-hasOwnProperty" content="42"></head>
+          <meta name="searchable-facet-range-hasOwnProperty" content="42"></head>
           <body><main><p>x</p></main></body></html>`,
       },
     ];

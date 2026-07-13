@@ -66,7 +66,7 @@ export interface Manifest {
       format?: "json" | "binary";
     }>;
   };
-  /** lang -> pins shard file, only present for languages with at least one csf-pin. */
+  /** lang -> pins shard file, only present for languages with at least one searchable-pin. */
   pins?: Record<string, string>;
   /** lang -> synonyms shard file, only present for languages with an authored synonym set. */
   synonyms?: Record<string, string>;
@@ -168,7 +168,7 @@ export interface Posting {
   doc: number;
   /**
    * Document-level static boost (docs/guides/ranking-and-boosts.md), e.g.
-   * from a csf-boost meta tag. Denormalized onto every posting for this
+   * from a searchable-boost meta tag. Denormalized onto every posting for this
    * doc — like `len` above — because it must be known for every
    * candidate being scored, not just the final top-N whose doc-store
    * data gets fetched. Absent/undefined means 1.0 (no boost).

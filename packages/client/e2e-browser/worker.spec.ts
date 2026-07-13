@@ -53,21 +53,21 @@ const sources: SourceDocument[] = [
     id: 1,
     url: "/widgets",
     html: `<html lang="en"><head><title>Widgets</title>
-      <meta name="csf-facet-category" content="electronics"></head>
+      <meta name="searchable-facet-category" content="electronics"></head>
       <body><main><p>Our widgets are wonderful. Buy widgets today.</p></main></body></html>`,
   },
   {
     id: 2,
     url: "/gadgets",
     html: `<html lang="en"><head><title>Gadgets</title>
-      <meta name="csf-facet-category" content="electronics"></head>
+      <meta name="searchable-facet-category" content="electronics"></head>
       <body><main><p>Gadgets and gizmos, plus a few widgets for good measure.</p></main></body></html>`,
   },
   {
     id: 3,
     url: "/about",
     html: `<html lang="en"><head><title>About Us</title>
-      <meta name="csf-facet-category" content="company"></head>
+      <meta name="searchable-facet-category" content="company"></head>
       <body><main><p>We are a small company that makes things.</p></main></body></html>`,
   },
 ];

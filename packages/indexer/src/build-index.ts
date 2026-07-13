@@ -80,7 +80,7 @@ export interface BuildIndexOptions {
    * keyed by field name. A build-time decision, not a per-page csf-*
    * meta tag, like fieldBoosts/synonyms/fuzzy above — hierarchy-vs-terms
    * is a corpus-wide schema property of a field, not something one page
-   * declares for itself. Each `csf-facet-<field>` value for a
+   * declares for itself. Each `searchable-facet-<field>` value for a
    * hierarchical field is still authored as a single string, but read as
    * a full path (e.g. `"electronics>audio>headphones"`, split on that
    * field's `separator`, default `">"`) rather than an opaque leaf

@@ -351,7 +351,7 @@ export async function writeIndex(
     built.docStore,
     docStoreShardSize,
   );
-  // An empty corpus (every document was csf-noindex) still emits exactly
+  // An empty corpus (every document was searchable-noindex) still emits exactly
   // one, empty doc-store shard, matching the pre-sharding behavior of
   // always writing docs/0.json regardless of size.
   if (docStoreChunks.length === 0) {

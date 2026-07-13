@@ -200,7 +200,7 @@ package-name references changed by the exact mapping.
 - Produces: TypeScript extraction contract using only `searchable-*` and `data-searchable-*`.
 - Preserves: extracted document types, ranking, facets, pins, and serialized index behavior.
 
-- [ ] **Step 1: Change TypeScript extraction tests to the Searchable controls**
+- [x] **Step 1: Change TypeScript extraction tests to the Searchable controls**
 
 Apply this exact mapping in the listed TypeScript tests and fixtures, but do not
 change `packages/indexer/src/extract.ts` yet:
@@ -220,7 +220,7 @@ csf-pin                -> searchable-pin
 
 Test names and comments must use the new controls as well.
 
-- [ ] **Step 2: Run extraction and end-to-end tests and verify RED**
+- [x] **Step 2: Run extraction and end-to-end tests and verify RED**
 
 Run:
 
@@ -231,7 +231,7 @@ pnpm exec vitest run packages/indexer/test/extract.test.ts packages/indexer/test
 Expected: FAIL because the TypeScript extractor still queries the former
 selectors and prefixes.
 
-- [ ] **Step 3: Implement the Searchable selectors in the TypeScript indexer**
+- [x] **Step 3: Implement the Searchable selectors in the TypeScript indexer**
 
 In `packages/indexer/src/extract.ts`, use these constants and selectors:
 
@@ -257,7 +257,7 @@ Use `searchable-boost`, `searchable-pin`, `searchable-pin-mode`,
 `searchable-pin-priority`, and `searchable-pin-exclusive` in their existing
 queries. Do not add legacy selector alternatives.
 
-- [ ] **Step 4: Update maintained TypeScript producers and documentation**
+- [x] **Step 4: Update maintained TypeScript producers and documentation**
 
 Apply the mapping from Step 1 to:
 
@@ -276,7 +276,7 @@ spec/schema/term-shard.schema.json
 Update comments and diagnostic prose without changing exported type or function
 names.
 
-- [ ] **Step 5: Verify all TypeScript CMS behavior**
+- [x] **Step 5: Verify all TypeScript CMS behavior**
 
 Run:
 
@@ -290,7 +290,7 @@ Expected: tests and type checks pass; the search has no TypeScript or showcase
 matches except the cross-implementation test, which changes with Python in Task
 3.
 
-- [ ] **Step 6: Commit the TypeScript CMS rename**
+- [x] **Step 6: Commit the TypeScript CMS rename**
 
 ```powershell
 git add packages showcase docs/guides docs/reference/cms-meta-tags.md spec/schema/term-shard.schema.json

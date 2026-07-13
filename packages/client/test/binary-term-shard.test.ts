@@ -70,8 +70,8 @@ const sources: SourceDocument[] = [
     id: 1,
     url: "/widgets",
     html: `<html lang="en"><head><title>Amazing Widgets</title>
-      <meta name="csf-facet-category" content="hardware">
-      <meta name="csf-boost" content="1.8"></head>
+      <meta name="searchable-facet-category" content="hardware">
+      <meta name="searchable-boost" content="1.8"></head>
       <body><main><p>Our widgets are wonderful. Buy widgets today. Premium
       support included. Contact support for details. Noise cancelling
       headphones included free.</p></main></body></html>`,
@@ -80,7 +80,7 @@ const sources: SourceDocument[] = [
     id: 2,
     url: "/gadgets",
     html: `<html lang="en"><head><title>Gadgets</title>
-      <meta name="csf-facet-category" content="hardware"></head>
+      <meta name="searchable-facet-category" content="hardware"></head>
       <body><main><p>Gadgets and gizmos, plus a few widgets for good
       measure. Basic support only.</p></main></body></html>`,
   },
@@ -88,14 +88,14 @@ const sources: SourceDocument[] = [
     id: 3,
     url: "/sofa",
     html: `<html lang="en"><head><title>Sofa Selection</title>
-      <meta name="csf-facet-category" content="furniture"></head>
+      <meta name="searchable-facet-category" content="furniture"></head>
       <body><main><p>Our sofa selection is huge.</p></main></body></html>`,
   },
   {
     id: 4,
     url: "/couch-brand",
     html: `<html lang="en"><head><title>Brand X Couch</title>
-      <meta name="csf-facet-category" content="furniture"></head>
+      <meta name="searchable-facet-category" content="furniture"></head>
       <body><main><p>The Brand X couch is elegant.</p></main></body></html>`,
   },
 ];
@@ -264,13 +264,13 @@ describe("binary term shards return identical results to JSON (real HTTP)", () =
     expect(jsonResult.hits.map((h) => h.id).sort()).toEqual([1, 2]);
   });
 
-  it("document boost (csf-boost) still ranks the boosted doc first from a binary term shard", async () => {
+  it("document boost (searchable-boost) still ranks the boosted doc first from a binary term shard", async () => {
     const { json, binary } = clients();
     const [jsonResult, binaryResult] = await Promise.all([
       json.search("widgets"),
       binary.search("widgets"),
     ]);
-    // doc 1 has csf-boost content="1.8"; both implementations must rank
+    // doc 1 has searchable-boost content="1.8"; both implementations must rank
     // it first identically, not just agree on the unordered hit set.
     expect(binaryResult.hits.map((h) => h.id)).toEqual(
       jsonResult.hits.map((h) => h.id),

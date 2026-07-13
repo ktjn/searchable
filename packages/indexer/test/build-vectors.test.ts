@@ -45,7 +45,7 @@ const sources: SourceDocument[] = [
   {
     id: 4,
     url: "/noindex",
-    html: `<html lang="en"><head><title>Hidden</title><meta name="csf-noindex" content="true"></head><body><main><p>Should never be embedded.</p></main></body></html>`,
+    html: `<html lang="en"><head><title>Hidden</title><meta name="searchable-noindex" content="true"></head><body><main><p>Should never be embedded.</p></main></body></html>`,
   },
 ];
 
@@ -62,7 +62,7 @@ describe("buildVectorShards", () => {
     expect(built.shardsByLanguage.de?.entries.map((e) => e.docId)).toEqual([3]);
   });
 
-  it("skips csf-noindex documents, same as buildIndex", async () => {
+  it("skips searchable-noindex documents, same as buildIndex", async () => {
     const built = await buildVectorShards(sources, "en", {
       embed: fixedDimEmbed,
       quantization: "float32",
