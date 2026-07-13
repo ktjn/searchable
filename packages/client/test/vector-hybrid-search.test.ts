@@ -73,7 +73,7 @@ describe("vector/hybrid search mechanics (real HTTP, deterministic synthetic emb
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-vector-hybrid-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-vector-hybrid-"));
     const built = buildIndex(sources, "en");
     const vectors = await buildVectorShards(sources, "en", {
       embed: embedBatch,
@@ -176,7 +176,7 @@ describe("vector embedding-provider mismatch validation (real HTTP)", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-vector-provider-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-vector-provider-"));
     const built = buildIndex(sources, "en");
     const vectors = await buildVectorShards(sources, "en", {
       embed: embedBatch,

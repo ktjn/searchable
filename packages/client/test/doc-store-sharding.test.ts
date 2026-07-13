@@ -57,7 +57,7 @@ describe("doc store sharding by idRange (real HTTP)", () => {
   beforeAll(async () => {
     const sources = makeSources();
 
-    shardedOutDir = await mkdtemp(join(tmpdir(), "csf-docstore-sharded-"));
+    shardedOutDir = await mkdtemp(join(tmpdir(), "searchable-docstore-sharded-"));
     await writeIndex(buildIndex(sources, "en"), shardedOutDir, {
       docStoreShardSize: SHARD_SIZE,
     });
@@ -65,7 +65,7 @@ describe("doc store sharding by idRange (real HTTP)", () => {
     shardedBaseUrl = shardedServer.baseUrl;
     closeShardedServer = shardedServer.close;
 
-    unshardedOutDir = await mkdtemp(join(tmpdir(), "csf-docstore-unsharded-"));
+    unshardedOutDir = await mkdtemp(join(tmpdir(), "searchable-docstore-unsharded-"));
     await writeIndex(buildIndex(sources, "en"), unshardedOutDir);
     const unshardedServer = await serveStatic(unshardedOutDir);
     unshardedBaseUrl = unshardedServer.baseUrl;

@@ -82,14 +82,14 @@ describe("cross-implementation conformance (real TypeScript indexer vs. independ
       url: doc.url,
       html: `<html lang="en"><head><title>${doc.title}</title></head><body><main><p>${doc.body}</p></main></body></html>`,
     }));
-    tsOutDir = await mkdtemp(join(tmpdir(), "csf-conformance-ts-"));
+    tsOutDir = await mkdtemp(join(tmpdir(), "searchable-conformance-ts-"));
     await writeIndex(buildIndex(sources), tsOutDir);
     const tsServer = await serveStatic(tsOutDir);
     tsBaseUrl = tsServer.baseUrl;
     closeTsServer = tsServer.close;
 
     // --- Python side: the independent, from-scratch generator ---
-    pyOutDir = await mkdtemp(join(tmpdir(), "csf-conformance-py-"));
+    pyOutDir = await mkdtemp(join(tmpdir(), "searchable-conformance-py-"));
     execFileSync(
       "python3",
       [pythonGeneratorPath, documentsJsonPath, pyOutDir],

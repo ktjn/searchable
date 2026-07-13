@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add facets (terms/hierarchy/range), synonyms, fuzzy matching, and term pinning to the Python `csf-indexer` package, matching `@ktjn/searchable-indexer`'s `buildIndex()`/`writeIndex()` behavior for these four features.
+**Goal:** Add facets (terms/hierarchy/range), synonyms, fuzzy matching, and term pinning to the Python `searchable-indexer` package, matching `@ktjn/searchable-indexer`'s `buildIndex()`/`writeIndex()` behavior for these four features.
 
-**Architecture:** Four new, focused modules (`facets.py`, `synonyms.py`, `fuzzy.py`, `pins.py`) under `csf_indexer/`, each a direct port of the corresponding TS logic in `packages/indexer/src/build-index.ts`; `build_index.py` and `write_index.py` are extended (not rewritten) to wire them in, following the same pattern as Phase 1+2.
+**Architecture:** Four new, focused modules (`facets.py`, `synonyms.py`, `fuzzy.py`, `pins.py`) under `searchable_indexer/`, each a direct port of the corresponding TS logic in `packages/indexer/src/build-index.ts`; `build_index.py` and `write_index.py` are extended (not rewritten) to wire them in, following the same pattern as Phase 1+2.
 
 **Tech Stack:** Python 3.10+, `uv` + `pytest` (already set up), no new dependencies.
 
@@ -22,9 +22,9 @@
 ## Task 1: `types.py` extension + `facets.py`
 
 **Files:**
-- Modify: `python/csf-indexer/src/csf_indexer/types.py`
-- Create: `python/csf-indexer/src/csf_indexer/facets.py`
-- Test: `python/csf-indexer/tests/test_facets.py`
+- Modify: `python/searchable-indexer/src/searchable_indexer/types.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/facets.py`
+- Test: `python/searchable-indexer/tests/test_facets.py`
 
 **Interfaces:**
 - Produces: `BuiltIndex` gains `facet_shards: dict[str, dict] = field(default_factory=dict)`, `pins_shards: dict[str, dict] = field(default_factory=dict)`, `synonym_shards: dict[str, dict] = field(default_factory=dict)`, `fuzzy_shards: dict[str, dict] = field(default_factory=dict)`.
@@ -58,7 +58,7 @@ class BuiltIndex:
 
 - [ ] **Step 2: Write the failing tests for `types.py`'s new fields**
 
-Append to `python/csf-indexer/tests/test_types.py`:
+Append to `python/searchable-indexer/tests/test_types.py`:
 
 ```python
 def test_built_index_new_fields_default_to_empty_dicts():
@@ -72,7 +72,7 @@ def test_built_index_new_fields_default_to_empty_dicts():
 - [ ] **Step 3: Run test to verify it fails**
 
 ```bash
-cd python/csf-indexer
+cd python/searchable-indexer
 uv run pytest tests/test_types.py -v
 ```
 Expected: FAIL — `TypeError: BuiltIndex.__init__() got an unexpected keyword argument` is NOT what happens here (the test doesn't pass those kwargs); instead it fails with `AttributeError: 'BuiltIndex' object has no attribute 'facet_shards'`.
@@ -87,7 +87,7 @@ Expected: PASS (5 passed — 4 pre-existing + 1 new).
 - [ ] **Step 5: Write the failing tests for `facets.py`**
 
 ```python
-from csf_indexer.facets import (
+from searchable_indexer.facets import (
     RANGE_FACET_BUCKET_COUNT,
     add_facet_values,
     add_range_facet_values,
@@ -214,7 +214,7 @@ def test_compute_range_facet_buckets_does_nothing_for_empty_sorted():
 ```bash
 uv run pytest tests/test_facets.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.facets'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.facets'`.
 
 - [ ] **Step 7: Implement `facets.py`**
 
@@ -377,8 +377,8 @@ Expected: PASS (11 + 5 = 16 passed).
 - [ ] **Step 9: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/types.py python/csf-indexer/src/csf_indexer/facets.py python/csf-indexer/tests/test_facets.py python/csf-indexer/tests/test_types.py
-git commit -m "feat(csf-indexer): add facets.py (terms/hierarchy/range facets), extend BuiltIndex"
+git add python/searchable-indexer/src/searchable_indexer/types.py python/searchable-indexer/src/searchable_indexer/facets.py python/searchable-indexer/tests/test_facets.py python/searchable-indexer/tests/test_types.py
+git commit -m "feat(searchable-indexer): add facets.py (terms/hierarchy/range facets), extend BuiltIndex"
 ```
 
 ---
@@ -386,17 +386,17 @@ git commit -m "feat(csf-indexer): add facets.py (terms/hierarchy/range facets), 
 ## Task 2: `synonyms.py`
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/synonyms.py`
-- Test: `python/csf-indexer/tests/test_synonyms.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/synonyms.py`
+- Test: `python/searchable-indexer/tests/test_synonyms.py`
 
 **Interfaces:**
-- Consumes: `get_language_profile`, `normalize_phrase` from `csf_analysis` (already available — `csf-indexer` depends on `csf-analysis`).
+- Consumes: `get_language_profile`, `normalize_phrase` from `searchable_analysis` (already available — `searchable-indexer` depends on `searchable-analysis`).
 - Produces: `build_synonym_shards(raw_synonyms: dict[str, dict] | None) -> dict[str, dict]`, used by `build_index.py` in Task 5.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-from csf_indexer.synonyms import build_synonym_shards
+from searchable_indexer.synonyms import build_synonym_shards
 
 
 def test_returns_empty_dict_for_none_input():
@@ -463,12 +463,12 @@ def test_empty_source_produces_a_shard_with_no_keys():
 ```bash
 uv run pytest tests/test_synonyms.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.synonyms'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.synonyms'`.
 
 - [ ] **Step 3: Implement `synonyms.py`**
 
 ```python
-from csf_analysis import get_language_profile, normalize_phrase
+from searchable_analysis import get_language_profile, normalize_phrase
 
 # Direct port of packages/indexer/src/build-index.ts's buildSynonymShards.
 
@@ -532,8 +532,8 @@ Expected: PASS (8 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/synonyms.py python/csf-indexer/tests/test_synonyms.py
-git commit -m "feat(csf-indexer): add synonyms.py (equivalences/directional/multiWord normalization)"
+git add python/searchable-indexer/src/searchable_indexer/synonyms.py python/searchable-indexer/tests/test_synonyms.py
+git commit -m "feat(searchable-indexer): add synonyms.py (equivalences/directional/multiWord normalization)"
 ```
 
 ---
@@ -541,8 +541,8 @@ git commit -m "feat(csf-indexer): add synonyms.py (equivalences/directional/mult
 ## Task 3: `fuzzy.py`
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/fuzzy.py`
-- Test: `python/csf-indexer/tests/test_fuzzy.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/fuzzy.py`
+- Test: `python/searchable-indexer/tests/test_fuzzy.py`
 
 **Interfaces:**
 - Produces: `build_fuzzy_shard(term_shard: dict, max_edits: int) -> dict`, used by `build_index.py` in Task 5.
@@ -550,7 +550,7 @@ git commit -m "feat(csf-indexer): add synonyms.py (equivalences/directional/mult
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-from csf_indexer.fuzzy import build_fuzzy_shard
+from searchable_indexer.fuzzy import build_fuzzy_shard
 
 
 def test_max_edits_1_generates_single_deletion_variants():
@@ -596,7 +596,7 @@ def test_empty_term_shard_produces_empty_deletions():
 ```bash
 uv run pytest tests/test_fuzzy.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.fuzzy'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.fuzzy'`.
 
 - [ ] **Step 3: Implement `fuzzy.py`**
 
@@ -641,8 +641,8 @@ Expected: PASS (4 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/fuzzy.py python/csf-indexer/tests/test_fuzzy.py
-git commit -m "feat(csf-indexer): add fuzzy.py (SymSpell deletion dictionary)"
+git add python/searchable-indexer/src/searchable_indexer/fuzzy.py python/searchable-indexer/tests/test_fuzzy.py
+git commit -m "feat(searchable-indexer): add fuzzy.py (SymSpell deletion dictionary)"
 ```
 
 ---
@@ -650,8 +650,8 @@ git commit -m "feat(csf-indexer): add fuzzy.py (SymSpell deletion dictionary)"
 ## Task 4: `pins.py`
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/pins.py`
-- Test: `python/csf-indexer/tests/test_pins.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/pins.py`
+- Test: `python/searchable-indexer/tests/test_pins.py`
 
 **Interfaces:**
 - Produces: `resolve_pins(pins_acc_by_language: dict[str, dict[str, dict]]) -> tuple[dict[str, dict], list[str]]`, used by `build_index.py` in Task 5. Input shape: language → normalized phrase → `{"mode": str, "docs": [{"id": int, "priority": float, "exclusive": bool, "boost": float}, ...]}`.
@@ -659,7 +659,7 @@ git commit -m "feat(csf-indexer): add fuzzy.py (SymSpell deletion dictionary)"
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-from csf_indexer.pins import resolve_pins
+from searchable_indexer.pins import resolve_pins
 
 
 def test_single_pin_no_conflict_produces_no_warning():
@@ -735,7 +735,7 @@ def test_empty_accumulator_produces_no_shards_or_warnings():
 ```bash
 uv run pytest tests/test_pins.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.pins'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.pins'`.
 
 - [ ] **Step 3: Implement `pins.py`**
 
@@ -799,8 +799,8 @@ Expected: PASS (7 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/pins.py python/csf-indexer/tests/test_pins.py
-git commit -m "feat(csf-indexer): add pins.py (pin conflict resolution and tie-break)"
+git add python/searchable-indexer/src/searchable_indexer/pins.py python/searchable-indexer/tests/test_pins.py
+git commit -m "feat(searchable-indexer): add pins.py (pin conflict resolution and tie-break)"
 ```
 
 ---
@@ -808,11 +808,11 @@ git commit -m "feat(csf-indexer): add pins.py (pin conflict resolution and tie-b
 ## Task 5: `build_index.py` integration
 
 **Files:**
-- Modify: `python/csf-indexer/src/csf_indexer/build_index.py`
-- Test: `python/csf-indexer/tests/test_build_index.py` (append)
+- Modify: `python/searchable-indexer/src/searchable_indexer/build_index.py`
+- Test: `python/searchable-indexer/tests/test_build_index.py` (append)
 
 **Interfaces:**
-- Consumes: `add_facet_values`, `add_range_facet_values`, `compute_range_facet_buckets_equal_width`, `compute_range_facet_buckets_explicit`, `RANGE_FACET_BUCKET_COUNT` (Task 1); `build_synonym_shards` (Task 2); `build_fuzzy_shard` (Task 3); `resolve_pins` (Task 4); `normalize_phrase` (from `csf_analysis`, already a dependency).
+- Consumes: `add_facet_values`, `add_range_facet_values`, `compute_range_facet_buckets_equal_width`, `compute_range_facet_buckets_explicit`, `RANGE_FACET_BUCKET_COUNT` (Task 1); `build_synonym_shards` (Task 2); `build_fuzzy_shard` (Task 3); `resolve_pins` (Task 4); `normalize_phrase` (from `searchable_analysis`, already a dependency).
 - Produces: `build_index()` gains keyword arguments `hierarchical_facets`, `range_facet_buckets`, `synonyms`, `fuzzy`, `fuzzy_max_edits`; returns a `BuiltIndex` with `facet_shards`/`pins_shards`/`synonym_shards`/`fuzzy_shards` populated. Used by `write_index.py` in Task 6.
 
 - [ ] **Step 1: Write the failing tests (append to `test_build_index.py`)**
@@ -820,8 +820,8 @@ git commit -m "feat(csf-indexer): add pins.py (pin conflict resolution and tie-b
 ```python
 import pytest
 
-from csf_indexer.build_index import build_index
-from csf_indexer.types import SourceDocument
+from searchable_indexer.build_index import build_index
+from searchable_indexer.types import SourceDocument
 
 
 def _doc_with_meta(doc_id: int, url: str, title: str, body: str, extra_head: str = "") -> SourceDocument:
@@ -832,10 +832,10 @@ def _doc_with_meta(doc_id: int, url: str, title: str, body: str, extra_head: str
     return SourceDocument(id=doc_id, url=url, html=html)
 
 
-def test_terms_facets_are_indexed_from_csf_facet_meta_tags():
+def test_terms_facets_are_indexed_from_searchable_facet_meta_tags():
     doc = _doc_with_meta(
         1, "/a", "Widgets", "widgets",
-        extra_head='<meta name="csf-facet-color" content="red">',
+        extra_head='<meta name="searchable-facet-color" content="red">',
     )
     built = build_index([doc])
     assert built.facet_shards["color"]["type"] == "terms"
@@ -845,7 +845,7 @@ def test_terms_facets_are_indexed_from_csf_facet_meta_tags():
 def test_hierarchical_facets_option_produces_hierarchy_shard():
     doc = _doc_with_meta(
         1, "/a", "Widgets", "widgets",
-        extra_head='<meta name="csf-facet-category" content="a>b">',
+        extra_head='<meta name="searchable-facet-category" content="a>b">',
     )
     built = build_index([doc], hierarchical_facets={"category": {}})
     assert built.facet_shards["category"]["type"] == "hierarchy"
@@ -857,7 +857,7 @@ def test_range_facets_get_default_5_equal_width_buckets():
     docs = [
         _doc_with_meta(
             i, f"/d{i}", "T", "b",
-            extra_head=f'<meta name="csf-facet-range-price" content="{price}">',
+            extra_head=f'<meta name="searchable-facet-range-price" content="{price}">',
         )
         for i, price in enumerate([10, 50, 90], start=1)
     ]
@@ -870,7 +870,7 @@ def test_range_facet_buckets_option_overrides_default_count():
     docs = [
         _doc_with_meta(
             i, f"/d{i}", "T", "b",
-            extra_head=f'<meta name="csf-facet-range-price" content="{price}">',
+            extra_head=f'<meta name="searchable-facet-range-price" content="{price}">',
         )
         for i, price in enumerate([10, 50, 90], start=1)
     ]
@@ -897,7 +897,7 @@ def test_manifest_facet_fields_present_only_when_facets_exist():
 
     doc2 = _doc_with_meta(
         1, "/a", "T", "b",
-        extra_head='<meta name="csf-facet-color" content="red">',
+        extra_head='<meta name="searchable-facet-color" content="red">',
     )
     built2 = build_index([doc2])
     assert built2.manifest["facetFields"] == ["color"]
@@ -906,7 +906,7 @@ def test_manifest_facet_fields_present_only_when_facets_exist():
 def test_pins_are_accumulated_and_resolved():
     doc = _doc_with_meta(
         1, "/a", "Widgets", "widgets are great",
-        extra_head='<meta name="csf-pin" content="widgets">',
+        extra_head='<meta name="searchable-pin" content="widgets">',
     )
     built = build_index([doc])
     assert "widget" in built.pins_shards["en"]
@@ -915,10 +915,10 @@ def test_pins_are_accumulated_and_resolved():
 
 def test_pin_conflict_prints_a_warning_to_stderr(capsys):
     doc1 = _doc_with_meta(
-        1, "/a", "T", "b", extra_head='<meta name="csf-pin" content="widgets">'
+        1, "/a", "T", "b", extra_head='<meta name="searchable-pin" content="widgets">'
     )
     doc2 = _doc_with_meta(
-        2, "/b", "T", "b", extra_head='<meta name="csf-pin" content="widgets">'
+        2, "/b", "T", "b", extra_head='<meta name="searchable-pin" content="widgets">'
     )
     build_index([doc1, doc2])
     captured = capsys.readouterr()
@@ -965,19 +965,19 @@ Add imports at the top of the file:
 import math
 import sys
 
-from csf_analysis import analyze, get_language_profile, normalize_phrase
-from csf_indexer.extract import extract_document
-from csf_indexer.facets import (
+from searchable_analysis import analyze, get_language_profile, normalize_phrase
+from searchable_indexer.extract import extract_document
+from searchable_indexer.facets import (
     RANGE_FACET_BUCKET_COUNT,
     add_facet_values,
     add_range_facet_values,
     compute_range_facet_buckets_equal_width,
     compute_range_facet_buckets_explicit,
 )
-from csf_indexer.fuzzy import build_fuzzy_shard
-from csf_indexer.pins import resolve_pins
-from csf_indexer.synonyms import build_synonym_shards
-from csf_indexer.types import BuiltIndex, SourceDocument
+from searchable_indexer.fuzzy import build_fuzzy_shard
+from searchable_indexer.pins import resolve_pins
+from searchable_indexer.synonyms import build_synonym_shards
+from searchable_indexer.types import BuiltIndex, SourceDocument
 ```
 
 (This replaces the existing narrower import block at the top of the file — `datetime` stays as its own `import datetime` line, unchanged.)
@@ -1111,7 +1111,7 @@ def build_index(
 
     pins_shards, pin_warnings = resolve_pins(pins_acc_by_language)
     for warning in pin_warnings:
-        print(f"[csf-indexer] {warning}", file=sys.stderr)
+        print(f"[searchable-indexer] {warning}", file=sys.stderr)
 
     for term_shard in term_shards.values():
         for entry in term_shard.values():
@@ -1196,8 +1196,8 @@ Expected: PASS (all tests, including every prior task's, pass with no regression
 - [ ] **Step 6: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/build_index.py python/csf-indexer/tests/test_build_index.py
-git commit -m "feat(csf-indexer): wire facets/synonyms/fuzzy/pins into build_index"
+git add python/searchable-indexer/src/searchable_indexer/build_index.py python/searchable-indexer/tests/test_build_index.py
+git commit -m "feat(searchable-indexer): wire facets/synonyms/fuzzy/pins into build_index"
 ```
 
 ---
@@ -1205,8 +1205,8 @@ git commit -m "feat(csf-indexer): wire facets/synonyms/fuzzy/pins into build_ind
 ## Task 6: `write_index.py` integration
 
 **Files:**
-- Modify: `python/csf-indexer/src/csf_indexer/write_index.py`
-- Test: `python/csf-indexer/tests/test_write_index.py` (append)
+- Modify: `python/searchable-indexer/src/searchable_indexer/write_index.py`
+- Test: `python/searchable-indexer/tests/test_write_index.py` (append)
 
 **Interfaces:**
 - Consumes: `built.facet_shards`, `built.pins_shards`, `built.synonym_shards`, `built.fuzzy_shards` (Task 1/5).
@@ -1217,9 +1217,9 @@ git commit -m "feat(csf-indexer): wire facets/synonyms/fuzzy/pins into build_ind
 ```python
 import json
 
-from csf_indexer.build_index import build_index
-from csf_indexer.types import SourceDocument
-from csf_indexer.write_index import write_index
+from searchable_indexer.build_index import build_index
+from searchable_indexer.types import SourceDocument
+from searchable_indexer.write_index import write_index
 
 
 def _doc_with_meta(doc_id, url, title, body, extra_head=""):
@@ -1232,7 +1232,7 @@ def _doc_with_meta(doc_id, url, title, body, extra_head=""):
 
 def test_facet_shard_is_written_and_referenced_in_manifest(tmp_path):
     doc = _doc_with_meta(
-        1, "/a", "T", "b", extra_head='<meta name="csf-facet-color" content="red">'
+        1, "/a", "T", "b", extra_head='<meta name="searchable-facet-color" content="red">'
     )
     built = build_index([doc])
     write_index(built, str(tmp_path))
@@ -1255,7 +1255,7 @@ def test_no_facets_section_when_no_facets_present(tmp_path):
 
 def test_pins_shard_is_written_and_referenced_in_manifest(tmp_path):
     doc = _doc_with_meta(
-        1, "/a", "Widgets", "widgets", extra_head='<meta name="csf-pin" content="widgets">'
+        1, "/a", "Widgets", "widgets", extra_head='<meta name="searchable-pin" content="widgets">'
     )
     built = build_index([doc])
     write_index(built, str(tmp_path))
@@ -1396,8 +1396,8 @@ Expected: PASS (all tests).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/write_index.py python/csf-indexer/tests/test_write_index.py
-git commit -m "feat(csf-indexer): write facets/pins/synonyms/fuzzy shards and manifest sections"
+git add python/searchable-indexer/src/searchable_indexer/write_index.py python/searchable-indexer/tests/test_write_index.py
+git commit -m "feat(searchable-indexer): write facets/pins/synonyms/fuzzy shards and manifest sections"
 ```
 
 ---
@@ -1405,7 +1405,7 @@ git commit -m "feat(csf-indexer): write facets/pins/synonyms/fuzzy shards and ma
 ## Task 7: Schema conformance test extension
 
 **Files:**
-- Modify: `python/csf-indexer/tests/test_schema_conformance.py` (append)
+- Modify: `python/searchable-indexer/tests/test_schema_conformance.py` (append)
 
 **Interfaces:**
 - Consumes: `build_index`, `write_index` (with the new kwargs from Tasks 5-6); `spec/schema/facet-shard.schema.json`, `pins-shard.schema.json`, `synonym-shard.schema.json`, `fuzzy-shard.schema.json`.
@@ -1418,8 +1418,8 @@ def test_facet_shard_validates_against_facet_shard_schema(tmp_path):
         SourceDocument(
             id=1, url="/a",
             html='<html lang="en"><head><title>T</title>'
-                 '<meta name="csf-facet-category" content="a>b">'
-                 '<meta name="csf-facet-range-price" content="19.99">'
+                 '<meta name="searchable-facet-category" content="a>b">'
+                 '<meta name="searchable-facet-range-price" content="19.99">'
                  '</head><body><main>widgets are great</main></body></html>',
         ),
     ]
@@ -1438,7 +1438,7 @@ def test_pins_shard_validates_against_pins_shard_schema(tmp_path):
         SourceDocument(
             id=1, url="/a",
             html='<html lang="en"><head><title>T</title>'
-                 '<meta name="csf-pin" content="widgets"></head>'
+                 '<meta name="searchable-pin" content="widgets"></head>'
                  "<body><main>widgets are great</main></body></html>",
         ),
     ]
@@ -1495,8 +1495,8 @@ Expected: PASS (3 pre-existing + 4 new = 7 passed).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add python/csf-indexer/tests/test_schema_conformance.py
-git commit -m "test(csf-indexer): validate facet/pins/synonym/fuzzy shards against spec/schema"
+git add python/searchable-indexer/tests/test_schema_conformance.py
+git commit -m "test(searchable-indexer): validate facet/pins/synonym/fuzzy shards against spec/schema"
 ```
 
 ---
@@ -1507,9 +1507,9 @@ git commit -m "test(csf-indexer): validate facet/pins/synonym/fuzzy shards again
 - Modify: `packages/client/test/cross-implementation-conformance-python-indexer.test.ts`
 
 **Interfaces:**
-- Consumes: the installed `csf-indexer` Python CLI (already used by the existing tests in this file, from Phase 2); `SearchClient` from `@ktjn/searchable-client`.
+- Consumes: the installed `searchable-indexer` Python CLI (already used by the existing tests in this file, from Phase 2); `SearchClient` from `@ktjn/searchable-client`.
 
-Note: the Python `csf-indexer` CLI (`cli.py`) currently calls `build_index(sources)` and `write_index(built, out_dir)` with no extra options — it does not yet expose a way to pass `hierarchical_facets`/`range_facet_buckets`/`synonyms`/`fuzzy`/`fuzzy_max_edits` from the command line. This task tests facets/pins (which are driven entirely by `csf-facet-*`/`csf-pin*` HTML meta tags, needing no CLI flag) and does NOT attempt to test synonyms/fuzzy cross-implementation conformance via the CLI, since neither the Python nor the TS `csf-indexer` CLI exposes those as CLI flags today — both require the programmatic `buildIndex()`/`build_index()` API. Cross-implementation conformance for synonyms/fuzzy is deferred to whenever CLI flag support for both sides is added (out of scope for this plan).
+Note: the Python `searchable-indexer` CLI (`cli.py`) currently calls `build_index(sources)` and `write_index(built, out_dir)` with no extra options — it does not yet expose a way to pass `hierarchical_facets`/`range_facet_buckets`/`synonyms`/`fuzzy`/`fuzzy_max_edits` from the command line. This task tests facets/pins (which are driven entirely by `searchable-facet-*`/`searchable-pin*` HTML meta tags, needing no CLI flag) and does NOT attempt to test synonyms/fuzzy cross-implementation conformance via the CLI, since neither the Python nor the TS `searchable-indexer` CLI exposes those as CLI flags today — both require the programmatic `buildIndex()`/`build_index()` API. Cross-implementation conformance for synonyms/fuzzy is deferred to whenever CLI flag support for both sides is added (out of scope for this plan).
 
 - [ ] **Step 1: Read the existing file to match its structure**
 
@@ -1519,10 +1519,10 @@ cat packages/client/test/cross-implementation-conformance-python-indexer.test.ts
 
 - [ ] **Step 2: Add a new fixture document and a new `it` block**
 
-Add one more document to the `FIXTURE_SOURCES`-equivalent array/fixture set already defined in this file (check its exact current variable name and shape by reading the file per Step 1), with a `csf-facet-category` and a `csf-pin` meta tag, e.g.:
+Add one more document to the `FIXTURE_SOURCES`-equivalent array/fixture set already defined in this file (check its exact current variable name and shape by reading the file per Step 1), with a `searchable-facet-category` and a `searchable-pin` meta tag, e.g.:
 
 ```html
-<html lang="en"><head><title>Gizmos</title><meta name="csf-facet-category" content="electronics"><meta name="csf-pin" content="gizmos"></head><body><main>Gizmos and gadgets for the modern home.</main></body></html>
+<html lang="en"><head><title>Gizmos</title><meta name="searchable-facet-category" content="electronics"><meta name="searchable-pin" content="gizmos"></head><body><main>Gizmos and gadgets for the modern home.</main></body></html>
 ```
 
 Then add a new `it` block to the existing `describe` in this file:

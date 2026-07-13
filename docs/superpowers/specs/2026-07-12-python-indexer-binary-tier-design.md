@@ -5,7 +5,7 @@ Status: approved, not yet implemented.
 ## Context
 
 Phase 1+2 (PR #13) and Phase 3 (PR #14) shipped a fully-featured
-JSON-only Python `csf-indexer`. Per the original decomposition, two
+JSON-only Python `searchable-indexer`. Per the original decomposition, two
 phases remain: vector embeddings and the binary storage tier. This
 spec covers the binary storage tier, done first (before vectors) per
 explicit direction.
@@ -33,7 +33,7 @@ the binary tier is purely a `write_index()`-time encoding choice.
 
 ## Module layout
 
-Four new modules under `python/csf-indexer/src/csf_indexer/`:
+Four new modules under `python/searchable-indexer/src/searchable_indexer/`:
 
 - **`byte_writer.py`** — `ByteWriter` class: `write_varint(value: int)`,
   `write_bytes(data: bytes)`, `write_string(s: str)`,

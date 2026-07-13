@@ -5,10 +5,10 @@ Status: approved, not yet implemented.
 ## Context
 
 Phase 1+2 (`docs/superpowers/specs/2026-07-11-python-indexer-phase1-2-design.md`,
-merged in PR #13) shipped `csf-analysis` and the lexical core of
-`csf-indexer` — a working, queryable JSON index with no facets,
+merged in PR #13) shipped `searchable-analysis` and the lexical core of
+`searchable-indexer` — a working, queryable JSON index with no facets,
 synonyms, fuzzy matching, or term pinning. `extract.py` already parses
-`csf-facet-*`, `csf-facet-range-*`, and `csf-pin*` meta tags (for
+`searchable-facet-*`, `searchable-facet-range-*`, and `searchable-pin*` meta tags (for
 forward compatibility, per the Phase 1+2 spec), but `build_index.py`
 has never consumed that data. This spec covers the third phase from
 the original decomposition: making that data actually build shards.
@@ -28,7 +28,7 @@ tier (`binary-*.ts`).
 
 ## Module layout
 
-New modules under `python/csf-indexer/src/csf_indexer/`, splitting by
+New modules under `python/searchable-indexer/src/searchable_indexer/`, splitting by
 concern rather than mirroring `build-index.ts`'s single 840-line file —
 consistent with how the Python port has split every other TS file with
 more than one responsibility so far (`segment_cjk.py`/`segment_sea.py`
@@ -47,7 +47,7 @@ instead of one stemmer file):
 - **`synonyms.py`** — `build_synonym_shards()`: normalizes
   author-supplied `equivalences`/`directional`/`multiWord` entries
   through each language's own `normalize_phrase()` (from
-  `csf_analysis`), so a synonym authored as a surface form matches
+  `searchable_analysis`), so a synonym authored as a surface form matches
   however that term is actually stored. Drops empty/single-member
   groups. Direct port of `buildSynonymShards`.
 - **`fuzzy.py`** — `build_fuzzy_shard()`: SymSpell-style deletion

@@ -22,7 +22,7 @@ declare const self: ServiceWorkerGlobalScope;
  * incorrectly. Pruning that dead weight is a known future
  * improvement, not attempted here.
  */
-const CACHE_NAME = "csf-offline";
+const CACHE_NAME = "searchable-offline";
 
 function resolve(baseUrl: string, relPath: string): string {
   return new URL(relPath, baseUrl).href;
@@ -38,7 +38,7 @@ function parseConfig(): {
   const indexUrl = params.get("indexUrl");
   if (!indexUrl) {
     throw new Error(
-      "csf offline Service Worker: missing required 'indexUrl' query param on its own script URL -- register it via registerOfflineCaching(), not directly",
+      "searchable offline Service Worker: missing required 'indexUrl' query param on its own script URL -- register it via registerOfflineCaching(), not directly",
     );
   }
   const mode =

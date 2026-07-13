@@ -39,13 +39,13 @@ describe("binary fuzzy shards return identical results to JSON (real HTTP)", () 
   let binaryOutDir: string;
 
   beforeAll(async () => {
-    jsonOutDir = await mkdtemp(join(tmpdir(), "csf-binary-fuzzy-json-"));
+    jsonOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-fuzzy-json-"));
     await writeIndex(buildIndex(sources, "en", { fuzzy: true }), jsonOutDir);
     const jsonServer = await serveStatic(jsonOutDir);
     jsonBaseUrl = jsonServer.baseUrl;
     closeJsonServer = jsonServer.close;
 
-    binaryOutDir = await mkdtemp(join(tmpdir(), "csf-binary-fuzzy-bin-"));
+    binaryOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-fuzzy-bin-"));
     await writeIndex(buildIndex(sources, "en", { fuzzy: true }), binaryOutDir, {
       fuzzyShardFormat: "binary",
     });

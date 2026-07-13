@@ -47,8 +47,8 @@ import { buildIndex, writeIndex } from "../dist/index.js";
  * "first-query cost stays roughly flat as the corpus grows" claim.
  */
 
-const SIZES = process.env.CSF_BENCH_SIZES
-  ? process.env.CSF_BENCH_SIZES.split(",").map(Number)
+const SIZES = process.env.SEARCHABLE_BENCH_SIZES
+  ? process.env.SEARCHABLE_BENCH_SIZES.split(",").map(Number)
   : [1000, 10000, 100000];
 
 function formatBytes(n) {
@@ -136,7 +136,7 @@ async function benchOne(count) {
   const built = buildIndex(sources);
   const buildMs = performance.now() - buildStart;
 
-  const outDir = await mkdtemp(join(tmpdir(), "csf-bench-json-tier-"));
+  const outDir = await mkdtemp(join(tmpdir(), "searchable-bench-json-tier-"));
   const writeStart = performance.now();
   await writeIndex(built, outDir);
   const writeMs = performance.now() - writeStart;

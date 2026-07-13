@@ -112,8 +112,8 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
 **Phase 1 — Minimal viable engine (single language, JSON tier only)**
 - ✅ Reference indexer — [`packages/indexer/`](../../../packages/indexer/):
   parses rendered HTML (title, `<main>`/body-minus-boilerplate,
-  `csf-noindex`, `data-csf-body`/`data-csf-ignore`, canonical URL, meta
-  description) per the `csf-*` meta-tag control surface
+  `searchable-noindex`, `data-searchable-body`/`data-searchable-ignore`, canonical URL, meta
+  description) per the `searchable-*` meta-tag control surface
   ([../../reference/cms-meta-tags.md](../../reference/cms-meta-tags.md)), tokenizes
   via the shared [`packages/analysis/`](../../../packages/analysis/) package,
   emits a content-hashed manifest + single term shard + doc store shard
@@ -136,7 +136,7 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
   (`search(query, { boosts: { fields } })`).
 - ✅ Term boosts: `search(query, { boosts: { terms } })` multiplies one
   specific query term's score contribution.
-- ✅ Document boosts: `csf-boost` meta tag, applied as a final
+- ✅ Document boosts: `searchable-boost` meta tag, applied as a final
   per-document multiplier (see Phase 1's `len` note — `boost` is
   denormalized onto term-shard postings the same way, for the same
   reason: it must be known before the doc-store fetch, not after).
@@ -188,7 +188,7 @@ splitting docs/07 into implemented-vs-target) are all fixed with tests.
 Phase 2 is now fully implemented.
 
 **Phase 3 — Facets & curated pins**
-- ✅ Terms facets: extraction (repeatable `csf-facet-<field>` meta tags,
+- ✅ Terms facets: extraction (repeatable `searchable-facet-<field>` meta tags,
   [../../reference/cms-meta-tags.md](../../reference/cms-meta-tags.md)), a
   shard-per-field format matching `spec/schema/facet-shard.schema.json`,
   `search()` options `filters` (OR within one field's array of values,
@@ -196,7 +196,7 @@ Phase 2 is now fully implemented.
   every *other* active filter but not a field's own, so switching
   between values of the same facet shows real counts instead of the
   post-filter count for all of them).
-- ✅ Range facet *filtering*: `csf-facet-range-<field>` extraction (one
+- ✅ Range facet *filtering*: `searchable-facet-range-<field>` extraction (one
   numeric value per doc, unlike terms facets' multi-value), a `type:
   "range"` shard storing every `(value, doc)` pair sorted ascending
   (`FacetShard.sorted`), and `search(query, {filters: {field: {min?,
@@ -238,7 +238,7 @@ Phase 2 is now fully implemented.
   [`packages/indexer/src/build-index.ts`](../../../packages/indexer/src/build-index.ts)):
   a build-time option, `buildIndex(sources, lang, {
   hierarchicalFacets: { category: { separator?: ">" } } })`, marks a
-  `csf-facet-<field>` field as path-structured — each authored value
+  `searchable-facet-<field>` field as path-structured — each authored value
   (e.g. `"electronics>audio>headphones"`) expands into every ancestor
   prefix (`"electronics"`, `"electronics>audio"`,
   `"electronics>audio>headphones"`), each indexed as its own
@@ -259,8 +259,8 @@ Phase 2 is now fully implemented.
   shard, same as an ordinary terms facet) and author-configurable
   min/max depth.
 - ✅ Term-to-page pinning ([../../guides/pinning.md](../../guides/pinning.md)):
-  extraction of `csf-pin`/`csf-pin-mode`/`csf-pin-priority`/
-  `csf-pin-exclusive`, a pins shard keyed by the same normalized-phrase
+  extraction of `searchable-pin`/`searchable-pin-mode`/`searchable-pin-priority`/
+  `searchable-pin-exclusive`, a pins shard keyed by the same normalized-phrase
   form as any indexed term, exact/contains matching at query time
   independent of whether the organic query itself matched anything,
   priority → doc-boost → build-order conflict resolution (with a build
@@ -411,7 +411,7 @@ Phase 2 is now fully implemented.
   ([08-modern-features.md](../../concepts/architecture.md)), no
   Arabic/Hebrew `LanguageProfile` is built (a separate, much larger
   undertaking — real stemming/segmentation for those scripts), and no
-  future `@csf/react` package exists yet to consume any of this — this
+  future `@ktjn/searchable-react` package exists yet to consume any of this — this
   slice is the one small, stable, deterministic primitive the core
   library is actually positioned to hand over today.
 - ✅ `SearchResult.language` (`packages/client/src/search.ts`): the
@@ -595,7 +595,7 @@ Phase 2 is now fully implemented.
   order. Only requests under the manifest's own directory are ever
   intercepted, so this Service Worker's presence never adds latency to
   unrelated page traffic. One flat, unversioned cache
-  (`"csf-offline"`) rather than one keyed by `manifest.buildId`: since
+  (`"searchable-offline"`) rather than one keyed by `manifest.buildId`: since
   every shard file is already content-hashed
   (docs/02-index-format.md#versioning--cache-strategy), a new build's
   shard URLs simply differ from the old build's, and the only
@@ -683,7 +683,7 @@ Phase 2 is now fully implemented.
   real-browser Playwright tests. Scoped narrower than the target
   design: no full WAI-ARIA combobox/listbox pattern (roving
   `aria-activedescendant`, arrow-key navigation) and no RTL layout —
-  both deferred to the future `@csf/react` package, since these are
+  both deferred to the future `@ktjn/searchable-react` package, since these are
   plain-DOM demo widgets, not a reusable accessible-by-default
   component library.
 
@@ -893,7 +893,7 @@ Phase 2 is now fully implemented.
   (including a deliberately-constructed distance-2-via-symmetric-delete
   case that fails strict fuzzy matching but still surfaces as a
   suggestion), and identical `url`/stored `fields`/`score` — the last
-  exercising the float64 `csf-boost` round-trip — for both formats
+  exercising the float64 `searchable-boost` round-trip — for both formats
   built from the same corpus.
 - ✅ Doc store multi-shard splitting (issue #1 finding 6,
   `WriteIndexOptions.docStoreShardSize`,
@@ -973,7 +973,7 @@ Phase 2 is now fully implemented.
   `packages/client/test/transformers-embed.test.ts`), not a completed
   real-model download in this session. Each test file also carries an
   explicitly opt-in real-model test, gated behind
-  `CSF_TEST_REAL_TRANSFORMERS=1` and skipped by default, for
+  `SEARCHABLE_TEST_REAL_TRANSFORMERS=1` and skipped by default, for
   environments that do have that network access.
 - Still not built: a remote embedding-API option (`embed`/`embedQuery`
   stay an arbitrary injectable seam either way, so this is additive, not
@@ -1010,7 +1010,7 @@ Phase 2 is now fully implemented.
     to function, so it was removed.
   - ✅ Stage 2 (feature gallery) — all 4 demos built: the product
     catalog demo (64 synthetic products, terms facets,
-    `csf-boost`-featured items, a `csf-pin` best-bet), the typo-
+    `searchable-boost`-featured items, a `searchable-pin` best-bet), the typo-
     tolerance demo (same corpus, a fuzzy on/off toggle), the synonym
     playground (6 docs with deliberately non-overlapping vocabulary, a
     symmetric equivalence class and a directional pair, expansion-only

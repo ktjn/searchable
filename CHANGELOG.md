@@ -59,8 +59,8 @@ version number.
   structurally invalid, cross-origin-shard, or unsupported-`version`
   manifest with a named `InvalidManifestError` before any query runs
   ([Compatibility](docs/reference/compatibility.md#index-format-compatibility)).
-- **Reference indexer CLI** (`csf-indexer`): parses rendered HTML via
-  the [`csf-*` meta-tag control surface](docs/reference/cms-meta-tags.md) and emits a
+- **Reference indexer CLI** (`searchable-indexer`): parses rendered HTML via
+  the [`searchable-*` meta-tag control surface](docs/reference/cms-meta-tags.md) and emits a
   content-hashed manifest + shards.
 - Five retroactive ADRs (`docs/adr/`) recording the transport, index
   format, ranking model, compatibility policy, and plugin/opt-in-tier

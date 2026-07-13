@@ -36,7 +36,7 @@ export interface BuildIndexOptions {
   /**
    * Author-supplied synonym data, keyed by language — unlike facets/
    * pins, synonyms are corpus-vocabulary curation, not per-page
-   * metadata, so there's no csf-* meta tag for this
+   * metadata, so there's no searchable-* meta tag for this
    * (docs/guides/synonyms.md). Entries are single words/phrases as authored
    * (surface form or already-stemmed, either works); buildIndex
    * normalizes each one through that language's analysis pipeline so
@@ -77,7 +77,7 @@ export interface BuildIndexOptions {
   fuzzyMaxEdits?: 1 | 2;
   /**
    * Facet fields to build as hierarchical (docs/guides/facets.md#facet-types),
-   * keyed by field name. A build-time decision, not a per-page csf-*
+   * keyed by field name. A build-time decision, not a per-page searchable-*
    * meta tag, like fieldBoosts/synonyms/fuzzy above — hierarchy-vs-terms
    * is a corpus-wide schema property of a field, not something one page
    * declares for itself. Each `searchable-facet-<field>` value for a

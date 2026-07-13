@@ -23,13 +23,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
-      - name: Install and test csf-analysis (Python)
-        working-directory: python/csf-analysis
+      - name: Install and test searchable-analysis (Python)
+        working-directory: python/searchable-analysis
         run: |
           uv sync
           uv run pytest -v
-      - name: Install and test csf-indexer (Python)
-        working-directory: python/csf-indexer
+      - name: Install and test searchable-indexer (Python)
+        working-directory: python/searchable-indexer
         run: |
           uv sync
           uv run pytest -v
@@ -40,8 +40,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-python
-      - name: Set up csf-indexer (Python, needed by the cross-implementation conformance test)
-        working-directory: python/csf-indexer
+      - name: Set up searchable-indexer (Python, needed by the cross-implementation conformance test)
+        working-directory: python/searchable-indexer
         run: uv sync
       - run: pnpm typecheck
       - run: pnpm size

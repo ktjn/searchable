@@ -41,7 +41,7 @@ describe("query-time prototype-collision safety (real HTTP)", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-proto-safe-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-proto-safe-"));
     // A directional synonym entry that has nothing to do with
     // "constructor" -- `synonymShard.directional` ends up a real,
     // non-empty object with no own "constructor" key, exactly the

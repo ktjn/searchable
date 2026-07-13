@@ -176,7 +176,7 @@ Two things in 09-roadmap.md are marked incomplete specifically because
 because the code is unfinished:
 
 - Run the already-written, currently-skipped
-  `CSF_TEST_REAL_TRANSFORMERS=1` tests
+  `SEARCHABLE_TEST_REAL_TRANSFORMERS=1` tests
   (`packages/indexer/test/transformers-embed.test.ts`,
   `packages/client/test/transformers-embed.test.ts`) in a CI job that
   actually has that network access, to validate
@@ -271,9 +271,9 @@ happens to be an inherited `Object.prototype` member name
 ("constructor" is the one that survives this project's lowercasing
 analysis unchanged; "toString"/"hasOwnProperty"/etc. fold to
 non-colliding lowercase forms first, but facet *field* names come from
-raw, un-lowercased `csf-facet-<field>` meta-tag suffixes, so those stay
+raw, un-lowercased `searchable-facet-<field>` meta-tag suffixes, so those stay
 exploitable too). A document containing the word "constructor" in
-prose, a `csf-facet-constructor`/`csf-facet-range-hasOwnProperty` meta
+prose, a `searchable-facet-constructor`/`searchable-facet-range-hasOwnProperty` meta
 tag, a `<html lang="constructor">`, or a search query for the literal
 word "constructor" could each crash or silently corrupt scores.
 

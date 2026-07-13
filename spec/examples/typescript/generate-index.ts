@@ -1,7 +1,7 @@
 #!/usr/bin/env -S node --experimental-strip-types
 // Minimal reference generator proving the index format needs no library
 // beyond a JSON encoder — deliberately independent of this repo's own
-// @csf/* packages (no shared code with the real indexer). See
+// @ktjn/searchable-* packages (no shared code with the real indexer). See
 // docs/concepts/index-format.md and docs/concepts/architecture.md. Usage:
 //   node --experimental-strip-types generate-index.ts documents.json out/
 //   (or: npx tsx generate-index.ts documents.json out/)

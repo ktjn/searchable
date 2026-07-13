@@ -10,7 +10,7 @@ import { writeIndex } from "../src/write-index.js";
 
 const outDirs: string[] = [];
 async function tempOutDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "csf-build-vectors-"));
+  const dir = await mkdtemp(join(tmpdir(), "searchable-build-vectors-"));
   outDirs.push(dir);
   return dir;
 }

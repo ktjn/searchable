@@ -264,7 +264,7 @@ main a {
 /* Screen-reader-only (docs/reference/client-api.md): present
    in the accessibility tree for aria-live announcements, invisible and
    out of the flow for sighted users. */
-.csf-sr-only {
+.searchable-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -276,7 +276,7 @@ main a {
   border: 0;
 }
 
-.csf-search-input {
+.searchable-search-input {
   width: 100%;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--border);
@@ -286,7 +286,7 @@ main a {
   font-size: 0.9rem;
 }
 
-.csf-search-results {
+.searchable-search-results {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -301,17 +301,17 @@ main a {
   display: none;
 }
 
-.csf-search-results.is-open {
+.searchable-search-results.is-open {
   display: block;
 }
 
-.csf-search-results ul {
+.searchable-search-results ul {
   list-style: none;
   margin: 0;
   padding: 0.25rem;
 }
 
-.csf-search-results li a {
+.searchable-search-results li a {
   display: block;
   padding: 0.5rem 0.6rem;
   border-radius: 4px;
@@ -319,23 +319,23 @@ main a {
   text-decoration: none;
 }
 
-.csf-search-results li a:hover,
-.csf-search-results li a:focus {
+.searchable-search-results li a:hover,
+.searchable-search-results li a:focus {
   background: var(--code-bg);
 }
 
-.csf-search-results .csf-result-title {
+.searchable-search-results .searchable-result-title {
   font-weight: 600;
   font-size: 0.9rem;
 }
 
-.csf-search-results .csf-result-excerpt {
+.searchable-search-results .searchable-result-excerpt {
   color: var(--muted);
   font-size: 0.8rem;
   margin-top: 0.15rem;
 }
 
-.csf-search-results .csf-empty {
+.searchable-search-results .searchable-empty {
   padding: 0.6rem;
   color: var(--muted);
   font-size: 0.85rem;

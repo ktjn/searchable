@@ -6,7 +6,7 @@ import { expect, test } from "vitest";
 import { validateSite } from "../site-validation.js";
 
 test("reports broken local links and fragments", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await writeFile(
     join(root, "index.html"),
     '<a href="missing.html#nope">broken</a>',
@@ -21,7 +21,7 @@ test("reports broken local links and fragments", async () => {
 });
 
 test("accepts nested relative assets and heading fragments", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await mkdir(join(root, "docs"));
   await writeFile(join(root, "style.css"), "body {}");
   await writeFile(
@@ -36,7 +36,7 @@ test("accepts nested relative assets and heading fragments", async () => {
 });
 
 test("only treats exact href, src, and id attributes as references", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await writeFile(
     join(root, "index.html"),
     '<div data-href="missing.html" data-id="topic"></div><a href="#topic">Topic</a>',
@@ -52,7 +52,7 @@ test("only treats exact href, src, and id attributes as references", async () =>
 });
 
 test("does not accept targets outside the generated artifact", async () => {
-  const parent = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const parent = await mkdtemp(join(tmpdir(), "searchable-site-"));
   const root = join(parent, "dist");
   await mkdir(root);
   await writeFile(join(parent, "outside.css"), "body {}");
@@ -68,7 +68,7 @@ test("does not accept targets outside the generated artifact", async () => {
 });
 
 test("rejects root-absolute local asset references as not subpath-safe", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await writeFile(join(root, "style.css"), "body {}");
   await writeFile(
     join(root, "index.html"),
@@ -90,7 +90,7 @@ test("rejects root-absolute local asset references as not subpath-safe", async (
 });
 
 test("allows root-relative URLs in search-index document data", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await mkdir(join(root, "search-index"));
   await writeFile(join(root, "index.html"), "<main>Home</main>");
   await writeFile(
@@ -102,7 +102,7 @@ test("allows root-relative URLs in search-index document data", async () => {
 });
 
 test("rejects forbidden generated paths and search-index entries", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await mkdir(join(root, "docs", "archive"), { recursive: true });
   await mkdir(join(root, "search-index"));
   await writeFile(
@@ -134,7 +134,7 @@ test("rejects forbidden generated paths and search-index entries", async () => {
 });
 
 test("CLI reports issues and exits unsuccessfully", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await writeFile(join(root, "index.html"), '<img src="missing.png">');
 
   const result = spawnSync(

@@ -585,7 +585,7 @@ git commit -m "docs: rebrand project as Searchable"
 - Produces: one automated tracked-file gate with exactly two allowlisted migration documents.
 - Produces: current and historical documentation that teaches only Searchable names.
 
-- [ ] **Step 1: Add the repository identity policy test**
+- [x] **Step 1: Add the repository identity policy test**
 
 Create `showcase/test/project-identity-policy.test.ts`:
 
@@ -636,7 +636,7 @@ test("tracked files use only the Searchable identity", () => {
 The test constructs former identifiers from fragments so it does not have to
 allowlist itself.
 
-- [ ] **Step 2: Run the identity test and verify RED**
+- [x] **Step 2: Run the identity test and verify RED**
 
 Run:
 
@@ -647,7 +647,7 @@ pnpm exec vitest run --config showcase/vitest.config.ts showcase/test/project-id
 Expected: FAIL with a concrete list of remaining tracked files and forbidden
 identity families.
 
-- [ ] **Step 3: Apply the complete residual identity mapping**
+- [x] **Step 3: Apply the complete residual identity mapping**
 
 For every violation outside the two migration documents, apply:
 
@@ -665,7 +665,7 @@ Update archived paths and code examples to their new real locations. Preserve
 dates, conclusions, statuses, and historical sequencing. Update the license
 project heading but do not change license terms or copyright ownership.
 
-- [ ] **Step 4: Re-run the policy and inspect the allowlist**
+- [x] **Step 4: Re-run the policy and inspect the allowlist**
 
 Run:
 
@@ -677,7 +677,7 @@ rg -n -i 'client-search-framework|@csf/|\bcsf[-_]|\bcsf\b' --glob '!docs/superpo
 Expected: the policy test passes and ripgrep returns no matches. Do not add a
 third allowlist entry.
 
-- [ ] **Step 5: Run the mandatory documentation review and build**
+- [x] **Step 5: Run the mandatory documentation review and build**
 
 Apply the `doc-review` skill to every changed file under `docs/` and `spec/`.
 Verify all four phases, then run:
@@ -690,7 +690,7 @@ pnpm --filter showcase validate
 Expected: doc/spec review passes with zero blockers, and the generated site has
 no broken local links, assets, or fragments.
 
-- [ ] **Step 6: Commit the complete identity sweep**
+- [x] **Step 6: Commit the complete identity sweep**
 
 ```powershell
 git add CHANGELOG.md LICENSE README.md docs spec packages python showcase

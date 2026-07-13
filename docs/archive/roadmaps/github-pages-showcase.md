@@ -90,7 +90,7 @@ live, editable example:
 
 | Demo | Corpus | Showcases | Status |
 |---|---|---|---|
-| Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `csf-boost` (7 "featured" products score-boosted), a `csf-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../../../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../../../showcase/gallery-data.ts), live at `gallery/products/index.html` |
+| Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `searchable-boost` (7 "featured" products score-boosted), a `searchable-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../../../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../../../showcase/gallery-data.ts), live at `gallery/products/index.html` |
 | Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," a checkbox toggle on the same page so the value is visible by comparison (same query, fuzzy off vs. on) | ✅ built — same demo, `data-fuzzy-toggle` on [`showcase/src/gallery-widget.ts`](../../../showcase/src/gallery-widget.ts) |
 | Synonym playground | 6 docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query, plus an unrelated control and a directional pair) | Synonym expansion, visibly labeled in the UI ("Synonym match" badge) so the mechanism is legible, not just "it worked" | ✅ built — [`showcase/build-gallery-synonyms.ts`](../../../showcase/build-gallery-synonyms.ts), [`showcase/gallery-synonyms-data.ts`](../../../showcase/gallery-synonyms-data.ts), live at `gallery/synonyms/index.html` |
 | Multi-language corpus | 6 short parallel articles, English + German only (docs/09-roadmap.md#status — the two LanguageProfiles that actually exist; Japanese/Arabic aren't built) | Language partitioning ("espresso," spelled identically in both languages, returns only the selected language's page) and the German stemmer's own umlaut-fold (`schon` vs. `schön` now both surface each other, despite reaching the stemmer as distinct strings) | ✅ built — [`showcase/build-gallery-i18n.ts`](../../../showcase/build-gallery-i18n.ts), [`showcase/gallery-i18n-data.ts`](../../../showcase/gallery-i18n-data.ts), live at `gallery/i18n/index.html`. `Intl.Segmenter` CJK handling and RTL rendering remain unbuilt |
@@ -119,7 +119,7 @@ fixed word every product's body copy contains (`"product"`), giving a
 real "browse everything, then filter" experience without a separate
 API path. The one gotcha this surfaced: page-chrome text (e.g. a "back
 to catalog" link) has to live inside a `<nav>` (or otherwise be
-excluded via `data-csf-ignore`), or the indexer's boilerplate-stripping
+excluded via `data-searchable-ignore`), or the indexer's boilerplate-stripping
 in `extractDocument` won't remove it and it silently leaks into every
 page's indexed body — caught because it was making the "returns
 policy" support page match the default browse-all query, which it

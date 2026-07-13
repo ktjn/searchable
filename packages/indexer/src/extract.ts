@@ -139,7 +139,7 @@ function collapseWhitespace(text: string): string {
 
 /**
  * Extracts indexable fields from one rendered HTML page, honoring the
- * csf-* meta-tag control surface (docs/reference/cms-meta-tags.md):
+ * searchable-* meta-tag control surface (docs/reference/cms-meta-tags.md):
  * title/body/language/excerpt/canonical/noindex/boost plus facet
  * values (searchable-facet-<field>) and pin declarations (searchable-pin*, see
  * docs/guides/pinning.md).

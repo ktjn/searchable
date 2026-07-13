@@ -78,7 +78,7 @@ test.describe("Web Worker execution (real browser)", () => {
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-"));
+    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-e2e-"));
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),
@@ -221,7 +221,7 @@ test.describe("SearchClient lifecycle (real browser)", () => {
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-lifecycle-"));
+    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-e2e-lifecycle-"));
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),
@@ -315,7 +315,7 @@ test.describe("searchStream() (real browser)", () => {
   ];
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-searchstream-"));
+    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-e2e-searchstream-"));
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),

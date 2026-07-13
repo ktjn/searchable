@@ -52,13 +52,13 @@ describe("binary doc store returns identical results to JSON (real HTTP)", () =>
   let binaryOutDir: string;
 
   beforeAll(async () => {
-    jsonOutDir = await mkdtemp(join(tmpdir(), "csf-binary-docstore-json-"));
+    jsonOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-docstore-json-"));
     await writeIndex(buildIndex(sources, "en"), jsonOutDir);
     const jsonServer = await serveStatic(jsonOutDir);
     jsonBaseUrl = jsonServer.baseUrl;
     closeJsonServer = jsonServer.close;
 
-    binaryOutDir = await mkdtemp(join(tmpdir(), "csf-binary-docstore-bin-"));
+    binaryOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-docstore-bin-"));
     await writeIndex(buildIndex(sources, "en"), binaryOutDir, {
       docStoreFormat: "binary",
     });

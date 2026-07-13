@@ -76,7 +76,7 @@ test.describe("vector/hybrid search (real browser, real Worker)", () => {
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-vector-"));
+    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-e2e-vector-"));
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),

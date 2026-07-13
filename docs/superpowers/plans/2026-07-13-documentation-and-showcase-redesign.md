@@ -173,10 +173,10 @@ pnpm add @ktjn/searchable-client
 pnpm add -D @ktjn/searchable-indexer
 ```
 
-The indexing guide may show the repository-local Python reference implementation, but must not imply that `csf-indexer` is published to PyPI. Use the checked-out project explicitly:
+The indexing guide may show the repository-local Python reference implementation, but must not imply that `searchable-indexer` is published to PyPI. Use the checked-out project explicitly:
 
 ```bash
-uv run --project python/csf-indexer csf-indexer ./dist/site ./dist/site/search-index
+uv run --project python/searchable-indexer searchable-indexer ./dist/site ./dist/site/search-index
 ```
 
 README sections, in order: `Why searchable`, `What it supports`, `Quick start`, `Documentation`, `Showcase`, `Development`, `Status`, `License`. Keep the README under 250 lines.
@@ -459,7 +459,7 @@ import { expect, test } from "vitest";
 import { validateSite } from "../site-validation.js";
 
 test("reports broken local links and fragments", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await writeFile(join(root, "index.html"), '<a href="missing.html#nope">broken</a>');
   expect(await validateSite(root)).toEqual([
     { source: "index.html", reference: "missing.html#nope", reason: "missing target" },
@@ -467,7 +467,7 @@ test("reports broken local links and fragments", async () => {
 });
 
 test("accepts nested relative assets and heading fragments", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await mkdir(join(root, "docs"));
   await writeFile(join(root, "style.css"), "body {}");
   await writeFile(join(root, "index.html"), '<h1 id="home">Home</h1><a href="docs/a.html#topic">A</a>');

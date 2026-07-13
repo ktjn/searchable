@@ -91,11 +91,11 @@ is exactly the property that keeps core from needing to know they exist.
 
 ```ts
 import { SearchClient } from "@ktjn/searchable-client";
-import { fuzzy } from "@csf/plugin-fuzzy";
-import { synonyms } from "@csf/plugin-synonyms";
-import { facets } from "@csf/plugin-facets";
-import { pins } from "@csf/plugin-pins";
-import { lang } from "@csf/plugin-lang-ja";
+import { fuzzy } from "@ktjn/searchable-plugin-fuzzy";
+import { synonyms } from "@ktjn/searchable-plugin-synonyms";
+import { facets } from "@ktjn/searchable-plugin-facets";
+import { pins } from "@ktjn/searchable-plugin-pins";
+import { lang } from "@ktjn/searchable-plugin-lang-ja";
 
 const client = new SearchClient({
   indexUrl: "https://cdn.example.com/search-index/manifest.json",
@@ -175,11 +175,11 @@ already designed elsewhere actually swappable.
 ### Build configuration
 
 ```ts
-// csf.config.ts
+// searchable.config.ts
 import { defineConfig } from "@ktjn/searchable-indexer";
-import { html } from "@csf/adapter-html";
-import { en, de } from "@csf/lang";
-import { binary } from "@csf/codec-binary";
+import { html } from "@ktjn/searchable-adapter-html";
+import { en, de } from "@ktjn/searchable-lang";
+import { binary } from "@ktjn/searchable-codec-binary";
 
 export default defineConfig({
   source: html({ sitemap: "https://example.com/sitemap.xml" }),

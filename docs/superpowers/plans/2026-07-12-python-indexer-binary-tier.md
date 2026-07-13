@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Port the TS binary storage tier (term shards, doc store, fuzzy shards) to the Python `csf-indexer` package, giving `write_index()` the same `term_shard_format`/`doc_store_format`/`fuzzy_shard_format` options the TS `writeIndex()` already has.
+**Goal:** Port the TS binary storage tier (term shards, doc store, fuzzy shards) to the Python `searchable-indexer` package, giving `write_index()` the same `term_shard_format`/`doc_store_format`/`fuzzy_shard_format` options the TS `writeIndex()` already has.
 
-**Architecture:** Four new modules under `csf_indexer/` (`byte_writer.py`, `binary_term_shard.py`, `binary_doc_store.py`, `binary_fuzzy_shard.py`), each a direct port of its TS counterpart in `packages/indexer/src/`; `write_index.py` is extended (not rewritten) to branch on the new format kwargs. `build_index.py` is untouched — this is purely a physical-encoding choice at write time.
+**Architecture:** Four new modules under `searchable_indexer/` (`byte_writer.py`, `binary_term_shard.py`, `binary_doc_store.py`, `binary_fuzzy_shard.py`), each a direct port of its TS counterpart in `packages/indexer/src/`; `write_index.py` is extended (not rewritten) to branch on the new format kwargs. `build_index.py` is untouched — this is purely a physical-encoding choice at write time.
 
 **Tech Stack:** Python 3.10+ stdlib only (`struct` for float64, no new dependencies), `uv` + `pytest`.
 
@@ -23,8 +23,8 @@
 ## Task 1: `byte_writer.py`
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/byte_writer.py`
-- Test: `python/csf-indexer/tests/test_byte_writer.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/byte_writer.py`
+- Test: `python/searchable-indexer/tests/test_byte_writer.py`
 
 **Interfaces:**
 - Produces: `ByteWriter` class with `write_varint(value: int) -> None`, `write_bytes(data: bytes) -> None`, `write_string(s: str) -> None`, `write_float64(value: float) -> None`, `to_bytes() -> bytes`. Used by all three binary encoders in Tasks 2-4.
@@ -32,7 +32,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-from csf_indexer.byte_writer import ByteWriter
+from searchable_indexer.byte_writer import ByteWriter
 
 
 def test_write_varint_single_byte_values():
@@ -114,10 +114,10 @@ def test_multiple_writes_accumulate_in_order():
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd python/csf-indexer
+cd python/searchable-indexer
 uv run pytest tests/test_byte_writer.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.byte_writer'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.byte_writer'`.
 
 - [ ] **Step 3: Implement `byte_writer.py`**
 
@@ -167,8 +167,8 @@ Expected: PASS (7 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/byte_writer.py python/csf-indexer/tests/test_byte_writer.py
-git commit -m "feat(csf-indexer): add ByteWriter (varint/string/float64 binary encoding)"
+git add python/searchable-indexer/src/searchable_indexer/byte_writer.py python/searchable-indexer/tests/test_byte_writer.py
+git commit -m "feat(searchable-indexer): add ByteWriter (varint/string/float64 binary encoding)"
 ```
 
 ---
@@ -176,8 +176,8 @@ git commit -m "feat(csf-indexer): add ByteWriter (varint/string/float64 binary e
 ## Task 2: `binary_term_shard.py`
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/binary_term_shard.py`
-- Test: `python/csf-indexer/tests/test_binary_term_shard.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/binary_term_shard.py`
+- Test: `python/searchable-indexer/tests/test_binary_term_shard.py`
 
 **Interfaces:**
 - Consumes: `ByteWriter` (Task 1).
@@ -186,7 +186,7 @@ git commit -m "feat(csf-indexer): add ByteWriter (varint/string/float64 binary e
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from csf_indexer.binary_term_shard import encode_term_shard_binary
+from searchable_indexer.binary_term_shard import encode_term_shard_binary
 
 
 def test_encodes_a_single_term_single_posting_single_field_shard():
@@ -266,12 +266,12 @@ def test_postings_encode_delta_from_previous_doc_id():
 ```bash
 uv run pytest tests/test_binary_term_shard.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.binary_term_shard'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.binary_term_shard'`.
 
 - [ ] **Step 3: Implement `binary_term_shard.py`**
 
 ```python
-from csf_indexer.byte_writer import ByteWriter
+from searchable_indexer.byte_writer import ByteWriter
 
 # Direct port of packages/indexer/src/binary-term-shard.ts's
 # encodeTermShardBinary/encodePostings.
@@ -334,8 +334,8 @@ Expected: PASS (4 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/binary_term_shard.py python/csf-indexer/tests/test_binary_term_shard.py
-git commit -m "feat(csf-indexer): add encode_term_shard_binary"
+git add python/searchable-indexer/src/searchable_indexer/binary_term_shard.py python/searchable-indexer/tests/test_binary_term_shard.py
+git commit -m "feat(searchable-indexer): add encode_term_shard_binary"
 ```
 
 ---
@@ -343,8 +343,8 @@ git commit -m "feat(csf-indexer): add encode_term_shard_binary"
 ## Task 3: `binary_doc_store.py`
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/binary_doc_store.py`
-- Test: `python/csf-indexer/tests/test_binary_doc_store.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/binary_doc_store.py`
+- Test: `python/searchable-indexer/tests/test_binary_doc_store.py`
 
 **Interfaces:**
 - Consumes: `ByteWriter` (Task 1).
@@ -353,7 +353,7 @@ git commit -m "feat(csf-indexer): add encode_term_shard_binary"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from csf_indexer.binary_doc_store import encode_doc_store_binary
+from searchable_indexer.binary_doc_store import encode_doc_store_binary
 
 
 def test_encodes_a_single_doc_shard():
@@ -409,12 +409,12 @@ def test_second_doc_id_delta_is_relative_to_previous_id():
 ```bash
 uv run pytest tests/test_binary_doc_store.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.binary_doc_store'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.binary_doc_store'`.
 
 - [ ] **Step 3: Implement `binary_doc_store.py`**
 
 ```python
-from csf_indexer.byte_writer import ByteWriter
+from searchable_indexer.byte_writer import ByteWriter
 
 # Direct port of packages/indexer/src/binary-doc-store.ts's
 # encodeDocStoreBinary.
@@ -467,8 +467,8 @@ Expected: PASS (4 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/binary_doc_store.py python/csf-indexer/tests/test_binary_doc_store.py
-git commit -m "feat(csf-indexer): add encode_doc_store_binary"
+git add python/searchable-indexer/src/searchable_indexer/binary_doc_store.py python/searchable-indexer/tests/test_binary_doc_store.py
+git commit -m "feat(searchable-indexer): add encode_doc_store_binary"
 ```
 
 ---
@@ -476,8 +476,8 @@ git commit -m "feat(csf-indexer): add encode_doc_store_binary"
 ## Task 4: `binary_fuzzy_shard.py`
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/binary_fuzzy_shard.py`
-- Test: `python/csf-indexer/tests/test_binary_fuzzy_shard.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/binary_fuzzy_shard.py`
+- Test: `python/searchable-indexer/tests/test_binary_fuzzy_shard.py`
 
 **Interfaces:**
 - Consumes: `ByteWriter` (Task 1).
@@ -486,7 +486,7 @@ git commit -m "feat(csf-indexer): add encode_doc_store_binary"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from csf_indexer.binary_fuzzy_shard import encode_fuzzy_shard_binary
+from searchable_indexer.binary_fuzzy_shard import encode_fuzzy_shard_binary
 
 
 def test_encodes_a_single_variant_shard():
@@ -535,12 +535,12 @@ def test_multiple_terms_for_one_variant_are_all_listed():
 ```bash
 uv run pytest tests/test_binary_fuzzy_shard.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.binary_fuzzy_shard'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.binary_fuzzy_shard'`.
 
 - [ ] **Step 3: Implement `binary_fuzzy_shard.py`**
 
 ```python
-from csf_indexer.byte_writer import ByteWriter
+from searchable_indexer.byte_writer import ByteWriter
 
 # Direct port of packages/indexer/src/binary-fuzzy-shard.ts's
 # encodeFuzzyShardBinary.
@@ -584,8 +584,8 @@ Expected: PASS (4 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/binary_fuzzy_shard.py python/csf-indexer/tests/test_binary_fuzzy_shard.py
-git commit -m "feat(csf-indexer): add encode_fuzzy_shard_binary"
+git add python/searchable-indexer/src/searchable_indexer/binary_fuzzy_shard.py python/searchable-indexer/tests/test_binary_fuzzy_shard.py
+git commit -m "feat(searchable-indexer): add encode_fuzzy_shard_binary"
 ```
 
 ---
@@ -593,8 +593,8 @@ git commit -m "feat(csf-indexer): add encode_fuzzy_shard_binary"
 ## Task 5: `write_index.py` integration
 
 **Files:**
-- Modify: `python/csf-indexer/src/csf_indexer/write_index.py`
-- Test: `python/csf-indexer/tests/test_write_index.py` (append)
+- Modify: `python/searchable-indexer/src/searchable_indexer/write_index.py`
+- Test: `python/searchable-indexer/tests/test_write_index.py` (append)
 
 **Interfaces:**
 - Consumes: `encode_term_shard_binary` (Task 2), `encode_doc_store_binary` (Task 3), `encode_fuzzy_shard_binary` (Task 4).
@@ -605,9 +605,9 @@ git commit -m "feat(csf-indexer): add encode_fuzzy_shard_binary"
 ```python
 import json
 
-from csf_indexer.build_index import build_index
-from csf_indexer.types import SourceDocument
-from csf_indexer.write_index import write_index
+from searchable_indexer.build_index import build_index
+from searchable_indexer.types import SourceDocument
+from searchable_indexer.write_index import write_index
 
 
 def _doc(doc_id: int, url: str, title: str, body: str) -> SourceDocument:
@@ -663,7 +663,7 @@ def test_default_format_is_still_json_for_all_three(tmp_path):
 
 
 def test_binary_term_shard_content_hash_matches_file_bytes(tmp_path):
-    from csf_indexer.hash import content_hash
+    from searchable_indexer.hash import content_hash
 
     built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
     write_index(built, str(tmp_path), term_shard_format="binary")
@@ -682,12 +682,12 @@ Expected: FAIL — `TypeError: write_index() got an unexpected keyword argument 
 
 - [ ] **Step 3: Modify `write_index.py`**
 
-Add these three imports at the top of the file, alongside the existing `from csf_indexer.hash import content_hash` / `from csf_indexer.types import BuiltIndex` lines:
+Add these three imports at the top of the file, alongside the existing `from searchable_indexer.hash import content_hash` / `from searchable_indexer.types import BuiltIndex` lines:
 
 ```python
-from csf_indexer.binary_doc_store import encode_doc_store_binary
-from csf_indexer.binary_fuzzy_shard import encode_fuzzy_shard_binary
-from csf_indexer.binary_term_shard import encode_term_shard_binary
+from searchable_indexer.binary_doc_store import encode_doc_store_binary
+from searchable_indexer.binary_fuzzy_shard import encode_fuzzy_shard_binary
+from searchable_indexer.binary_term_shard import encode_term_shard_binary
 ```
 
 Add this new helper function immediately after `_write_json`:
@@ -814,8 +814,8 @@ Expected: PASS (all tests, including every prior phase's).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/write_index.py python/csf-indexer/tests/test_write_index.py
-git commit -m "feat(csf-indexer): wire binary term/doc-store/fuzzy shard formats into write_index"
+git add python/searchable-indexer/src/searchable_indexer/write_index.py python/searchable-indexer/tests/test_write_index.py
+git commit -m "feat(searchable-indexer): wire binary term/doc-store/fuzzy shard formats into write_index"
 ```
 
 ---
@@ -826,7 +826,7 @@ git commit -m "feat(csf-indexer): wire binary term/doc-store/fuzzy shard formats
 - Modify: `packages/client/test/cross-implementation-conformance-python-indexer.test.ts`
 
 **Interfaces:**
-- Consumes: the Python `build_index`/`write_index` API directly (not the CLI — the CLI has no format flags, and adding them is out of scope for this plan). Invoked via a small inline Python script run through `uv run python -c "..."` from `python/csf-indexer/` as the working directory.
+- Consumes: the Python `build_index`/`write_index` API directly (not the CLI — the CLI has no format flags, and adding them is out of scope for this plan). Invoked via a small inline Python script run through `uv run python -c "..."` from `python/searchable-indexer/` as the working directory.
 - Consumes: `buildIndex`/`writeIndex` from `@ktjn/searchable-indexer` with `termShardFormat`/`docStoreFormat`/`fuzzyShardFormat: "binary"`.
 
 - [ ] **Step 1: Read the existing file to confirm its real structure**
@@ -847,9 +847,9 @@ Add a second `describe` block (sibling to the existing one, in the same file) th
 ```python
 import sys
 sys.path.insert(0, "src")
-from csf_indexer.build_index import build_index
-from csf_indexer.write_index import write_index
-from csf_indexer.types import SourceDocument
+from searchable_indexer.build_index import build_index
+from searchable_indexer.write_index import write_index
+from searchable_indexer.types import SourceDocument
 
 sources = [
     SourceDocument(id=1, url="/a", html='<html lang="en"><head><title>Widgets</title></head><body><main>Our widgets are wonderful.</main></body></html>'),

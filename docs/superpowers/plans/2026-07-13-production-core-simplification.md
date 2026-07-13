@@ -400,9 +400,9 @@ git commit -m "refactor: hide implementation-only symbols"
 Run a small corpus through the supported benchmark:
 
 ```powershell
-$env:CSF_BENCH_SIZES='1000'
+$env:SEARCHABLE_BENCH_SIZES='1000'
 pnpm bench
-Remove-Item Env:CSF_BENCH_SIZES
+Remove-Item Env:SEARCHABLE_BENCH_SIZES
 ```
 
 Expected: `json-tier-scaling.mjs` completes and prints metrics for 1,000 documents.
@@ -462,9 +462,9 @@ Expected: no production/package reference remains. Archive prose may retain the 
 Run:
 
 ```powershell
-$env:CSF_BENCH_SIZES='1000'
+$env:SEARCHABLE_BENCH_SIZES='1000'
 pnpm bench
-Remove-Item Env:CSF_BENCH_SIZES
+Remove-Item Env:SEARCHABLE_BENCH_SIZES
 pnpm --filter @ktjn/searchable-indexer test
 ```
 

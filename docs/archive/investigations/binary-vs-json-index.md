@@ -403,4 +403,4 @@ Proven with the same rigor as the term shard's own test
 `packages/client/test/binary-doc-store.test.ts`): identical hit ids for
 a fuzzy-matched typo query, identical "did you mean" suggestions, and
 identical `url`/stored `fields`/`score` (exercising the float64
-`csf-boost` round-trip) between formats built from the same corpus.
+`searchable-boost` round-trip) between formats built from the same corpus.

@@ -105,7 +105,7 @@ runs:
         enable-cache: true
 ```
 
-Do not run `uv sync` here because `python-tests` synchronizes two projects while the cross-implementation `test` job needs only `python/csf-indexer`.
+Do not run `uv sync` here because `python-tests` synchronizes two projects while the cross-implementation `test` job needs only `python/searchable-indexer`.
 
 - [ ] **Step 4: Replace CI setup duplication and add `workflow_call`**
 
@@ -137,13 +137,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
-      - name: Install and test csf-analysis (Python)
-        working-directory: python/csf-analysis
+      - name: Install and test searchable-analysis (Python)
+        working-directory: python/searchable-analysis
         run: |
           uv sync
           uv run pytest -v
-      - name: Install and test csf-indexer (Python)
-        working-directory: python/csf-indexer
+      - name: Install and test searchable-indexer (Python)
+        working-directory: python/searchable-indexer
         run: |
           uv sync
           uv run pytest -v
@@ -154,8 +154,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-python
-      - name: Set up csf-indexer (Python, needed by the cross-implementation conformance test)
-        working-directory: python/csf-indexer
+      - name: Set up searchable-indexer (Python, needed by the cross-implementation conformance test)
+        working-directory: python/searchable-indexer
         run: uv sync
       - run: pnpm typecheck
       - run: pnpm size
@@ -231,8 +231,8 @@ Run:
 node --version
 python --version
 pnpm install --frozen-lockfile
-Push-Location python/csf-analysis; uv sync; uv run pytest -q; Pop-Location
-Push-Location python/csf-indexer; uv sync; uv run pytest -q; Pop-Location
+Push-Location python/searchable-analysis; uv sync; uv run pytest -q; Pop-Location
+Push-Location python/searchable-indexer; uv sync; uv run pytest -q; Pop-Location
 ```
 
 Expected: Node reports `v24.x`, Python reports `3.14.x`, the frozen install succeeds, and both Python test suites pass.
@@ -489,8 +489,8 @@ Expected: actionlint exits 0; all policy assertions complete without throwing; s
 Run:
 
 ```powershell
-Push-Location python/csf-analysis; uv sync; uv run pytest -v; Pop-Location
-Push-Location python/csf-indexer; uv sync; uv run pytest -v; Pop-Location
+Push-Location python/searchable-analysis; uv sync; uv run pytest -v; Pop-Location
+Push-Location python/searchable-indexer; uv sync; uv run pytest -v; Pop-Location
 ```
 
 Expected: both complete suites pass on Python 3.14.

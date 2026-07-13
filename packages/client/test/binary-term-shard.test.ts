@@ -115,13 +115,13 @@ describe("binary term shards return identical results to JSON (real HTTP)", () =
   let binaryOutDir: string;
 
   beforeAll(async () => {
-    jsonOutDir = await mkdtemp(join(tmpdir(), "csf-binary-shard-json-"));
+    jsonOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-shard-json-"));
     await writeIndex(buildIndex(sources, "en", buildOptions), jsonOutDir);
     const jsonServer = await serveStatic(jsonOutDir);
     jsonBaseUrl = jsonServer.baseUrl;
     closeJsonServer = jsonServer.close;
 
-    binaryOutDir = await mkdtemp(join(tmpdir(), "csf-binary-shard-bin-"));
+    binaryOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-shard-bin-"));
     await writeIndex(buildIndex(sources, "en", buildOptions), binaryOutDir, {
       termShardFormat: "binary",
     });
