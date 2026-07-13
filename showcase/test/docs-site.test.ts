@@ -221,6 +221,28 @@ describe("documentation rendering", () => {
     expect(html).toContain('<h2 id="café-api-1">');
   });
 
+  test("avoids collisions with explicitly suffixed headings", async () => {
+    const html = await marked.parse("# A\n\n# A-1\n\n# A", {
+      renderer: createMarkdownRenderer(),
+    });
+
+    expect(html.match(/<h1 id="([^"]+)"/g)).toEqual([
+      '<h1 id="a"',
+      '<h1 id="a-1"',
+      '<h1 id="a-2"',
+    ]);
+  });
+
+  test("builds heading IDs from visible inline text", async () => {
+    const html = await marked.parse(
+      "# [Linked heading](https://example.com)\n\n## **Bold** and `code`",
+      { renderer: createMarkdownRenderer() },
+    );
+
+    expect(html).toContain('<h1 id="linked-heading">');
+    expect(html).toContain('<h2 id="bold-and-code">');
+  });
+
   test("highlights registered languages at build time", () => {
     expect(highlightCode("typescript", "const count: number = 1;")).toContain(
       '<span class="hljs-keyword">const</span>',

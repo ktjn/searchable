@@ -5,7 +5,7 @@ import javascript from "highlight.js/lib/languages/javascript";
 import json from "highlight.js/lib/languages/json";
 import python from "highlight.js/lib/languages/python";
 import typescript from "highlight.js/lib/languages/typescript";
-import { Renderer } from "marked";
+import { Renderer, type Token } from "marked";
 import type { DocPage, DocSection } from "./docs-nav.js";
 
 hljs.registerLanguage("javascript", javascript);
@@ -127,9 +127,24 @@ function headingSlug(text: string): string {
   );
 }
 
+function headingVisibleText(tokens: Token[]): string {
+  return tokens
+    .map((token) => {
+      if (token.type === "br") return " ";
+      if (token.type === "html" || token.type === "tag") return "";
+      if ("tokens" in token && Array.isArray(token.tokens)) {
+        return headingVisibleText(token.tokens);
+      }
+      return "text" in token && typeof token.text === "string"
+        ? token.text
+        : "";
+    })
+    .join("");
+}
+
 export function createMarkdownRenderer(): Renderer {
   const renderer = new Renderer();
-  const slugCounts = new Map<string, number>();
+  const reservedSlugs = new Set<string>();
 
   renderer.code = ({ text, lang }) => {
     const language = lang?.trim().split(/\s+/)[0] ?? "";
@@ -138,11 +153,15 @@ export function createMarkdownRenderer(): Renderer {
     return `<pre><code class="${classes}">${highlightCode(language, text)}</code></pre>\n`;
   };
 
-  renderer.heading = function ({ depth, text, tokens }) {
-    const baseSlug = headingSlug(text);
-    const count = slugCounts.get(baseSlug) ?? 0;
-    slugCounts.set(baseSlug, count + 1);
-    const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+  renderer.heading = function ({ depth, tokens }) {
+    const baseSlug = headingSlug(headingVisibleText(tokens));
+    let slug = baseSlug;
+    let suffix = 1;
+    while (reservedSlugs.has(slug)) {
+      slug = `${baseSlug}-${suffix}`;
+      suffix += 1;
+    }
+    reservedSlugs.add(slug);
     return `<h${depth} id="${slug}">${this.parser.parseInline(tokens)}</h${depth}>\n`;
   };
 
