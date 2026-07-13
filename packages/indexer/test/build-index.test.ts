@@ -33,7 +33,7 @@ describe("buildIndex", () => {
   it("indexes documents and produces correct postings", () => {
     const built = buildIndex(sources);
     expect(built.manifest.docCount.en).toBe(3); // draft excluded
-    // "widgets" stems to "widget" (docs/03-tokenization-i18n.md#stemming).
+    // "widgets" stems to "widget" (docs/guides/internationalization.md#stemming).
     expect(built.termShards.en?.widget?.df).toBe(3);
     expect(
       built.termShards.en?.widget?.postings.map((p) => p.doc).sort(),
@@ -685,7 +685,7 @@ describe("buildIndex pins", () => {
     ]);
     // Normalized the same way any other indexed term is (lowercased and
     // stemmed via the English profile) -- "pricing plans" stems to
-    // "price plan" (docs/03-tokenization-i18n.md#stemming).
+    // "price plan" (docs/guides/internationalization.md#stemming).
     expect(built.pinsShards.en?.["price plan"]).toEqual({
       mode: "exact",
       docs: [{ id: 1, priority: 0, exclusive: false }],
@@ -752,7 +752,7 @@ describe("buildIndex pins", () => {
           <body><main>x</main></body></html>`,
       },
     ]);
-    // "pricing" stems to "price" (docs/03-tokenization-i18n.md#stemming).
+    // "pricing" stems to "price" (docs/guides/internationalization.md#stemming).
     expect(built.pinsShards.en?.price?.docs.map((d) => d.id)).toEqual([
       2, 3, 1,
     ]);
@@ -815,7 +815,7 @@ describe("buildIndex multi-language corpora", () => {
   it("partitions each document into its own language's term shard", () => {
     const built = buildIndex(mixedSources);
     // "widgets" stems to "widget" (English); "Preise" stems to "preis"
-    // (German) -- both real stemmers, docs/03-tokenization-i18n.md#stemming.
+    // (German) -- both real stemmers, docs/guides/internationalization.md#stemming.
     expect(built.termShards.en?.widget).toBeDefined();
     expect(built.termShards.de?.widget).toBeUndefined();
     expect(built.termShards.de?.preis).toBeDefined();
@@ -869,7 +869,7 @@ describe("buildIndex multi-language corpora", () => {
   });
 });
 
-describe("buildIndex CJK bigram fallback (docs/03-tokenization-i18n.md#segmentation)", () => {
+describe("buildIndex CJK bigram fallback (docs/guides/internationalization.md#segmentation)", () => {
   const cjkSources: SourceDocument[] = [
     {
       id: 1,
@@ -960,7 +960,7 @@ describe("buildIndex synonyms", () => {
     const built = buildIndex(minimalSources, "en", {
       synonyms: { en: { equivalences: [["Sofa", "Couch", "Settee"]] } },
     });
-    // "Settee" stems to "sette" (docs/03-tokenization-i18n.md#stemming).
+    // "Settee" stems to "sette" (docs/guides/internationalization.md#stemming).
     expect(built.synonymShards.en?.equivalences).toEqual([
       ["sofa", "couch", "sette"],
     ]);
@@ -1068,7 +1068,7 @@ describe("buildIndex fuzzy dictionary", () => {
     const built = buildIndex(widgetSources, "en", { fuzzy: true });
     expect(built.fuzzyShards.en?.maxEdits).toBe(1);
     // "Widgets" stems to the real indexed term "widget"
-    // (docs/03-tokenization-i18n.md#stemming); "widge" (drop the
+    // (docs/guides/internationalization.md#stemming); "widge" (drop the
     // trailing "t") is one of its one-character-deleted variants.
     expect(built.fuzzyShards.en?.deletions.widge).toContain("widget");
   });
@@ -1108,7 +1108,7 @@ describe("buildIndex fuzzy dictionary", () => {
       "en",
       { fuzzy: true },
     );
-    // "Katze" stems to "katz" (docs/03-tokenization-i18n.md#stemming),
+    // "Katze" stems to "katz" (docs/guides/internationalization.md#stemming),
     // so that's the real indexed term the deletion dictionary is built
     // from -- "katz" itself is one of its own 0-deletion variants.
     expect(built.fuzzyShards.en?.deletions.katz).toBeUndefined();

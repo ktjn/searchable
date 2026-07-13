@@ -1,6 +1,6 @@
 /**
  * Manifest and shard shapes, mirroring spec/schema/*.schema.json and
- * docs/02-index-format.md. This package has no runtime logic — it
+ * docs/concepts/index-format.md. This package has no runtime logic — it
  * exists so the indexer (which writes this shape) and the client
  * (which reads it) share one type definition instead of two that could
  * silently drift apart.
@@ -22,7 +22,7 @@ export interface Manifest {
   facetFields?: string[];
   /**
    * Doc count and average field length, keyed by language. BM25's idf
-   * (docs/04-query-ranking-boosts.md#ranking-model-bm25f) and length
+   * (docs/guides/ranking-and-boosts.md#ranking-model-bm25f) and length
    * normalization must be computed within the language partition
    * actually being searched — a query against the "de" term shard only
    * ever sees "de" postings, so mixing in English corpus-wide stats
@@ -37,9 +37,9 @@ export interface Manifest {
       file: string;
       termCount: number;
       /**
-       * Per-shard physical encoding (docs/spec-binary-format.md#manifest-integration):
+       * Per-shard physical encoding (docs/archive/specs/binary-format.md#manifest-integration):
        * `"binary"` for the directory-based delta+varint encoding
-       * (docs/11-binary-vs-json-index.md's validated design), absent or
+       * (docs/concepts/binary-storage.md's validated design), absent or
        * `"json"` for the plain JSON shape every other shard type uses.
        * Declared per shard, not globally, so a deployment can mix both
        * during migration — a client must check this per entry, not
@@ -55,7 +55,7 @@ export interface Manifest {
       /**
        * Per-shard physical encoding, same allowance and same meaning as
        * the term shard entry's `format` field above
-       * (docs/spec-binary-format.md#manifest-integration) — a
+       * (docs/archive/specs/binary-format.md#manifest-integration) — a
        * directory-based `docId -> (byte offset, byte length)` encoding
        * (`packages/indexer/src/binary-doc-store.ts`,
        * `packages/client/src/binary-doc-store.ts`) in place of the plain
@@ -78,7 +78,7 @@ export interface Manifest {
    * (`packages/indexer/src/binary-fuzzy-shard.ts`,
    * `packages/client/src/binary-fuzzy-shard.ts`) is available here, since
    * a fuzzy dictionary can be as large as the term vocabulary itself
-   * (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching) but a query
+   * (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching) but a query
    * only ever looks up a handful of specific deletion-variant keys —
    * the same "large dictionary, few keys touched per query" shape that
    * already justified the term shard's binary tier. `pins`/`synonyms`
@@ -87,7 +87,7 @@ export interface Manifest {
    */
   fuzzy?: Record<string, { file: string; format?: "json" | "binary" }>;
   /**
-   * Vector/hybrid search (docs/13-vector-and-hybrid-search.md), only
+   * Vector/hybrid search (docs/guides/vector-search.md), only
    * present for a corpus built with a `vectors` option. `dims` and
    * `quantization` are corpus-wide (one embedding space per index, not
    * per language) — a query embedding must have exactly `dims` values
@@ -110,7 +110,7 @@ export interface Manifest {
 }
 
 /**
- * Identifies what produced a corpus's vectors (docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from) —
+ * Identifies what produced a corpus's vectors (docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from) —
  * this project doesn't run or validate any embedding model itself, so
  * this is metadata for the runtime/caller to act on, not something
  * `@csf/indexer`/`@csf/client` interpret internally. `"local-model"` and
@@ -125,7 +125,7 @@ export type EmbeddingProviderConfig =
   | { type: "custom" };
 
 /**
- * One passage's embedding (docs/13-vector-and-hybrid-search.md#chunking):
+ * One passage's embedding (docs/guides/vector-search.md#chunking):
  * `passageId` back-references the chunk within its parent document
  * (`"<docId>-<chunkIndex>"`), `docId` is the parent document's id (same
  * id space as postings/doc store), and `vector` is `dims` numbers,
@@ -140,13 +140,13 @@ export interface VectorEntry {
 }
 
 /**
- * One language's vector shard (docs/13-vector-and-hybrid-search.md#storage-format).
+ * One language's vector shard (docs/guides/vector-search.md#storage-format).
  * `quantization: "float32"` stores exact values as-is (JS/JSON numbers
  * are already float64-precision, so this is "no lossy quantization
  * applied" rather than a real 32-bit encoding); `"int8"` scalar-quantizes
  * every dimension of every vector in this shard against one shared
  * `quantRange` (a single corpus-wide min/max, not per-dimension) to an
- * integer in `[0, 255]`, per docs/13's "per-shard min/max scaling" --
+ * integer in `[0, 255]`, per docs/guides/vector-search.md's "per-shard min/max scaling" --
  * `quantRange` is only present for that case, since a float32 shard has
  * nothing to dequantize.
  */
@@ -167,7 +167,7 @@ export interface FieldPosting {
 export interface Posting {
   doc: number;
   /**
-   * Document-level static boost (docs/04-query-ranking-boosts.md), e.g.
+   * Document-level static boost (docs/guides/ranking-and-boosts.md), e.g.
    * from a csf-boost meta tag. Denormalized onto every posting for this
    * doc — like `len` above — because it must be known for every
    * candidate being scored, not just the final top-N whose doc-store
@@ -194,7 +194,7 @@ export interface DocStoreEntry {
 export type DocStoreShard = Record<string, DocStoreEntry>;
 
 export interface FacetValueEntry {
-  /** Global count over the whole corpus, computed once at build time (docs/06-faceted-search.md#facet-counts). */
+  /** Global count over the whole corpus, computed once at build time (docs/guides/facets.md#facet-counts). */
   count: number;
   docs: number[];
 }
@@ -207,7 +207,7 @@ export interface RangeFacetValue {
 export interface FacetShard {
   type: "terms" | "range" | "hierarchy";
   separator?: string;
-  /** Precomputed values for "terms"/"hierarchy" (per-value doc set + count); for "range", 5 equal-width buckets spanning the corpus's observed [min, max], keyed by a label like "10-20" or "80+" for the open-ended last bucket (docs/06-faceted-search.md#facet-index-structure). */
+  /** Precomputed values for "terms"/"hierarchy" (per-value doc set + count); for "range", 5 equal-width buckets spanning the corpus's observed [min, max], keyed by a label like "10-20" or "80+" for the open-ended last bucket (docs/guides/facets.md#facet-index-structure). */
   values: Record<string, FacetValueEntry>;
   /** Only present for type: "range" -- every (value, doc) pair sorted ascending by value, so an arbitrary min/max filter can be resolved directly. */
   sorted?: RangeFacetValue[];
@@ -226,14 +226,14 @@ export interface PinEntry {
 
 export type PinsShard = Record<string, PinEntry>;
 
-/** Synonym data (docs/05-synonyms.md), both single-word and phrase-level. */
+/** Synonym data (docs/guides/synonyms.md), both single-word and phrase-level. */
 export interface SynonymShard {
   /** Symmetric equivalence classes: any term in a group expands the query to every other member. */
   equivalences?: string[][];
   /** Asymmetric: querying the key also matches the listed terms, but not vice versa. */
   directional?: Record<string, string[]>;
   /**
-   * Symmetric phrase-level equivalence classes (docs/05-synonyms.md#synonym-file-format):
+   * Symmetric phrase-level equivalence classes (docs/guides/synonyms.md#synonym-file-format):
    * any normalized phrase in a group (space-joined analyzed terms, the
    * same shape `normalizePhrase()` produces) expands a matching
    * `"quoted phrase"` query clause to every other phrase in the
@@ -241,7 +241,7 @@ export interface SynonymShard {
    * york"` query also match a document containing the adjacent phrase
    * "big apple". Matched via the same real position-adjacency
    * verification a literal quoted phrase uses
-   * (docs/04-query-ranking-boosts.md#phrase--proximity-queries), not a
+   * (docs/guides/ranking-and-boosts.md#phrase-and-proximity-queries), not a
    * text-substitution shortcut. No directional (asymmetric) multiWord
    * form is defined — every group member expands to every other.
    */
@@ -250,7 +250,7 @@ export interface SynonymShard {
 
 /**
  * A SymSpell-style precomputed deletion dictionary for typo-tolerant
- * matching (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching).
+ * matching (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching).
  * Only `maxEdits: 1` is produced by the reference indexer today —
  * `deletions` maps a deletion-variant string (a real term with 0 or 1
  * characters removed) to every real term that produced it, so a query

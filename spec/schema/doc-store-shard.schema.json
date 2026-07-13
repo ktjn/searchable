@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://client-search-framework/schema/doc-store-shard.schema.json",
   "title": "Doc store shard",
-  "description": "One docs/<shard>.<hash>.json file: render-time data for a contiguous doc-id range. Only manifest fields marked stored:true appear here. See docs/02-index-format.md#doc-store-shard.",
+  "description": "One docs/<shard>.<hash>.json file: render-time data for a contiguous doc-id range. Only manifest fields marked stored:true appear here. See docs/concepts/index-format.md#doc-store-shard.",
   "type": "object",
   "propertyNames": {
     "description": "Doc id as a string key",

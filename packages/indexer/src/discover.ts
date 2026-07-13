@@ -19,9 +19,9 @@ async function findHtmlFiles(dir: string): Promise<string[]> {
 /**
  * Reads every .html file under `rootDir` and assigns each a stable id
  * (its sort order) and a URL derived from its path relative to rootDir
- * (e.g. docs/00-overview.html -> /docs/00-overview) — a reasonable
+ * (e.g. docs/getting-started/overview.html -> /docs/getting-started/overview) — a reasonable
  * static-site convention, overridable later via `<link rel=canonical>`
- * per docs/15-cms-meta-tag-control.md.
+ * per docs/reference/cms-meta-tags.md.
  */
 export async function discoverHtmlDocuments(
   rootDir: string,

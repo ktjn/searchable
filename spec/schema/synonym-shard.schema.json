@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://client-search-framework/schema/synonym-shard.schema.json",
   "title": "Synonym shard",
-  "description": "One synonyms/<lang>.<hash>.json file. See docs/05-synonyms.md.",
+  "description": "One synonyms/<lang>.<hash>.json file. See docs/guides/synonyms.md.",
   "type": "object",
   "additionalProperties": false,
   "properties": {

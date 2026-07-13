@@ -8,7 +8,7 @@ import { buildIndex, writeIndex } from "../dist/index.js";
 
 /**
  * JSON-tier scaling baseline for the Phase 7 investigation
- * (docs/11-binary-vs-json-index.md, docs/09-roadmap.md#phase-7--scale-options):
+ * (docs/concepts/binary-storage.md, docs/archive/roadmaps/implementation-history.md#phase-7--scale-options):
  * builds real synthetic corpora at increasing sizes through the actual
  * buildIndex()/writeIndex() pipeline (not a simulation) and reports the
  * concrete metrics that investigation's "should we, and when" question
@@ -17,11 +17,11 @@ import { buildIndex, writeIndex } from "../dist/index.js";
  * (see below, now that real per-prefix sharding exists). Deliberately a
  * plain Node script against the built `dist/`, not a Vitest bench file --
  * this is a one-shot corpus-scaling report meant to be read, not a
- * statistically-repeated micro-benchmark (docs/10-testing-and-performance.md's
+ * statistically-repeated micro-benchmark (docs/project/governance.md's
  * micro-benchmark category is a different, smaller-scoped thing). Run
  * via `pnpm --filter @csf/indexer bench`.
  *
- * Capped at 100k documents, not the 1M docs/11's follow-up note
+ * Capped at 100k documents, not the 1M docs/concepts/binary-storage.md's follow-up note
  * mentions: the 100k build alone uses several GB of resident memory in
  * this reference (in-memory, non-streaming) indexer, and scaling that
  * further risks exceeding available memory on a typical CI/dev
@@ -33,17 +33,17 @@ import { buildIndex, writeIndex } from "../dist/index.js";
  *
  * `writeIndex()` now shards each language's term shard by
  * first-character prefix (auto-widening to two characters for any
- * over-large bucket, per docs/02-index-format.md#term-shard-inverted-index
- * and #size-targets--sharding-tuning) -- real prefix sharding, not the
+ * over-large bucket, per docs/concepts/index-format.md#term-shard-inverted-index
+ * and #size-targets-and-sharding-tuning) -- real prefix sharding, not the
  * single unsharded `terms/<lang>/all.json` Phase 1 originally shipped
- * (see the fixed Phase 7 bullet in docs/09-roadmap.md for that history).
+ * (see the fixed Phase 7 bullet in docs/project/roadmap.md for that history).
  * So the per-query fetch cost this script now reports is the size of
  * *one* prefix shard -- the largest one that exists for a language is
  * the honest worst case, since any single query term only ever needs
  * exactly one (or, for a prefix query overlapping more than one bucket,
  * a small handful of) shard(s), never the whole vocabulary. Tracking
  * how that largest-shard size grows with corpus size (rather than
- * assuming it stays flat) is the actual empirical answer to docs/02's
+ * assuming it stays flat) is the actual empirical answer to docs/concepts/index-format.md's
  * "first-query cost stays roughly flat as the corpus grows" claim.
  */
 
@@ -190,7 +190,7 @@ async function main() {
   }
 
   console.log(
-    "\n=== Summary (per-query bytes fetched today = the largest single prefix shard for the language, per docs/02's sharding design) ===",
+    "\n=== Summary (per-query bytes fetched today = the largest single prefix shard for the language, per docs/concepts/index-format.md's sharding design) ===",
   );
   console.log(
     "docs\tbuildMs\tenShardCount\tlargestShardGzipBytes(en)\tlargestShardParseMs(en)",
@@ -203,7 +203,7 @@ async function main() {
   }
 
   console.log(
-    "\nSee docs/11-binary-vs-json-index.md and docs/09-roadmap.md#phase-7--scale-options for interpretation.",
+    "\nSee docs/concepts/binary-storage.md and docs/archive/roadmaps/implementation-history.md#phase-7--scale-options for interpretation.",
   );
 
   console.log(

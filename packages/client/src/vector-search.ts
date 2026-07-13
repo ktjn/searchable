@@ -4,7 +4,7 @@ import type { VectorShard } from "@csf/format";
  * Thrown by `mode: "vector"`/`"hybrid"` when no query embedding is
  * available — either `SearchClientOptions.embedQuery` wasn't configured,
  * or a direct (non-`SearchClient`) caller of `search()` didn't supply a
- * `queryVector` (docs/13-vector-and-hybrid-search.md#api-surface).
+ * `queryVector` (docs/guides/vector-search.md#api-surface).
  * Deliberately loud rather than silently degrading to lexical-only —
  * a caller who explicitly asked for semantic search should know their
  * results aren't actually semantic.
@@ -18,7 +18,7 @@ export class VectorSearchNotConfiguredError extends Error {
 
 /**
  * Thrown by `mode: "vector"`/`"hybrid"` when `embedQuery` declares its
- * own `provider` (docs/13-vector-and-hybrid-search.md#api-surface) and it
+ * own `provider` (docs/guides/vector-search.md#api-surface) and it
  * doesn't match the manifest's `vectors.embeddingProvider` -- comparing
  * a query embedded by one model against corpus vectors built by another
  * produces meaningless cosine similarities, not an error, unless this
@@ -36,7 +36,7 @@ export class VectorProviderMismatchError extends Error {
 }
 
 /**
- * Vector/hybrid search mechanics (docs/13-vector-and-hybrid-search.md):
+ * Vector/hybrid search mechanics (docs/guides/vector-search.md):
  * dequantization, brute-force cosine similarity, and Reciprocal Rank
  * Fusion. Deliberately the simplest thing that meets the bar per that
  * doc's own framing — no IVF clustering, no HNSW, no WASM-accelerated
@@ -81,7 +81,7 @@ export interface VectorHit {
  * Scores `queryVector` against every entry in `shard` (dequantizing
  * first as needed) via cosine similarity, then collapses to one hit per
  * document — keeping only that document's best-scoring passage, per
- * docs/13's "a document can surface in vector search results via any one
+ * docs/guides/vector-search.md's "a document can surface in vector search results via any one
  * of its passages" — before sorting descending and truncating to
  * `limit`. `O(shard size)` per query, the documented brute-force
  * tradeoff, fine up to "the low hundreds of thousands of passages."
@@ -111,7 +111,7 @@ export function bruteForceVectorSearch(
     .slice(0, limit);
 }
 
-/** Standard IR constant (docs/13-vector-and-hybrid-search.md#hybrid-search-combining-lexical-and-vector-scores). */
+/** Standard IR constant (docs/guides/vector-search.md#hybrid-search-combining-lexical-and-vector-scores). */
 export const DEFAULT_RRF_K = 60;
 
 /**

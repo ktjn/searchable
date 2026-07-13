@@ -5,14 +5,14 @@ import { ByteWriter } from "./byte-writer.js";
  * Directory-based binary fuzzy (SymSpell deletion-dictionary) shard
  * encoding, the same shape as `binary-term-shard.ts` applied to a
  * different dictionary: a fuzzy shard can be as large as the term
- * vocabulary itself (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching,
+ * vocabulary itself (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching,
  * "roughly proportional to total term length across the vocabulary",
  * doubling or more for `fuzzyMaxEdits: 2`), but a query only ever looks
  * up a handful of specific deletion-variant keys
  * (`packages/client/src/search.ts`'s `fuzzyCandidatesFor()`) -- the same
  * "large dictionary, few keys touched per query" shape the term-shard
  * binary tier was built and benchmarked for
- * (docs/11-binary-vs-json-index.md, `packages/indexer/bench/binary-lazy-decode.mjs`),
+ * (docs/concepts/binary-storage.md, `packages/indexer/bench/binary-lazy-decode.mjs`),
  * so the same directory + lazy-per-key-decode technique applies
  * directly without needing its own from-scratch benchmark.
  *

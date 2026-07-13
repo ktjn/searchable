@@ -13,7 +13,7 @@
  * "constructor" in prose, a `csf-facet-constructor` meta tag, or a
  * search for the literal word "constructor" is all it takes — not a
  * hypothetical, this exact bug crashed a real `buildIndex()` run and
- * corrupted query-time scores (`docs/25-path-to-1.0.md`). Shared here,
+ * corrupted query-time scores (`docs/reference/compatibility.md`). Shared here,
  * not duplicated separately in `@csf/indexer` and `@csf/client`, since
  * both already depend on this package and the bug class is identical on
  * both the build-time and query-time side.

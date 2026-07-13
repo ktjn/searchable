@@ -1,7 +1,7 @@
 /**
  * BCP-47 primary language subtags of scripts written right-to-left --
  * enough for a consuming app to set `dir="rtl"` on rendered results
- * (docs/03-tokenization-i18n.md#segmentation, docs/08-modern-features.md#accessibility).
+ * (docs/guides/internationalization.md#segmentation, docs/reference/client-api.md).
  * Deliberately just this one predicate, not a `LanguageProfile` for any
  * of these languages -- no RTL `LanguageProfile` (Arabic/Hebrew
  * stemming, segmentation) is built yet, but a consuming app still needs

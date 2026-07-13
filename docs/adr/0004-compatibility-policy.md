@@ -4,7 +4,7 @@
 
 Accepted (index-format check implemented since Phase 1,
 `packages/client/src/validate-manifest.ts`; the API-semver half takes
-effect at the 1.0 tag itself, see [25-path-to-1.0.md](../25-path-to-1.0.md)).
+effect at the 1.0 tag itself, see [reference/compatibility.md](../reference/compatibility.md)).
 
 ## Context
 
@@ -19,7 +19,7 @@ rules, not one combined "package version" meaning both at once.
 ## Decision
 
 - **API compatibility**: ordinary semver on the published npm packages,
-  per [22-project-governance.md](../22-project-governance.md)'s
+  per [project/governance.md](../project/governance.md)'s
   Compatibility Policy — a breaking API change requires a major bump,
   documentation, and migration notes.
 - **Index format compatibility**: a separate integer,
@@ -29,7 +29,7 @@ rules, not one combined "package version" meaning both at once.
   rejected with a named `InvalidManifestError` before any query
   executes, rather than failing opaquely deep inside search logic. The
   supported client-version ↔ index-version pairing is a documented table
-  ([02-index-format.md](../02-index-format.md#versioning--cache-strategy)),
+  ([Compatibility](../reference/compatibility.md#index-format-compatibility)),
   not an inferred rule.
 
 ## Alternatives Considered
@@ -41,7 +41,7 @@ rules, not one combined "package version" meaning both at once.
   rebuilds.
 - **No explicit format version, infer compatibility from shape**:
   rejected — this is exactly the failure mode
-  [22-project-governance.md](../22-project-governance.md) calls out
+  [project/governance.md](../project/governance.md) calls out
   ("older clients should fail with clear compatibility errors"); an
   inferred/duck-typed check degrades to a confusing error deep inside
   query execution instead of a clear one at load time.
@@ -53,7 +53,5 @@ rules, not one combined "package version" meaning both at once.
   and immediately for that manifest instead of returning wrong or
   partial results.
 - The 1.0 tag is the point where the API-compatibility half of this
-  policy starts actually applying (there's no prior major version to
-  have been stable within) — see
-  [25-path-to-1.0.md](../25-path-to-1.0.md)'s API-freeze iteration for
-  what gets frozen.
+  policy starts applying; the current frozen boundary is listed in
+  [Compatibility](../reference/compatibility.md).

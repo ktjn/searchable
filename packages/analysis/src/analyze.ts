@@ -20,7 +20,7 @@ export interface Token {
 /**
  * The one analysis pipeline shared by the indexer and the runtime.
  * Index-time and query-time calls MUST go through this same function
- * with the same profile, or matching silently breaks (docs/03).
+ * with the same profile, or matching silently breaks (docs/guides/internationalization.md).
  */
 export function analyze(text: string, profile: LanguageProfile): Token[] {
   const normalized = text.normalize("NFKC");
@@ -43,7 +43,7 @@ export function analyze(text: string, profile: LanguageProfile): Token[] {
 }
 
 /**
- * Normalizes a phrase (a pin term/query, docs/16-term-to-page-pinning.md)
+ * Normalizes a phrase (a pin term/query, docs/guides/pinning.md)
  * to a single canonical string by running it through the same analysis
  * pipeline as any other text and joining the resulting terms with a
  * single space. Both the indexer (building pin shard keys) and the

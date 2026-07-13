@@ -1,5 +1,5 @@
 /**
- * Synonym playground corpus (docs/19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5):
+ * Synonym playground corpus (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5):
  * a handful of docs with deliberately non-overlapping vocabulary, so a
  * query only finds a doc using different wording *because* synonym
  * expansion ran, not by some other route (shared substrings, stemming,
@@ -49,7 +49,7 @@ export const SYNONYM_DOCS: SynonymDoc[] = [
  * "sofa"<->"couch" is a symmetric equivalence class; "laptop"->"notebook"
  * is directional (forward only) -- both wired into buildIndex's
  * `synonyms` option in build-gallery-synonyms.ts, mirroring
- * docs/05-synonyms.md's authoring shape exactly.
+ * docs/guides/synonyms.md's authoring shape exactly.
  */
 export const SYNONYM_CONFIG = {
   en: {

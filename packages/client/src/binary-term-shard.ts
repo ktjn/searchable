@@ -3,8 +3,8 @@ import { ByteReader } from "./byte-reader.js";
 
 /**
  * Client-side decoder for the directory-based binary term shard
- * encoding (`packages/indexer/src/binary-term-shard.ts`, docs/spec-binary-format.md#dictionary-encoding
- * / #posting-encoding, docs/11-binary-vs-json-index.md). Deliberately
+ * encoding (`packages/indexer/src/binary-term-shard.ts`, docs/archive/specs/binary-format.md#dictionary-encoding
+ * / #posting-encoding, docs/concepts/binary-storage.md). Deliberately
  * lazy: `decodeDirectory()` parses only the sorted term -> (byte
  * offset, byte length) table, never touching a posting byte, and
  * `decodeTermEntry()` decodes exactly one term's postings by seeking
@@ -82,7 +82,7 @@ export function decodeBinaryTermEntry(
 
 /**
  * Every term in `sortedTerms` that starts with `prefix`, found via
- * binary search over the sorted array (`docs/02-index-format.md#size-targets--sharding-tuning`'s
+ * binary search over the sorted array (`docs/concepts/index-format.md#size-targets-and-sharding-tuning`'s
  * "contiguous range scan over a sorted structure" note) rather than a
  * linear scan -- the whole point of storing terms sorted in the
  * directory.

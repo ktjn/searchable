@@ -1,16 +1,16 @@
 # Architecture Decision Records
 
-[22-project-governance.md](../22-project-governance.md) calls for ADRs
+[project/governance.md](../project/governance.md) calls for ADRs
 under this directory for index format changes, ranking model changes,
 storage abstractions, compatibility policy, and plugin APIs — but none
-existed until the [1.0 release plan](../25-path-to-1.0.md) asked for
+existed until the [1.0 release plan](../reference/compatibility.md) asked for
 them. These five are written retroactively, from decisions already made
 and already justified at length in the design docs each one cites: the
 point of writing them now, before 1.0 freezes the public API, is a
 permanent dated record of *why*, not a design exercise — nothing here
 changes behavior.
 
-Template (per 22-project-governance.md):
+Template (per project/governance.md):
 
 - Title
 - Status

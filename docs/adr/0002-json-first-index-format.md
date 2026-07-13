@@ -8,11 +8,11 @@ Phase 7 — `packages/indexer/src/binary-*-shard.ts`,
 
 ## Context
 
-[02-index-format.md](../02-index-format.md) commits to the index format
+[concepts/index-format.md](../concepts/index-format.md) commits to the index format
 being "a spec, not a library dependency" — a Python or Java producer
 should be able to emit a conforming index with standard-library tooling
 alone, proven by the two independent reference generators in
-[`spec/examples/`](../../spec/examples/). [11-binary-vs-json-index.md](../11-binary-vs-json-index.md)'s
+[`spec/examples/`](../../spec/examples/). [archive/investigations/binary-vs-json-index.md](../archive/investigations/binary-vs-json-index.md)'s
 benchmarking then asked a separate question: does a binary format pay
 for itself at scale, and if so, does it replace JSON or coexist with it?
 
@@ -21,11 +21,11 @@ for itself at scale, and if so, does it replace JSON or coexist with it?
 JSON is the default and the format every shard type supports. A binary
 encoding exists only where a real, benchmarked win was found — term
 shards, fuzzy shards, and the doc store
-([spec-binary-format.md](../spec-binary-format.md)) — each per-shard,
+([archive/specs/binary-format.md](../archive/specs/binary-format.md)) — each per-shard,
 selected independently (`Manifest.shards.terms[*].format:
 "json" | "binary"`), never a whole-deployment format switch. Facet,
 synonym, and pins shards deliberately stay JSON-only: the benchmarking
-in 11-binary-vs-json-index.md found no access pattern for them that a
+in archive/investigations/binary-vs-json-index.md found no access pattern for them that a
 binary encoding would win on (facet shards are usually decoded in full
 for aggregate counts, the opposite of the lazy-per-key-decode shape that
 makes the binary tier a win for terms/fuzzy/docs).
@@ -43,8 +43,8 @@ makes the binary tier a win for terms/fuzzy/docs).
   shard (small, aggregate-read), and a global flag can't express that.
 - **Whole-shard binary decode**: prototyped and found *slower* than
   native `JSON.parse` at small/medium scale
-  ([09-roadmap.md](../09-roadmap.md)'s Phase 7 "Binary-vs-JSON postings
-  benchmark" finding) — rejected in favor of the directory-based,
+  (recorded in the [archived investigation](../archive/investigations/binary-vs-json-index.md))
+  — rejected in favor of the directory-based,
   lazy-per-key-decode design actually shipped, which measured as a real
   win once built that way.
 
@@ -59,8 +59,8 @@ makes the binary tier a win for terms/fuzzy/docs).
 - A consuming deployment opts in per shard type
   (`writeIndex(built, outDir, { termShardFormat: "binary" })`), so
   choosing wrong costs nothing but a rebuild — not a migration.
-- The binary tier is marked experimental for 1.0
-  ([25-path-to-1.0.md](../25-path-to-1.0.md)'s Scope section): it's real
+- The binary tier is marked experimental for 1.0 in the
+  [changelog](../../CHANGELOG.md): it's real
   and tested, but the newest surface, and a facet-shard binary encoding
   remains an open design question, so it isn't covered by the 1.0
   API-stability guarantee the way the JSON tier is.

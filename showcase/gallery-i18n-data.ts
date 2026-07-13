@@ -1,11 +1,10 @@
 /**
  * Multi-language corpus for the Stage 2 feature gallery
- * (docs/19-github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5).
- * Scoped to English + German -- the two LanguageProfiles that actually
- * exist today (docs/09-roadmap.md#status, Phase 4) -- rather than the
- * full English/German/Japanese/Arabic list in docs/19's original demo
- * table; CJK segmentation and RTL rendering remain design-only, so a
- * demo claiming to showcase them would be lying.
+ * (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5).
+ * Scoped to English + German to demonstrate the two full stemming
+ * profiles. Japanese has a fallback segmentation profile and Arabic
+ * direction detection is exposed separately; this corpus does not claim
+ * to demonstrate either surface.
  *
  * Two things this corpus is built to demonstrate, both true properties
  * of the engine today rather than aspirational ones:
@@ -15,7 +14,7 @@
  *     the partitioning is real, not just "different words happen not
  *     to collide."
  *   - Umlaut folding happens in the stemmer, not before it
- *     (docs/03-tokenization-i18n.md#case-folding--diacritics): German
+ *     (docs/guides/internationalization.md#case-folding-and-diacritics): German
  *     "schon" (already) and "schön" (beautiful) are different words
  *     that happen to differ only by an umlaut. `foldDiacritics: false`
  *     keeps them as distinct strings going *into* stemGerman(), but its

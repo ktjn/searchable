@@ -3,8 +3,8 @@
 Minimal reference generator proving the index format needs no library
 beyond the standard library (json, hashlib, re) -- deliberately
 independent of this repo's own TypeScript packages, sharing no code
-with the real indexer. See docs/02-index-format.md and
-docs/20-tech-stack.md.
+with the real indexer. See docs/concepts/index-format.md and
+docs/concepts/architecture.md.
 
 Usage: python3 generate_index.py documents.json out/
 """

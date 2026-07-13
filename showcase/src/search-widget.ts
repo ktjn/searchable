@@ -50,6 +50,9 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
   input.type = "search";
   input.placeholder = "Search these docs…";
   input.className = "csf-search-input";
+  input.name = "docs-search";
+  input.autocomplete = "off";
+  input.spellcheck = false;
   input.setAttribute("aria-label", "Search these docs");
   input.setAttribute("aria-expanded", "false");
 
@@ -58,7 +61,7 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
   results.id = "csf-search-results";
   input.setAttribute("aria-controls", results.id);
 
-  // Visually hidden (docs/08-modern-features.md#accessibility): the
+  // Visually hidden (docs/reference/client-api.md): the
   // dropdown itself already shows results sighted users can see
   // directly, so this exists purely to announce the same outcome to
   // screen reader users via aria-live, not to duplicate visible UI.

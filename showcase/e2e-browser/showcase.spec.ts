@@ -21,17 +21,35 @@ test.describe("showcase (docs site + real search, real browser)", () => {
   });
 
   test("renders the docs site with working nav", async ({ page }) => {
-    await page.goto(`${baseUrl}docs/00-overview.html`);
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
     await expect(page).toHaveTitle("Overview");
     await expect(page.locator("main h1")).toHaveText("Overview");
     await page.click('nav a:has-text("Architecture")');
     await expect(page).toHaveTitle("Architecture");
   });
 
+  test("docs search has stable form metadata and accessible page landmarks", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
+    const input = page.locator(".csf-search-input");
+    await expect(input).toHaveAttribute("name", "docs-search");
+    await expect(input).toHaveAttribute("autocomplete", "off");
+    await expect(input).toHaveAttribute("spellcheck", "false");
+    const skipLink = page.locator('.skip-link[href="#main-content"]');
+    await skipLink.focus();
+    await expect(skipLink).toBeVisible();
+    await expect(page.locator("main#main-content")).toHaveCount(1);
+    await expect(page.locator("main h1")).toHaveCSS(
+      "scroll-margin-top",
+      "80px",
+    );
+  });
+
   test("search returns ranked results and navigating to one loads the right page", async ({
     page,
   }) => {
-    await page.goto(`${baseUrl}docs/00-overview.html`);
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
 
     const input = page.locator(".csf-search-input");
     await input.fill("prefix matching");
@@ -42,7 +60,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
 
     await firstResult.click();
     await page.waitForLoadState("load");
-    await expect(page).toHaveTitle("Query Language, Ranking & Boosts");
+    await expect(page).toHaveTitle("Ranking and boosts");
   });
 
   test("shows a no-results state for a nonsense query", async ({ page }) => {
@@ -51,10 +69,10 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await expect(page.locator(".csf-empty")).toBeVisible();
   });
 
-  test("accessibility: announces result count via aria-live and toggles aria-expanded (docs/08-modern-features.md#accessibility)", async ({
+  test("accessibility: announces result count via aria-live and toggles aria-expanded (docs/reference/client-api.md)", async ({
     page,
   }) => {
-    await page.goto(`${baseUrl}docs/00-overview.html`);
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
     const input = page.locator(".csf-search-input");
     const announcer = page.locator('[role="status"].csf-sr-only');
 
@@ -72,6 +90,185 @@ test.describe("showcase (docs site + real search, real browser)", () => {
 
     await input.fill("");
     await expect(input).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("mobile grouped navigation and gallery cards do not overflow the page", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${baseUrl}docs/getting-started/overview.html`);
+
+    await expect(page.locator(".nav-section").first()).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await page.goto(`${baseUrl}gallery/index.html`);
+    await expect(page.locator(".quick-example-card")).toHaveCount(6);
+    await expect(page.locator(".gallery-results-summary")).toHaveCount(6);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+});
+
+test.describe("feature gallery: quick examples (real browser)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+
+  test.beforeAll(async () => {
+    const server = await serveDir(distDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+  });
+
+  test("quick examples expose a loading status before becoming ready", async ({
+    page,
+  }) => {
+    let releaseClient: (() => void) | undefined;
+    const clientReleased = new Promise<void>((resolve) => {
+      releaseClient = resolve;
+    });
+    await page.route("**/assets/index.js", async (route) => {
+      await clientReleased;
+      await route.continue();
+    });
+
+    await page.goto(`${baseUrl}gallery/index.html`);
+    await expect(page.locator('.gallery-loading[role="status"]')).toHaveCount(
+      6,
+    );
+
+    releaseClient?.();
+    await expect(
+      page.locator('[data-example-card="basic"] .gallery-results-summary'),
+    ).toContainText(/result/);
+    await expect(page.locator(".gallery-loading")).toHaveCount(0);
+  });
+
+  test("quick examples expose identity and search busy state", async ({
+    page,
+  }) => {
+    let releaseManifest: (() => void) | undefined;
+    const manifestReleased = new Promise<void>((resolve) => {
+      releaseManifest = resolve;
+    });
+    await page.route(
+      "**/gallery/products/search-index/manifest.json",
+      async (route) => {
+        await manifestReleased;
+        await route.continue();
+      },
+    );
+
+    await page.goto(`${baseUrl}gallery/index.html`);
+    const basic = page.locator(
+      '[data-example-card="basic"] [data-gallery-root]',
+    );
+    await expect(basic).toHaveAttribute("data-example-id", "basic");
+    await expect(basic).toHaveAttribute("aria-busy", "true");
+
+    releaseManifest?.();
+    await expect(basic.locator(".gallery-results-summary")).toContainText(
+      /result/,
+    );
+    await expect(basic).toHaveAttribute("aria-busy", "false");
+  });
+
+  for (const id of [
+    "basic",
+    "fuzzy",
+    "facets",
+    "synonyms",
+    "pinning",
+    "internationalization",
+  ]) {
+    test(`quick example ${id} loads real results`, async ({ page }) => {
+      await page.goto(`${baseUrl}gallery/index.html`);
+      const card = page.locator(`[data-example-card="${id}"]`);
+      await expect(card.locator(".gallery-results-summary")).toContainText(
+        /result/,
+      );
+      await expect(card.locator(".gallery-error")).toHaveCount(0);
+    });
+  }
+
+  test("quick examples exercise their distinct search behaviors", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/index.html`);
+
+    const basic = page.locator('[data-example-card="basic"]');
+    await expect(basic.locator(".gallery-hit-title").first()).toContainText(
+      /desk/i,
+    );
+
+    const fuzzy = page.locator('[data-example-card="fuzzy"]');
+    await expect(fuzzy.locator(".gallery-empty")).toBeVisible();
+    await fuzzy.locator(".gallery-fuzzy-toggle input").check();
+    await expect(fuzzy.locator(".gallery-badge-expansion").first()).toHaveText(
+      "Fuzzy match",
+    );
+
+    const facets = page.locator('[data-example-card="facets"]');
+    await expect(facets.locator(".gallery-facet-group")).toBeVisible();
+
+    const synonyms = page.locator('[data-example-card="synonyms"]');
+    await synonyms.locator(".gallery-synonyms-toggle input").check();
+    await expect(
+      synonyms.locator(".gallery-badge-expansion").first(),
+    ).toHaveText("Synonym match");
+
+    const pinning = page.locator('[data-example-card="pinning"]');
+    await expect(pinning.locator(".gallery-badge").first()).toHaveText(
+      "Pinned",
+    );
+
+    const i18n = page.locator('[data-example-card="internationalization"]');
+    await expect(i18n.locator(".gallery-language-select")).toHaveValue("en");
+    await i18n.locator(".gallery-language-select").selectOption("de");
+    await expect(i18n.locator(".gallery-hit-title")).toContainText(
+      "Espresso Grundlagen",
+    );
+  });
+
+  test("inline source is keyboard-operable and links to its guide", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/index.html`);
+    const card = page.locator('[data-example-card="fuzzy"]');
+    await card.locator("summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(card.locator(".example-source")).toHaveAttribute("open", "");
+    await expect(card.locator("pre code")).toContainText("wirelss");
+    await expect(card.locator("a.example-guide")).toHaveAttribute(
+      "href",
+      /ranking-and-boosts\.html/,
+    );
+  });
+
+  test("one broken example does not prevent its siblings from loading", async ({
+    page,
+  }) => {
+    await page.route(
+      "**/gallery/products/search-index/manifest.json",
+      (route) => route.abort(),
+    );
+    await page.goto(`${baseUrl}gallery/index.html`);
+    await expect(
+      page.locator('[data-example-card="basic"] .gallery-error'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-example-card="synonyms"] .gallery-results-summary'),
+    ).toContainText(/result/);
   });
 });
 
@@ -98,6 +295,18 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     await expect(
       page.locator(".gallery-facet-group:has-text('category')"),
     ).toBeVisible();
+    await expect(page.locator(".gallery-search-input")).toHaveAttribute(
+      "name",
+      "gallery-search",
+    );
+    await expect(page.locator(".gallery-search-input")).toHaveAttribute(
+      "autocomplete",
+      "off",
+    );
+    await expect(page.locator(".gallery-search-input")).toHaveAttribute(
+      "spellcheck",
+      "false",
+    );
   });
 
   test("checking a category facet filters results and updates counts", async ({
@@ -127,7 +336,7 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     }
   });
 
-  test("accessibility: result count is an aria-live region (docs/08-modern-features.md#accessibility)", async ({
+  test("accessibility: result count is an aria-live region (docs/reference/client-api.md)", async ({
     page,
   }) => {
     await page.goto(`${baseUrl}gallery/products/index.html`);
@@ -166,8 +375,8 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     // unchanged, unlike "wireles" (drop one "s"), which the stemmer
     // itself further reduces to "wirel" -- three edits from "wireless",
     // well past the strict maxEdits:1 fuzzy dictionary regardless of
-    // the toggle (docs/03-tokenization-i18n.md#stemming interacting
-    // with docs/04-query-ranking-boosts.md#prefix--fuzzy-matching).
+    // the toggle (docs/guides/internationalization.md#stemming interacting
+    // with docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching).
     await page.locator(".gallery-search-input").fill("wirelss");
 
     await expect(page.locator(".gallery-empty")).toBeVisible();
@@ -296,7 +505,7 @@ test.describe("feature gallery: multi-language corpus demo (real browser)", () =
     );
   });
 
-  test("the German stemmer's own umlaut-fold surfaces both schon and schön for either query (docs/03-tokenization-i18n.md#case-folding--diacritics)", async ({
+  test("the German stemmer's own umlaut-fold surfaces both schon and schön for either query (docs/guides/internationalization.md#case-folding-and-diacritics)", async ({
     page,
   }) => {
     await page.goto(`${baseUrl}gallery/i18n/index.html`);

@@ -1,6 +1,6 @@
 /**
- * Deterministic, dependency-free language detection (docs/03-tokenization-i18n.md,
- * docs/09-roadmap.md's "Auto language detection accuracy" open question) --
+ * Deterministic, dependency-free language detection (docs/guides/internationalization.md,
+ * docs/project/roadmap.md's "Auto language detection accuracy" open question) --
  * used as a fallback when a source document declares no `<html lang>`
  * (`packages/indexer/src/extract.ts`), not as a replacement for explicit
  * language tagging, which is always preferred when present. Deliberately

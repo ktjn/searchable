@@ -18,7 +18,7 @@ import { serveStatic } from "./static-server.js";
  * missing key as present -- see `packages/analysis/src/safe-dict.ts`
  * (shared by `@csf/indexer` and `@csf/client` so the write-time and
  * read-time halves of this fix can't drift apart) and
- * `docs/25-path-to-1.0.md` for the full bug class this guards against.
+ * `docs/reference/compatibility.md` for the full bug class this guards against.
  */
 const sources: SourceDocument[] = [
   {

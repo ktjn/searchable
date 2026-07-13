@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://client-search-framework/schema/manifest.schema.json",
   "title": "Manifest",
-  "description": "Entry point of a client-search-framework index. See docs/02-index-format.md#manifest.",
+  "description": "Entry point of a client-search-framework index. See docs/concepts/index-format.md#manifest.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -45,7 +45,7 @@
       "items": { "type": "string" }
     },
     "docCount": {
-      "description": "Doc count per language — see docs/02-index-format.md#manifest.",
+      "description": "Doc count per language — see docs/concepts/index-format.md#manifest.",
       "type": "object",
       "propertyNames": { "type": "string" },
       "additionalProperties": { "type": "integer", "minimum": 0 }
@@ -138,7 +138,7 @@
       }
     },
     "vectors": {
-      "description": "Vector/hybrid search (docs/13-vector-and-hybrid-search.md), only present for a corpus built with a vectors option. See vector-shard.schema.json for the shard files themselves.",
+      "description": "Vector/hybrid search (docs/guides/vector-search.md), only present for a corpus built with a vectors option. See vector-shard.schema.json for the shard files themselves.",
       "type": "object",
       "additionalProperties": false,
       "required": ["dims", "quantization", "embeddingProvider", "shards"],

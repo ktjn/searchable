@@ -86,9 +86,9 @@ function renderGalleryIndexPage(products: Product[]): string {
         )}, indexed with <code>@csf/indexer</code> and searched with
         <code>@csf/client</code> -- real facets, boosts, a pinned best-bet
         ("returns policy"), and typo-tolerant fuzzy matching, not a mock.
-        See <a href="../../docs/06-faceted-search.html">faceted search</a>,
-        <a href="../../docs/04-query-ranking-boosts.html">ranking &amp;
-        boosts</a>, and <a href="../../docs/16-term-to-page-pinning.html">
+        See <a href="../../docs/guides/facets.html">faceted search</a>,
+        <a href="../../docs/guides/ranking-and-boosts.html">ranking &amp;
+        boosts</a>, and <a href="../../docs/guides/pinning.html">
         term-to-page pinning</a> for how each mechanism works.</p>
         <div
           data-gallery-root

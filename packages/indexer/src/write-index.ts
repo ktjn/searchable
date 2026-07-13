@@ -58,7 +58,7 @@ async function writeBinary(
   return hashedRelPath;
 }
 
-/** Default per docs/02-index-format.md#size-targets--sharding-tuning ("e.g. ~50KB gzipped"). */
+/** Default per docs/concepts/index-format.md#size-targets-and-sharding-tuning ("e.g. ~50KB gzipped"). */
 export const DEFAULT_MAX_TERM_SHARD_GZIP_BYTES = 50 * 1024;
 
 function groupByPrefixLength(
@@ -82,12 +82,12 @@ function gzipByteSize(termShard: TermShard): number {
   return gzipSync(JSON.stringify(canonicalize(termShard))).length;
 }
 
-/** A prefix length past which auto-splitting gives up even if still over budget -- a safety net against runaway recursion, not a limit expected to bind in practice (docs/02's own examples never go past two characters). */
+/** A prefix length past which auto-splitting gives up even if still over budget -- a safety net against runaway recursion, not a limit expected to bind in practice (docs/concepts/index-format.md's own examples never go past two characters). */
 const MAX_PREFIX_LENGTH = 8;
 
 /**
  * Splits one bucket further by one more prefix character, recursing into
- * any resulting sub-bucket that's *still* over `maxGzipBytes` -- docs/02's
+ * any resulting sub-bucket that's *still* over `maxGzipBytes` -- docs/concepts/index-format.md's
  * "auto-increases prefix length ... for over-large shards" is not capped
  * at two characters: a sufficiently dense leading substring (common in
  * agglutinative/compounding languages like German at real corpus scale)
@@ -98,7 +98,7 @@ const MAX_PREFIX_LENGTH = 8;
  * whichever comes first -- the latter two both emit a warning rather
  * than fail the build, since a corpus dense enough to hit either in
  * practice needs the binary tier this shard format is deliberately
- * staying open-and-simple ahead of (docs/11-binary-vs-json-index.md),
+ * staying open-and-simple ahead of (docs/concepts/binary-storage.md),
  * not open-ended JSON prefix recursion.
  */
 function splitOversizedBucket(
@@ -121,7 +121,7 @@ function splitOversizedBucket(
         ? "only one term left"
         : `hit the ${MAX_PREFIX_LENGTH}-character prefix-length cap`;
     console.warn(
-      `[csf-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget and cannot be split further (${reason}) -- see docs/02-index-format.md#size-targets--sharding-tuning.`,
+      `[csf-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget and cannot be split further (${reason}) -- see docs/concepts/index-format.md#size-targets-and-sharding-tuning.`,
     );
     result.set(prefix, group);
     return;
@@ -129,7 +129,7 @@ function splitOversizedBucket(
   const subBuckets = groupByPrefixLength(group, prefixLength + 1);
   if (subBuckets.size <= 1) {
     console.warn(
-      `[csf-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget, but every term in it shares the same prefix so it cannot be split further -- see docs/02-index-format.md#size-targets--sharding-tuning.`,
+      `[csf-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget, but every term in it shares the same prefix so it cannot be split further -- see docs/concepts/index-format.md#size-targets-and-sharding-tuning.`,
     );
     result.set(prefix, group);
     return;
@@ -148,7 +148,7 @@ function splitOversizedBucket(
 
 /**
  * Splits one language's term shard into prefix buckets
- * (docs/02-index-format.md#term-shard-inverted-index): single-character
+ * (docs/concepts/index-format.md#term-shard-inverted-index): single-character
  * prefix by default, so a query for "widget" only ever needs the "w"
  * bucket, regardless of how many other terms exist. A bucket that would
  * still exceed `maxGzipBytes` after gzip is widened one character at a
@@ -169,7 +169,7 @@ function shardTermsByPrefix(
 
 /**
  * Splits `docStore` into contiguous id-ordered chunks of at most
- * `shardSize` entries each (docs/02-index-format.md#doc-store) — id
+ * `shardSize` entries each (docs/concepts/index-format.md#doc-store) — id
  * order, not insertion order, so each shard's `idRange` is a genuine
  * contiguous range the client can filter against
  * (`packages/client/src/search.ts`'s `fetchDocStoreEntriesByIds()`).
@@ -205,7 +205,7 @@ function chunkDocStoreByIdRange(
 /**
  * Serializes a BuiltIndex to content-hashed shard files plus a plain
  * (unhashed) manifest.json — the full hashed-manifest + alias-pointer
- * scheme from docs/02-index-format.md#versioning--cache-strategy is a
+ * scheme from docs/concepts/index-format.md#versioning-and-cache-strategy is a
  * deliberate simplification left for when a real deployment needs it;
  * shard immutability (the property that actually matters for caching)
  * is implemented as designed.
@@ -225,7 +225,7 @@ export interface WriteIndexOptions {
    * *format* either way, just configured with one shard instead of many.
    * Real per-prefix sharding is solving a fetch-size problem that
    * doesn't exist yet for a small enough corpus
-   * (docs/14-reference-deployment-cms-2k.md#what-to-simplify-at-this-scale).
+   * (docs/guides/indexing.md#what-to-simplify-at-this-scale).
    * Defaults to `true` (real prefix sharding, the general-case default).
    */
   shardByPrefix?: boolean;
@@ -233,12 +233,12 @@ export interface WriteIndexOptions {
    * `"binary"` writes term shards with the directory-based delta+varint
    * encoding (`./binary-term-shard.js`, validated in
    * `packages/indexer/bench/binary-lazy-decode.mjs` — see
-   * docs/11-binary-vs-json-index.md), one `.bin` file per prefix bucket
+   * docs/concepts/binary-storage.md), one `.bin` file per prefix bucket
    * with `format: "binary"` recorded on that shard's manifest entry, in
    * place of the plain-JSON `terms/<lang>/<prefix>.json` shape.
    * Defaults to `"json"`. Every other shard type (facets, doc store,
    * pins, synonyms, fuzzy) stays JSON either way — this option is
-   * term-shard-only, matching docs/spec-binary-format.md's "a
+   * term-shard-only, matching docs/archive/specs/binary-format.md's "a
    * deployment may mix JSON and binary files" allowance.
    */
   termShardFormat?: "json" | "binary";
@@ -256,7 +256,7 @@ export interface WriteIndexOptions {
   docStoreFormat?: "json" | "binary";
   /**
    * Max doc-store entries per physical shard
-   * (docs/02-index-format.md#doc-store) — once the corpus has more docs
+   * (docs/concepts/index-format.md#doc-store) — once the corpus has more docs
    * than this, the doc store splits into multiple contiguous-id-range
    * shards (`docs/0.json`, `docs/1.json`, ...) instead of one file
    * covering the whole corpus. The client already fetches only the
@@ -278,14 +278,14 @@ export interface WriteIndexOptions {
    * directory-based encoding as term shards (`./binary-fuzzy-shard.js`)
    * in place of the plain JSON `{maxEdits, deletions}` shape — a fuzzy
    * dictionary can be as large as the term vocabulary itself
-   * (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching) but a query
+   * (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching) but a query
    * only ever looks up a handful of specific deletion-variant keys, the
    * same shape that already justified the term shard's binary tier.
    * Defaults to `"json"`.
    */
   fuzzyShardFormat?: "json" | "binary";
   /**
-   * Pre-built vector/hybrid search shards (docs/13-vector-and-hybrid-search.md),
+   * Pre-built vector/hybrid search shards (docs/guides/vector-search.md),
    * from a separate `buildVectorShards()` call — kept as a distinct
    * argument rather than a `BuildIndexOptions` field since building
    * vectors requires calling an async `embed()` function, and

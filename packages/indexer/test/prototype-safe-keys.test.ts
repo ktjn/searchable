@@ -10,7 +10,7 @@ import type { SourceDocument } from "../src/types.js";
  * corpus-derived strings, so a naive `if (!dict[key])` existence check
  * is silently fooled into reading the inherited prototype member
  * instead of creating a real entry -- this is the exact bug
- * docs/25-path-to-1.0.md's own text (containing the word
+ * docs/reference/compatibility.md's own text (containing the word
  * "constructor") triggered when the showcase indexed it. These tests
  * pin that buildIndex handles every such key correctly rather than
  * crashing or silently dropping the entry. `Object.hasOwn()` confirms

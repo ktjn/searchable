@@ -26,7 +26,7 @@ function renderDocPage(doc: I18nDoc): string {
     bodyHtml,
   });
   // pageShell always emits <html lang="en"> -- override per doc so
-  // extractDocument's language detection (docs/03-tokenization-i18n.md)
+  // extractDocument's language detection (docs/guides/internationalization.md)
   // actually partitions each page into its own language, not just en.
   return html.replace('<html lang="en">', `<html lang="${doc.language}">`);
 }
@@ -37,15 +37,15 @@ function renderI18nIndexPage(): string {
         <p><a href="../../index.html">&larr; Back to docs</a></p>
         <h1>Multi-language corpus</h1>
         <p>${I18N_DOCS.length} short articles split across English and German
-        (docs/09-roadmap.md#status -- the two LanguageProfiles that exist
-        today; Japanese/Arabic remain design-only). "Espresso" is spelled
+        (the two full stemming profiles used by this demo; Japanese has a
+        fallback segmentation profile and Arabic direction detection). "Espresso" is spelled
         identically in both languages: pick a language below and search it
         to see that each language's index only ever returns its own
         page, not the other's. German's "schon" (already) and "schön"
         (beautiful) differ only by an umlaut -- searching either now finds
         both pages, since the real German stemmer's own final step folds
         any remaining umlaut back to a plain vowel
-        (<a href="../../docs/03-tokenization-i18n.html">tokenization
+        (<a href="../../docs/guides/internationalization.html">internationalization
         &amp; i18n</a>), even though it reaches the stemmer as two
         distinct strings.</p>
         <div

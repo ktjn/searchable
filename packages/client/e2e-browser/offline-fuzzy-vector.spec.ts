@@ -39,7 +39,7 @@ const clientDist = join(__dirname, "..", "dist");
 
 /**
  * Regression coverage for issue #1 finding 1
- * (docs/08-modern-features.md#caching--offline-support): the Service
+ * (docs/guides/offline-search.md): the Service
  * Worker previously mishandled `manifest.fuzzy` (an object shape, not a
  * bare file string like `pins`/`synonyms`) and never precached
  * `manifest.vectors` shards at all, so `fuzzy: true` and

@@ -23,6 +23,10 @@ export function pageShell(opts: {
   bodyHtml: string;
   withWidget?: boolean;
 }): string {
+  const bodyHtml = opts.bodyHtml.replace(
+    /<main(?=[\s>])(?:(?!\bid=)[^>])*?>/,
+    (main) => main.replace("<main", '<main id="main-content"'),
+  );
   const widgetScript = opts.withWidget
     ? `\n    <script type="module" src="${opts.root}gallery-widget.js"></script>`
     : "";
@@ -37,12 +41,13 @@ export function pageShell(opts: {
     <link rel="stylesheet" href="${opts.root}gallery.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <header>
       <a href="${opts.root}index.html" class="brand">client-search-framework</a>
       <a href="${opts.root}gallery/index.html">Feature gallery</a>
     </header>
     <div class="gallery-layout">
-      ${opts.bodyHtml}
+      ${bodyHtml}
     </div>${widgetScript}
   </body>
 </html>

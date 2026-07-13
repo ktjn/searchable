@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://client-search-framework/schema/pins-shard.schema.json",
   "title": "Pins shard",
-  "description": "One pins/<lang>.<hash>.json file. See docs/16-term-to-page-pinning.md.",
+  "description": "One pins/<lang>.<hash>.json file. See docs/guides/pinning.md.",
   "type": "object",
   "propertyNames": {
     "type": "string",

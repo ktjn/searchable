@@ -4,7 +4,7 @@ import { analyze } from "@csf/analysis";
 export interface QueryTerm {
   /** Analyzed (lowercased/stemmed) term or prefix, ready for lookup. */
   term: string;
-  /** true for a trailing-`*` prefix query (docs/04-query-ranking-boosts.md#prefix--fuzzy-matching). */
+  /** true for a trailing-`*` prefix query (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching). */
   prefix: boolean;
   /** Lowercased but *not* stemmed surface form of this term (@csf/analysis's `Token.literal`) -- used for result highlighting, which matches raw stored text where a stemmed term wouldn't. */
   literal: string;
@@ -46,7 +46,7 @@ export function parseQueryTerms(
 }
 
 /**
- * A `"quoted phrase"` clause (docs/04-query-ranking-boosts.md#phrase--proximity-queries):
+ * A `"quoted phrase"` clause (docs/guides/ranking-and-boosts.md#phrase-and-proximity-queries):
  * every term must appear at consecutive positions, in this exact
  * order, within the same field of a matching document — not merely
  * present independently, the way a bare space-separated AND of the

@@ -4,7 +4,7 @@ import type { EmbeddingProviderConfig } from "./types.js";
 /**
  * A real, local (no query-time backend) embedding source for
  * `buildVectorShards({ embed, provider })`
- * (docs/13-vector-and-hybrid-search.md), backed by
+ * (docs/guides/vector-search.md), backed by
  * `@huggingface/transformers` -- a quantized sentence-embedding ONNX
  * model run via ONNX Runtime Web/Node, matching the design doc's
  * default-philosophy option 1 ("ship a small embedding model", not the
@@ -45,7 +45,7 @@ export type TransformersDtype =
 export interface TransformersEmbedderOptions {
   /** Any Hugging Face Hub sentence-embedding model id compatible with the `feature-extraction` pipeline. Defaults to `DEFAULT_TRANSFORMERS_MODEL`. */
   model?: string;
-  /** Weight quantization to load. Defaults to `"q8"` (int8), matching this project's own size-consciousness default for its own vector quantization (docs/13#storage-format). */
+  /** Weight quantization to load. Defaults to `"q8"` (int8), matching this project's own size-consciousness default for its own vector quantization (docs/guides/vector-search.md#storage-format). */
   dtype?: TransformersDtype;
 }
 

@@ -83,7 +83,7 @@ describe("writeIndex", () => {
     // docA/docB's vocabulary (alpha, beta, shared, term, widget) has five
     // distinct leading characters, each producing its own tiny shard --
     // real per-first-character-prefix sharding
-    // (docs/02-index-format.md#term-shard-inverted-index), not the single
+    // (docs/concepts/index-format.md#term-shard-inverted-index), not the single
     // unsharded "terms/en/all.json" Phase 1 originally shipped.
     const built = buildIndex([docA, docB]);
     const outDir = await tempOutDir();
@@ -113,7 +113,7 @@ describe("writeIndex", () => {
     // Two distinct real terms sharing a leading character ("widget",
     // "wombat") would normally land in one "w" shard; forcing the gzip
     // byte budget down to 1 byte guarantees it's always "over budget",
-    // exercising docs/02-index-format.md#size-targets--sharding-tuning's
+    // exercising docs/concepts/index-format.md#size-targets-and-sharding-tuning's
     // "auto-increases prefix length ... for over-large shards" without
     // needing a corpus large enough to hit a real 50KB shard.
     const docs: SourceDocument[] = [
@@ -180,7 +180,7 @@ describe("writeIndex", () => {
     }
   });
 
-  it("writes a single unsharded term shard per language when shardByPrefix:false (docs/14's small-corpus-mode recommendation)", async () => {
+  it("writes a single unsharded term shard per language when shardByPrefix:false (docs/guides/indexing.md's small-corpus-mode recommendation)", async () => {
     const built = buildIndex([docA, docB]);
     const outDir = await tempOutDir();
     await writeIndex(built, outDir, { shardByPrefix: false });
@@ -203,7 +203,7 @@ describe("writeIndex", () => {
     });
 
     const shard = await readTermShard(outDir, "en", "all");
-    // "shared" stems to "share" (docs/03-tokenization-i18n.md#stemming).
+    // "shared" stems to "share" (docs/guides/internationalization.md#stemming).
     expect(Object.keys(shard).sort()).toEqual([
       "alpha",
       "beta",
@@ -301,7 +301,7 @@ describe("writeIndex", () => {
     const built = buildIndex([docB, docA]);
     await writeIndex(built, outDir);
 
-    // "widgets" stems to "widget" (docs/03-tokenization-i18n.md#stemming),
+    // "widgets" stems to "widget" (docs/guides/internationalization.md#stemming),
     // which lives in the "w" shard.
     const content = await readTermShard(outDir, "en", "w");
     expect(content.widget?.postings.map((p) => p.doc)).toEqual([1, 2]);

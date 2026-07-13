@@ -10,8 +10,8 @@ import type { SearchOptions } from "../src/search.js";
 import { serveStatic } from "./static-server.js";
 
 /**
- * The configuration testbed (docs/10-testing-and-performance.md#1-correctness-tests,
- * docs/09-roadmap.md Phase 6): generalizes the idea of "a fixed query
+ * The configuration testbed (docs/project/governance.md#testing,
+ * docs/project/roadmap.md Phase 6): generalizes the idea of "a fixed query
  * set against a fixed corpus" to a *matrix* of build/query
  * configurations against that corpus, so a tuning change (e.g. "raise
  * the default title boost") can be checked across every configuration
@@ -67,7 +67,7 @@ const VARIANTS: ConfigVariant[] = [
  * reorder results, unlike a term that's title-only or body-only
  * everywhere it appears. "shar" is a genuine one-deletion typo of
  * "shard" -- the classic-Porter-stemmed form "sharding" now indexes as
- * (docs/03-tokenization-i18n.md#stemming), not the un-stemmed surface
+ * (docs/guides/internationalization.md#stemming), not the un-stemmed surface
  * form itself, so the typo has to be a true edit distance 1 from the
  * *stemmed* real term for the strict maxEdits:1 dictionary to ever
  * find it (verified directly against the built fixture's fuzzy shard,

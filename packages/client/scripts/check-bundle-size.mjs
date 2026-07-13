@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
 /**
- * Bundle-size CI gate for @csf/client (docs/08-modern-features.md#bundle-size-budget,
- * docs/09-roadmap.md Phase 6). Checks the entry points a consumer
+ * Bundle-size CI gate for @csf/client (docs/project/governance.md#performance-policy,
+ * docs/project/roadmap.md Phase 6). Checks the entry points a consumer
  * actually loads -- the main-thread bundle, the search Worker bundle,
  * and the opt-in offline Service Worker bundle -- against a fixed
  * gzipped-size budget, so a dependency creep or an
@@ -14,7 +14,7 @@ import { gzipSync } from "node:zlib";
  * bundle-size regression nobody notices until a user complains.
  *
  * Scoped to today's reality, not the full per-plugin table in
- * docs/08: @csf/client ships as one bundle with facets/pins/synonyms/
+ * docs/reference/client-api.md: @csf/client ships as one bundle with facets/pins/synonyms/
  * fuzzy already baked in (no plugin:fuzzy/plugin:synonyms split to
  * gate independently yet), so this checks the real artifacts against
  * one "core" budget rather than gating plugins that don't exist as
@@ -23,7 +23,7 @@ import { gzipSync } from "node:zlib";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "..", "dist");
 
-const BUDGET_BYTES = 15 * 1024; // 15 KB gzipped, matching the "@csf/client core" row in docs/08
+const BUDGET_BYTES = 15 * 1024; // 15 KB gzipped, matching the "@csf/client core" row in docs/reference/client-api.md
 
 const ARTIFACTS = ["index.js", "worker.js", "sw.js"];
 

@@ -20,7 +20,7 @@ import type {
 /**
  * Resolves indexUrl to an absolute URL up front. Every later shard/doc
  * fetch is resolved *relative to the manifest's URL*
- * (docs/07-client-api.md), which requires an absolute base — `fetch()`
+ * (docs/reference/client-api.md), which requires an absolute base — `fetch()`
  * itself tolerates a relative indexUrl (resolving it against the
  * page's own location transparently), but `new URL(relPath, baseUrl)`
  * does not accept a relative baseUrl, so a relative indexUrl has to be
@@ -92,7 +92,7 @@ export interface SearchClientOptions {
   indexUrl: string;
   /**
    * Run analysis/scoring in a Web Worker so keystroke-driven queries
-   * never block the main thread (docs/08-modern-features.md#web-worker-execution).
+   * never block the main thread (docs/concepts/architecture.md).
    * Defaults to true, but only takes effect when `workerUrl` is also
    * given — see its docs below for why. Falls back to direct,
    * same-thread execution otherwise — same public API either way.
@@ -129,7 +129,7 @@ export interface SearchClientOptions {
   strict?: boolean;
   /**
    * Turns a query string into the vector `options.mode: "vector"`/
-   * `"hybrid"` search needs (docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from).
+   * `"hybrid"` search needs (docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from).
    * Deliberately not provided by this library: what produces this
    * vector (a bundled local model, a call to a remote embedding API, or
    * anything else) is a deployment choice this project stays agnostic
@@ -178,7 +178,7 @@ export interface SearchStreamOptions extends SearchOptions {
   /**
    * Invoked once with the fast literal/prefix-only pass's result,
    * before the returned promise resolves to the final,
-   * synonym/fuzzy-expanded result (docs/07-client-api.md#streamingincremental-results).
+   * synonym/fuzzy-expanded result (docs/reference/client-api.md#streamingincremental-results).
    * Only fires when `synonyms` and/or `fuzzy` was requested -- see
    * `searchStream()` in packages/client/src/search.ts. Never invoked
    * once `signal` has already fired, matching `search()`'s "nothing is
@@ -189,14 +189,14 @@ export interface SearchStreamOptions extends SearchOptions {
 
 /**
  * Lifecycle events a consumer can observe without the library phoning
- * home itself (docs/08-modern-features.md#observability-hooks) —
+ * home itself (docs/reference/client-api.md#events-and-lifecycle) —
  * click-through tracking or zero-result-query logging are consuming-app
  * concerns built on top of these, not something this library bundles.
  * Scoped to `search()` only, not `facetValues()`: "a query was issued"
  * is naturally about free-text search, and a facet-only browsing call
  * has no query text for a "query" event to carry. A fuller diagnostics
  * surface (phase timings, per-plugin attribution) is a separate,
- * larger spec (spec-diagnostics.md), not this first slice.
+ * larger spec (archive/specs/diagnostics.md), not this first slice.
  */
 export interface SearchClientEventMap {
   /** Fired synchronously the moment search() is called, before any fetch/worker round trip. */
@@ -312,7 +312,7 @@ export class SearchClient {
     // Computed here, not inside search.ts, because `embedQuery` is
     // arbitrary caller JS that can't cross the Worker postMessage
     // boundary -- only its plain-array *result* can
-    // (docs/13-vector-and-hybrid-search.md).
+    // (docs/guides/vector-search.md).
     const queryVector = await this.#resolveQueryVector(query, options.mode);
     throwIfAborted(options.signal);
     this.#emit("query", { query, options });
@@ -347,7 +347,7 @@ export class SearchClient {
 
   /**
    * Resolves `options.mode`'s query embedding, if any is needed
-   * (docs/13-vector-and-hybrid-search.md#api-surface). Returns
+   * (docs/guides/vector-search.md#api-surface). Returns
    * `undefined` for `mode: "lexical"` (the default) — no embedding is
    * ever computed unless a caller actually opts into vector/hybrid
    * search, matching the "pay only for what you use" principle every
@@ -360,7 +360,7 @@ export class SearchClient {
     if (mode !== "vector" && mode !== "hybrid") return undefined;
     if (!this.#embedQuery) {
       throw new VectorSearchNotConfiguredError(
-        `SearchClient.search: mode "${mode}" requires SearchClientOptions.embedQuery to be configured — see docs/13-vector-and-hybrid-search.md#the-hard-constraint-where-does-the-query-embedding-come-from`,
+        `SearchClient.search: mode "${mode}" requires SearchClientOptions.embedQuery to be configured — see docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from`,
       );
     }
     if (typeof this.#embedQuery === "function") {
@@ -418,7 +418,7 @@ export class SearchClient {
 
   /**
    * Streaming/incremental variant of search()
-   * (docs/07-client-api.md#streamingincremental-results): resolves to
+   * (docs/reference/client-api.md#streamingincremental-results): resolves to
    * the same final `SearchResult` `search()` would, but -- whenever
    * `synonyms`/`fuzzy` was requested -- calls `options.onPartial` with
    * the fast literal/prefix-only pass first, so a keystroke-driven UI
@@ -469,7 +469,7 @@ export class SearchClient {
   }
 
   /**
-   * Subscribe to a lifecycle event (docs/08-modern-features.md#observability-hooks).
+   * Subscribe to a lifecycle event (docs/reference/client-api.md#events-and-lifecycle).
    * Returns an unsubscribe function rather than requiring a separate
    * `off()` call — the caller already has the one reference it needs to
    * stop listening, so a second method just for that would be redundant.
@@ -509,7 +509,7 @@ export class SearchClient {
 
   /**
    * A filter-only facet panel query with no free-text search
-   * (docs/07-client-api.md#facet-only-queries) — e.g. rendering a
+   * (docs/reference/client-api.md#facet-only-queries) — e.g. rendering a
    * category-landing-page sidebar before a visitor has typed anything.
    */
   async facetValues(
