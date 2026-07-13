@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "nn-wikipedia-help-v1",
+  "version": "1.0.0",
+  "language": "nn",
+  "provenance": {
+    "publisher": "Nynorsk Wikipedia-fellesskapet",
+    "sourceTitle": "Hjelp:Innhald",
+    "sourceUrl": "https://nn.wikipedia.org/wiki/Hjelp:Innhald",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "retrievedAt": "2026-07-13",
+    "attribution": "Wikipedia-bidragsytarar; versjonshistoria finst på kjeldesida.",
+    "selectionNotes": "Åtte opphavlege nynorske hjelpetema vart valde verbatim som kjende emnesøk; lenkjemarkering vart fjerna."
+  },
+  "documents": [
+    {
+      "id": "sokje",
+      "title": "Korleis søkje etter ein bestemd artikkel",
+      "body": "Hjelpesida forklarer korleis ein kan søkje etter ein bestemd artikkel og utforske Wikipediaartiklane.",
+      "url": "https://nn.wikipedia.org/wiki/Hjelp:Innhald#Utforsk_Wikipediaartiklane"
+    },
+    {
+      "id": "endringar",
+      "title": "Korleis sjekke siste utførte endringar",
+      "body": "Hjelpesida viser korleis ein kan sjekke dei siste utførte endringane på Nynorsk Wikipedia.",
+      "url": "https://nn.wikipedia.org/wiki/Hjelp:Innhald#Utforsk_Wikipediaartiklane"
+    },
+    {
+      "id": "logge",
+      "title": "Korleis logge inn",
+      "body": "Hjelpesida viser korleis ein kan logge inn og bruke ein brukarkonto på Nynorsk Wikipedia.",
+      "url": "https://nn.wikipedia.org/wiki/Hjelp:Innhald#Utforsk_Wikipediaartiklane"
+    },
+    {
+      "id": "innstillingar",
+      "title": "Korleis endre brukarinnstillingane",
+      "body": "Hjelpesida forklarer korleis innlogga brukarar kan endre brukarinnstillingane sine.",
+      "url": "https://nn.wikipedia.org/wiki/Hjelp:Innhald#Utforsk_Wikipediaartiklane"
+    },
+    {
+      "id": "diskusjon",
+      "title": "Korleis bruke diskusjonssidene",
+      "body": "Hjelpesida forklarer korleis diskusjonssidene vert brukte til samarbeid om Wikipediaartiklar.",
+      "url": "https://nn.wikipedia.org/wiki/Hjelp:Innhald#Utforsk_Wikipediaartiklane"
+    },
+    {
+      "id": "endre",
+      "title": "Korleis lage endringar i ein eksisterande artikkel",
+      "body": "Du kan lage endringar i ein eksisterande artikkel og eksperimentere i sandkassa.",
+      "url": "https://nn.wikipedia.org/wiki/Hjelp:Innhald#Gjera_endringar_i_Wikipediaartiklane"
+    },
+    {
+      "id": "ny-side",
+      "title": "Korleis byrje på ei ny side",
+      "body": "Hjelpesida forklarer korleis ein kan byrje på ei ny side på Nynorsk Wikipedia.",
+      "url": "https://nn.wikipedia.org/wiki/Hjelp:Innhald#Gjera_endringar_i_Wikipediaartiklane"
+    },
+    {
+      "id": "namngje",
+      "title": "Korleis ein bør namngje ei ny side",
+      "body": "Hjelpesida forklarer korleis ein bør namngje ei ny side slik at artikkelen får ein tenleg tittel.",
+      "url": "https://nn.wikipedia.org/wiki/Hjelp:Innhald#Gjera_endringar_i_Wikipediaartiklane"
+    }
+  ],
+  "queries": [
+    {
+      "id": "diskusjon",
+      "text": "Korleis bruke diskusjonssidene",
+      "judgments": { "diskusjon": 3 }
+    },
+    {
+      "id": "endre",
+      "text": "Korleis lage endringar i ein eksisterande artikkel",
+      "judgments": { "endre": 3 }
+    },
+    {
+      "id": "endringar",
+      "text": "Korleis sjekke siste utførte endringar",
+      "judgments": { "endringar": 3 }
+    },
+    {
+      "id": "innstillingar",
+      "text": "Korleis endre brukarinnstillingane",
+      "judgments": { "innstillingar": 3 }
+    },
+    { "id": "logge", "text": "Korleis logge inn", "judgments": { "logge": 3 } },
+    {
+      "id": "namngje",
+      "text": "Korleis ein bør namngje ei ny side",
+      "judgments": { "namngje": 3 }
+    },
+    {
+      "id": "ny-side",
+      "text": "Korleis byrje på ei ny side",
+      "judgments": { "ny-side": 3 }
+    },
+    {
+      "id": "sokje",
+      "text": "Korleis søkje etter ein bestemd artikkel",
+      "judgments": { "sokje": 3 }
+    }
+  ]
+}

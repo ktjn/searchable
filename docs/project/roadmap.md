@@ -6,7 +6,7 @@ This page is the single current list of shipped capability and remaining work; d
 
 | Area | Current state | Remaining work |
 |---|---|---|
-| Lexical search | Stable | Relevance baselines and an internal query-planner abstraction |
+| Lexical search | Stable; native six-language relevance regression baseline | Representative domain corpora, broader judged query sets, quality thresholds, and an internal query-planner abstraction |
 | Facets, synonyms, fuzzy search, and pins | Stable | No required 1.0 work |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
 | Offline and worker execution | Stable | Resource-aware loading refinements |
@@ -17,7 +17,7 @@ This page is the single current list of shipped capability and remaining work; d
 ## Near-term work
 
 - Publish and maintain the audience-first documentation and searchable showcase.
-- Establish reproducible performance and relevance baselines before making production-scale claims.
+- Expand the reproducible native-language relevance baseline with representative domain corpora and reviewed judgments before defining thresholds or making production-scale claims.
 - Add a semantic-search example that states model, download, memory, and latency costs clearly; keep lexical search as the default for content sites.
 - Expand full language profiles only with representative corpora, analyzer fixtures, relevance queries, and cross-implementation conformance tests.
 - Refine loading priority, memory controls, and prefetching from measured browser behavior rather than fixed speculative policies.
@@ -46,6 +46,8 @@ Treat relevance as a measurable quality attribute rather than only a correctness
 - Recall@k
 - nDCG@k
 - zero-result rate
+
+The initial deterministic evaluator and small native-source regression suites now cover all six full language profiles. See [Relevance baselines](relevance-baselines.md) for commands, metrics, provenance requirements, and interpretation limits. These fixtures are a regression foundation, not representative corpora or a CI quality gate.
 
 Run relevance evaluation when changing analyzers, tokenization, stemming, synonyms, fuzzy expansion, BM25 parameters, field boosts, phrase behavior, or hybrid fusion. Keep domain-specific relevance suites separate from generic engine conformance tests.
 

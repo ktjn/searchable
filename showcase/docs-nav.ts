@@ -84,6 +84,7 @@ export const DOC_SECTIONS: readonly DocSection[] = [
       ...(
         [
           ["roadmap", "Roadmap"],
+          ["relevance-baselines", "Relevance baselines"],
           ["governance", "Governance"],
           ["architecture-decisions", "Architecture decisions"],
         ] as const

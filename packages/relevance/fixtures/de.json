@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "de-wikipedia-help-v1",
+  "version": "1.0.0",
+  "language": "de",
+  "provenance": {
+    "publisher": "Deutschsprachige Wikipedia-Gemeinschaft",
+    "sourceTitle": "Hilfe:Allgemeine FAQ",
+    "sourceUrl": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ",
+    "license": "CC-BY-SA-4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "retrievedAt": "2026-07-13",
+    "attribution": "Wikipedia-Autoren; die Versionsgeschichte ist über die Quellseite verfügbar.",
+    "selectionNotes": "Acht muttersprachliche deutsche Fragen und die zugehörigen Antworten wurden verbatim ausgewählt; Link-Markup wurde entfernt."
+  },
+  "documents": [
+    {
+      "id": "download",
+      "title": "Kann man die Wikipedia herunterladen oder ohne Netzanschluss lesen?",
+      "body": "Ja. Dazu muss man in der Regel auf seinem Computer ein bestimmtes Programm installieren und dann mit einem Datensatz der Wikipedia verknüpfen, den man heruntergeladen hat.",
+      "url": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ#Kann_man_die_Wikipedia_herunterladen_oder_ohne_Netzanschluss_lesen?"
+    },
+    {
+      "id": "mobil",
+      "title": "Gibt es die Wikipedia auch für PDAs und Handys?",
+      "body": "Ja, Wikipedia gibt es in einer Mobil-Version für Handys mit Internetzugang und zum Offline-Lesen als Download in mehreren Formaten.",
+      "url": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ#Gibt_es_die_Wikipedia_auch_für_PDAs_und_Handys?"
+    },
+    {
+      "id": "drucken",
+      "title": "Wie kann ich Wikipedia-Artikel am besten ausdrucken?",
+      "body": "Der Browser ermöglicht das Speichern und Ausdrucken von Internet-Seiten. Die Druckversion gibt eine Wikipedia-Seite in vereinfachter Form ohne Randelemente wieder.",
+      "url": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ#Wie_kann_ich_Wikipedia-Artikel_am_besten_ausdrucken?"
+    },
+    {
+      "id": "zitieren",
+      "title": "Wie zitiere ich aus der Wikipedia?",
+      "body": "In der Regel wie aus einer anderen Internetseite. Bei jedem Artikel gibt es unter Werkzeuge den Link Artikel zitieren mit konkreten Zitiervorschlägen.",
+      "url": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ#Wie_zitiere_ich_aus_der_Wikipedia?"
+    },
+    {
+      "id": "website",
+      "title": "Darf ich Wikipedia-Inhalte auf meiner Website verwenden?",
+      "body": "Ja. Grundsätzlich musst du allerdings angeben, dass du die Inhalte aus der Wikipedia genommen hast und die Bedingungen der freien Lizenz einhalten.",
+      "url": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ#Darf_ich_Wikipedia-Inhalte_auf_meiner_Website_verwenden?"
+    },
+    {
+      "id": "schule",
+      "title": "Kann die Wikipedia in der Schule verwendet werden?",
+      "body": "Wikipedia kann einen einfachen Einstieg in ein Thema bieten, sollte aber nicht die einzige Grundlage für ein Referat sein.",
+      "url": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ#Kann_die_Wikipedia_in_der_Schule_verwendet_werden?"
+    },
+    {
+      "id": "eigentum",
+      "title": "Wem gehört die Wikipedia?",
+      "body": "Server, Domains sowie die Namens- und Logorechte gehören der Wikimedia Foundation. Die Inhalte sind frei und können unter Einhaltung der Lizenz genutzt werden.",
+      "url": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ#Wem_gehört_die_Wikipedia?"
+    },
+    {
+      "id": "finanzierung",
+      "title": "Wie wird der Betrieb der Wikipedia finanziert?",
+      "body": "Die Wikipedia wird fast ausschließlich durch Spenden finanziert.",
+      "url": "https://de.wikipedia.org/wiki/Hilfe:Allgemeine_FAQ#Wie_wird_der_Betrieb_der_Wikipedia_finanziert?"
+    }
+  ],
+  "queries": [
+    {
+      "id": "download",
+      "text": "Kann man die Wikipedia herunterladen oder ohne Netzanschluss lesen?",
+      "judgments": { "download": 3 }
+    },
+    {
+      "id": "drucken",
+      "text": "Wie kann ich Wikipedia-Artikel am besten ausdrucken?",
+      "judgments": { "drucken": 3 }
+    },
+    {
+      "id": "eigentum",
+      "text": "Wem gehört die Wikipedia?",
+      "judgments": { "eigentum": 3 }
+    },
+    {
+      "id": "finanzierung",
+      "text": "Wie wird der Betrieb der Wikipedia finanziert?",
+      "judgments": { "finanzierung": 3 }
+    },
+    {
+      "id": "mobil",
+      "text": "Gibt es die Wikipedia auch für PDAs und Handys?",
+      "judgments": { "mobil": 3 }
+    },
+    {
+      "id": "schule",
+      "text": "Kann die Wikipedia in der Schule verwendet werden?",
+      "judgments": { "schule": 3 }
+    },
+    {
+      "id": "website",
+      "text": "Darf ich Wikipedia-Inhalte auf meiner Website verwenden?",
+      "judgments": { "website": 3 }
+    },
+    {
+      "id": "zitieren",
+      "text": "Wie zitiere ich aus der Wikipedia?",
+      "judgments": { "zitieren": 3 }
+    }
+  ]
+}
