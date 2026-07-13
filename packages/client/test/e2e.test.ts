@@ -318,6 +318,50 @@ describe("manifest validation (real HTTP)", () => {
 
   beforeAll(async () => {
     outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-validate-"));
+    await writeIndex(buildIndex(sources), outDir);
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    await Promise.all([
+      writeFile(
+        join(outDir, "bad-manifest.json"),
+        JSON.stringify({ version: 2, format: "json" }),
+        "utf8",
+      ),
+      writeFile(
+        join(outDir, "cross-origin-manifest.json"),
+        JSON.stringify({
+          ...manifest,
+          shards: {
+            ...manifest.shards,
+            terms: manifest.shards.terms.map(
+              (shard: Record<string, unknown>, index: number) =>
+                index === 0
+                  ? {
+                      ...shard,
+                      file: "https://evil.example.com/terms/en/all.json",
+                    }
+                  : shard,
+            ),
+          },
+        }),
+        "utf8",
+      ),
+      writeFile(
+        join(outDir, "strict-invalid-manifest.json"),
+        JSON.stringify({
+          ...manifest,
+          shards: {
+            ...manifest.shards,
+            terms: manifest.shards.terms.map(
+              (shard: Record<string, unknown>, index: number) =>
+                index === 0 ? { ...shard, lang: "de" } : shard,
+            ),
+          },
+        }),
+        "utf8",
+      ),
+    ]);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -329,11 +373,6 @@ describe("manifest validation (real HTTP)", () => {
   });
 
   it("rejects a structurally invalid manifest instead of failing deep in search()", async () => {
-    await writeFile(
-      join(outDir, "bad-manifest.json"),
-      JSON.stringify({ version: 2, format: "json" }),
-      "utf8",
-    );
     const client = new SearchClient({
       indexUrl: `${baseUrl}bad-manifest.json`,
     });
@@ -341,19 +380,6 @@ describe("manifest validation (real HTTP)", () => {
   });
 
   it("rejects a manifest whose shard file resolves cross-origin by default", async () => {
-    const built = buildIndex(sources);
-    await writeIndex(built, outDir);
-    const manifestPath = join(outDir, "manifest.json");
-    const { readFile } = await import("node:fs/promises");
-    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-    manifest.shards.terms[0].file =
-      "https://evil.example.com/terms/en/all.json";
-    await writeFile(
-      join(outDir, "cross-origin-manifest.json"),
-      JSON.stringify(manifest),
-      "utf8",
-    );
-
     const client = new SearchClient({
       indexUrl: `${baseUrl}cross-origin-manifest.json`,
     });
@@ -361,21 +387,6 @@ describe("manifest validation (real HTTP)", () => {
   });
 
   it("strict: true rejects a semantically-invalid manifest that lite mode accepts (issue #1 finding 7)", async () => {
-    const built = buildIndex(sources);
-    await writeIndex(built, outDir);
-    const manifestPath = join(outDir, "manifest.json");
-    const { readFile } = await import("node:fs/promises");
-    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-    // "de" is not in manifest.languages -- structurally fine (still a
-    // valid array of shard entries), only wrong under strict's semantic
-    // cross-check.
-    manifest.shards.terms[0].lang = "de";
-    await writeFile(
-      join(outDir, "strict-invalid-manifest.json"),
-      JSON.stringify(manifest),
-      "utf8",
-    );
-
     const lite = new SearchClient({
       indexUrl: `${baseUrl}strict-invalid-manifest.json`,
     });

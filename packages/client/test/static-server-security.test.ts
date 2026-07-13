@@ -55,4 +55,21 @@ describe.each([
       await rm(parent, { recursive: true, force: true });
     }
   });
+
+  test("serves only files discovered at startup", async () => {
+    const parent = await mkdtemp(join(tmpdir(), "searchable-server-test-"));
+    const root = join(parent, "public");
+    await mkdir(root);
+    const server = await startServer(root);
+
+    try {
+      await writeFile(join(root, "late.json"), "not allowlisted", "utf8");
+      const response = await rawGet(server.baseUrl, "/late.json");
+      expect(response.status).toBe(404);
+      expect(response.body).not.toContain("not allowlisted");
+    } finally {
+      await server.close();
+      await rm(parent, { recursive: true, force: true });
+    }
+  });
 });

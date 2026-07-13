@@ -1,7 +1,21 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { createServer } from "node:http";
-import { resolve, sep } from "node:path";
+import { join, resolve } from "node:path";
+
+async function discoverFiles(root: string): Promise<Map<string, string>> {
+  const files = new Map<string, string>();
+  async function visit(directory: string, route: string): Promise<void> {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const filePath = join(directory, entry.name);
+      const fileRoute = `${route}/${entry.name}`;
+      if (entry.isDirectory()) await visit(filePath, fileRoute);
+      else if (entry.isFile()) files.set(fileRoute, filePath);
+    }
+  }
+  await visit(root, "");
+  return files;
+}
 
 /**
  * The smallest possible "static host" for the e2e test — proves the
@@ -18,19 +32,25 @@ export async function serveStatic(rootDir: string): Promise<{
   requestedPaths: string[];
 }> {
   const root = resolve(rootDir);
+  const files = await discoverFiles(root);
   const requestedPaths: string[] = [];
   const server: Server = createServer((req, res) => {
     const requestPath = decodeURIComponent(
       (req.url ?? "/").split("?")[0] ?? "/",
-    );
+    ).replaceAll("\\", "/");
     requestedPaths.push(requestPath);
-    const path = resolve(root, requestPath.replace(/^[/\\]+/, ""));
-    if (path !== root && !path.startsWith(`${root}${sep}`)) {
+    if (requestPath.split("/").includes("..")) {
       res.writeHead(403);
       res.end();
       return;
     }
-    readFile(path)
+    const filePath = files.get(requestPath);
+    if (!filePath) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+    readFile(filePath)
       .then((data) => {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(data);
