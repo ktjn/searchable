@@ -24,3 +24,5 @@ export type {
 } from "./evaluate.js";
 export { evaluateSuite } from "./evaluate.js";
 export { runSearchableSuite } from "./searchable-runner.js";
+export { loadSuites } from "./load-suites.js";
+export { renderConsoleReport, serializeJsonReport } from "./report.js";
