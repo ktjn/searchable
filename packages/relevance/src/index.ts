@@ -17,3 +17,9 @@ export {
   reciprocalRank,
 } from "./metrics.js";
 export { validateSuite } from "./validate-suite.js";
+export type {
+  QueryReport,
+  SearchForEvaluation,
+  SuiteReport,
+} from "./evaluate.js";
+export { evaluateSuite } from "./evaluate.js";
