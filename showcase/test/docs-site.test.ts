@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { marked } from "marked";
 import { describe, expect, test } from "vitest";
 import { DOC_SECTIONS } from "../docs-nav.js";
@@ -261,6 +262,19 @@ describe("documentation navigation", () => {
 });
 
 describe("documentation rendering", () => {
+  test("publishes the reviewed documentation-domain baseline", async () => {
+    const source = await readFile(
+      new URL("../../docs/project/relevance-baselines.md", import.meta.url),
+      "utf8",
+    );
+    const html = await marked.parse(source, {
+      renderer: createMarkdownRenderer(),
+    });
+
+    expect(html).toContain("pnpm relevance -- --suite searchable-docs");
+    expect(html).toContain("not a pass/fail threshold");
+  });
+
   test("renders stable unique heading IDs", async () => {
     const html = await marked.parse(
       "# Index format compatibility\n\n## Café & API!\n\n## Café & API!",
