@@ -188,6 +188,12 @@ describe("extractDocument", () => {
     expect(extractDocument(html, "/x").language).toBe("fr");
   });
 
+  it("preserves an explicit generic Norwegian compatibility code", () => {
+    const html = `<html lang="no"><head><title>Norsk</title></head>
+      <body><main><p>Ikke jeg hva også hvordan hvem.</p></main></body></html>`;
+    expect(extractDocument(html, "/norsk").language).toBe("no");
+  });
+
   it("falls back to defaultLanguage when detection has no confident signal, same as before auto-detection existed", () => {
     const html =
       "<html><head><title>Ohne Lang</title></head><body>x y z</body></html>";

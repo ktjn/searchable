@@ -534,6 +534,17 @@ test.describe("feature gallery: multi-language corpus demo (real browser)", () =
     await expect(page.locator(".gallery-hit-title")).toContainText(
       "Espresso Grundlagen",
     );
+
+    for (const [language, title] of [
+      ["sv", "Espresso på svenska"],
+      ["nl", "Espresso in het Nederlands"],
+      ["nb", "Espresso på bokmål"],
+      ["nn", "Espresso på nynorsk"],
+    ] as const) {
+      await page.locator(".gallery-language-select").selectOption(language);
+      await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
+      await expect(page.locator(".gallery-hit-title")).toContainText(title);
+    }
   });
 
   test("the German stemmer's own umlaut-fold surfaces both schon and schön for either query (docs/guides/internationalization.md#case-folding-and-diacritics)", async ({

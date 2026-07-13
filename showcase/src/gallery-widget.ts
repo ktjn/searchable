@@ -65,6 +65,10 @@ interface SearchOptions {
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English",
   de: "Deutsch",
+  sv: "Svenska",
+  nl: "Nederlands",
+  nb: "Norsk bokmål",
+  nn: "Norsk nynorsk",
 };
 
 interface SearchClientLike {
