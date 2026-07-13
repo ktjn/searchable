@@ -41,3 +41,16 @@ test("Pages builds and validates the static artifact without browser work", () =
   expect(workflow).not.toContain("pnpm docs:check");
   expect(workflow.match(/pnpm test:browser/g) ?? []).toHaveLength(0);
 });
+
+test("Pages build can read the repository Pages configuration", () => {
+  const workflow = readFileSync(
+    join(repositoryRoot, ".github", "workflows", "deploy-pages.yml"),
+    "utf8",
+  );
+  const buildJob = workflow.slice(
+    workflow.indexOf("  build:"),
+    workflow.indexOf("  deploy:"),
+  );
+
+  expect(buildJob).toContain("pages: write");
+});
