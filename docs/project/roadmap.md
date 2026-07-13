@@ -6,6 +6,7 @@ This page is the single current list of shipped capability and remaining work; d
 
 | Area | Current state | Remaining work |
 |---|---|---|
+| Documentation and showcase | Published, searchable, and covered by link, accessibility, and browser checks | Ongoing maintenance alongside product changes |
 | Lexical search | Stable; native six-language relevance regression baseline | Representative domain corpora, broader judged query sets, quality thresholds, and an internal query-planner abstraction |
 | Facets, synonyms, fuzzy search, and pins | Stable | No required 1.0 work |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
@@ -16,7 +17,6 @@ This page is the single current list of shipped capability and remaining work; d
 
 ## Near-term work
 
-- Publish and maintain the audience-first documentation and searchable showcase.
 - Expand the reproducible native-language relevance baseline with representative domain corpora and reviewed judgments before defining thresholds or making production-scale claims.
 - Add a semantic-search example that states model, download, memory, and latency costs clearly; keep lexical search as the default for content sites.
 - Expand full language profiles only with representative corpora, analyzer fixtures, relevance queries, and cross-implementation conformance tests.

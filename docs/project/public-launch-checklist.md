@@ -24,30 +24,35 @@ The maintainer owns the visibility and commit-history decisions.
 
 ## Visibility change
 
-- [ ] In **Settings → General → Danger Zone**, change repository visibility to
+- [x] In **Settings → General → Danger Zone**, change repository visibility to
   public and confirm `ktjn/searchable` is the intended repository.
-- [ ] Open the repository while signed out and verify README, license, Issues,
+- [x] Open the repository while signed out and verify README, license, Issues,
   Security, and the documentation homepage are visible.
 
 ## Immediately after public
 
-- [ ] Enable **secret scanning** and review any alerts across the complete Git
+- [x] Enable **secret scanning** and review any alerts across the complete Git
   history.
-- [ ] Enable secret-scanning **push protection**.
-- [ ] Enable **private vulnerability reporting** and verify
+- [x] Enable secret-scanning **push protection**.
+- [x] Enable **private vulnerability reporting** and verify
   `https://github.com/ktjn/searchable/security/advisories/new` is available.
-- [ ] Enable **Dependabot security updates** and confirm vulnerability alerts
+- [x] Enable **Dependabot security updates** and confirm vulnerability alerts
   remain enabled.
-- [ ] Enable TypeScript and Python **code scanning**, preferably with GitHub's
+- [x] Enable TypeScript and Python **code scanning**, preferably with GitHub's
   default CodeQL setup, and triage the first result.
-- [ ] Verify the main ruleset exists and its required status-check names match
+- [x] Verify the main ruleset exists and its required status-check names match
   the current CI jobs exactly.
-- [ ] Verify `https://ktjn.github.io/searchable/` and
+- [x] Verify `https://ktjn.github.io/searchable/` and
   `https://ktjn.github.io/searchable/gallery/` return HTTP 200 with Searchable
   branding.
-- [ ] Verify every README and community-file link as a signed-out visitor.
-- [ ] Confirm `npm view @ktjn/searchable-client version` still returns `E404`;
+- [x] Verify every README and community-file link as a signed-out visitor.
+- [x] Confirm `npm view @ktjn/searchable-client version` still returns `E404`;
   registry publication is a later coordinated release.
+
+The post-public checks were completed on 2026-07-13. The initial CodeQL scan
+covered Actions, TypeScript/JavaScript, and Python; its findings were triaged
+into least-privilege CI permissions and traversal containment for test-only
+static servers. Secret scanning and Dependabot reported no open alerts.
 
 ## First npm release
 
