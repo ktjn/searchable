@@ -1,0 +1,62 @@
+name: Bug report
+description: Report reproducible incorrect behavior in Searchable
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Searchable. Do not include sensitive data or vulnerability details here; use the private security-reporting link instead.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - Browser client
+        - TypeScript indexer or CLI
+        - Analysis
+        - Index format or schemas
+        - Python reference implementation
+        - Documentation or showcase
+        - CI or repository tooling
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What happened, including the complete error when available?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide the smallest repository, code sample, index, or commands that reproduce the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include commit, package version if applicable, Node.js or Python version, browser, and operating system.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: This report contains no secrets, private content, or vulnerability details.
+          required: true

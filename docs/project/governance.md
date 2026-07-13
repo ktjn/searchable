@@ -10,7 +10,7 @@ The accepted ADR index is [Architecture decisions](architecture-decisions.md). D
 
 ## Compatibility
 
-Published packages follow semver and move in lockstep. The manifest format uses its own integer version and compatibility table; see [Compatibility](../reference/compatibility.md). Breaking API or format changes require migration documentation and focused compatibility tests.
+When published, the four public npm packages follow semver and move in lockstep. The manifest format uses its own integer version and compatibility table; see [Compatibility](../reference/compatibility.md). Breaking API or format changes require migration documentation and focused compatibility tests.
 
 ## Testing
 
@@ -25,6 +25,10 @@ Measure before changing storage or loading architecture. Benchmarks must state c
 The core client, worker, and Service Worker share a 15 KB gzip budget enforced by `pnpm size`. Large optional dependencies must stay lazy and external to that core budget.
 
 ## Release checklist
+
+Repository visibility and its post-public security settings are tracked in the
+[Public launch checklist](public-launch-checklist.md). Package publication is a
+separate release operation.
 
 - public exports and docs agree;
 - package and format compatibility are explicit;

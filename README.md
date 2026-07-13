@@ -21,14 +21,29 @@ Searchable builds a static search index ahead of time and searches it in the bro
 - Optional binary term, fuzzy, and document-store shards
 - Vector and hybrid search with injectable embeddings or the optional Transformers integration
 
-## Quick start
+## Public preview
+
+The npm and Python packages are not yet published. Evaluate the implemented
+search surfaces in the [live feature gallery](https://ktjn.github.io/searchable/gallery/)
+or work with the repository directly:
 
 ```bash
-pnpm add @ktjn/searchable-client
-pnpm add -D @ktjn/searchable-indexer
+git clone https://github.com/ktjn/searchable.git
+cd searchable
+corepack enable
+pnpm install
+pnpm build
+pnpm test
 ```
 
-Build and publish an index, then create a client that points at its manifest:
+The package manifests are prepared for a coordinated first npm release at
+`1.0.0`. Until that release exists, do not use the package names in production
+installation commands.
+
+### API shape
+
+The planned package API builds and publishes an index, then creates a client
+that points at its manifest:
 
 ```ts
 import { SearchClient } from "@ktjn/searchable-client";
@@ -71,9 +86,17 @@ pnpm lint
 
 Python reference implementations live in `python/searchable-analysis` and `python/searchable-indexer` and use `uv` for development. Contributions should preserve deterministic output and cross-implementation conformance; see [Project governance](docs/project/governance.md).
 
+See [Contributing](CONTRIBUTING.md) before opening a pull request and report
+security issues through the private process in [Security](SECURITY.md).
+
 ## Status
 
-The published package API is `1.0.0`. The lexical, facet, synonym, fuzzy, pinning, worker, offline, binary-storage, and vector/hybrid surfaces described in these docs are implemented. Planned work is collected only in the [roadmap](docs/project/roadmap.md); historical investigations and superseded specifications live under `docs/archive/`.
+The implemented package surface is prepared for a planned first npm release at
+`1.0.0`, but it is not yet published. The lexical, facet, synonym, fuzzy,
+pinning, worker, offline, binary-storage, and vector/hybrid surfaces described
+in these docs are implemented. Planned work is collected only in the
+[roadmap](docs/project/roadmap.md); historical investigations and superseded
+specifications live under `docs/archive/`.
 
 ## License
 

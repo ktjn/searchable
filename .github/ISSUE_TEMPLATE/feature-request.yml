@@ -1,0 +1,43 @@
+name: Feature request
+description: Propose an outcome tied to a concrete search consumer
+title: "feature: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Consumer problem
+      description: Who needs this, and what can they not accomplish today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed outcome
+      description: Describe observable behavior rather than an internal implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds or smaller solutions have you considered?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and trade-offs
+      description: Note index-size, browser, compatibility, privacy, or performance implications.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I reviewed the current roadmap and existing issues.
+          required: true
+        - label: This request does not require a query-time backend or access-controlled per-user search.
+          required: true
