@@ -1,14 +1,11 @@
 name: Deploy showcase to GitHub Pages
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
 
 # Only one Pages deployment at a time; don't cancel one that's already
 # publishing partway through.
@@ -18,17 +15,17 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm docs:check
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: ./.github/actions/setup-node
+      - run: pnpm docs:build
+      - run: pnpm --filter showcase validate
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
@@ -37,15 +34,12 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # Deliberately no `environment: github-pages` block here (unlike
-    # GitHub's official template): deployment Environments with
-    # protection rules are a paid-plan feature for *private*
-    # repositories, and declaring one on a private repo without that
-    # plan makes this job get rejected before a runner is even
-    # assigned (instant "failure", no steps, runner_id 0) rather than
-    # failing on an actual step. actions/deploy-pages doesn't require
-    # the job to be tied to an Environment to work — that's purely an
-    # optional GitHub UI convention for surfacing the deployment URL.
+    permissions:
+      pages: write
+      id-token: write
+    # Deliberately no `environment: github-pages` block: deployment
+    # Environments with protection rules are unavailable for this private
+    # repository's plan, and actions/deploy-pages does not require one.
     steps:
       - uses: actions/deploy-pages@v5
         id: deployment
