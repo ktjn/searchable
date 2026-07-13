@@ -1,0 +1,118 @@
+import json
+from pathlib import Path
+
+import jsonschema
+
+from searchable_indexer.build_index import build_index
+from searchable_indexer.types import SourceDocument
+from searchable_indexer.write_index import write_index
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_SCHEMA_DIR = _REPO_ROOT / "spec" / "schema"
+
+
+def _load_schema(name: str) -> dict:
+    return json.loads((_SCHEMA_DIR / name).read_text())
+
+
+def _doc(doc_id: int, url: str, title: str, body: str, lang: str = "en") -> SourceDocument:
+    html = f'<html lang="{lang}"><head><title>{title}</title></head><body><main>{body}</main></body></html>'
+    return SourceDocument(id=doc_id, url=url, html=html)
+
+
+def test_manifest_validates_against_manifest_schema(tmp_path):
+    sources = [
+        _doc(1, "/a", "Widgets", "Our widgets are wonderful and useful."),
+        _doc(2, "/b", "Sofas", "Unsere Sofas sind sehr bequem.", lang="de"),
+    ]
+    built = build_index(sources)
+    write_index(built, str(tmp_path))
+
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    schema = _load_schema("manifest.schema.json")
+    jsonschema.validate(instance=manifest, schema=schema)
+
+
+def test_term_shard_validates_against_term_shard_schema(tmp_path):
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great and useful")])
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    schema = _load_schema("term-shard.schema.json")
+    for term_entry in manifest["shards"]["terms"]:
+        term_shard = json.loads((tmp_path / term_entry["file"]).read_text())
+        jsonschema.validate(instance=term_shard, schema=schema)
+
+
+def test_doc_store_shard_validates_against_doc_store_shard_schema(tmp_path):
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    schema = _load_schema("doc-store-shard.schema.json")
+    for docs_entry in manifest["shards"]["docs"]:
+        doc_store_shard = json.loads((tmp_path / docs_entry["file"]).read_text())
+        jsonschema.validate(instance=doc_store_shard, schema=schema)
+
+
+def test_facet_shard_validates_against_facet_shard_schema(tmp_path):
+    docs = [
+        SourceDocument(
+            id=1, url="/a",
+            html='<html lang="en"><head><title>T</title>'
+                 '<meta name="searchable-facet-category" content="a>b">'
+                 '<meta name="searchable-facet-range-price" content="19.99">'
+                 '</head><body><main>widgets are great</main></body></html>',
+        ),
+    ]
+    built = build_index(docs, hierarchical_facets={"category": {}})
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    schema = _load_schema("facet-shard.schema.json")
+    for facets_entry in manifest["shards"]["facets"]:
+        facet_shard = json.loads((tmp_path / facets_entry["file"]).read_text())
+        jsonschema.validate(instance=facet_shard, schema=schema)
+
+
+def test_pins_shard_validates_against_pins_shard_schema(tmp_path):
+    docs = [
+        SourceDocument(
+            id=1, url="/a",
+            html='<html lang="en"><head><title>T</title>'
+                 '<meta name="searchable-pin" content="widgets"></head>'
+                 "<body><main>widgets are great</main></body></html>",
+        ),
+    ]
+    built = build_index(docs)
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    schema = _load_schema("pins-shard.schema.json")
+    for language, file in manifest.get("pins", {}).items():
+        pins_shard = json.loads((tmp_path / file).read_text())
+        jsonschema.validate(instance=pins_shard, schema=schema)
+
+
+def test_synonym_shard_validates_against_synonym_shard_schema(tmp_path):
+    docs = [_doc(1, "/a", "Widgets", "widgets are great")]
+    built = build_index(docs, synonyms={"en": {"equivalences": [["Couch", "Sofa"]]}})
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    schema = _load_schema("synonym-shard.schema.json")
+    for language, file in manifest.get("synonyms", {}).items():
+        synonym_shard = json.loads((tmp_path / file).read_text())
+        jsonschema.validate(instance=synonym_shard, schema=schema)
+
+
+def test_fuzzy_shard_validates_against_fuzzy_shard_schema(tmp_path):
+    docs = [_doc(1, "/a", "Widgets", "widgets are great")]
+    built = build_index(docs, fuzzy=True)
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    schema = _load_schema("fuzzy-shard.schema.json")
+    for language, entry in manifest.get("fuzzy", {}).items():
+        fuzzy_shard = json.loads((tmp_path / entry["file"]).read_text())
+        jsonschema.validate(instance=fuzzy_shard, schema=schema)

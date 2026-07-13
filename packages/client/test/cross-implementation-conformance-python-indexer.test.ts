@@ -12,18 +12,18 @@ import { serveStatic } from "./static-server.js";
 
 /**
  * Cross-implementation conformance against the *real* Python
- * `csf-indexer` CLI (python/csf-indexer/), as opposed to
+ * `searchable-indexer` CLI (python/searchable-indexer/), as opposed to
  * cross-implementation-conformance.test.ts's independent, from-scratch
  * `spec/examples/python/generate_index.py` generator. Where that test's
  * whole point is comparing the reference TS indexer against a minimal,
  * intentionally-non-conformant generator, this test's point is the
- * inverse: `csf-indexer` (python/) is a from-scratch Python re-
+ * inverse: `searchable-indexer` (python/) is a from-scratch Python re-
  * implementation of `@ktjn/searchable-indexer` intended to be a conformant, drop-in
  * peer -- same manifest/shard format, same tokenization pipeline
- * (`csf-analysis`, a Python port of `@ktjn/searchable-analysis`'s stemming/
+ * (`searchable-analysis`, a Python port of `@ktjn/searchable-analysis`'s stemming/
  * segmentation). This test proves that claim by indexing the *same*
  * fixture corpus two ways -- `@ktjn/searchable-indexer`'s `buildIndex`/`writeIndex`,
- * and `uv run csf-indexer <src> <out>` -- and running the *same*
+ * and `uv run searchable-indexer <src> <out>` -- and running the *same*
  * end-to-end query assertions against both outputs over real HTTP via
  * the real `SearchClient`.
  *
@@ -53,7 +53,7 @@ const repoRoot = join(
   "..",
   "..",
 );
-const pythonIndexerDir = join(repoRoot, "python", "csf-indexer");
+const pythonIndexerDir = join(repoRoot, "python", "searchable-indexer");
 
 interface FixtureSource {
   /** Filename stem (`${filename}.html`) -- also its sort key, since both discover functions assign doc ids by sorted-filename order (see the file-level doc comment). */
@@ -61,7 +61,7 @@ interface FixtureSource {
   lang: string;
   title: string;
   body: string;
-  /** Extra <meta name="..." content="..."> tags to inject into <head>, verbatim -- used by the facets/pins fixture doc (csf-facet-<field>/csf-pin, docs/reference/cms-meta-tags.md, docs/guides/pinning.md). Both discover functions parse these identically on the TS and Python sides. */
+  /** Extra <meta name="..." content="..."> tags to inject into <head>, verbatim -- used by the facets/pins fixture doc (searchable-facet-<field>/searchable-pin, docs/reference/cms-meta-tags.md, docs/guides/pinning.md). Both discover functions parse these identically on the TS and Python sides. */
   meta?: { name: string; content: string }[];
 }
 
@@ -90,8 +90,8 @@ const FIXTURE_SOURCES: FixtureSource[] = [
     title: "Gizmos",
     body: "Gizmos and gadgets for the modern home.",
     meta: [
-      { name: "csf-facet-category", content: "electronics" },
-      { name: "csf-pin", content: "gizmos" },
+      { name: "searchable-facet-category", content: "electronics" },
+      { name: "searchable-pin", content: "gizmos" },
     ],
   },
 ];
@@ -103,7 +103,7 @@ function toHtml(source: FixtureSource): string {
   return `<html lang="${source.lang}"><head><title>${source.title}</title>${metaTags}</head><body><main><p>${source.body}</p></main></body></html>`;
 }
 
-describe("cross-implementation conformance: real csf-indexer Python CLI", () => {
+describe("cross-implementation conformance: real searchable-indexer Python CLI", () => {
   let tsBaseUrl: string;
   let closeTsServer: () => Promise<void>;
   let tsOutDir: string;
@@ -118,7 +118,7 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
     // from the same directory so doc-id assignment (sorted-filename
     // enumeration order, on both the TS and Python discover
     // functions) is identical for both.
-    srcDir = await mkdtemp(join(tmpdir(), "csf-conformance-src-"));
+    srcDir = await mkdtemp(join(tmpdir(), "searchable-conformance-src-"));
     await mkdir(srcDir, { recursive: true });
     for (const source of FIXTURE_SOURCES) {
       await writeFile(
@@ -130,16 +130,16 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
 
     // --- TypeScript side: the real reference indexer ---
     const sources = await discoverHtmlDocuments(srcDir);
-    tsOutDir = await mkdtemp(join(tmpdir(), "csf-conformance-ts-"));
+    tsOutDir = await mkdtemp(join(tmpdir(), "searchable-conformance-ts-"));
     await writeIndex(buildIndex(sources, "en"), tsOutDir);
     const tsServer = await serveStatic(tsOutDir);
     tsBaseUrl = tsServer.baseUrl;
     closeTsServer = tsServer.close;
 
-    // --- Python side: the real csf-indexer CLI, run against the same
+    // --- Python side: the real searchable-indexer CLI, run against the same
     // rendered-HTML fixture on disk ---
-    pyOutDir = await mkdtemp(join(tmpdir(), "csf-conformance-py-"));
-    execFileSync("uv", ["run", "csf-indexer", srcDir, pyOutDir], {
+    pyOutDir = await mkdtemp(join(tmpdir(), "searchable-conformance-py-"));
+    execFileSync("uv", ["run", "searchable-indexer", srcDir, pyOutDir], {
       cwd: pythonIndexerDir,
       stdio: "pipe",
     });
@@ -217,7 +217,7 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
     });
 
     // "4.html" (the gizmos doc) is the only doc declaring
-    // csf-facet-category, so both implementations' facet shards agree
+    // searchable-facet-category, so both implementations' facet shards agree
     // on a single "electronics" value with count 1.
     const tsFacets = await tsClient.facetValues("category");
     const pyFacets = await pyClient.facetValues("category");
@@ -227,7 +227,7 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
     });
 
     // "gizmos" (normalized/stemmed identically by both sides via
-    // normalizePhrase()) is an exact-mode csf-pin on 4.html only, even
+    // normalizePhrase()) is an exact-mode searchable-pin on 4.html only, even
     // though the word "gizmos" also appears organically in 2.html's
     // body -- a matching pin is placed ahead of organic hits
     // regardless of BM25 ranking, so both implementations must agree
@@ -286,7 +286,7 @@ describe("cross-implementation conformance: binary storage tier byte-identity", 
 
   beforeAll(async () => {
     // --- TypeScript side: build the fixture in-memory and write it with the binary tier enabled ---
-    tsOutDir = await mkdtemp(join(tmpdir(), "csf-binary-conformance-ts-"));
+    tsOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-conformance-ts-"));
     const built = buildIndex(FIXTURE, "en");
     await writeIndex(built, tsOutDir, {
       termShardFormat: "binary",
@@ -295,19 +295,19 @@ describe("cross-implementation conformance: binary storage tier byte-identity", 
 
     // --- Python side: no CLI flags exist for the binary tier, so drive
     // build_index/write_index directly via a small script run through
-    // `uv run python` from python/csf-indexer/'s own venv. ---
-    pyOutDir = await mkdtemp(join(tmpdir(), "csf-binary-conformance-py-"));
+    // `uv run python` from python/searchable-indexer/'s own venv. ---
+    pyOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-conformance-py-"));
     const scriptDir = await mkdtemp(
-      join(tmpdir(), "csf-binary-conformance-script-"),
+      join(tmpdir(), "searchable-binary-conformance-script-"),
     );
     const scriptPath = join(scriptDir, "build_binary_fixture.py");
     await writeFile(
       scriptPath,
       [
         "import sys",
-        "from csf_indexer.build_index import build_index",
-        "from csf_indexer.write_index import write_index",
-        "from csf_indexer.types import SourceDocument",
+        "from searchable_indexer.build_index import build_index",
+        "from searchable_indexer.write_index import write_index",
+        "from searchable_indexer.types import SourceDocument",
         "",
         "sources = [",
         '    SourceDocument(id=0, url="/a", html=\'<html lang="en"><head><title>Widgets</title></head><body><main><p>Our widgets are wonderful and useful for everyone.</p></main></body></html>\'),',

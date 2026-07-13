@@ -69,7 +69,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-Python reference implementations live in `python/csf-analysis` and `python/csf-indexer` and use `uv` for development. Contributions should preserve deterministic output and cross-implementation conformance; see [Project governance](docs/project/governance.md).
+Python reference implementations live in `python/searchable-analysis` and `python/searchable-indexer` and use `uv` for development. Contributions should preserve deterministic output and cross-implementation conformance; see [Project governance](docs/project/governance.md).
 
 ## Status
 

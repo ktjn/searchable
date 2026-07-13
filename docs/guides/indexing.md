@@ -19,10 +19,10 @@ await writeIndex(built, "./dist/site/search-index");
 Use the checked-out Python reference implementation explicitly when validating another producer or integrating a Python build pipeline:
 
 ```bash
-uv run --project python/csf-indexer csf-indexer ./dist/site ./dist/site/search-index
+uv run --project python/searchable-indexer searchable-indexer ./dist/site ./dist/site/search-index
 ```
 
-That command refers to this repository project; it does not imply that `csf-indexer` is published to PyPI.
+That command refers to this repository project; it does not imply that `searchable-indexer` is published to PyPI.
 
 ## What to simplify at this scale
 

@@ -317,7 +317,7 @@ git commit -m "refactor: rename CMS controls to Searchable"
 - Produces: Python parsing of only the Searchable CMS controls.
 - Preserves: Python 3.10 minimum and TypeScript/Python output conformance.
 
-- [ ] **Step 1: Change Python behavior contracts before moving source**
+- [x] **Step 1: Change Python behavior contracts before moving source**
 
 In the existing Python tests, replace imports with `searchable_analysis` and
 `searchable_indexer`, replace CLI expectations with `searchable-indexer`, and
@@ -340,7 +340,7 @@ execFileSync("uv", ["run", "searchable-indexer", srcDir, pyOutDir], {
 Use inline imports from `searchable_indexer` in the test's generated Python
 program.
 
-- [ ] **Step 2: Run the Python public API, CLI, extraction, and cross-language tests and verify RED**
+- [x] **Step 2: Run the Python public API, CLI, extraction, and cross-language tests and verify RED**
 
 Run:
 
@@ -353,7 +353,7 @@ pnpm exec vitest run packages/client/test/cross-implementation-conformance-pytho
 Expected: FAIL because the renamed import packages, project path, CLI, and CMS
 selectors do not yet exist.
 
-- [ ] **Step 3: Move the projects and import-package directories**
+- [x] **Step 3: Move the projects and import-package directories**
 
 Run from the repository root:
 
@@ -364,7 +364,7 @@ git mv python/searchable-analysis/src/csf_analysis python/searchable-analysis/sr
 git mv python/searchable-indexer/src/csf_indexer python/searchable-indexer/src/searchable_indexer
 ```
 
-- [ ] **Step 4: Update Python packaging metadata and imports**
+- [x] **Step 4: Update Python packaging metadata and imports**
 
 Set `python/searchable-analysis/pyproject.toml` to:
 
@@ -411,7 +411,7 @@ replace `csf_analysis` with `searchable_analysis` and `csf_indexer` with
 `searchable_indexer` throughout the renamed Python trees and cross-language
 test.
 
-- [ ] **Step 5: Implement the Python Searchable CMS selectors and diagnostics**
+- [x] **Step 5: Implement the Python Searchable CMS selectors and diagnostics**
 
 In `python/searchable-indexer/src/searchable_indexer/extract.py`, use:
 
@@ -430,7 +430,7 @@ Change `python/searchable-indexer/src/searchable_indexer/cli.py` usage text to:
 print("usage: searchable-indexer <inputDir> <outDir>", file=sys.stderr)
 ```
 
-- [ ] **Step 6: Sync and verify both renamed Python projects**
+- [x] **Step 6: Sync and verify both renamed Python projects**
 
 Run:
 
@@ -444,7 +444,7 @@ rg -n 'csf[-_]|@csf/' python packages/client/test/cross-implementation-conforman
 Expected: 57 analysis tests, 131 indexer tests, and the cross-implementation
 test pass; the final search returns no matches.
 
-- [ ] **Step 7: Commit the Python migration**
+- [x] **Step 7: Commit the Python migration**
 
 ```powershell
 git add python packages/client/test/cross-implementation-conformance-python-indexer.test.ts README.md docs/getting-started/installation.md docs/guides/indexing.md
