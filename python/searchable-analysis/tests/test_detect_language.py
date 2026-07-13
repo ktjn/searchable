@@ -11,6 +11,18 @@ def test_detects_german_via_marker_words():
     assert detect_language(text, ["en", "de"]) == "de"
 
 
+def test_detects_swedish_dutch_bokmal_and_nynorsk_via_exclusive_markers():
+    candidates = ["en", "de", "sv", "nl", "nb", "nn", "no"]
+    assert detect_language("och är att inte också detta", candidates) == "sv"
+    assert detect_language("het een van niet zijn wij", candidates) == "nl"
+    assert detect_language("ikke jeg hva også hvordan hvem", candidates) == "nb"
+    assert detect_language("ikkje eg kva òg korleis kven", candidates) == "nn"
+
+
+def test_generic_norwegian_code_is_never_autodetected():
+    assert detect_language("ikke jeg hva også hvordan hvem", ["no"]) is None
+
+
 def test_detects_japanese_via_kana_script_dominance():
     text = "こんにちは世界"
     assert detect_language(text, ["en", "ja", "zh"]) == "ja"

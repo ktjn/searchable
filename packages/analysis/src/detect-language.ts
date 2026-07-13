@@ -85,6 +85,10 @@ const LATIN_MARKER_WORDS: Record<string, ReadonlySet<string>> = {
     "auch",
     "sind",
   ]),
+  sv: new Set(["och", "är", "att", "inte", "också", "detta"]),
+  nl: new Set(["het", "een", "van", "niet", "zijn", "wij"]),
+  nb: new Set(["ikke", "jeg", "hva", "også", "hvordan", "hvem"]),
+  nn: new Set(["ikkje", "eg", "kva", "òg", "korleis", "kven"]),
 };
 
 function countScriptChars(text: string): {

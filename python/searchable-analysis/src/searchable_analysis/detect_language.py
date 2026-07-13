@@ -20,6 +20,10 @@ _LATIN_MARKER_WORDS: dict[str, set[str]] = {
         "sich", "den", "dem", "eine", "einen", "ein", "zu", "von", "im",
         "auch", "sind",
     },
+    "sv": {"och", "är", "att", "inte", "också", "detta"},
+    "nl": {"het", "een", "van", "niet", "zijn", "wij"},
+    "nb": {"ikke", "jeg", "hva", "også", "hvordan", "hvem"},
+    "nn": {"ikkje", "eg", "kva", "òg", "korleis", "kven"},
 }
 
 # Approximates \p{L}+ (TS) via a Unicode word-character class minus
