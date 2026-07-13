@@ -8,9 +8,9 @@ The maintainer owns the visibility and commit-history decisions.
 
 - [x] Repository description, documentation homepage, MIT license, Issues, and
   GitHub Pages are configured.
-- [ ] Verify the repository topics describe static browser search.
-- [ ] Verify Wiki is disabled because checked-in documentation is canonical.
-- [ ] Create the main ruleset with pull requests, strict `lint`,
+- [x] Verify the repository topics describe static browser search.
+- [x] Verify Wiki is disabled because checked-in documentation is canonical.
+- [x] Create the main ruleset with pull requests, strict `lint`,
   `python-tests`, `test`, and `test-browser` checks, and force-push/deletion
   protection. If the private plan rejects it, complete this immediately after
   the repository becomes public.
