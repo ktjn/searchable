@@ -1,5 +1,5 @@
 from searchable_analysis.analyze import analyze, normalize_phrase
-from searchable_analysis.language_profile import english, german
+from searchable_analysis.language_profile import dutch, english, german, norwegian_bokmal, swedish
 
 
 def test_analyze_lowercases_and_stems():
@@ -23,6 +23,12 @@ def test_analyze_returns_empty_list_for_empty_string():
 def test_analyze_german_stems_via_snowball():
     tokens = analyze("Häuser", german)
     assert tokens[0].term == "haus"
+
+
+def test_analyze_nordic_and_dutch_stem_via_snowball():
+    assert analyze("husets", swedish)[0].term == "hus"
+    assert analyze("husets", norwegian_bokmal)[0].term == "hus"
+    assert analyze("huizen", dutch)[0].term == "huis"
 
 
 def test_normalize_phrase_joins_stemmed_terms_with_a_space():
