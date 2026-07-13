@@ -10,4 +10,3 @@ primitives so index-time and query-time analysis stay aligned.
 See the [Searchable repository](https://github.com/ktjn/searchable),
 [documentation](https://ktjn.github.io/searchable/), and
 [feature gallery](https://ktjn.github.io/searchable/gallery/).
-

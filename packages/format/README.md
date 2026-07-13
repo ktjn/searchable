@@ -10,4 +10,3 @@ JSON-first index format cannot silently drift.
 See the [Searchable repository](https://github.com/ktjn/searchable),
 [documentation](https://ktjn.github.io/searchable/), and
 [feature gallery](https://ktjn.github.io/searchable/gallery/).
-

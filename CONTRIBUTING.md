@@ -69,4 +69,3 @@ See [Project governance](docs/project/governance.md) and
 
 Do not report suspected vulnerabilities in a public issue. Follow
 [Security](SECURITY.md) instead.
-

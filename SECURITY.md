@@ -26,4 +26,3 @@ time is promised while the project is maintained by a single person.
 There is no released registry version yet. Security fixes currently target the
 latest commit on `main`; a released-version support table will be added with the
 first package publication.
-

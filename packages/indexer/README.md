@@ -10,4 +10,3 @@ package also provides the planned `searchable-indexer` command-line entry point.
 See the [Searchable repository](https://github.com/ktjn/searchable),
 [documentation](https://ktjn.github.io/searchable/), and
 [feature gallery](https://ktjn.github.io/searchable/gallery/).
-

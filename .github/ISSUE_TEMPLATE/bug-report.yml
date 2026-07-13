@@ -60,4 +60,3 @@ body:
           required: true
         - label: This report contains no secrets, private content, or vulnerability details.
           required: true
-

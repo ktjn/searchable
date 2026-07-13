@@ -41,4 +41,3 @@ body:
           required: true
         - label: This request does not require a query-time backend or access-controlled per-user search.
           required: true
-
