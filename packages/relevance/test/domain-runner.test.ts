@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   readGeneratedPageInventory,
+  runDomainSuite,
   runGeneratedDomainSuite,
 } from "../src/domain-runner.js";
 import type { DomainRelevanceSuite } from "../src/domain-schema.js";
@@ -227,5 +228,64 @@ describe("runGeneratedDomainSuite", () => {
     await expect(
       runGeneratedDomainSuite(value, showcaseDist, 5),
     ).rejects.toThrow(/requires a generated-index corpus/);
+  });
+});
+
+describe("runDomainSuite", () => {
+  it("builds and evaluates a snapshot corpus without a showcase", async () => {
+    const suite: DomainRelevanceSuite = {
+      schemaVersion: 2,
+      id: "driving-test",
+      version: "1.0.0",
+      language: "en",
+      provenance: {
+        publisher: "GOV.UK",
+        sourceTitle: "Learn to drive a car",
+        sourceUrl: "https://www.gov.uk/learn-to-drive-a-car",
+        license: "Open Government Licence v3.0",
+        licenseUrl:
+          "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+        retrievedAt: "2026-07-13",
+        attribution:
+          "Contains public sector information licensed under the Open Government Licence v3.0.",
+        selectionNotes: "Test fixture.",
+      },
+      review: { status: "draft", method: "Maintainer review." },
+      corpus: {
+        kind: "snapshot",
+        documents: [
+          {
+            id: "/eyesight",
+            url: "https://www.gov.uk/eyesight",
+            title: "Driving eyesight rules",
+            description: "Eyesight rules for drivers.",
+            body: "Read a number plate from 20 metres.",
+            contentHash: "a".repeat(64),
+          },
+          {
+            id: "/licence",
+            url: "https://www.gov.uk/licence",
+            title: "Provisional licence",
+            description: "Apply for a provisional licence.",
+            body: "Apply online before taking lessons.",
+            contentHash: "b".repeat(64),
+          },
+        ],
+      },
+      queries: [
+        {
+          id: "number-plate",
+          text: "number plate eyesight",
+          topic: "setup",
+          judgments: { "/eyesight": 3 },
+          rationales: {
+            "/eyesight": "States the number-plate eyesight requirement.",
+          },
+        },
+      ],
+    };
+
+    const report = await runDomainSuite(suite, "unused", 5);
+    expect(report.queries[0].returnedIds[0]).toBe("/eyesight");
   });
 });

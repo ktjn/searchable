@@ -8,6 +8,7 @@ import type {
 } from "./domain-schema.js";
 import { evaluateSuite, type SuiteReport } from "./evaluate.js";
 import type { RelevanceSuite } from "./schema.js";
+import { runSearchableSuite } from "./searchable-runner.js";
 import { type StaticServer, serveDirectory } from "./static-server.js";
 import { validateDomainSuite } from "./validate-domain-suite.js";
 
@@ -147,6 +148,31 @@ function toEvaluationSuite(suite: GeneratedDomainSuite): RelevanceSuite {
   };
 }
 
+function toSnapshotEvaluationSuite(
+  suite: DomainRelevanceSuite,
+): RelevanceSuite {
+  if (suite.corpus.kind !== "snapshot")
+    throw new Error("Snapshot runner requires corpus kind snapshot");
+  return {
+    schemaVersion: 1,
+    id: suite.id,
+    version: suite.version,
+    language: suite.language,
+    provenance: suite.provenance,
+    documents: suite.corpus.documents.map((document) => ({
+      id: document.id,
+      url: document.url,
+      title: document.title,
+      body: `${document.description}\n${document.body}`,
+    })),
+    queries: suite.queries.map(({ id, text, judgments }) => ({
+      id,
+      text,
+      judgments,
+    })),
+  };
+}
+
 export async function runGeneratedDomainSuite(
   suite: DomainRelevanceSuite,
   showcaseDistDirectory: string,
@@ -183,4 +209,15 @@ export async function runGeneratedDomainSuite(
     client?.dispose();
     await server?.close();
   }
+}
+
+export async function runDomainSuite(
+  suite: DomainRelevanceSuite,
+  showcaseDistDirectory: string,
+  k = 5,
+): Promise<SuiteReport> {
+  validateDomainSuite(suite);
+  return suite.corpus.kind === "generated-index"
+    ? runGeneratedDomainSuite(suite, showcaseDistDirectory, k)
+    : runSearchableSuite(toSnapshotEvaluationSuite(suite), k);
 }

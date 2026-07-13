@@ -1,6 +1,7 @@
 export {
   normalizePageId,
   readGeneratedPageInventory,
+  runDomainSuite,
   runGeneratedDomainSuite,
 } from "./domain-runner.js";
 export type {
