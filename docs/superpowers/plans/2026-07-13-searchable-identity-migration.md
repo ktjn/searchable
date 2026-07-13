@@ -473,7 +473,7 @@ git commit -m "refactor: rename Python packages to Searchable"
 - Produces: Searchable site chrome, repository links, Pages links, schema IDs, and current onboarding copy.
 - Preserves: showcase layout, search behavior, page count, and schema validation rules.
 
-- [ ] **Step 1: Change showcase and schema contracts to the new identity**
+- [x] **Step 1: Change showcase and schema contracts to the new identity**
 
 In `showcase/test/docs-site.test.ts`, update every expected repository URL to
 `https://github.com/ktjn/searchable`. In the browser spec, require the homepage
@@ -486,7 +486,7 @@ In every schema conformance test, require each `$id` to start with:
 https://raw.githubusercontent.com/ktjn/searchable/main/spec/schema/
 ```
 
-- [ ] **Step 2: Run focused site and schema tests and verify RED**
+- [x] **Step 2: Run focused site and schema tests and verify RED**
 
 Run:
 
@@ -498,7 +498,7 @@ Push-Location python/searchable-indexer; uv run pytest tests/test_schema_conform
 Expected: FAIL because generated links, brand copy, and schema IDs still use the
 former repository and product identity.
 
-- [ ] **Step 3: Apply the root branding and repository mapping**
+- [x] **Step 3: Apply the root branding and repository mapping**
 
 Across tracked files except the migration spec and plan, replace:
 
@@ -522,7 +522,7 @@ Update every public package manifest to:
 "bugs": "https://github.com/ktjn/searchable/issues"
 ```
 
-- [ ] **Step 4: Update all schema identifiers without changing shapes**
+- [x] **Step 4: Update all schema identifiers without changing shapes**
 
 For each `spec/schema/<name>.schema.json`, set:
 
@@ -534,7 +534,7 @@ Update product and CMS identity in schema titles and descriptions. Do not
 change `type`, `required`, `properties`, validation bounds, or
 `Manifest.version`.
 
-- [ ] **Step 5: Implement Searchable site branding**
+- [x] **Step 5: Implement Searchable site branding**
 
 Set the repository constant in `showcase/docs-site.ts` to:
 
@@ -547,7 +547,7 @@ Render the navigation brand as `Searchable` in `showcase/docs-site.ts` and
 `showcase/build-docs.ts`. Update gallery prose and build logs to name the new
 packages.
 
-- [ ] **Step 6: Verify the current site and schemas**
+- [x] **Step 6: Verify the current site and schemas**
 
 Run:
 
@@ -561,7 +561,7 @@ pnpm --filter showcase validate
 Expected: focused tests pass and static validation reports all links, assets,
 and fragments resolve.
 
-- [ ] **Step 7: Commit schema and branding identity**
+- [x] **Step 7: Commit schema and branding identity**
 
 ```powershell
 git add README.md package.json packages/*/package.json python/*/pyproject.toml showcase spec/schema docs/getting-started/overview.md

@@ -39,7 +39,7 @@
 [project]
 name = "csf-analysis"
 version = "0.1.0"
-description = "Multi-language tokenization, stemming, and language detection for client-search-framework (Python port of @ktjn/searchable-analysis)."
+description = "Multi-language tokenization, stemming, and language detection for searchable (Python port of @ktjn/searchable-analysis)."
 requires-python = ">=3.10"
 dependencies = []
 
@@ -1806,7 +1806,7 @@ This completes `csf-analysis` (Phase 1).
 [project]
 name = "csf-indexer"
 version = "0.1.0"
-description = "Reference index-builder for client-search-framework (Python port of the lexical-core subset of @ktjn/searchable-indexer)."
+description = "Reference index-builder for searchable (Python port of the lexical-core subset of @ktjn/searchable-indexer)."
 requires-python = ">=3.10"
 dependencies = [
     "csf-analysis",

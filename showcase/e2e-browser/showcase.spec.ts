@@ -24,6 +24,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await page.goto(`${baseUrl}docs/getting-started/overview.html`);
     await expect(page).toHaveTitle("Overview");
     await expect(page.locator("main h1")).toHaveText("Overview");
+    await expect(page.locator("nav .brand")).toHaveText("Searchable");
     await page.click('nav a:has-text("Architecture")');
     await expect(page).toHaveTitle("Architecture");
   });
@@ -32,7 +33,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await page.goto(`${baseUrl}index.html`);
     await expect(
       page.locator(
-        'main > p:first-of-type a[href="https://ktjn.github.io/client-search-framework/gallery/"]',
+        'main > p:first-of-type a[href="https://ktjn.github.io/searchable/gallery/"]',
       ),
     ).toHaveText("Try the live feature gallery");
   });

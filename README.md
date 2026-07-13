@@ -1,8 +1,8 @@
-# client-search-framework
+# Searchable
 
-`client-search-framework` builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/client-search-framework/gallery/) to see real generated indexes searched by the browser client.
+Searchable builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/searchable/gallery/) to see real generated indexes searched by the browser client.
 
-## Why client-search-framework
+## Why Searchable
 
 - Deploy the index beside any static site or CMS export.
 - Keep user queries in the browser.

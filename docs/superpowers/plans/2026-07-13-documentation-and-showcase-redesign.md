@@ -15,7 +15,7 @@
 - Exclude `docs/archive/` and `docs/superpowers/` from rendered output and the docs search index.
 - Keep every interactive result backed by a real generated index and `@ktjn/searchable-client`; do not mock results.
 - Derive visible inline example code from the same typed definition that supplies runtime widget configuration.
-- Keep all generated URLs relative and valid when hosted below `/client-search-framework/`.
+- Keep all generated URLs relative and valid when hosted below `/searchable/`.
 - Do not preserve the numbered documentation URLs with redirect stubs.
 - Keep package publishing separate from Pages publishing; both continue to use the browser suite as a gate.
 
@@ -179,7 +179,7 @@ The indexing guide may show the repository-local Python reference implementation
 uv run --project python/csf-indexer csf-indexer ./dist/site ./dist/site/search-index
 ```
 
-README sections, in order: `Why client-search-framework`, `What it supports`, `Quick start`, `Documentation`, `Showcase`, `Development`, `Status`, `License`. Keep the README under 250 lines.
+README sections, in order: `Why searchable`, `What it supports`, `Quick start`, `Documentation`, `Showcase`, `Development`, `Status`, `License`. Keep the README under 250 lines.
 
 - [ ] **Step 3: Write guides, concepts, reference pages, and project pages**
 

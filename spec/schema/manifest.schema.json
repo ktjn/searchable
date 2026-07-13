@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://client-search-framework/schema/manifest.schema.json",
+  "$id": "https://raw.githubusercontent.com/ktjn/searchable/main/spec/schema/manifest.schema.json",
   "title": "Manifest",
-  "description": "Entry point of a client-search-framework index. See docs/concepts/index-format.md#manifest.",
+  "description": "Entry point of a searchable index. See docs/concepts/index-format.md#manifest.",
   "type": "object",
   "additionalProperties": false,
   "required": [

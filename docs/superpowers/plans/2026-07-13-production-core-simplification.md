@@ -50,7 +50,7 @@
 
 **Interfaces:**
 - Consumes: existing `SearchClientLike.search(query, options)` and generated homepage from `README.md`.
-- Produces: one homepage introduction link to `https://ktjn.github.io/client-search-framework/gallery/` and a private `RESULT_LIMIT = 4` used by both normal and baseline gallery searches.
+- Produces: one homepage introduction link to `https://ktjn.github.io/searchable/gallery/` and a private `RESULT_LIMIT = 4` used by both normal and baseline gallery searches.
 
 - [ ] **Step 1: Add failing browser assertions for homepage placement and result limits**
 
@@ -61,7 +61,7 @@ test("homepage introduces the live feature gallery", async ({ page }) => {
   await page.goto(`${baseUrl}index.html`);
   await expect(
     page.locator(
-      'main > p:first-of-type a[href="https://ktjn.github.io/client-search-framework/gallery/"]',
+      'main > p:first-of-type a[href="https://ktjn.github.io/searchable/gallery/"]',
     ),
   ).toHaveText("Try the live feature gallery");
 });
@@ -120,7 +120,7 @@ Expected: the homepage-placement assertion fails because the link is in the late
 Change the opening README paragraph to:
 
 ```markdown
-`client-search-framework` builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/client-search-framework/gallery/) to see real generated indexes searched by the browser client.
+`searchable` builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/searchable/gallery/) to see real generated indexes searched by the browser client.
 ```
 
 Delete the later `## Showcase` heading and paragraph so the homepage has one content link rather than two placements.

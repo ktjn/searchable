@@ -15,6 +15,12 @@ def _load_schema(name: str) -> dict:
     return json.loads((_SCHEMA_DIR / name).read_text())
 
 
+def test_schema_ids_use_the_searchable_repository():
+    prefix = "https://raw.githubusercontent.com/ktjn/searchable/main/spec/schema/"
+    for path in _SCHEMA_DIR.glob("*.schema.json"):
+        assert _load_schema(path.name)["$id"] == f"{prefix}{path.name}"
+
+
 def _doc(doc_id: int, url: str, title: str, body: str, lang: str = "en") -> SourceDocument:
     html = f'<html lang="{lang}"><head><title>{title}</title></head><body><main>{body}</main></body></html>'
     return SourceDocument(id=doc_id, url=url, html=html)

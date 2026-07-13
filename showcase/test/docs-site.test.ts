@@ -106,7 +106,7 @@ describe("documentation navigation", () => {
         DOC_SECTIONS,
       ),
     ).toBe(
-      '<a href="https://github.com/ktjn/client-search-framework/blob/main/docs/archive/roadmaps/implementation-history.md">History</a>',
+      '<a href="https://github.com/ktjn/searchable/blob/main/docs/archive/roadmaps/implementation-history.md">History</a>',
     );
   });
 
@@ -118,7 +118,7 @@ describe("documentation navigation", () => {
         DOC_SECTIONS,
       ),
     ).toBe(
-      '<a href="https://github.com/ktjn/client-search-framework/blob/main/CHANGELOG.md">Changelog</a>',
+      '<a href="https://github.com/ktjn/searchable/blob/main/CHANGELOG.md">Changelog</a>',
     );
   });
 
@@ -130,7 +130,7 @@ describe("documentation navigation", () => {
         DOC_SECTIONS,
       ),
     ).toBe(
-      '<a href="https://github.com/ktjn/client-search-framework/blob/main/docs/archive/specs/plugin-api.md#registration">Draft</a>',
+      '<a href="https://github.com/ktjn/searchable/blob/main/docs/archive/specs/plugin-api.md#registration">Draft</a>',
     );
   });
 
@@ -162,7 +162,7 @@ describe("documentation navigation", () => {
         DOC_SECTIONS,
       ),
     ).toBe(
-      '<a href="https://github.com/ktjn/client-search-framework/tree/main/spec/examples/?format=json#basic">Examples</a>',
+      '<a href="https://github.com/ktjn/searchable/tree/main/spec/examples/?format=json#basic">Examples</a>',
     );
     expect(
       rewriteMarkdownLinks(
@@ -171,7 +171,7 @@ describe("documentation navigation", () => {
         DOC_SECTIONS,
       ),
     ).toBe(
-      '<a href="https://github.com/ktjn/client-search-framework/tree/main/spec/schema/">Schema</a>',
+      '<a href="https://github.com/ktjn/searchable/tree/main/spec/schema/">Schema</a>',
     );
   });
 
@@ -183,7 +183,7 @@ describe("documentation navigation", () => {
         DOC_SECTIONS,
       ),
     ).toBe(
-      '<a href="https://github.com/ktjn/client-search-framework/blob/main/LICENSE">MIT</a>',
+      '<a href="https://github.com/ktjn/searchable/blob/main/LICENSE">MIT</a>',
     );
   });
 
@@ -195,7 +195,7 @@ describe("documentation navigation", () => {
         DOC_SECTIONS,
       ),
     ).toBe(
-      '<img src="https://github.com/ktjn/client-search-framework/blob/main/spec/schema/manifest.schema.json?raw=1#shape">',
+      '<img src="https://github.com/ktjn/searchable/blob/main/spec/schema/manifest.schema.json?raw=1#shape">',
     );
   });
 

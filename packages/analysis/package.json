@@ -5,11 +5,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ktjn/client-search-framework.git",
+    "url": "git+https://github.com/ktjn/searchable.git",
     "directory": "packages/analysis"
   },
-  "homepage": "https://github.com/ktjn/client-search-framework#readme",
-  "bugs": "https://github.com/ktjn/client-search-framework/issues",
+  "homepage": "https://github.com/ktjn/searchable#readme",
+  "bugs": "https://github.com/ktjn/searchable/issues",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

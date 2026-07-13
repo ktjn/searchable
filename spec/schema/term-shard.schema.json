@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://client-search-framework/schema/term-shard.schema.json",
+  "$id": "https://raw.githubusercontent.com/ktjn/searchable/main/spec/schema/term-shard.schema.json",
   "title": "Term shard (inverted index)",
   "description": "One terms/<lang>/<prefix>.<hash>.json file. See docs/concepts/index-format.md#term-shard-inverted-index.",
   "type": "object",
