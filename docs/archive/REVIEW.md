@@ -8,12 +8,13 @@ addressed.
 **Response**: every numbered finding below has been addressed except
 #4 (cancellation), which was resolved by removing it from the primary
 docs example rather than implementing it (this doc's own preferred
-option) — see [../07-client-api.md](../07-client-api.md)'s "Target
-API" section. #8 was already fixed independently before this review
+option) — see the [archived target client API](specs/client-api-target.md).
+#8 was already fixed independently before this review
 landed (`buildIndex` now partitions by each document's own declared
 language). Everything else (#1, #2, #3, #5, #6, #7, #9, #10) has
 working code and tests — see the commit that added this line for the
-full diff, and [../09-roadmap.md](../09-roadmap.md) for status.
+full diff, and the [implementation history](roadmaps/implementation-history.md#status)
+for status.
 
 Review target: default branch `claude/client-search-engine-design-zza6m1`.
 

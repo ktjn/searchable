@@ -43,7 +43,7 @@ Where binary still wins on bytes even after compression:
   fetch latency, since common terms are hit by nearly every query.
 
 Rough shape of the effect (illustrative, not a substitute for the real
-benchmark in [10-testing-and-performance.md](../../project/governance.md)):
+benchmark in [10-testing-and-performance.md](../../project/governance.md#performance-policy)):
 JSON+brotli and a hand-rolled delta-varint binary+brotli tend to land
 within ~20-30% of each other for typical postings, widening toward
 ~2x for very dense, highly-clustered doc-id lists (e.g. a term present
@@ -92,7 +92,7 @@ this project's stated principles:
   looks fine but silently corrupts a lookup for a specific edge case.
   This directly increases the surface area the cross-implementation
   conformance tests in
-  [10-testing-and-performance.md](../../project/governance.md)
+  [10-testing-and-performance.md](../../project/governance.md#testing)
   need to cover, and raises the bar for "an afternoon of scripting can
   produce a valid index" from Phase 0 of
   [09-roadmap.md](../roadmaps/implementation-history.md).
