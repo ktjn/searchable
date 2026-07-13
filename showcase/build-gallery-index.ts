@@ -84,7 +84,7 @@ export function renderHubPage(): string {
         <h1>Feature gallery</h1>
         <p>Small, purpose-built demo corpora, each showcasing one part of
         the engine end to end with real indexed pages and a real
-        <code>@csf/client</code>-powered search box -- not mocked.</p>
+        <code>@ktjn/searchable-client</code>-powered search box -- not mocked.</p>
         <section aria-labelledby="quick-examples">
           <h2 id="quick-examples">Try individual features</h2>
           <div class="quick-example-grid">${quickCards}

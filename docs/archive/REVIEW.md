@@ -24,10 +24,10 @@ Scope: static review of documentation, package metadata, core TypeScript package
 
 The direction is good. The architecture is coherent for a client-side static search engine:
 
-- `@csf/analysis` owns shared tokenization and normalization.
-- `@csf/format` owns shared manifest and shard types.
-- `@csf/indexer` builds static JSON index artifacts from rendered HTML.
-- `@csf/client` fetches the manifest/shards and executes search in the browser, optionally in a Web Worker.
+- `@ktjn/searchable-analysis` owns shared tokenization and normalization.
+- `@ktjn/searchable-format` owns shared manifest and shard types.
+- `@ktjn/searchable-indexer` builds static JSON index artifacts from rendered HTML.
+- `@ktjn/searchable-client` fetches the manifest/shards and executes search in the browser, optionally in a Web Worker.
 
 The main risk is product/API truthfulness: the docs describe a larger public API than the code currently implements. Fix that before adding more search features.
 
@@ -228,7 +228,7 @@ Action:
 
 ### Package boundaries
 
-The package split is clean. `@csf/format` as a pure shared type package is the right mechanism to prevent client/indexer drift.
+The package split is clean. `@ktjn/searchable-format` as a pure shared type package is the right mechanism to prevent client/indexer drift.
 
 ### Shared analysis path
 

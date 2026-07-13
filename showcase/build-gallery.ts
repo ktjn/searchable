@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import type { Product } from "./gallery-data.js";
 import { generateProducts } from "./gallery-data.js";
 import { escapeHtml, pageShell } from "./gallery-shared.js";
@@ -30,12 +30,14 @@ function renderProductPage(product: Product): string {
         </p>
       </main>`;
   const meta = [
-    `<meta name="csf-facet-category" content="${escapeHtml(product.category)}">`,
-    `<meta name="csf-facet-price" content="${escapeHtml(product.priceBucket)}">`,
+    `<meta name="searchable-facet-category" content="${escapeHtml(product.category)}">`,
+    `<meta name="searchable-facet-price" content="${escapeHtml(product.priceBucket)}">`,
     ...product.tags.map(
-      (t) => `<meta name="csf-facet-tags" content="${escapeHtml(t)}">`,
+      (t) => `<meta name="searchable-facet-tags" content="${escapeHtml(t)}">`,
     ),
-    ...(product.featured ? [`<meta name="csf-boost" content="2.5">`] : []),
+    ...(product.featured
+      ? [`<meta name="searchable-boost" content="2.5">`]
+      : []),
   ].join("\n    ");
   const html = pageShell({
     title: product.name,
@@ -71,7 +73,7 @@ function renderReturnsPolicyPage(): string {
   });
   return html.replace(
     '<link rel="stylesheet" href="../../style.css" />',
-    `<meta name="csf-pin" content="returns policy">\n    <link rel="stylesheet" href="../../style.css" />`,
+    `<meta name="searchable-pin" content="returns policy">\n    <link rel="stylesheet" href="../../style.css" />`,
   );
 }
 
@@ -83,8 +85,8 @@ function renderGalleryIndexPage(products: Product[]): string {
         <h1>Product catalog demo</h1>
         <p>${products.length} synthetic products across ${categories.join(
           ", ",
-        )}, indexed with <code>@csf/indexer</code> and searched with
-        <code>@csf/client</code> -- real facets, boosts, a pinned best-bet
+        )}, indexed with <code>@ktjn/searchable-indexer</code> and searched with
+        <code>@ktjn/searchable-client</code> -- real facets, boosts, a pinned best-bet
         ("returns policy"), and typo-tolerant fuzzy matching, not a mock.
         See <a href="../../docs/guides/facets.html">faceted search</a>,
         <a href="../../docs/guides/ranking-and-boosts.html">ranking &amp;

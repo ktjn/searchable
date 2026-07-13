@@ -1,4 +1,4 @@
-import type { TermEntry } from "@csf/format";
+import type { TermEntry } from "@ktjn/searchable-format";
 import { ByteReader } from "./byte-reader.js";
 
 /**

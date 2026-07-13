@@ -37,15 +37,17 @@ describe("generateCms2kCorpus", () => {
     const generated = docs.slice(MARKETING_PAGES.length);
     for (const doc of generated) {
       expect(doc.html).toMatch(/<title>.+<\/title>/);
-      expect(doc.html).toContain('name="csf-facet-category"');
-      expect(doc.html).toContain('name="csf-facet-tags"');
+      expect(doc.html).toContain('name="searchable-facet-category"');
+      expect(doc.html).toContain('name="searchable-facet-tags"');
     }
   });
 
-  it("marks roughly 1 in 20 generated documents as featured (csf-boost)", () => {
+  it("marks roughly 1 in 20 generated documents as featured (searchable-boost)", () => {
     const docs = generateCms2kCorpus({ count: 200, languages: ["en"] });
     const generated = docs.slice(MARKETING_PAGES.length);
-    const featured = generated.filter((d) => d.html.includes("csf-boost"));
+    const featured = generated.filter((d) =>
+      d.html.includes("searchable-boost"),
+    );
     expect(featured.length).toBeGreaterThan(5);
     expect(featured.length).toBeLessThan(generated.length / 5);
   });
@@ -56,9 +58,11 @@ describe("generateCms2kCorpus", () => {
     expect(pricingPages).toHaveLength(2); // one per language (en, de)
 
     const enPricing = pricingPages.find((d) => d.url.startsWith("/en/"));
-    expect(enPricing?.html).toContain('name="csf-pin" content="pricing"');
+    expect(enPricing?.html).toContain(
+      'name="searchable-pin" content="pricing"',
+    );
     const dePricing = pricingPages.find((d) => d.url.startsWith("/de/"));
-    expect(dePricing?.html).toContain('name="csf-pin" content="preise"');
+    expect(dePricing?.html).toContain('name="searchable-pin" content="preise"');
 
     const contactPages = docs.filter((d) => d.url.endsWith("/contact.html"));
     expect(contactPages).toHaveLength(2);

@@ -2,8 +2,8 @@ import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { expect, test } from "@playwright/test";
 import { serveDir } from "./serve-dir.js";
 
@@ -53,21 +53,21 @@ const sources: SourceDocument[] = [
     id: 1,
     url: "/widgets",
     html: `<html lang="en"><head><title>Widgets</title>
-      <meta name="csf-facet-category" content="electronics"></head>
+      <meta name="searchable-facet-category" content="electronics"></head>
       <body><main><p>Our widgets are wonderful. Buy widgets today.</p></main></body></html>`,
   },
   {
     id: 2,
     url: "/gadgets",
     html: `<html lang="en"><head><title>Gadgets</title>
-      <meta name="csf-facet-category" content="electronics"></head>
+      <meta name="searchable-facet-category" content="electronics"></head>
       <body><main><p>Gadgets and gizmos, plus a few widgets for good measure.</p></main></body></html>`,
   },
   {
     id: 3,
     url: "/about",
     html: `<html lang="en"><head><title>About Us</title>
-      <meta name="csf-facet-category" content="company"></head>
+      <meta name="searchable-facet-category" content="company"></head>
       <body><main><p>We are a small company that makes things.</p></main></body></html>`,
   },
 ];
@@ -78,7 +78,7 @@ test.describe("Web Worker execution (real browser)", () => {
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-"));
+    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-e2e-"));
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),
@@ -221,7 +221,9 @@ test.describe("SearchClient lifecycle (real browser)", () => {
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-lifecycle-"));
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-lifecycle-"),
+    );
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),
@@ -315,7 +317,9 @@ test.describe("searchStream() (real browser)", () => {
   ];
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-searchstream-"));
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-searchstream-"),
+    );
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),

@@ -9,7 +9,7 @@ effect at the 1.0 tag itself, see [reference/compatibility.md](../reference/comp
 ## Context
 
 Two different things can break compatibility independently: the
-`@csf/client`/`@csf/indexer` public API surface (function signatures,
+`@ktjn/searchable-client`/`@ktjn/searchable-indexer` public API surface (function signatures,
 option shapes), and the on-disk/over-HTTP manifest+shard format they
 read and write. A deployment can upgrade one without the other (rebuild
 with a new indexer against an old client still deployed, or vice versa)
@@ -24,7 +24,7 @@ rules, not one combined "package version" meaning both at once.
   documentation, and migration notes.
 - **Index format compatibility**: a separate integer,
   `Manifest.version` (currently `1`, `packages/format/src/index.ts`),
-  checked by `@csf/client`'s `validateManifest()` independently of the
+  checked by `@ktjn/searchable-client`'s `validateManifest()` independently of the
   package's own semver — a manifest with an unrecognized `version` is
   rejected with a named `InvalidManifestError` before any query
   executes, rather than failing opaquely deep inside search logic. The

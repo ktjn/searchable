@@ -21,7 +21,7 @@ plain BM25 and summing — the mathematically correct way to combine
 multi-field relevance rather than an ad-hoc weighted sum of independent
 scores. Layered on top: configurable field boosts (build-time default,
 per-query override), a per-query term boost, and a per-document
-`csf-boost` multiplier applied last. Corpus-wide statistics
+`searchable-boost` multiplier applied last. Corpus-wide statistics
 (`docCount`, `avgFieldLength`) are computed *per language*, since mixing two
 languages' statistics into one number would skew idf and length
 normalization for both.

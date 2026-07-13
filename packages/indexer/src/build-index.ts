@@ -5,7 +5,7 @@ import {
   getOrCreate,
   normalizePhrase,
   ownProp,
-} from "@csf/analysis";
+} from "@ktjn/searchable-analysis";
 import { extractDocument } from "./extract.js";
 import type {
   BuiltIndex,
@@ -36,7 +36,7 @@ export interface BuildIndexOptions {
   /**
    * Author-supplied synonym data, keyed by language — unlike facets/
    * pins, synonyms are corpus-vocabulary curation, not per-page
-   * metadata, so there's no csf-* meta tag for this
+   * metadata, so there's no searchable-* meta tag for this
    * (docs/guides/synonyms.md). Entries are single words/phrases as authored
    * (surface form or already-stemmed, either works); buildIndex
    * normalizes each one through that language's analysis pipeline so
@@ -77,10 +77,10 @@ export interface BuildIndexOptions {
   fuzzyMaxEdits?: 1 | 2;
   /**
    * Facet fields to build as hierarchical (docs/guides/facets.md#facet-types),
-   * keyed by field name. A build-time decision, not a per-page csf-*
+   * keyed by field name. A build-time decision, not a per-page searchable-*
    * meta tag, like fieldBoosts/synonyms/fuzzy above — hierarchy-vs-terms
    * is a corpus-wide schema property of a field, not something one page
-   * declares for itself. Each `csf-facet-<field>` value for a
+   * declares for itself. Each `searchable-facet-<field>` value for a
    * hierarchical field is still authored as a single string, but read as
    * a full path (e.g. `"electronics>audio>headphones"`, split on that
    * field's `separator`, default `">"`) rather than an opaque leaf
@@ -180,7 +180,7 @@ function buildFuzzyShard(termShard: TermShard, maxEdits: 1 | 2): FuzzyShard {
  * Normalizes author-supplied synonym data through each language's own
  * analysis pipeline (the same normalizePhrase() pins already use), so
  * a synonym entry authored as a surface form ("Couch") matches however
- * @csf/analysis actually stores that term, not the raw authored string.
+ * @ktjn/searchable-analysis actually stores that term, not the raw authored string.
  * Empty/blank entries (e.g. a term that stems to nothing) and
  * single-member equivalence groups (nothing left to expand to) are
  * dropped rather than carried into the shard as dead weight.
@@ -724,7 +724,8 @@ export function buildIndex(
   }
 
   const { pinsShards, warnings } = resolvePins(pinsAccByLanguage);
-  for (const warning of warnings) console.warn(`[csf-indexer] ${warning}`);
+  for (const warning of warnings)
+    console.warn(`[searchable-indexer] ${warning}`);
 
   // Postings/facet doc-id lists are appended in source-array processing
   // order, which is not a meaningful order (unlike pins' priority-based

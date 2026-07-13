@@ -4,7 +4,7 @@
 
 **Goal:** Replace the flat, planning-heavy public documentation with an audience-first site, a guided interactive showcase, and a locally reproducible GitHub Pages validation gate.
 
-**Architecture:** Keep the existing custom Markdown-to-static-HTML build and real `@csf/indexer`/`@csf/client` demos. Add an explicit typed navigation manifest, small testable rendering/validation modules, and a typed showcase-example catalog that drives both runtime data attributes and displayed source. Historical material remains in git under unpublished archive directories.
+**Architecture:** Keep the existing custom Markdown-to-static-HTML build and real `@ktjn/searchable-indexer`/`@ktjn/searchable-client` demos. Add an explicit typed navigation manifest, small testable rendering/validation modules, and a typed showcase-example catalog that drives both runtime data attributes and displayed source. Historical material remains in git under unpublished archive directories.
 
 **Tech Stack:** TypeScript 7, Node.js 22, pnpm 11, marked, highlight.js (build-time only), Vitest, Playwright, GitHub Pages Actions.
 
@@ -13,9 +13,9 @@
 - Preserve the pull-based static HTTP deployment model and custom site generator; do not introduce a documentation framework.
 - Publish only pages explicitly listed in the navigation manifest.
 - Exclude `docs/archive/` and `docs/superpowers/` from rendered output and the docs search index.
-- Keep every interactive result backed by a real generated index and `@csf/client`; do not mock results.
+- Keep every interactive result backed by a real generated index and `@ktjn/searchable-client`; do not mock results.
 - Derive visible inline example code from the same typed definition that supplies runtime widget configuration.
-- Keep all generated URLs relative and valid when hosted below `/client-search-framework/`.
+- Keep all generated URLs relative and valid when hosted below `/searchable/`.
 - Do not preserve the numbered documentation URLs with redirect stubs.
 - Keep package publishing separate from Pages publishing; both continue to use the browser suite as a gate.
 
@@ -152,7 +152,7 @@ git mv docs/spec-storage-api.md docs/archive/specs/storage-api.md
 The first-search page must contain one copyable path using only implemented exports:
 
 ```ts
-import { SearchClient } from "@csf/client";
+import { SearchClient } from "@ktjn/searchable-client";
 
 const search = new SearchClient({
   indexUrl: "/search-index/manifest.json",
@@ -169,17 +169,17 @@ for (const hit of result.hits) {
 Installation must show the published npm packages as the default path:
 
 ```bash
-pnpm add @csf/client
-pnpm add -D @csf/indexer
+pnpm add @ktjn/searchable-client
+pnpm add -D @ktjn/searchable-indexer
 ```
 
-The indexing guide may show the repository-local Python reference implementation, but must not imply that `csf-indexer` is published to PyPI. Use the checked-out project explicitly:
+The indexing guide may show the repository-local Python reference implementation, but must not imply that `searchable-indexer` is published to PyPI. Use the checked-out project explicitly:
 
 ```bash
-uv run --project python/csf-indexer csf-indexer ./dist/site ./dist/site/search-index
+uv run --project python/searchable-indexer searchable-indexer ./dist/site ./dist/site/search-index
 ```
 
-README sections, in order: `Why client-search-framework`, `What it supports`, `Quick start`, `Documentation`, `Showcase`, `Development`, `Status`, `License`. Keep the README under 250 lines.
+README sections, in order: `Why searchable`, `What it supports`, `Quick start`, `Documentation`, `Showcase`, `Development`, `Status`, `License`. Keep the README under 250 lines.
 
 - [ ] **Step 3: Write guides, concepts, reference pages, and project pages**
 
@@ -459,7 +459,7 @@ import { expect, test } from "vitest";
 import { validateSite } from "../site-validation.js";
 
 test("reports broken local links and fragments", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await writeFile(join(root, "index.html"), '<a href="missing.html#nope">broken</a>');
   expect(await validateSite(root)).toEqual([
     { source: "index.html", reference: "missing.html#nope", reason: "missing target" },
@@ -467,7 +467,7 @@ test("reports broken local links and fragments", async () => {
 });
 
 test("accepts nested relative assets and heading fragments", async () => {
-  const root = await mkdtemp(join(tmpdir(), "csf-site-"));
+  const root = await mkdtemp(join(tmpdir(), "searchable-site-"));
   await mkdir(join(root, "docs"));
   await writeFile(join(root, "style.css"), "body {}");
   await writeFile(join(root, "index.html"), '<h1 id="home">Home</h1><a href="docs/a.html#topic">A</a>');

@@ -1,15 +1,15 @@
 {
-  "name": "@csf/indexer",
+  "name": "@ktjn/searchable-indexer",
   "version": "1.0.0",
   "description": "Reference indexer: rendered HTML in, manifest + shards out.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ktjn/client-search-framework.git",
+    "url": "git+https://github.com/ktjn/searchable.git",
     "directory": "packages/indexer"
   },
-  "homepage": "https://github.com/ktjn/client-search-framework#readme",
-  "bugs": "https://github.com/ktjn/client-search-framework/issues",
+  "homepage": "https://github.com/ktjn/searchable#readme",
+  "bugs": "https://github.com/ktjn/searchable/issues",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,7 +17,7 @@
     ".": "./dist/index.js"
   },
   "bin": {
-    "csf-indexer": "./dist/cli.js"
+    "searchable-indexer": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -29,13 +29,13 @@
     "bench": "node bench/json-tier-scaling.mjs"
   },
   "dependencies": {
-    "@csf/analysis": "workspace:*",
-    "@csf/format": "workspace:*",
+    "@ktjn/searchable-analysis": "workspace:*",
+    "@ktjn/searchable-format": "workspace:*",
     "@huggingface/transformers": "^4.2.0",
     "node-html-parser": "^9.0.0"
   },
   "devDependencies": {
-    "@csf/fixtures": "workspace:*",
+    "@ktjn/searchable-fixtures": "workspace:*",
     "@types/node": "^26.1.1",
     "typescript": "^7.0.2",
     "vite": "^8.1.4",

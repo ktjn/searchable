@@ -18,13 +18,13 @@ const sources: SourceDocument[] = [
   {
     id: 3,
     url: "/draft",
-    html: `<html lang="en"><head><title>Draft</title><meta name="csf-noindex"></head>
+    html: `<html lang="en"><head><title>Draft</title><meta name="searchable-noindex"></head>
       <body><main><p>widgets widgets widgets</p></main></body></html>`,
   },
   {
     id: 4,
     url: "/featured-widgets",
-    html: `<html lang="en"><head><title>Featured Widgets</title><meta name="csf-boost" content="2.0"></head>
+    html: `<html lang="en"><head><title>Featured Widgets</title><meta name="searchable-boost" content="2.0"></head>
       <body><main><p>widgets on sale</p></main></body></html>`,
   },
 ];
@@ -42,7 +42,7 @@ describe("buildIndex", () => {
     expect(built.termShards.en?.gizmo?.postings[0]?.doc).toBe(2);
   });
 
-  it("sets posting-level boost from csf-boost, omitting it when default", () => {
+  it("sets posting-level boost from searchable-boost, omitting it when default", () => {
     const built = buildIndex(sources);
     const boosted = built.termShards.en?.widget?.postings.find(
       (p) => p.doc === 4,
@@ -72,7 +72,7 @@ describe("buildIndex", () => {
     expect(built.manifest.fields.body?.boost).toBe(1.0); // unspecified stays default
   });
 
-  it("excludes csf-noindex documents entirely", () => {
+  it("excludes searchable-noindex documents entirely", () => {
     const built = buildIndex(sources);
     expect(built.docStore["3"]).toBeUndefined();
     expect(built.termShards.en?.draft).toBeUndefined();
@@ -164,23 +164,23 @@ describe("buildIndex facets", () => {
       id: 1,
       url: "/a",
       html: `<html lang="en"><head><title>A</title>
-        <meta name="csf-facet-category" content="electronics">
-        <meta name="csf-facet-brand" content="acme"></head>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="acme"></head>
         <body><main>a</main></body></html>`,
     },
     {
       id: 2,
       url: "/b",
       html: `<html lang="en"><head><title>B</title>
-        <meta name="csf-facet-category" content="electronics">
-        <meta name="csf-facet-brand" content="globex"></head>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="globex"></head>
         <body><main>b</main></body></html>`,
     },
     {
       id: 3,
       url: "/c",
       html: `<html lang="en"><head><title>C</title>
-        <meta name="csf-facet-category" content="books"></head>
+        <meta name="searchable-facet-category" content="books"></head>
         <body><main>c</main></body></html>`,
     },
   ];
@@ -224,21 +224,21 @@ describe("buildIndex range facets", () => {
       id: 1,
       url: "/a",
       html: `<html lang="en"><head><title>A</title>
-        <meta name="csf-facet-range-price" content="29.99"></head>
+        <meta name="searchable-facet-range-price" content="29.99"></head>
         <body><main>a</main></body></html>`,
     },
     {
       id: 2,
       url: "/b",
       html: `<html lang="en"><head><title>B</title>
-        <meta name="csf-facet-range-price" content="9.5"></head>
+        <meta name="searchable-facet-range-price" content="9.5"></head>
         <body><main>b</main></body></html>`,
     },
     {
       id: 3,
       url: "/c",
       html: `<html lang="en"><head><title>C</title>
-        <meta name="csf-facet-range-price" content="150"></head>
+        <meta name="searchable-facet-range-price" content="150"></head>
         <body><main>c</main></body></html>`,
     },
   ];
@@ -275,20 +275,20 @@ describe("buildIndex range facets", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-range-price" content="not-a-number"></head>
+          <meta name="searchable-facet-range-price" content="not-a-number"></head>
           <body><main>a</main></body></html>`,
       },
     ]);
     expect(built.facetShards.price).toBeUndefined();
   });
 
-  it("keeps a plain csf-facet-<field> tag from being misparsed as a range field literally named 'range-<field>'", () => {
+  it("keeps a plain searchable-facet-<field> tag from being misparsed as a range field literally named 'range-<field>'", () => {
     const built = buildIndex([
       {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-category" content="electronics"></head>
+          <meta name="searchable-facet-category" content="electronics"></head>
           <body><main>a</main></body></html>`,
       },
     ]);
@@ -302,14 +302,14 @@ describe("buildIndex range facets", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-price" content="on-sale"></head>
+          <meta name="searchable-facet-price" content="on-sale"></head>
           <body><main>a</main></body></html>`,
       },
       {
         id: 2,
         url: "/b",
         html: `<html lang="en"><head><title>B</title>
-          <meta name="csf-facet-range-price" content="42"></head>
+          <meta name="searchable-facet-range-price" content="42"></head>
           <body><main>b</main></body></html>`,
       },
     ]);
@@ -322,14 +322,14 @@ describe("buildIndex range facets", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-range-price" content="42"></head>
+          <meta name="searchable-facet-range-price" content="42"></head>
           <body><main>a</main></body></html>`,
       },
       {
         id: 2,
         url: "/b",
         html: `<html lang="en"><head><title>B</title>
-          <meta name="csf-facet-range-price" content="42"></head>
+          <meta name="searchable-facet-range-price" content="42"></head>
           <body><main>b</main></body></html>`,
       },
     ]);
@@ -346,7 +346,7 @@ describe("buildIndex range facets", () => {
         id: i + 1,
         url: `/${i}`,
         html: `<html lang="en"><head><title>Doc ${i}</title>
-          <meta name="csf-facet-range-score" content="${value}"></head>
+          <meta name="searchable-facet-range-score" content="${value}"></head>
           <body><main>x</main></body></html>`,
       }),
     );
@@ -366,7 +366,7 @@ describe("buildIndex range facets", () => {
         id: i + 1,
         url: `/${i}`,
         html: `<html lang="en"><head><title>Doc ${i}</title>
-          <meta name="csf-facet-range-score" content="${value}"></head>
+          <meta name="searchable-facet-range-score" content="${value}"></head>
           <body><main>x</main></body></html>`,
       }),
     );
@@ -390,8 +390,8 @@ describe("buildIndex range facets", () => {
         id: i + 1,
         url: `/${i}`,
         html: `<html lang="en"><head><title>Doc ${i}</title>
-          <meta name="csf-facet-range-price" content="${value}">
-          <meta name="csf-facet-range-score" content="${value}"></head>
+          <meta name="searchable-facet-range-price" content="${value}">
+          <meta name="searchable-facet-range-score" content="${value}"></head>
           <body><main>x</main></body></html>`,
       })),
       "en",
@@ -416,7 +416,7 @@ describe("buildIndex range facets", () => {
         id: i + 1,
         url: `/${i}`,
         html: `<html lang="en"><head><title>Doc ${i}</title>
-          <meta name="csf-facet-range-score" content="${value}"></head>
+          <meta name="searchable-facet-range-score" content="${value}"></head>
           <body><main>x</main></body></html>`,
       }),
     );
@@ -434,7 +434,7 @@ describe("buildIndex range facets", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-range-price" content="10"></head>
+          <meta name="searchable-facet-range-price" content="10"></head>
           <body><main>a</main></body></html>`,
       },
     ];
@@ -455,7 +455,7 @@ describe("buildIndex range facets", () => {
         id: i + 1,
         url: `/${i}`,
         html: `<html lang="en"><head><title>Doc ${i}</title>
-        <meta name="csf-facet-range-price" content="${value}"></head>
+        <meta name="searchable-facet-range-price" content="${value}"></head>
         <body><main>x</main></body></html>`,
       }),
     );
@@ -477,7 +477,7 @@ describe("buildIndex range facets", () => {
       id: i + 1,
       url: `/${i}`,
       html: `<html lang="en"><head><title>Doc ${i}</title>
-          <meta name="csf-facet-range-price" content="${value}"></head>
+          <meta name="searchable-facet-range-price" content="${value}"></head>
           <body><main>x</main></body></html>`,
     }));
     const built = buildIndex(priceSources, "en", {
@@ -496,14 +496,14 @@ describe("buildIndex range facets", () => {
           id: 1,
           url: "/a",
           html: `<html lang="en"><head><title>A</title>
-            <meta name="csf-facet-range-price" content="42"></head>
+            <meta name="searchable-facet-range-price" content="42"></head>
             <body><main>a</main></body></html>`,
         },
         {
           id: 2,
           url: "/b",
           html: `<html lang="en"><head><title>B</title>
-            <meta name="csf-facet-range-price" content="42"></head>
+            <meta name="searchable-facet-range-price" content="42"></head>
             <body><main>b</main></body></html>`,
         },
       ],
@@ -523,7 +523,7 @@ describe("buildIndex range facets", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-range-price" content="10"></head>
+          <meta name="searchable-facet-range-price" content="10"></head>
           <body><main>a</main></body></html>`,
       },
     ];
@@ -550,28 +550,28 @@ describe("buildIndex hierarchical facets", () => {
       id: 1,
       url: "/headphones",
       html: `<html lang="en"><head><title>Headphones</title>
-        <meta name="csf-facet-category" content="electronics>audio>headphones"></head>
+        <meta name="searchable-facet-category" content="electronics>audio>headphones"></head>
         <body><main>a</main></body></html>`,
     },
     {
       id: 2,
       url: "/speakers",
       html: `<html lang="en"><head><title>Speakers</title>
-        <meta name="csf-facet-category" content="electronics>audio>speakers"></head>
+        <meta name="searchable-facet-category" content="electronics>audio>speakers"></head>
         <body><main>b</main></body></html>`,
     },
     {
       id: 3,
       url: "/tv",
       html: `<html lang="en"><head><title>TV</title>
-        <meta name="csf-facet-category" content="electronics>video>tv"></head>
+        <meta name="searchable-facet-category" content="electronics>video>tv"></head>
         <body><main>c</main></body></html>`,
     },
     {
       id: 4,
       url: "/books",
       html: `<html lang="en"><head><title>Books</title>
-        <meta name="csf-facet-category" content="books"></head>
+        <meta name="searchable-facet-category" content="books"></head>
         <body><main>d</main></body></html>`,
     },
   ];
@@ -606,8 +606,8 @@ describe("buildIndex hierarchical facets", () => {
           id: 1,
           url: "/a",
           html: `<html lang="en"><head><title>A</title>
-            <meta name="csf-facet-category" content="electronics>audio>headphones">
-            <meta name="csf-facet-category" content="electronics>video>tv"></head>
+            <meta name="searchable-facet-category" content="electronics>audio>headphones">
+            <meta name="searchable-facet-category" content="electronics>video>tv"></head>
             <body><main>a</main></body></html>`,
         },
       ],
@@ -630,7 +630,7 @@ describe("buildIndex hierarchical facets", () => {
           id: 1,
           url: "/a",
           html: `<html lang="en"><head><title>A</title>
-            <meta name="csf-facet-category" content="electronics/audio/headphones"></head>
+            <meta name="searchable-facet-category" content="electronics/audio/headphones"></head>
             <body><main>a</main></body></html>`,
         },
       ],
@@ -679,7 +679,7 @@ describe("buildIndex pins", () => {
         id: 1,
         url: "/pricing",
         html: `<html lang="en"><head><title>Pricing</title>
-          <meta name="csf-pin" content="Pricing Plans"></head>
+          <meta name="searchable-pin" content="Pricing Plans"></head>
           <body><main>x</main></body></html>`,
       },
     ]);
@@ -692,16 +692,16 @@ describe("buildIndex pins", () => {
     });
   });
 
-  it("carries mode/priority/exclusive through from the page's csf-pin* tags", () => {
+  it("carries mode/priority/exclusive through from the page's searchable-pin* tags", () => {
     const built = buildIndex([
       {
         id: 1,
         url: "/pricing",
         html: `<html lang="en"><head><title>Pricing</title>
-          <meta name="csf-pin" content="cost">
-          <meta name="csf-pin-mode" content="contains">
-          <meta name="csf-pin-priority" content="10">
-          <meta name="csf-pin-exclusive"></head>
+          <meta name="searchable-pin" content="cost">
+          <meta name="searchable-pin-mode" content="contains">
+          <meta name="searchable-pin-priority" content="10">
+          <meta name="searchable-pin-exclusive"></head>
           <body><main>x</main></body></html>`,
       },
     ]);
@@ -717,8 +717,8 @@ describe("buildIndex pins", () => {
         id: 1,
         url: "/draft",
         html: `<html lang="en"><head><title>Draft</title>
-          <meta name="csf-noindex">
-          <meta name="csf-pin" content="draft"></head>
+          <meta name="searchable-noindex">
+          <meta name="searchable-pin" content="draft"></head>
           <body><main>x</main></body></html>`,
       },
     ]);
@@ -732,23 +732,23 @@ describe("buildIndex pins", () => {
         id: 1,
         url: "/low-priority",
         html: `<html lang="en"><head><title>Low</title>
-          <meta name="csf-pin" content="pricing"></head>
+          <meta name="searchable-pin" content="pricing"></head>
           <body><main>x</main></body></html>`,
       },
       {
         id: 2,
         url: "/high-priority",
         html: `<html lang="en"><head><title>High</title>
-          <meta name="csf-pin" content="pricing">
-          <meta name="csf-pin-priority" content="5"></head>
+          <meta name="searchable-pin" content="pricing">
+          <meta name="searchable-pin-priority" content="5"></head>
           <body><main>x</main></body></html>`,
       },
       {
         id: 3,
         url: "/tied-but-boosted",
         html: `<html lang="en"><head><title>Boosted</title>
-          <meta name="csf-pin" content="pricing">
-          <meta name="csf-boost" content="2.0"></head>
+          <meta name="searchable-pin" content="pricing">
+          <meta name="searchable-boost" content="2.0"></head>
           <body><main>x</main></body></html>`,
       },
     ]);
@@ -769,7 +769,7 @@ describe("buildIndex pins", () => {
         id: 1,
         url: "/pricing",
         html: `<html lang="en"><head><title>Pricing</title>
-          <meta name="csf-pin" content="pricing"></head>
+          <meta name="searchable-pin" content="pricing"></head>
           <body><main>x</main></body></html>`,
       },
     ]);
@@ -796,7 +796,7 @@ describe("buildIndex multi-language corpora", () => {
       id: 3,
       url: "/de/kontakt",
       html: `<html lang="de"><head><title>Kontakt</title>
-        <meta name="csf-pin" content="kontakt"></head>
+        <meta name="searchable-pin" content="kontakt"></head>
         <body><main><p>So erreichen Sie uns.</p></main></body></html>`,
     },
     {
@@ -845,14 +845,14 @@ describe("buildIndex multi-language corpora", () => {
         id: 1,
         url: "/en/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-category" content="shared"></head>
+          <meta name="searchable-facet-category" content="shared"></head>
           <body><main>a</main></body></html>`,
       },
       {
         id: 2,
         url: "/de/b",
         html: `<html lang="de"><head><title>B</title>
-          <meta name="csf-facet-category" content="shared"></head>
+          <meta name="searchable-facet-category" content="shared"></head>
           <body><main>b</main></body></html>`,
       },
     ]);
@@ -935,11 +935,11 @@ describe("buildIndex source id validation", () => {
     ).not.toThrow();
   });
 
-  it("catches a duplicate even when one of the pair is csf-noindex", () => {
+  it("catches a duplicate even when one of the pair is searchable-noindex", () => {
     const noindexPage: SourceDocument = {
       id: 1,
       url: "/draft",
-      html: `<html lang="en"><head><title>Draft</title><meta name="csf-noindex"></head><body><main>x</main></body></html>`,
+      html: `<html lang="en"><head><title>Draft</title><meta name="searchable-noindex"></head><body><main>x</main></body></html>`,
     };
     expect(() => buildIndex([page(1, "/a"), noindexPage])).toThrow(
       /duplicate document id 1/,

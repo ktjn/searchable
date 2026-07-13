@@ -112,7 +112,7 @@ export function renderExampleCode(example: QuickExample): string {
     ? `, {\n${searchOptions.map((option) => `  ${option},`).join("\n")}\n}`
     : "";
 
-  return `import { SearchClient } from "@csf/client";
+  return `import { SearchClient } from "@ktjn/searchable-client";
 
 const client = new SearchClient({
   indexUrl: ${JSON.stringify(example.indexPath)},

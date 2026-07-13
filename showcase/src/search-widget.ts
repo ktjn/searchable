@@ -2,7 +2,7 @@
  * Loaded on every showcase page via <script type="module">. Not
  * bundled — plain TypeScript compiled to plain ES modules (see
  * ../tsconfig.widget.json) — this glue code has nothing to bundle, just
- * a dynamic import of the already-built @csf/client from a path
+ * a dynamic import of the already-built @ktjn/searchable-client from a path
  * computed at runtime.
  *
  * `import.meta.url` (not the page's own location) is the anchor for
@@ -49,7 +49,7 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
   const input = document.createElement("input");
   input.type = "search";
   input.placeholder = "Search these docs…";
-  input.className = "csf-search-input";
+  input.className = "searchable-search-input";
   input.name = "docs-search";
   input.autocomplete = "off";
   input.spellcheck = false;
@@ -57,8 +57,8 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
   input.setAttribute("aria-expanded", "false");
 
   const results = document.createElement("div");
-  results.className = "csf-search-results";
-  results.id = "csf-search-results";
+  results.className = "searchable-search-results";
+  results.id = "searchable-search-results";
   input.setAttribute("aria-controls", results.id);
 
   // Visually hidden (docs/reference/client-api.md): the
@@ -66,7 +66,7 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
   // directly, so this exists purely to announce the same outcome to
   // screen reader users via aria-live, not to duplicate visible UI.
   const announcer = document.createElement("div");
-  announcer.className = "csf-sr-only";
+  announcer.className = "searchable-sr-only";
   announcer.setAttribute("role", "status");
   announcer.setAttribute("aria-live", "polite");
 
@@ -110,7 +110,7 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
     results.replaceChildren();
     if (hits.length === 0) {
       const empty = document.createElement("div");
-      empty.className = "csf-empty";
+      empty.className = "searchable-empty";
       empty.textContent = `No results for "${query}".`;
       results.append(empty);
       announcer.textContent = `No results for "${query}".`;
@@ -121,10 +121,10 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
         const a = document.createElement("a");
         a.href = new URL(hit.url.replace(/^\//, ""), siteRoot).href;
         const title = document.createElement("div");
-        title.className = "csf-result-title";
+        title.className = "searchable-result-title";
         title.textContent = hit.fields.title ?? hit.url;
         const excerpt = document.createElement("div");
-        excerpt.className = "csf-result-excerpt";
+        excerpt.className = "searchable-result-excerpt";
         excerpt.textContent = hit.fields.excerpt ?? "";
         a.append(title, excerpt);
         li.append(a);

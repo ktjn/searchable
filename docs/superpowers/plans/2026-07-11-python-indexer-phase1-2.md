@@ -2,44 +2,44 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship two installable Python packages, `csf-analysis` and `csf-indexer`, giving full feature parity with `@csf/analysis` + the lexical-core subset of `@csf/indexer` — producing a JSON index `@csf/client` can query, with no facets/synonyms/fuzzy/pins/vectors/binary tier yet (those are later, separately spec'd phases).
+**Goal:** Ship two installable Python packages, `searchable-analysis` and `searchable-indexer`, giving full feature parity with `@ktjn/searchable-analysis` + the lexical-core subset of `@ktjn/searchable-indexer` — producing a JSON index `@ktjn/searchable-client` can query, with no facets/synonyms/fuzzy/pins/vectors/binary tier yet (those are later, separately spec'd phases).
 
 **Architecture:** Direct, faithful ports of the existing TypeScript source (`packages/analysis/src/*.ts`, `packages/indexer/src/{discover,extract,build-index,write-index,hash,cli}.ts`), file-for-file where practical, adjusted only where Python's language semantics force a difference (documented per-task below — e.g. no `Intl.Segmenter`, no JS-prototype-pollution risk on plain dicts, no type-only circular imports).
 
-**Tech Stack:** Python 3.10+, `uv` + `pyproject.toml` (hatchling build backend) per package, `pytest`, `selectolax` for HTML parsing in `csf-indexer`, `jsonschema` (dev-only) for schema-conformance tests.
+**Tech Stack:** Python 3.10+, `uv` + `pyproject.toml` (hatchling build backend) per package, `pytest`, `selectolax` for HTML parsing in `searchable-indexer`, `jsonschema` (dev-only) for schema-conformance tests.
 
 ## Global Constraints
 
 - Minimum Python version: 3.10 (from the design spec).
-- Package layout: `python/csf-analysis/`, `python/csf-indexer/` (new top-level `python/` directory — does not touch pnpm's `packages/*` workspace glob).
-- `csf-indexer` depends on `csf-analysis` via a `uv` local path source (`[tool.uv.sources]`), not a published version — both live in this repo.
+- Package layout: `python/searchable-analysis/`, `python/searchable-indexer/` (new top-level `python/` directory — does not touch pnpm's `packages/*` workspace glob).
+- `searchable-indexer` depends on `searchable-analysis` via a `uv` local path source (`[tool.uv.sources]`), not a published version — both live in this repo.
 - No facets, synonyms, fuzzy matching, term pinning, vector shard building, or binary storage tier in this plan — explicitly out of scope (see the design doc's "Out of scope" section). `extract.py` parses facet/range-facet/pin metadata anyway (full parity with `extract.ts`) but `build_index.py` does not consume it yet.
-- CLI binary name: `csf-indexer` (same as the npm CLI).
+- CLI binary name: `searchable-indexer` (same as the npm CLI).
 - Every JSON-shaped output (manifest, term shard, doc store shard) must validate against `spec/schema/manifest.schema.json` / `term-shard.schema.json` / `doc-store-shard.schema.json`.
 - Python has no prototype-pollution risk on plain `dict` (unlike JS objects), so `packages/analysis/src/safe-dict.ts`'s `getOrCreate`/`ownProp` are **not** ported — plain `dict.setdefault()` / `dict.get()` / `key in dict` are used directly throughout. This is a deliberate simplification, not an oversight — call it out in code review if it looks like a gap.
 - Python has no type-only imports (TS erases `import type { ... }` at compile time, so TS's `language-profile.ts` can import from `segment-cjk.ts` while `segment-cjk.ts` imports a type back from `language-profile.ts` with no runtime circularity). To avoid a real circular import in Python, `TokenSpan` lives in its own module (`token_span.py`) rather than alongside `LanguageProfile` in `language_profile.py`. This is the one deliberate file-layout deviation from the TS source; every other module boundary matches its `.ts` counterpart 1:1.
 
 ---
 
-## Task 1: `csf-analysis` package scaffold + `TokenSpan`
+## Task 1: `searchable-analysis` package scaffold + `TokenSpan`
 
 **Files:**
-- Create: `python/csf-analysis/pyproject.toml`
-- Create: `python/csf-analysis/src/csf_analysis/__init__.py` (empty for now, filled in Task 10)
-- Create: `python/csf-analysis/src/csf_analysis/token_span.py`
-- Create: `python/csf-analysis/tests/__init__.py` (empty)
-- Test: `python/csf-analysis/tests/test_token_span.py`
+- Create: `python/searchable-analysis/pyproject.toml`
+- Create: `python/searchable-analysis/src/searchable_analysis/__init__.py` (empty for now, filled in Task 10)
+- Create: `python/searchable-analysis/src/searchable_analysis/token_span.py`
+- Create: `python/searchable-analysis/tests/__init__.py` (empty)
+- Test: `python/searchable-analysis/tests/test_token_span.py`
 
 **Interfaces:**
-- Produces: `TokenSpan(text: str, is_word_like: bool)` — a frozen dataclass, imported by every segmenter module in later tasks as `from csf_analysis.token_span import TokenSpan`.
+- Produces: `TokenSpan(text: str, is_word_like: bool)` — a frozen dataclass, imported by every segmenter module in later tasks as `from searchable_analysis.token_span import TokenSpan`.
 
 - [ ] **Step 1: Create the package directory and `pyproject.toml`**
 
 ```toml
 [project]
-name = "csf-analysis"
+name = "searchable-analysis"
 version = "0.1.0"
-description = "Multi-language tokenization, stemming, and language detection for client-search-framework (Python port of @csf/analysis)."
+description = "Multi-language tokenization, stemming, and language detection for searchable (Python port of @ktjn/searchable-analysis)."
 requires-python = ">=3.10"
 dependencies = []
 
@@ -48,7 +48,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/csf_analysis"]
+packages = ["src/searchable_analysis"]
 
 [dependency-groups]
 dev = ["pytest>=8.0.0"]
@@ -56,15 +56,15 @@ dev = ["pytest>=8.0.0"]
 
 - [ ] **Step 2: Create empty `__init__.py` files**
 
-`python/csf-analysis/src/csf_analysis/__init__.py`: empty file for now.
-`python/csf-analysis/tests/__init__.py`: empty file.
+`python/searchable-analysis/src/searchable_analysis/__init__.py`: empty file for now.
+`python/searchable-analysis/tests/__init__.py`: empty file.
 
 - [ ] **Step 3: Write the failing test for `TokenSpan`**
 
-`python/csf-analysis/tests/test_token_span.py`:
+`python/searchable-analysis/tests/test_token_span.py`:
 
 ```python
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.token_span import TokenSpan
 
 
 def test_token_span_holds_text_and_is_word_like():
@@ -86,11 +86,11 @@ def test_token_span_is_frozen():
 - [ ] **Step 4: Run `uv sync` and run the test to verify it fails**
 
 ```bash
-cd python/csf-analysis
+cd python/searchable-analysis
 uv sync
 uv run pytest tests/test_token_span.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.token_span'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_analysis.token_span'`.
 
 - [ ] **Step 5: Implement `token_span.py`**
 
@@ -114,8 +114,8 @@ Expected: PASS (2 passed).
 - [ ] **Step 7: Commit**
 
 ```bash
-git add python/csf-analysis/
-git commit -m "feat(csf-analysis): scaffold package, add TokenSpan"
+git add python/searchable-analysis/
+git commit -m "feat(searchable-analysis): scaffold package, add TokenSpan"
 ```
 
 ---
@@ -125,18 +125,18 @@ git commit -m "feat(csf-analysis): scaffold package, add TokenSpan"
 Ports the `en`/`de` half of `packages/analysis/src/language-profile.ts`'s `segmentWithIntl()`. TypeScript uses `Intl.Segmenter` for word-boundary detection; Python has no stdlib equivalent, so this uses a Unicode-aware regex instead (a word = a run of Unicode letters/digits/marks, excluding `_`). Per the design doc, exact cross-implementation tokenization isn't the correctness bar — internal index-time/query-time consistency within one implementation is. This function **never emits non-word-like spans** (whitespace/punctuation runs) — unlike `Intl.Segmenter`, which emits them as `isWordLike: false` spans that `analyze()` then skips — because nothing downstream needs them; this is a deliberate simplification, not a bug.
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/segment_latin.py`
-- Test: `python/csf-analysis/tests/test_segment_latin.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/segment_latin.py`
+- Test: `python/searchable-analysis/tests/test_segment_latin.py`
 
 **Interfaces:**
-- Consumes: `TokenSpan` from `csf_analysis.token_span` (Task 1).
+- Consumes: `TokenSpan` from `searchable_analysis.token_span` (Task 1).
 - Produces: `segment_latin_words(text: str) -> list[TokenSpan]`, used by `language_profile.py` (Task 6, as the `en`/`de` profiles' `segment` function) and by `segment_ngram.py` (Task 3, for non-script runs inside CJK/SEA text).
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from csf_analysis.segment_latin import segment_latin_words
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.segment_latin import segment_latin_words
+from searchable_analysis.token_span import TokenSpan
 
 
 def test_splits_on_whitespace():
@@ -176,14 +176,14 @@ def test_underscore_is_a_boundary_not_a_word_character():
 ```bash
 uv run pytest tests/test_segment_latin.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.segment_latin'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_analysis.segment_latin'`.
 
 - [ ] **Step 3: Implement `segment_latin.py`**
 
 ```python
 import re
 
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.token_span import TokenSpan
 
 # Unicode "word" characters (letters, digits, combining marks) excluding
 # the underscore that \w normally includes -- "under_score" should split
@@ -209,8 +209,8 @@ Expected: PASS (5 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/segment_latin.py python/csf-analysis/tests/test_segment_latin.py
-git commit -m "feat(csf-analysis): add segment_latin_words (en/de word segmentation)"
+git add python/searchable-analysis/src/searchable_analysis/segment_latin.py python/searchable-analysis/tests/test_segment_latin.py
+git commit -m "feat(searchable-analysis): add segment_latin_words (en/de word segmentation)"
 ```
 
 ---
@@ -220,11 +220,11 @@ git commit -m "feat(csf-analysis): add segment_latin_words (en/de word segmentat
 Direct ports of `segment-ngram.ts`, `segment-cjk.ts`, `segment-sea.ts`. The shared n-gram windowing core segments a script run into overlapping n-character spans, and any interleaved non-script run through `segment_latin_words` (Task 2) — CJK/Thai/Khmer/Lao text routinely mixes in Latin words, digits, and punctuation.
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/segment_ngram.py`
-- Create: `python/csf-analysis/src/csf_analysis/segment_cjk.py`
-- Create: `python/csf-analysis/src/csf_analysis/segment_sea.py`
-- Test: `python/csf-analysis/tests/test_segment_cjk.py`
-- Test: `python/csf-analysis/tests/test_segment_sea.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/segment_ngram.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/segment_cjk.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/segment_sea.py`
+- Test: `python/searchable-analysis/tests/test_segment_cjk.py`
+- Test: `python/searchable-analysis/tests/test_segment_sea.py`
 
 **Interfaces:**
 - Consumes: `TokenSpan` (Task 1), `segment_latin_words` (Task 2).
@@ -232,11 +232,11 @@ Direct ports of `segment-ngram.ts`, `segment-cjk.ts`, `segment-sea.ts`. The shar
 
 - [ ] **Step 1: Write the failing tests**
 
-`python/csf-analysis/tests/test_segment_cjk.py`:
+`python/searchable-analysis/tests/test_segment_cjk.py`:
 
 ```python
-from csf_analysis.segment_cjk import segment_cjk_bigram
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.segment_cjk import segment_cjk_bigram
+from searchable_analysis.token_span import TokenSpan
 
 
 def test_splits_a_run_of_cjk_characters_into_overlapping_bigrams():
@@ -276,11 +276,11 @@ def test_returns_empty_list_for_empty_string():
     assert segment_cjk_bigram("") == []
 ```
 
-`python/csf-analysis/tests/test_segment_sea.py`:
+`python/searchable-analysis/tests/test_segment_sea.py`:
 
 ```python
-from csf_analysis.segment_sea import segment_sea_trigram
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.segment_sea import segment_sea_trigram
+from searchable_analysis.token_span import TokenSpan
 
 
 def test_splits_a_run_of_thai_characters_into_overlapping_trigrams():
@@ -320,8 +320,8 @@ Expected: FAIL — `ModuleNotFoundError`.
 ```python
 from typing import Callable
 
-from csf_analysis.segment_latin import segment_latin_words
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.segment_latin import segment_latin_words
+from searchable_analysis.token_span import TokenSpan
 
 
 def _segment_script_run(run: list[str], n: int) -> list[TokenSpan]:
@@ -358,8 +358,8 @@ def segment_by_script_ngram(
 ```python
 import re
 
-from csf_analysis.segment_ngram import segment_by_script_ngram
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.segment_ngram import segment_by_script_ngram
+from searchable_analysis.token_span import TokenSpan
 
 # Han ideographs (+ Extension A), hiragana, katakana -- deliberately
 # excludes Hangul (Korean is whitespace-delimited at the word level) and
@@ -380,8 +380,8 @@ def segment_cjk_bigram(text: str) -> list[TokenSpan]:
 ```python
 import re
 
-from csf_analysis.segment_ngram import segment_by_script_ngram
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.segment_ngram import segment_by_script_ngram
+from searchable_analysis.token_span import TokenSpan
 
 # Thai (U+0E00-0E7F) + Lao (U+0E80-0EFF), a contiguous pair of blocks,
 # plus Khmer (U+1780-17FF).
@@ -406,8 +406,8 @@ Expected: PASS (10 passed).
 - [ ] **Step 7: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/segment_ngram.py python/csf-analysis/src/csf_analysis/segment_cjk.py python/csf-analysis/src/csf_analysis/segment_sea.py python/csf-analysis/tests/test_segment_cjk.py python/csf-analysis/tests/test_segment_sea.py
-git commit -m "feat(csf-analysis): add CJK bigram / SEA trigram n-gram segmentation"
+git add python/searchable-analysis/src/searchable_analysis/segment_ngram.py python/searchable-analysis/src/searchable_analysis/segment_cjk.py python/searchable-analysis/src/searchable_analysis/segment_sea.py python/searchable-analysis/tests/test_segment_cjk.py python/searchable-analysis/tests/test_segment_sea.py
+git commit -m "feat(searchable-analysis): add CJK bigram / SEA trigram n-gram segmentation"
 ```
 
 ---
@@ -417,10 +417,10 @@ git commit -m "feat(csf-analysis): add CJK bigram / SEA trigram n-gram segmentat
 Direct port of `packages/analysis/src/stemmer-en.ts` (the original 1980 Porter algorithm, not Porter2/Snowball). Verified against the same 23,531-word public reference vocabulary already checked into the repo.
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/stemmer_en.py`
-- Create: `python/csf-analysis/tests/fixtures/porter-input.txt` (copy of `packages/analysis/test/fixtures/porter-input.txt`)
-- Create: `python/csf-analysis/tests/fixtures/porter-output.txt` (copy of `packages/analysis/test/fixtures/porter-output.txt`)
-- Test: `python/csf-analysis/tests/test_stemmer_en.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/stemmer_en.py`
+- Create: `python/searchable-analysis/tests/fixtures/porter-input.txt` (copy of `packages/analysis/test/fixtures/porter-input.txt`)
+- Create: `python/searchable-analysis/tests/fixtures/porter-output.txt` (copy of `packages/analysis/test/fixtures/porter-output.txt`)
+- Test: `python/searchable-analysis/tests/test_stemmer_en.py`
 
 **Interfaces:**
 - Produces: `stem_english(word: str) -> str`, used by `language_profile.py` (Task 6) as the `en` profile's `stem`.
@@ -428,9 +428,9 @@ Direct port of `packages/analysis/src/stemmer-en.ts` (the original 1980 Porter a
 - [ ] **Step 1: Copy the reference vocabulary fixtures**
 
 ```bash
-mkdir -p python/csf-analysis/tests/fixtures
-cp packages/analysis/test/fixtures/porter-input.txt python/csf-analysis/tests/fixtures/porter-input.txt
-cp packages/analysis/test/fixtures/porter-output.txt python/csf-analysis/tests/fixtures/porter-output.txt
+mkdir -p python/searchable-analysis/tests/fixtures
+cp packages/analysis/test/fixtures/porter-input.txt python/searchable-analysis/tests/fixtures/porter-input.txt
+cp packages/analysis/test/fixtures/porter-output.txt python/searchable-analysis/tests/fixtures/porter-output.txt
 ```
 
 - [ ] **Step 2: Write the failing test**
@@ -438,7 +438,7 @@ cp packages/analysis/test/fixtures/porter-output.txt python/csf-analysis/tests/f
 ```python
 from pathlib import Path
 
-from csf_analysis.stemmer_en import stem_english
+from searchable_analysis.stemmer_en import stem_english
 
 _FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -509,7 +509,7 @@ def test_matches_every_word_stem_pair_in_the_23531_word_porter_reference_vocabul
 ```bash
 uv run pytest tests/test_stemmer_en.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.stemmer_en'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_analysis.stemmer_en'`.
 
 - [ ] **Step 4: Implement `stemmer_en.py`**
 
@@ -766,8 +766,8 @@ Expected: PASS (7 passed) — including the full 23,531-word reference vocabular
 - [ ] **Step 6: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/stemmer_en.py python/csf-analysis/tests/test_stemmer_en.py python/csf-analysis/tests/fixtures/porter-input.txt python/csf-analysis/tests/fixtures/porter-output.txt
-git commit -m "feat(csf-analysis): add classic Porter English stemmer"
+git add python/searchable-analysis/src/searchable_analysis/stemmer_en.py python/searchable-analysis/tests/test_stemmer_en.py python/searchable-analysis/tests/fixtures/porter-input.txt python/searchable-analysis/tests/fixtures/porter-output.txt
+git commit -m "feat(searchable-analysis): add classic Porter English stemmer"
 ```
 
 ---
@@ -777,10 +777,10 @@ git commit -m "feat(csf-analysis): add classic Porter English stemmer"
 Direct port of `packages/analysis/src/stemmer-de.ts`. Verified against the same 35,053-word public reference vocabulary already checked into the repo.
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/stemmer_de.py`
-- Create: `python/csf-analysis/tests/fixtures/german-input.txt` (copy of `packages/analysis/test/fixtures/german-input.txt`)
-- Create: `python/csf-analysis/tests/fixtures/german-output.txt` (copy of `packages/analysis/test/fixtures/german-output.txt`)
-- Test: `python/csf-analysis/tests/test_stemmer_de.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/stemmer_de.py`
+- Create: `python/searchable-analysis/tests/fixtures/german-input.txt` (copy of `packages/analysis/test/fixtures/german-input.txt`)
+- Create: `python/searchable-analysis/tests/fixtures/german-output.txt` (copy of `packages/analysis/test/fixtures/german-output.txt`)
+- Test: `python/searchable-analysis/tests/test_stemmer_de.py`
 
 **Interfaces:**
 - Produces: `stem_german(word: str) -> str`, used by `language_profile.py` (Task 6) as the `de` profile's `stem`.
@@ -788,8 +788,8 @@ Direct port of `packages/analysis/src/stemmer-de.ts`. Verified against the same 
 - [ ] **Step 1: Copy the reference vocabulary fixtures**
 
 ```bash
-cp packages/analysis/test/fixtures/german-input.txt python/csf-analysis/tests/fixtures/german-input.txt
-cp packages/analysis/test/fixtures/german-output.txt python/csf-analysis/tests/fixtures/german-output.txt
+cp packages/analysis/test/fixtures/german-input.txt python/searchable-analysis/tests/fixtures/german-input.txt
+cp packages/analysis/test/fixtures/german-output.txt python/searchable-analysis/tests/fixtures/german-output.txt
 ```
 
 - [ ] **Step 2: Write the failing test**
@@ -797,7 +797,7 @@ cp packages/analysis/test/fixtures/german-output.txt python/csf-analysis/tests/f
 ```python
 from pathlib import Path
 
-from csf_analysis.stemmer_de import stem_german
+from searchable_analysis.stemmer_de import stem_german
 
 _FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -841,7 +841,7 @@ def test_matches_every_word_stem_pair_in_the_35053_word_snowball_reference_vocab
 ```bash
 uv run pytest tests/test_stemmer_de.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.stemmer_de'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_analysis.stemmer_de'`.
 
 - [ ] **Step 4: Implement `stemmer_de.py`**
 
@@ -1062,8 +1062,8 @@ Expected: PASS (5 passed) — including the full 35,053-word reference vocabular
 - [ ] **Step 6: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/stemmer_de.py python/csf-analysis/tests/test_stemmer_de.py python/csf-analysis/tests/fixtures/german-input.txt python/csf-analysis/tests/fixtures/german-output.txt
-git commit -m "feat(csf-analysis): add Snowball German stemmer"
+git add python/searchable-analysis/src/searchable_analysis/stemmer_de.py python/searchable-analysis/tests/test_stemmer_de.py python/searchable-analysis/tests/fixtures/german-input.txt python/searchable-analysis/tests/fixtures/german-output.txt
+git commit -m "feat(searchable-analysis): add Snowball German stemmer"
 ```
 
 ---
@@ -1073,8 +1073,8 @@ git commit -m "feat(csf-analysis): add Snowball German stemmer"
 Direct port of `packages/analysis/src/language-profile.ts`'s `LanguageProfile` interface, `stripDiacritics`, and the 7 exported profile constants (`english`, `german`, `chinese`, `japanese`, `thai`, `khmer`, `lao`).
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/language_profile.py`
-- Test: `python/csf-analysis/tests/test_language_profile.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/language_profile.py`
+- Test: `python/searchable-analysis/tests/test_language_profile.py`
 
 **Interfaces:**
 - Consumes: `TokenSpan` (Task 1), `segment_latin_words` (Task 2), `segment_cjk_bigram`/`segment_sea_trigram` (Task 3), `stem_english` (Task 4), `stem_german` (Task 5).
@@ -1083,7 +1083,7 @@ Direct port of `packages/analysis/src/language-profile.ts`'s `LanguageProfile` i
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from csf_analysis.language_profile import (
+from searchable_analysis.language_profile import (
     chinese,
     english,
     german,
@@ -1142,7 +1142,7 @@ def test_segment_is_callable_and_returns_token_spans():
 ```bash
 uv run pytest tests/test_language_profile.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.language_profile'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_analysis.language_profile'`.
 
 - [ ] **Step 3: Implement `language_profile.py`**
 
@@ -1151,12 +1151,12 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Callable
 
-from csf_analysis.segment_cjk import segment_cjk_bigram
-from csf_analysis.segment_latin import segment_latin_words
-from csf_analysis.segment_sea import segment_sea_trigram
-from csf_analysis.stemmer_de import stem_german as _stem_german
-from csf_analysis.stemmer_en import stem_english as _stem_english
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.segment_cjk import segment_cjk_bigram
+from searchable_analysis.segment_latin import segment_latin_words
+from searchable_analysis.segment_sea import segment_sea_trigram
+from searchable_analysis.stemmer_de import stem_german as _stem_german
+from searchable_analysis.stemmer_en import stem_english as _stem_english
+from searchable_analysis.token_span import TokenSpan
 
 
 @dataclass(frozen=True)
@@ -1244,8 +1244,8 @@ Expected: PASS (6 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/language_profile.py python/csf-analysis/tests/test_language_profile.py
-git commit -m "feat(csf-analysis): add LanguageProfile and the 7 registered profiles"
+git add python/searchable-analysis/src/searchable_analysis/language_profile.py python/searchable-analysis/tests/test_language_profile.py
+git commit -m "feat(searchable-analysis): add LanguageProfile and the 7 registered profiles"
 ```
 
 ---
@@ -1255,20 +1255,20 @@ git commit -m "feat(csf-analysis): add LanguageProfile and the 7 registered prof
 Direct port of `packages/analysis/src/registry.ts`, minus `ownProp()` (unneeded — see Global Constraints).
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/registry.py`
-- Test: `python/csf-analysis/tests/test_registry.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/registry.py`
+- Test: `python/searchable-analysis/tests/test_registry.py`
 
 **Interfaces:**
 - Consumes: the 7 profile constants + `LanguageProfile` from `language_profile.py` (Task 6).
-- Produces: `get_language_profile(code: str) -> LanguageProfile` (raises `ValueError` for an unregistered code); `get_registered_language_codes() -> list[str]`. Both used by `analyze.py` callers in `csf-indexer` (Task 15).
+- Produces: `get_language_profile(code: str) -> LanguageProfile` (raises `ValueError` for an unregistered code); `get_registered_language_codes() -> list[str]`. Both used by `analyze.py` callers in `searchable-indexer` (Task 15).
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
 import pytest
 
-from csf_analysis.language_profile import english
-from csf_analysis.registry import get_language_profile, get_registered_language_codes
+from searchable_analysis.language_profile import english
+from searchable_analysis.registry import get_language_profile, get_registered_language_codes
 
 
 def test_get_language_profile_returns_the_registered_profile():
@@ -1290,12 +1290,12 @@ def test_get_registered_language_codes_lists_all_seven():
 ```bash
 uv run pytest tests/test_registry.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.registry'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_analysis.registry'`.
 
 - [ ] **Step 3: Implement `registry.py`**
 
 ```python
-from csf_analysis.language_profile import (
+from searchable_analysis.language_profile import (
     LanguageProfile,
     chinese,
     english,
@@ -1343,8 +1343,8 @@ Expected: PASS (3 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/registry.py python/csf-analysis/tests/test_registry.py
-git commit -m "feat(csf-analysis): add language profile registry"
+git add python/searchable-analysis/src/searchable_analysis/registry.py python/searchable-analysis/tests/test_registry.py
+git commit -m "feat(searchable-analysis): add language profile registry"
 ```
 
 ---
@@ -1354,16 +1354,16 @@ git commit -m "feat(csf-analysis): add language profile registry"
 Direct port of `packages/analysis/src/detect-language.ts`. The one adaptation: TS's `\p{L}` (Unicode letter category) has no direct `re` equivalent without a third-party module, so this uses `str.isalpha()` (character-level) and a `[^\W\d_]+` regex (word-level) instead — both are standard, well-precedented Unicode-letter approximations.
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/detect_language.py`
-- Test: `python/csf-analysis/tests/test_detect_language.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/detect_language.py`
+- Test: `python/searchable-analysis/tests/test_detect_language.py`
 
 **Interfaces:**
-- Produces: `detect_language(text: str, candidate_codes: list[str]) -> str | None`, used by `extract.py` in `csf-indexer` (Task 13).
+- Produces: `detect_language(text: str, candidate_codes: list[str]) -> str | None`, used by `extract.py` in `searchable-indexer` (Task 13).
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from csf_analysis.detect_language import detect_language
+from searchable_analysis.detect_language import detect_language
 
 
 def test_detects_english_via_marker_words():
@@ -1406,7 +1406,7 @@ def test_returns_none_on_a_tie():
 ```bash
 uv run pytest tests/test_detect_language.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.detect_language'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_analysis.detect_language'`.
 
 - [ ] **Step 3: Implement `detect_language.py`**
 
@@ -1512,8 +1512,8 @@ Expected: PASS (7 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/detect_language.py python/csf-analysis/tests/test_detect_language.py
-git commit -m "feat(csf-analysis): add script-range + marker-word language detection"
+git add python/searchable-analysis/src/searchable_analysis/detect_language.py python/searchable-analysis/tests/test_detect_language.py
+git commit -m "feat(searchable-analysis): add script-range + marker-word language detection"
 ```
 
 ---
@@ -1523,18 +1523,18 @@ git commit -m "feat(csf-analysis): add script-range + marker-word language detec
 Direct port of `packages/analysis/src/analyze.ts`'s `analyze()` and `normalizePhrase()` — the one analysis pipeline shared by index-time and query-time code.
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/analyze.py`
-- Test: `python/csf-analysis/tests/test_analyze.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/analyze.py`
+- Test: `python/searchable-analysis/tests/test_analyze.py`
 
 **Interfaces:**
 - Consumes: `LanguageProfile`, `strip_diacritics` (Task 6).
-- Produces: `Token(term: str, position: int, literal: str)` dataclass; `analyze(text: str, profile: LanguageProfile) -> list[Token]`; `normalize_phrase(text: str, profile: LanguageProfile) -> str`. Both used throughout `csf-indexer` (Task 15).
+- Produces: `Token(term: str, position: int, literal: str)` dataclass; `analyze(text: str, profile: LanguageProfile) -> list[Token]`; `normalize_phrase(text: str, profile: LanguageProfile) -> str`. Both used throughout `searchable-indexer` (Task 15).
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from csf_analysis.analyze import analyze, normalize_phrase
-from csf_analysis.language_profile import english, german
+from searchable_analysis.analyze import analyze, normalize_phrase
+from searchable_analysis.language_profile import english, german
 
 
 def test_analyze_lowercases_and_stems():
@@ -1575,7 +1575,7 @@ def test_normalize_phrase_is_stable_for_case_variation():
 ```bash
 uv run pytest tests/test_analyze.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.analyze'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_analysis.analyze'`.
 
 - [ ] **Step 3: Implement `analyze.py`**
 
@@ -1583,7 +1583,7 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'csf_analysis.analyze'`
 import unicodedata
 from dataclasses import dataclass
 
-from csf_analysis.language_profile import LanguageProfile, strip_diacritics
+from searchable_analysis.language_profile import LanguageProfile, strip_diacritics
 
 
 @dataclass(frozen=True)
@@ -1629,8 +1629,8 @@ Expected: PASS (6 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/analyze.py python/csf-analysis/tests/test_analyze.py
-git commit -m "feat(csf-analysis): add the shared analyze()/normalize_phrase() pipeline"
+git add python/searchable-analysis/src/searchable_analysis/analyze.py python/searchable-analysis/tests/test_analyze.py
+git commit -m "feat(searchable-analysis): add the shared analyze()/normalize_phrase() pipeline"
 ```
 
 ---
@@ -1640,20 +1640,20 @@ git commit -m "feat(csf-analysis): add the shared analyze()/normalize_phrase() p
 Direct port of `packages/analysis/src/is-rtl.ts`, plus the package's public API surface (mirroring `packages/analysis/src/index.ts`).
 
 **Files:**
-- Create: `python/csf-analysis/src/csf_analysis/is_rtl.py`
-- Modify: `python/csf-analysis/src/csf_analysis/__init__.py`
-- Test: `python/csf-analysis/tests/test_is_rtl.py`
-- Test: `python/csf-analysis/tests/test_public_api.py`
+- Create: `python/searchable-analysis/src/searchable_analysis/is_rtl.py`
+- Modify: `python/searchable-analysis/src/searchable_analysis/__init__.py`
+- Test: `python/searchable-analysis/tests/test_is_rtl.py`
+- Test: `python/searchable-analysis/tests/test_public_api.py`
 
 **Interfaces:**
-- Produces: `is_rtl_language(code: str) -> bool`. Also finalizes `csf_analysis`'s public exports for `csf-indexer` (Task 11 onward) to import from.
+- Produces: `is_rtl_language(code: str) -> bool`. Also finalizes `searchable_analysis`'s public exports for `searchable-indexer` (Task 11 onward) to import from.
 
 - [ ] **Step 1: Write the failing tests**
 
-`python/csf-analysis/tests/test_is_rtl.py`:
+`python/searchable-analysis/tests/test_is_rtl.py`:
 
 ```python
-from csf_analysis.is_rtl import is_rtl_language
+from searchable_analysis.is_rtl import is_rtl_language
 
 
 def test_detects_arabic_and_hebrew_as_rtl():
@@ -1675,30 +1675,30 @@ def test_is_case_insensitive():
     assert is_rtl_language("AR") is True
 ```
 
-`python/csf-analysis/tests/test_public_api.py`:
+`python/searchable-analysis/tests/test_public_api.py`:
 
 ```python
-import csf_analysis
+import searchable_analysis
 
 
 def test_exports_the_full_public_api():
-    assert csf_analysis.analyze is not None
-    assert csf_analysis.normalize_phrase is not None
-    assert csf_analysis.detect_language is not None
-    assert csf_analysis.is_rtl_language is not None
-    assert csf_analysis.get_language_profile is not None
-    assert csf_analysis.get_registered_language_codes is not None
-    assert csf_analysis.stem_english is not None
-    assert csf_analysis.stem_german is not None
-    assert csf_analysis.segment_cjk_bigram is not None
-    assert csf_analysis.segment_sea_trigram is not None
-    assert csf_analysis.strip_diacritics is not None
+    assert searchable_analysis.analyze is not None
+    assert searchable_analysis.normalize_phrase is not None
+    assert searchable_analysis.detect_language is not None
+    assert searchable_analysis.is_rtl_language is not None
+    assert searchable_analysis.get_language_profile is not None
+    assert searchable_analysis.get_registered_language_codes is not None
+    assert searchable_analysis.stem_english is not None
+    assert searchable_analysis.stem_german is not None
+    assert searchable_analysis.segment_cjk_bigram is not None
+    assert searchable_analysis.segment_sea_trigram is not None
+    assert searchable_analysis.strip_diacritics is not None
     for name in ("english", "german", "chinese", "japanese", "thai", "khmer", "lao"):
-        assert getattr(csf_analysis, name).code
+        assert getattr(searchable_analysis, name).code
 
 
 def test_registry_and_direct_profile_imports_agree():
-    assert csf_analysis.get_language_profile("en") is csf_analysis.english
+    assert searchable_analysis.get_language_profile("en") is searchable_analysis.english
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1706,7 +1706,7 @@ def test_registry_and_direct_profile_imports_agree():
 ```bash
 uv run pytest tests/test_is_rtl.py tests/test_public_api.py -v
 ```
-Expected: FAIL — `is_rtl.py` doesn't exist, and `csf_analysis`'s `__init__.py` is still empty.
+Expected: FAIL — `is_rtl.py` doesn't exist, and `searchable_analysis`'s `__init__.py` is still empty.
 
 - [ ] **Step 3: Implement `is_rtl.py`**
 
@@ -1722,10 +1722,10 @@ def is_rtl_language(code: str) -> bool:
 - [ ] **Step 4: Implement `__init__.py`**
 
 ```python
-from csf_analysis.analyze import Token, analyze, normalize_phrase
-from csf_analysis.detect_language import detect_language
-from csf_analysis.is_rtl import is_rtl_language
-from csf_analysis.language_profile import (
+from searchable_analysis.analyze import Token, analyze, normalize_phrase
+from searchable_analysis.detect_language import detect_language
+from searchable_analysis.is_rtl import is_rtl_language
+from searchable_analysis.language_profile import (
     LanguageProfile,
     chinese,
     english,
@@ -1736,12 +1736,12 @@ from csf_analysis.language_profile import (
     strip_diacritics,
     thai,
 )
-from csf_analysis.registry import get_language_profile, get_registered_language_codes
-from csf_analysis.segment_cjk import segment_cjk_bigram
-from csf_analysis.segment_sea import segment_sea_trigram
-from csf_analysis.stemmer_de import stem_german
-from csf_analysis.stemmer_en import stem_english
-from csf_analysis.token_span import TokenSpan
+from searchable_analysis.registry import get_language_profile, get_registered_language_codes
+from searchable_analysis.segment_cjk import segment_cjk_bigram
+from searchable_analysis.segment_sea import segment_sea_trigram
+from searchable_analysis.stemmer_de import stem_german
+from searchable_analysis.stemmer_en import stem_english
+from searchable_analysis.token_span import TokenSpan
 
 __all__ = [
     "Token",
@@ -1778,53 +1778,53 @@ Expected: PASS — every test in the package, including all prior tasks' tests (
 - [ ] **Step 6: Commit**
 
 ```bash
-git add python/csf-analysis/src/csf_analysis/is_rtl.py python/csf-analysis/src/csf_analysis/__init__.py python/csf-analysis/tests/test_is_rtl.py python/csf-analysis/tests/test_public_api.py
-git commit -m "feat(csf-analysis): add is_rtl_language, finalize public API exports"
+git add python/searchable-analysis/src/searchable_analysis/is_rtl.py python/searchable-analysis/src/searchable_analysis/__init__.py python/searchable-analysis/tests/test_is_rtl.py python/searchable-analysis/tests/test_public_api.py
+git commit -m "feat(searchable-analysis): add is_rtl_language, finalize public API exports"
 ```
 
-This completes `csf-analysis` (Phase 1).
+This completes `searchable-analysis` (Phase 1).
 
 ---
 
-## Task 11: `csf-indexer` package scaffold + `hash.py` + `types.py`
+## Task 11: `searchable-indexer` package scaffold + `hash.py` + `types.py`
 
 **Files:**
-- Create: `python/csf-indexer/pyproject.toml`
-- Create: `python/csf-indexer/src/csf_indexer/__init__.py` (empty for now)
-- Create: `python/csf-indexer/src/csf_indexer/hash.py`
-- Create: `python/csf-indexer/src/csf_indexer/types.py`
-- Create: `python/csf-indexer/tests/__init__.py` (empty)
-- Test: `python/csf-indexer/tests/test_hash.py`
-- Test: `python/csf-indexer/tests/test_types.py`
+- Create: `python/searchable-indexer/pyproject.toml`
+- Create: `python/searchable-indexer/src/searchable_indexer/__init__.py` (empty for now)
+- Create: `python/searchable-indexer/src/searchable_indexer/hash.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/types.py`
+- Create: `python/searchable-indexer/tests/__init__.py` (empty)
+- Test: `python/searchable-indexer/tests/test_hash.py`
+- Test: `python/searchable-indexer/tests/test_types.py`
 
 **Interfaces:**
-- Produces: `content_hash(content: str | bytes) -> str` (8-char hex SHA-256 prefix); `SourceDocument(id: int, url: str, html: str)`, `PinDeclaration(phrase: str, mode: str, priority: float, exclusive: bool)`, `ExtractedDocument(...)`, `BuiltIndex(manifest: dict, term_shards: dict, doc_store: dict, id_range: tuple[int, int])` dataclasses — used by every subsequent `csf-indexer` task.
+- Produces: `content_hash(content: str | bytes) -> str` (8-char hex SHA-256 prefix); `SourceDocument(id: int, url: str, html: str)`, `PinDeclaration(phrase: str, mode: str, priority: float, exclusive: bool)`, `ExtractedDocument(...)`, `BuiltIndex(manifest: dict, term_shards: dict, doc_store: dict, id_range: tuple[int, int])` dataclasses — used by every subsequent `searchable-indexer` task.
 
 - [ ] **Step 1: Create the package directory and `pyproject.toml`**
 
 ```toml
 [project]
-name = "csf-indexer"
+name = "searchable-indexer"
 version = "0.1.0"
-description = "Reference index-builder for client-search-framework (Python port of the lexical-core subset of @csf/indexer)."
+description = "Reference index-builder for searchable (Python port of the lexical-core subset of @ktjn/searchable-indexer)."
 requires-python = ">=3.10"
 dependencies = [
-    "csf-analysis",
+    "searchable-analysis",
     "selectolax>=0.3.21",
 ]
 
 [project.scripts]
-csf-indexer = "csf_indexer.cli:main"
+searchable-indexer = "searchable_indexer.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/csf_indexer"]
+packages = ["src/searchable_indexer"]
 
 [tool.uv.sources]
-csf-analysis = { path = "../csf-analysis", editable = true }
+searchable-analysis = { path = "../searchable-analysis", editable = true }
 
 [dependency-groups]
 dev = ["pytest>=8.0.0", "jsonschema>=4.23.0"]
@@ -1832,15 +1832,15 @@ dev = ["pytest>=8.0.0", "jsonschema>=4.23.0"]
 
 - [ ] **Step 2: Create empty `__init__.py` files**
 
-`python/csf-indexer/src/csf_indexer/__init__.py`: empty.
-`python/csf-indexer/tests/__init__.py`: empty.
+`python/searchable-indexer/src/searchable_indexer/__init__.py`: empty.
+`python/searchable-indexer/tests/__init__.py`: empty.
 
 - [ ] **Step 3: Write the failing tests**
 
-`python/csf-indexer/tests/test_hash.py`:
+`python/searchable-indexer/tests/test_hash.py`:
 
 ```python
-from csf_indexer.hash import content_hash
+from searchable_indexer.hash import content_hash
 
 
 def test_hash_is_8_hex_characters():
@@ -1861,10 +1861,10 @@ def test_hash_accepts_bytes():
     assert content_hash(b"hello") == content_hash("hello")
 ```
 
-`python/csf-indexer/tests/test_types.py`:
+`python/searchable-indexer/tests/test_types.py`:
 
 ```python
-from csf_indexer.types import BuiltIndex, ExtractedDocument, PinDeclaration, SourceDocument
+from searchable_indexer.types import BuiltIndex, ExtractedDocument, PinDeclaration, SourceDocument
 
 
 def test_source_document_holds_id_url_html():
@@ -1904,11 +1904,11 @@ def test_built_index_fields():
 - [ ] **Step 4: Run `uv sync` and run tests to verify they fail**
 
 ```bash
-cd python/csf-indexer
+cd python/searchable-indexer
 uv sync
 uv run pytest -v
 ```
-Expected: FAIL — `ModuleNotFoundError` for both `csf_indexer.hash` and `csf_indexer.types`.
+Expected: FAIL — `ModuleNotFoundError` for both `searchable_indexer.hash` and `searchable_indexer.types`.
 
 - [ ] **Step 5: Implement `hash.py`**
 
@@ -1974,8 +1974,8 @@ Expected: PASS (8 passed).
 - [ ] **Step 8: Commit**
 
 ```bash
-git add python/csf-indexer/
-git commit -m "feat(csf-indexer): scaffold package, add content_hash and dataclasses"
+git add python/searchable-indexer/
+git commit -m "feat(searchable-indexer): scaffold package, add content_hash and dataclasses"
 ```
 
 ---
@@ -1985,8 +1985,8 @@ git commit -m "feat(csf-indexer): scaffold package, add content_hash and datacla
 Direct port of `packages/indexer/src/discover.ts`.
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/discover.py`
-- Test: `python/csf-indexer/tests/test_discover.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/discover.py`
+- Test: `python/searchable-indexer/tests/test_discover.py`
 
 **Interfaces:**
 - Consumes: `SourceDocument` (Task 11).
@@ -1997,7 +1997,7 @@ Direct port of `packages/indexer/src/discover.ts`.
 ```python
 from pathlib import Path
 
-from csf_indexer.discover import discover_html_documents
+from searchable_indexer.discover import discover_html_documents
 
 
 def test_discovers_html_files_recursively_with_sorted_stable_ids(tmp_path: Path):
@@ -2033,14 +2033,14 @@ def test_returns_empty_list_for_a_directory_with_no_html_files(tmp_path: Path):
 ```bash
 uv run pytest tests/test_discover.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.discover'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.discover'`.
 
 - [ ] **Step 3: Implement `discover.py`**
 
 ```python
 from pathlib import Path
 
-from csf_indexer.types import SourceDocument
+from searchable_indexer.types import SourceDocument
 
 
 def _find_html_files(root: Path) -> list[Path]:
@@ -2069,8 +2069,8 @@ Expected: PASS (3 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/discover.py python/csf-indexer/tests/test_discover.py
-git commit -m "feat(csf-indexer): add discover_html_documents"
+git add python/searchable-indexer/src/searchable_indexer/discover.py python/searchable-indexer/tests/test_discover.py
+git commit -m "feat(searchable-indexer): add discover_html_documents"
 ```
 
 ---
@@ -2080,17 +2080,17 @@ git commit -m "feat(csf-indexer): add discover_html_documents"
 Ports the non-facet/pin half of `packages/indexer/src/extract.ts`. Uses `selectolax` for HTML parsing (CSS-selector querying, text extraction, node removal).
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/extract.py`
-- Test: `python/csf-indexer/tests/test_extract.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/extract.py`
+- Test: `python/searchable-indexer/tests/test_extract.py`
 
 **Interfaces:**
-- Consumes: `ExtractedDocument`, `PinDeclaration` (Task 11); `detect_language`, `get_registered_language_codes` (from `csf_analysis`).
+- Consumes: `ExtractedDocument`, `PinDeclaration` (Task 11); `detect_language`, `get_registered_language_codes` (from `searchable_analysis`).
 - Produces: `extract_document(html: str, source_url: str, default_language: str = "en", allowed_url_origins: list[str] | None = None, canonical_base_url: str | None = None) -> ExtractedDocument` — with `facets`/`range_facets`/`pins` populated (Task 14 adds their test coverage; the parsing logic ships together in this task since it's cheap to include once the function's shape exists, but is not asserted on here).
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from csf_indexer.extract import extract_document
+from searchable_indexer.extract import extract_document
 
 
 def test_extracts_title_and_body():
@@ -2125,13 +2125,13 @@ def test_strips_boilerplate_elements_from_body():
     assert "Skip this footer" not in doc.body
 
 
-def test_prefers_data_csf_body_over_main_over_body():
+def test_prefers_data_searchable_body_over_main_over_body():
     html = """
     <html lang="en">
       <head><title>T</title></head>
       <body>
         <main>Not this</main>
-        <div data-csf-body>This is the real content</div>
+        <div data-searchable-body>This is the real content</div>
       </body>
     </html>
     """
@@ -2154,7 +2154,7 @@ def test_falls_back_to_detected_language_when_no_html_lang():
 def test_noindex_meta_tag_sets_noindex_true():
     html = """
     <html lang="en">
-      <head><title>T</title><meta name="csf-noindex" content="true"></head>
+      <head><title>T</title><meta name="searchable-noindex" content="true"></head>
       <body><main>Content</main></body>
     </html>
     """
@@ -2165,7 +2165,7 @@ def test_noindex_meta_tag_sets_noindex_true():
 def test_boost_meta_tag_parses_a_positive_float():
     html = """
     <html lang="en">
-      <head><title>T</title><meta name="csf-boost" content="2.5"></head>
+      <head><title>T</title><meta name="searchable-boost" content="2.5"></head>
       <body><main>Content</main></body>
     </html>
     """
@@ -2176,7 +2176,7 @@ def test_boost_meta_tag_parses_a_positive_float():
 def test_invalid_boost_falls_back_to_1():
     html = """
     <html lang="en">
-      <head><title>T</title><meta name="csf-boost" content="not-a-number"></head>
+      <head><title>T</title><meta name="searchable-boost" content="not-a-number"></head>
       <body><main>Content</main></body>
     </html>
     """
@@ -2244,7 +2244,7 @@ def test_excerpt_from_meta_description():
 ```bash
 uv run pytest tests/test_extract.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.extract'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.extract'`.
 
 - [ ] **Step 3: Implement `extract.py`**
 
@@ -2256,11 +2256,11 @@ from urllib.parse import urljoin, urlparse
 
 from selectolax.parser import HTMLParser
 
-from csf_analysis import detect_language, get_registered_language_codes
-from csf_indexer.types import ExtractedDocument, PinDeclaration
+from searchable_analysis import detect_language, get_registered_language_codes
+from searchable_indexer.types import ExtractedDocument, PinDeclaration
 
-_FACET_TAG_PREFIX = "csf-facet-"
-_RANGE_FACET_TAG_PREFIX = "csf-facet-range-"
+_FACET_TAG_PREFIX = "searchable-facet-"
+_RANGE_FACET_TAG_PREFIX = "searchable-facet-range-"
 _BOILERPLATE_SELECTORS = ["nav", "header", "footer", "aside", "script", "style"]
 _SAFE_URL_PROTOCOLS = {"http", "https"}
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -2280,7 +2280,7 @@ def _parse_float_or_nan(raw: str | None) -> float:
 
 
 def _warn(message: str) -> None:
-    print(f"[csf-indexer] {message}", file=sys.stderr)
+    print(f"[searchable-indexer] {message}", file=sys.stderr)
 
 
 def _sanitize_canonical_url(
@@ -2341,7 +2341,7 @@ def extract_document(
 ) -> ExtractedDocument:
     tree = HTMLParser(html)
 
-    noindex = tree.css_first('meta[name="csf-noindex"]') is not None
+    noindex = tree.css_first('meta[name="searchable-noindex"]') is not None
 
     title_node = tree.css_first("title")
     title = _collapse_whitespace(title_node.text(deep=True, separator=" ") if title_node else "")
@@ -2365,12 +2365,12 @@ def extract_document(
     )
 
     body_node = (
-        tree.css_first("[data-csf-body]")
+        tree.css_first("[data-searchable-body]")
         or tree.css_first("main")
         or tree.css_first("body")
     )
     if body_node is not None:
-        selector = ",".join([*_BOILERPLATE_SELECTORS, "[data-csf-ignore]"])
+        selector = ",".join([*_BOILERPLATE_SELECTORS, "[data-searchable-ignore]"])
         for el in body_node.css(selector):
             el.decompose()
     body = _collapse_whitespace(body_node.text(deep=True, separator=" ") if body_node else "")
@@ -2381,7 +2381,7 @@ def extract_document(
         or default_language
     )
 
-    boost_node = tree.css_first('meta[name="csf-boost"]')
+    boost_node = tree.css_first('meta[name="searchable-boost"]')
     parsed_boost = _parse_float_or_nan(
         boost_node.attributes.get("content") if boost_node else None
     )
@@ -2410,23 +2410,23 @@ def extract_document(
 
     pin_phrases = [
         (el.attributes.get("content") or "").strip()
-        for el in tree.css('meta[name="csf-pin"]')
+        for el in tree.css('meta[name="searchable-pin"]')
     ]
     pin_phrases = [p for p in pin_phrases if p]
 
-    pin_mode_node = tree.css_first('meta[name="csf-pin-mode"]')
+    pin_mode_node = tree.css_first('meta[name="searchable-pin-mode"]')
     pin_mode_attr = (
         (pin_mode_node.attributes.get("content") or "").strip() if pin_mode_node else ""
     )
     pin_mode = "contains" if pin_mode_attr == "contains" else "exact"
 
-    pin_priority_node = tree.css_first('meta[name="csf-pin-priority"]')
+    pin_priority_node = tree.css_first('meta[name="searchable-pin-priority"]')
     parsed_priority = _parse_float_or_nan(
         pin_priority_node.attributes.get("content") if pin_priority_node else None
     )
     pin_priority = parsed_priority if math.isfinite(parsed_priority) else 0.0
 
-    pin_exclusive = tree.css_first('meta[name="csf-pin-exclusive"]') is not None
+    pin_exclusive = tree.css_first('meta[name="searchable-pin-exclusive"]') is not None
 
     pins = [
         PinDeclaration(
@@ -2459,8 +2459,8 @@ Expected: PASS (12 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/extract.py python/csf-indexer/tests/test_extract.py
-git commit -m "feat(csf-indexer): add extract_document (title/body/language/canonical/boost)"
+git add python/searchable-indexer/src/searchable_indexer/extract.py python/searchable-indexer/tests/test_extract.py
+git commit -m "feat(searchable-indexer): add extract_document (title/body/language/canonical/boost)"
 ```
 
 ---
@@ -2470,7 +2470,7 @@ git commit -m "feat(csf-indexer): add extract_document (title/body/language/cano
 The parsing logic already shipped in Task 13; this task adds the test coverage for it (kept as a separate task for reviewability, per the design doc's note that `extract.py` has full parity even though `build_index.py` doesn't consume facets/pins yet).
 
 **Files:**
-- Modify: `python/csf-indexer/tests/test_extract.py` (append)
+- Modify: `python/searchable-indexer/tests/test_extract.py` (append)
 
 **Interfaces:**
 - None new — exercises the existing `extract_document()` from Task 13.
@@ -2483,9 +2483,9 @@ def test_facet_meta_tags_collect_distinct_values():
     <html lang="en">
       <head>
         <title>T</title>
-        <meta name="csf-facet-category" content="Electronics">
-        <meta name="csf-facet-category" content="Audio">
-        <meta name="csf-facet-category" content="Electronics">
+        <meta name="searchable-facet-category" content="Electronics">
+        <meta name="searchable-facet-category" content="Audio">
+        <meta name="searchable-facet-category" content="Electronics">
       </head>
       <body><main>Content</main></body>
     </html>
@@ -2497,7 +2497,7 @@ def test_facet_meta_tags_collect_distinct_values():
 def test_range_facet_meta_tag_parses_a_single_numeric_value():
     html = """
     <html lang="en">
-      <head><title>T</title><meta name="csf-facet-range-price" content="49.99"></head>
+      <head><title>T</title><meta name="searchable-facet-range-price" content="49.99"></head>
       <body><main>Content</main></body>
     </html>
     """
@@ -2508,7 +2508,7 @@ def test_range_facet_meta_tag_parses_a_single_numeric_value():
 def test_range_facet_prefix_does_not_get_misparsed_as_a_terms_facet():
     html = """
     <html lang="en">
-      <head><title>T</title><meta name="csf-facet-range-price" content="10"></head>
+      <head><title>T</title><meta name="searchable-facet-range-price" content="10"></head>
       <body><main>Content</main></body>
     </html>
     """
@@ -2522,10 +2522,10 @@ def test_pin_meta_tags_produce_pin_declarations():
     <html lang="en">
       <head>
         <title>T</title>
-        <meta name="csf-pin" content="widgets">
-        <meta name="csf-pin-mode" content="contains">
-        <meta name="csf-pin-priority" content="5">
-        <meta name="csf-pin-exclusive">
+        <meta name="searchable-pin" content="widgets">
+        <meta name="searchable-pin-mode" content="contains">
+        <meta name="searchable-pin-priority" content="5">
+        <meta name="searchable-pin-exclusive">
       </head>
       <body><main>Content</main></body>
     </html>
@@ -2542,7 +2542,7 @@ def test_pin_meta_tags_produce_pin_declarations():
 def test_pin_defaults_when_mode_and_priority_absent():
     html = """
     <html lang="en">
-      <head><title>T</title><meta name="csf-pin" content="gadgets"></head>
+      <head><title>T</title><meta name="searchable-pin" content="gadgets"></head>
       <body><main>Content</main></body>
     </html>
     """
@@ -2552,7 +2552,7 @@ def test_pin_defaults_when_mode_and_priority_absent():
     assert doc.pins[0].exclusive is False
 
 
-def test_no_pins_when_no_csf_pin_tag_present():
+def test_no_pins_when_no_searchable_pin_tag_present():
     html = """
     <html lang="en">
       <head><title>T</title></head>
@@ -2580,22 +2580,22 @@ Expected: PASS (18 passed total).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add python/csf-indexer/tests/test_extract.py
-git commit -m "test(csf-indexer): add facet/range-facet/pin coverage for extract_document"
+git add python/searchable-indexer/tests/test_extract.py
+git commit -m "test(searchable-indexer): add facet/range-facet/pin coverage for extract_document"
 ```
 
 ---
 
 ## Task 15: `build_index.py`
 
-Ports the Phase-2 subset of `packages/indexer/src/build-index.ts`: field boosts, tokenization via `csf_analysis`, inverted index (`df`/`postings`/`tf`/`pos`/`len`), doc store, manifest assembly. No facets/synonyms/fuzzy/pins.
+Ports the Phase-2 subset of `packages/indexer/src/build-index.ts`: field boosts, tokenization via `searchable_analysis`, inverted index (`df`/`postings`/`tf`/`pos`/`len`), doc store, manifest assembly. No facets/synonyms/fuzzy/pins.
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/build_index.py`
-- Test: `python/csf-indexer/tests/test_build_index.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/build_index.py`
+- Test: `python/searchable-indexer/tests/test_build_index.py`
 
 **Interfaces:**
-- Consumes: `SourceDocument`, `BuiltIndex` (Task 11); `extract_document` (Task 13); `analyze`, `get_language_profile` (from `csf_analysis`).
+- Consumes: `SourceDocument`, `BuiltIndex` (Task 11); `extract_document` (Task 13); `analyze`, `get_language_profile` (from `searchable_analysis`).
 - Produces: `build_index(sources: list[SourceDocument], default_language: str = "en", field_boosts: dict[str, float] | None = None, allowed_url_origins: list[str] | None = None, canonical_base_url: str | None = None) -> BuiltIndex`, used by `cli.py` (Task 17).
 
 - [ ] **Step 1: Write the failing test**
@@ -2603,8 +2603,8 @@ Ports the Phase-2 subset of `packages/indexer/src/build-index.ts`: field boosts,
 ```python
 import pytest
 
-from csf_indexer.build_index import build_index
-from csf_indexer.types import SourceDocument
+from searchable_indexer.build_index import build_index
+from searchable_indexer.types import SourceDocument
 
 
 def _doc(doc_id: int, url: str, title: str, body: str, lang: str = "en") -> SourceDocument:
@@ -2647,7 +2647,7 @@ def test_doc_store_holds_url_title_and_excerpt():
 
 
 def test_noindex_documents_are_skipped():
-    html = '<html lang="en"><head><title>T</title><meta name="csf-noindex" content="true"></head><body><main>Content</main></body></html>'
+    html = '<html lang="en"><head><title>T</title><meta name="searchable-noindex" content="true"></head><body><main>Content</main></body></html>'
     sources = [SourceDocument(id=1, url="/hidden", html=html)]
     built = build_index(sources)
     assert built.doc_store == {}
@@ -2710,16 +2710,16 @@ def test_manifest_shape_matches_the_json_schema_expectations():
 ```bash
 uv run pytest tests/test_build_index.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.build_index'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.build_index'`.
 
 - [ ] **Step 3: Implement `build_index.py`**
 
 ```python
 import datetime
 
-from csf_analysis import analyze, get_language_profile
-from csf_indexer.extract import extract_document
-from csf_indexer.types import BuiltIndex, SourceDocument
+from searchable_analysis import analyze, get_language_profile
+from searchable_indexer.extract import extract_document
+from searchable_indexer.types import BuiltIndex, SourceDocument
 
 _DEFAULT_FIELD_BOOSTS = {"title": 3.0, "body": 1.0}
 _EXCERPT_LENGTH = 200
@@ -2890,8 +2890,8 @@ Expected: PASS (11 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/build_index.py python/csf-indexer/tests/test_build_index.py
-git commit -m "feat(csf-indexer): add build_index (inverted index + doc store + manifest)"
+git add python/searchable-indexer/src/searchable_indexer/build_index.py python/searchable-indexer/tests/test_build_index.py
+git commit -m "feat(searchable-indexer): add build_index (inverted index + doc store + manifest)"
 ```
 
 ---
@@ -2901,8 +2901,8 @@ git commit -m "feat(csf-indexer): add build_index (inverted index + doc store + 
 Ports the Phase-2 subset of `packages/indexer/src/write-index.ts`: canonical JSON serialization, content-hashed filenames, prefix+gzip-budget auto-sharding of term shards, doc-store chunking, manifest assembly. No binary format, no fuzzy/vectors/facets/synonyms/pins sections.
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/write_index.py`
-- Test: `python/csf-indexer/tests/test_write_index.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/write_index.py`
+- Test: `python/searchable-indexer/tests/test_write_index.py`
 
 **Interfaces:**
 - Consumes: `BuiltIndex` (Task 11); `content_hash` (Task 11).
@@ -2914,9 +2914,9 @@ Ports the Phase-2 subset of `packages/indexer/src/write-index.ts`: canonical JSO
 import json
 from pathlib import Path
 
-from csf_indexer.build_index import build_index
-from csf_indexer.types import SourceDocument
-from csf_indexer.write_index import write_index
+from searchable_indexer.build_index import build_index
+from searchable_indexer.types import SourceDocument
+from searchable_indexer.write_index import write_index
 
 
 def _doc(doc_id: int, url: str, title: str, body: str) -> SourceDocument:
@@ -2995,7 +2995,7 @@ def test_output_is_byte_identical_across_repeated_builds_of_the_same_corpus(tmp_
 ```bash
 uv run pytest tests/test_write_index.py -v
 ```
-Expected: FAIL — `ModuleNotFoundError: No module named 'csf_indexer.write_index'`.
+Expected: FAIL — `ModuleNotFoundError: No module named 'searchable_indexer.write_index'`.
 
 - [ ] **Step 3: Implement `write_index.py`**
 
@@ -3005,8 +3005,8 @@ import json
 import re
 from pathlib import Path
 
-from csf_indexer.hash import content_hash
-from csf_indexer.types import BuiltIndex
+from searchable_indexer.hash import content_hash
+from searchable_indexer.types import BuiltIndex
 
 DEFAULT_MAX_TERM_SHARD_GZIP_BYTES = 50 * 1024
 _MAX_PREFIX_LENGTH = 8
@@ -3147,8 +3147,8 @@ Expected: PASS (6 passed).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/write_index.py python/csf-indexer/tests/test_write_index.py
-git commit -m "feat(csf-indexer): add write_index (canonical JSON, hashing, sharding)"
+git add python/searchable-indexer/src/searchable_indexer/write_index.py python/searchable-indexer/tests/test_write_index.py
+git commit -m "feat(searchable-indexer): add write_index (canonical JSON, hashing, sharding)"
 ```
 
 ---
@@ -3158,12 +3158,12 @@ git commit -m "feat(csf-indexer): add write_index (canonical JSON, hashing, shar
 Direct port of `packages/indexer/src/cli.ts`.
 
 **Files:**
-- Create: `python/csf-indexer/src/csf_indexer/cli.py`
-- Test: `python/csf-indexer/tests/test_cli.py`
+- Create: `python/searchable-indexer/src/searchable_indexer/cli.py`
+- Test: `python/searchable-indexer/tests/test_cli.py`
 
 **Interfaces:**
 - Consumes: `discover_html_documents` (Task 12), `build_index` (Task 15), `write_index` (Task 16).
-- Produces: `main() -> None` (console-script entry point `csf-indexer`, registered in `pyproject.toml`'s `[project.scripts]`, Task 11).
+- Produces: `main() -> None` (console-script entry point `searchable-indexer`, registered in `pyproject.toml`'s `[project.scripts]`, Task 11).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -3184,7 +3184,7 @@ def test_cli_indexes_a_directory_and_writes_a_manifest(tmp_path: Path):
     out_dir = tmp_path / "out"
 
     result = subprocess.run(
-        [sys.executable, "-m", "csf_indexer.cli", str(src_dir), str(out_dir)],
+        [sys.executable, "-m", "searchable_indexer.cli", str(src_dir), str(out_dir)],
         capture_output=True,
         text=True,
         check=True,
@@ -3197,12 +3197,12 @@ def test_cli_indexes_a_directory_and_writes_a_manifest(tmp_path: Path):
 
 def test_cli_errors_with_usage_when_missing_arguments():
     result = subprocess.run(
-        [sys.executable, "-m", "csf_indexer.cli"],
+        [sys.executable, "-m", "searchable_indexer.cli"],
         capture_output=True,
         text=True,
     )
     assert result.returncode == 1
-    assert "usage: csf-indexer" in result.stderr
+    assert "usage: searchable-indexer" in result.stderr
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -3210,22 +3210,22 @@ def test_cli_errors_with_usage_when_missing_arguments():
 ```bash
 uv run pytest tests/test_cli.py -v
 ```
-Expected: FAIL — `csf_indexer.cli` module doesn't exist, or `python -m` errors.
+Expected: FAIL — `searchable_indexer.cli` module doesn't exist, or `python -m` errors.
 
 - [ ] **Step 3: Implement `cli.py`**
 
 ```python
 import sys
 
-from csf_indexer.build_index import build_index
-from csf_indexer.discover import discover_html_documents
-from csf_indexer.write_index import write_index
+from searchable_indexer.build_index import build_index
+from searchable_indexer.discover import discover_html_documents
+from searchable_indexer.write_index import write_index
 
 
 def main() -> None:
     args = sys.argv[1:]
     if len(args) != 2:
-        print("usage: csf-indexer <inputDir> <outDir>", file=sys.stderr)
+        print("usage: searchable-indexer <inputDir> <outDir>", file=sys.stderr)
         sys.exit(1)
 
     input_dir, out_dir = args
@@ -3250,19 +3250,19 @@ Expected: PASS (2 passed).
 - [ ] **Step 5: Verify the installed console script also works**
 
 ```bash
-uv run csf-indexer --help 2>&1 | head -1 || true
+uv run searchable-indexer --help 2>&1 | head -1 || true
 uv sync
-echo '<html lang="en"><head><title>Test</title></head><body><main>hello</main></body></html>' > /tmp/csf-cli-smoke/index.html 2>/dev/null || (mkdir -p /tmp/csf-cli-smoke && echo '<html lang="en"><head><title>Test</title></head><body><main>hello</main></body></html>' > /tmp/csf-cli-smoke/index.html)
-uv run csf-indexer /tmp/csf-cli-smoke /tmp/csf-cli-out
-cat /tmp/csf-cli-out/manifest.json
+echo '<html lang="en"><head><title>Test</title></head><body><main>hello</main></body></html>' > /tmp/searchable-cli-smoke/index.html 2>/dev/null || (mkdir -p /tmp/searchable-cli-smoke && echo '<html lang="en"><head><title>Test</title></head><body><main>hello</main></body></html>' > /tmp/searchable-cli-smoke/index.html)
+uv run searchable-indexer /tmp/searchable-cli-smoke /tmp/searchable-cli-out
+cat /tmp/searchable-cli-out/manifest.json
 ```
 Expected: prints a manifest JSON with `"docCount":{"en":1}`.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add python/csf-indexer/src/csf_indexer/cli.py python/csf-indexer/tests/test_cli.py
-git commit -m "feat(csf-indexer): add csf-indexer CLI entry point"
+git add python/searchable-indexer/src/searchable_indexer/cli.py python/searchable-indexer/tests/test_cli.py
+git commit -m "feat(searchable-indexer): add searchable-indexer CLI entry point"
 ```
 
 ---
@@ -3272,7 +3272,7 @@ git commit -m "feat(csf-indexer): add csf-indexer CLI entry point"
 Validates every JSON shape `write_index()` emits against the frozen schemas in `spec/schema/`, using the `jsonschema` dev dependency already declared in Task 11's `pyproject.toml`.
 
 **Files:**
-- Create: `python/csf-indexer/tests/test_schema_conformance.py`
+- Create: `python/searchable-indexer/tests/test_schema_conformance.py`
 
 **Interfaces:**
 - Consumes: `build_index`, `write_index` (Tasks 15-16); `spec/schema/manifest.schema.json`, `spec/schema/term-shard.schema.json`, `spec/schema/doc-store-shard.schema.json` (repo root, referenced via a relative path from the test file).
@@ -3285,9 +3285,9 @@ from pathlib import Path
 
 import jsonschema
 
-from csf_indexer.build_index import build_index
-from csf_indexer.types import SourceDocument
-from csf_indexer.write_index import write_index
+from searchable_indexer.build_index import build_index
+from searchable_indexer.types import SourceDocument
+from searchable_indexer.write_index import write_index
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _SCHEMA_DIR = _REPO_ROOT / "spec" / "schema"
@@ -3354,22 +3354,22 @@ Expected: PASS (3 passed).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add python/csf-indexer/tests/test_schema_conformance.py
-git commit -m "test(csf-indexer): validate manifest/term-shard/doc-store output against spec/schema"
+git add python/searchable-indexer/tests/test_schema_conformance.py
+git commit -m "test(searchable-indexer): validate manifest/term-shard/doc-store output against spec/schema"
 ```
 
 ---
 
 ## Task 19: Cross-implementation conformance test (TypeScript side)
 
-Extends the existing pattern in `packages/client/test/cross-implementation-conformance.test.ts` (which currently shells out to the *minimal* `spec/examples/python/generate_index.py`) with a new test that shells out to the **real** `csf-indexer` Python CLI instead, and asserts the same `SearchClient` query results as a TS-built index of the same fixture.
+Extends the existing pattern in `packages/client/test/cross-implementation-conformance.test.ts` (which currently shells out to the *minimal* `spec/examples/python/generate_index.py`) with a new test that shells out to the **real** `searchable-indexer` Python CLI instead, and asserts the same `SearchClient` query results as a TS-built index of the same fixture.
 
 **Files:**
 - Read: `packages/client/test/cross-implementation-conformance.test.ts` (existing pattern to extend)
 - Create: `packages/client/test/cross-implementation-conformance-python-indexer.test.ts`
 
 **Interfaces:**
-- Consumes: the installed `csf-indexer` Python CLI (via `uv run csf-indexer <src> <out>` subprocess, requires `python/csf-indexer` to have been `uv sync`-ed); `SearchClient` from `@csf/client`; the existing test's HTTP-serving helper utilities.
+- Consumes: the installed `searchable-indexer` Python CLI (via `uv run searchable-indexer <src> <out>` subprocess, requires `python/searchable-indexer` to have been `uv sync`-ed); `SearchClient` from `@ktjn/searchable-client`; the existing test's HTTP-serving helper utilities.
 
 - [ ] **Step 1: Read the existing conformance test to match its structure**
 
@@ -3389,8 +3389,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/index.js";
-import { buildIndex } from "@csf/indexer/build-index.js";
-import { writeIndex } from "@csf/indexer/write-index.js";
+import { buildIndex } from "@ktjn/searchable-indexer/build-index.js";
+import { writeIndex } from "@ktjn/searchable-indexer/write-index.js";
 import { startStaticServer } from "./static-server.js";
 
 const execFileAsync = promisify(execFile);
@@ -3414,28 +3414,28 @@ const FIXTURE_SOURCES = [
 ];
 
 const REPO_ROOT = join(__dirname, "..", "..", "..");
-const PYTHON_INDEXER_DIR = join(REPO_ROOT, "python", "csf-indexer");
+const PYTHON_INDEXER_DIR = join(REPO_ROOT, "python", "searchable-indexer");
 
-describe("cross-implementation conformance: real csf-indexer Python CLI", () => {
+describe("cross-implementation conformance: real searchable-indexer Python CLI", () => {
   let tsOutDir: string;
   let pyOutDir: string;
   let tsServer: { url: string; close: () => Promise<void> };
   let pyServer: { url: string; close: () => Promise<void> };
 
   beforeEach(async () => {
-    tsOutDir = await mkdtemp(join(tmpdir(), "csf-conformance-ts-"));
-    pyOutDir = await mkdtemp(join(tmpdir(), "csf-conformance-py-"));
+    tsOutDir = await mkdtemp(join(tmpdir(), "searchable-conformance-ts-"));
+    pyOutDir = await mkdtemp(join(tmpdir(), "searchable-conformance-py-"));
 
     const built = buildIndex(FIXTURE_SOURCES, "en");
     await writeIndex(built, tsOutDir);
 
-    const srcDir = await mkdtemp(join(tmpdir(), "csf-conformance-src-"));
+    const srcDir = await mkdtemp(join(tmpdir(), "searchable-conformance-src-"));
     const { writeFile, mkdir } = await import("node:fs/promises");
     for (const source of FIXTURE_SOURCES) {
       const filePath = join(srcDir, `${source.id}.html`);
       await writeFile(filePath, source.html, "utf8");
     }
-    await execFileAsync("uv", ["run", "csf-indexer", srcDir, pyOutDir], {
+    await execFileAsync("uv", ["run", "searchable-indexer", srcDir, pyOutDir], {
       cwd: PYTHON_INDEXER_DIR,
     });
 
@@ -3481,7 +3481,7 @@ describe("cross-implementation conformance: real csf-indexer Python CLI", () => 
 - [ ] **Step 3: Ensure the Python indexer environment is set up, then run the test**
 
 ```bash
-cd python/csf-indexer && uv sync && cd ../..
+cd python/searchable-indexer && uv sync && cd ../..
 npx vitest run packages/client/test/cross-implementation-conformance-python-indexer.test.ts
 ```
 Expected: PASS (2 passed). If it fails, inspect whether the mismatch is a real bug (fix `build_index.py`/`extract.py`) versus an expected tokenization difference for a query word that doesn't stem to itself (per this repo's existing documented caveat — adjust the fixture's query words, don't weaken the assertion).
@@ -3490,7 +3490,7 @@ Expected: PASS (2 passed). If it fails, inspect whether the mismatch is a real b
 
 ```bash
 git add packages/client/test/cross-implementation-conformance-python-indexer.test.ts
-git commit -m "test: cross-implementation conformance against the real Python csf-indexer CLI"
+git commit -m "test: cross-implementation conformance against the real Python searchable-indexer CLI"
 ```
 
 ---
@@ -3522,13 +3522,13 @@ Insert new steps into the `test` job, after the existing `actions/setup-python@v
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - name: Install and test csf-analysis (Python)
-        working-directory: python/csf-analysis
+      - name: Install and test searchable-analysis (Python)
+        working-directory: python/searchable-analysis
         run: |
           uv sync
           uv run pytest -v
-      - name: Install and test csf-indexer (Python)
-        working-directory: python/csf-indexer
+      - name: Install and test searchable-indexer (Python)
+        working-directory: python/searchable-indexer
         run: |
           uv sync
           uv run pytest -v
@@ -3536,7 +3536,7 @@ Insert new steps into the `test` job, after the existing `actions/setup-python@v
       - run: pnpm lint
 ```
 
-(Existing steps below `pnpm lint` — `pnpm typecheck`, `pnpm size`, `pnpm test`, `pnpm exec playwright install --with-deps chromium`, `pnpm test:browser` — stay as they are; `pnpm test` is what runs Task 19's new conformance test, and by this point `python/csf-indexer` has already been `uv sync`-ed above.)
+(Existing steps below `pnpm lint` — `pnpm typecheck`, `pnpm size`, `pnpm test`, `pnpm exec playwright install --with-deps chromium`, `pnpm test:browser` — stay as they are; `pnpm test` is what runs Task 19's new conformance test, and by this point `python/searchable-indexer` has already been `uv sync`-ed above.)
 
 - [ ] **Step 3: Verify the workflow YAML is syntactically valid**
 
@@ -3549,7 +3549,7 @@ python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml'))" 2>&1 
 
 ```bash
 git add .github/workflows/ci.yml
-git commit -m "ci: run csf-analysis and csf-indexer Python test suites"
+git commit -m "ci: run searchable-analysis and searchable-indexer Python test suites"
 ```
 
 - [ ] **Step 5: Push the branch and confirm CI passes**
@@ -3564,6 +3564,6 @@ Expected: the `test` job's new Python steps and the existing `pnpm test` step (i
 
 ## Self-Review Notes
 
-- **Spec coverage**: every section of `docs/superpowers/specs/2026-07-11-python-indexer-phase1-2-design.md` maps to a task — package layout (Tasks 1, 11), `csf_analysis` scope (Tasks 1-10), `csf_indexer` core scope (Tasks 11-17), testing/CI (Tasks 18-20). The design's explicit "out of scope" list (facets/synonyms/fuzzy/pins *shard-building*, vectors, binary tier) has no corresponding task, by design — `extract.py` (Tasks 13-14) parses facet/pin metadata for forward compatibility as the design specifies, but `build_index.py` (Task 15) does not consume it.
+- **Spec coverage**: every section of `docs/superpowers/specs/2026-07-11-python-indexer-phase1-2-design.md` maps to a task — package layout (Tasks 1, 11), `searchable_analysis` scope (Tasks 1-10), `searchable_indexer` core scope (Tasks 11-17), testing/CI (Tasks 18-20). The design's explicit "out of scope" list (facets/synonyms/fuzzy/pins *shard-building*, vectors, binary tier) has no corresponding task, by design — `extract.py` (Tasks 13-14) parses facet/pin metadata for forward compatibility as the design specifies, but `build_index.py` (Task 15) does not consume it.
 - **Type consistency**: `BuiltIndex.term_shards`/`doc_store`/`id_range`/`manifest` (Task 11) are used with identical names and shapes in `build_index.py` (Task 15) and `write_index.py` (Task 16). `ExtractedDocument`'s fields (Task 11) match exactly what `extract.py` (Task 13) constructs and what `build_index.py` (Task 15) reads. `LanguageProfile`'s `segment`/`stem`/`fold_diacritics`/`stopwords` fields (Task 6) match what `analyze.py` (Task 9) calls.
 - **No placeholders**: every step above contains complete, runnable code — no `TBD`, no "similar to Task N" shortcuts, no undefined references.

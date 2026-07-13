@@ -2,8 +2,8 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { expect, test } from "@playwright/test";
 import { serveDir } from "./serve-dir.js";
 
@@ -53,7 +53,7 @@ test.describe("offline Service Worker caching (real browser)", () => {
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-offline-"));
+    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-e2e-offline-"));
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),

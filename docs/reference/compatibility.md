@@ -4,13 +4,13 @@ This reference distinguishes package-version promises from index-format compatib
 
 ## Package semver
 
-`@csf/client`, `@csf/indexer`, `@csf/format`, and `@csf/analysis` are published in lockstep at `1.0.0`. Within the current major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
+`@ktjn/searchable-client`, `@ktjn/searchable-indexer`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis` are published in lockstep at `1.0.0`. Within the current major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
 
-The current public package API is the export surface in each package's root entry point. `@csf/fixtures` is internal test tooling and is not covered. Binary storage and vector/hybrid functionality are implemented but identified as experimental in the `1.0.0` changelog, so they may evolve in a minor release with explicit notes.
+The current public package API is the export surface in each package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered. Binary storage and vector/hybrid functionality are implemented but identified as experimental in the `1.0.0` changelog, so they may evolve in a minor release with explicit notes.
 
 ## Index format compatibility
 
-The over-HTTP index has an independent integer `Manifest.version`, currently `1`. `@csf/client` validates it before search and throws `InvalidManifestError` for unsupported versions. A package upgrade does not inherently require an index rebuild; a format-version change does.
+The over-HTTP index has an independent integer `Manifest.version`, currently `1`. `@ktjn/searchable-client` validates it before search and throws `InvalidManifestError` for unsupported versions. A package upgrade does not inherently require an index rebuild; a format-version change does.
 
 | Client package | Supported manifest version |
 |---|---|

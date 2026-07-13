@@ -1,8 +1,8 @@
 import { cp, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -33,7 +33,7 @@ async function findHtmlFiles(dir: string, root = dir): Promise<string[]> {
 
 /**
  * Deliberately keeps the .html extension in each doc's url (unlike
- * @csf/indexer's own discoverHtmlDocuments helper, which strips it
+ * @ktjn/searchable-indexer's own discoverHtmlDocuments helper, which strips it
  * assuming a host that serves extensionless paths) — every internal
  * link build-docs.ts generates already includes .html explicitly, and
  * a plain static host (GitHub Pages without Jekyll pretty-permalink
@@ -64,7 +64,7 @@ async function main() {
   console.log(`indexed ${totalDocs} page(s) -> ${searchIndexDir}`);
 
   await cp(clientDist, assetsDir, { recursive: true });
-  console.log(`copied @csf/client build -> ${assetsDir}`);
+  console.log(`copied @ktjn/searchable-client build -> ${assetsDir}`);
 }
 
 main();

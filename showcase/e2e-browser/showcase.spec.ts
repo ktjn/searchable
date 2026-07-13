@@ -24,6 +24,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await page.goto(`${baseUrl}docs/getting-started/overview.html`);
     await expect(page).toHaveTitle("Overview");
     await expect(page.locator("main h1")).toHaveText("Overview");
+    await expect(page.locator("header .brand")).toHaveText("Searchable");
     await page.click('nav a:has-text("Architecture")');
     await expect(page).toHaveTitle("Architecture");
   });
@@ -32,7 +33,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     await page.goto(`${baseUrl}index.html`);
     await expect(
       page.locator(
-        'main > p:first-of-type a[href="https://ktjn.github.io/client-search-framework/gallery/"]',
+        'main > p:first-of-type a[href="https://ktjn.github.io/searchable/gallery/"]',
       ),
     ).toHaveText("Try the live feature gallery");
   });
@@ -41,7 +42,7 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     page,
   }) => {
     await page.goto(`${baseUrl}docs/getting-started/overview.html`);
-    const input = page.locator(".csf-search-input");
+    const input = page.locator(".searchable-search-input");
     await expect(input).toHaveAttribute("name", "docs-search");
     await expect(input).toHaveAttribute("autocomplete", "off");
     await expect(input).toHaveAttribute("spellcheck", "false");
@@ -60,11 +61,13 @@ test.describe("showcase (docs site + real search, real browser)", () => {
   }) => {
     await page.goto(`${baseUrl}docs/getting-started/overview.html`);
 
-    const input = page.locator(".csf-search-input");
+    const input = page.locator(".searchable-search-input");
     await input.fill("prefix matching");
-    await expect(page.locator(".csf-search-results")).toHaveClass(/is-open/);
+    await expect(page.locator(".searchable-search-results")).toHaveClass(
+      /is-open/,
+    );
 
-    const firstResult = page.locator(".csf-search-results li a").first();
+    const firstResult = page.locator(".searchable-search-results li a").first();
     await expect(firstResult).toBeVisible();
 
     await firstResult.click();
@@ -74,16 +77,18 @@ test.describe("showcase (docs site + real search, real browser)", () => {
 
   test("shows a no-results state for a nonsense query", async ({ page }) => {
     await page.goto(`${baseUrl}index.html`);
-    await page.locator(".csf-search-input").fill("zzzznonexistentqueryzzzz");
-    await expect(page.locator(".csf-empty")).toBeVisible();
+    await page
+      .locator(".searchable-search-input")
+      .fill("zzzznonexistentqueryzzzz");
+    await expect(page.locator(".searchable-empty")).toBeVisible();
   });
 
   test("accessibility: announces result count via aria-live and toggles aria-expanded (docs/reference/client-api.md)", async ({
     page,
   }) => {
     await page.goto(`${baseUrl}docs/getting-started/overview.html`);
-    const input = page.locator(".csf-search-input");
-    const announcer = page.locator('[role="status"].csf-sr-only');
+    const input = page.locator(".searchable-search-input");
+    const announcer = page.locator('[role="status"].searchable-sr-only');
 
     await expect(input).toHaveAttribute("aria-expanded", "false");
     await expect(announcer).toHaveText("");

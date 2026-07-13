@@ -2,8 +2,12 @@ import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, buildVectorShards, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import {
+  buildIndex,
+  buildVectorShards,
+  writeIndex,
+} from "@ktjn/searchable-indexer";
 import { expect, test } from "@playwright/test";
 import { serveDir } from "./serve-dir.js";
 
@@ -95,7 +99,9 @@ test.describe("offline Service Worker caching: fuzzy + vector/hybrid (real brows
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "csf-browser-e2e-offline-fv-"));
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-offline-fv-"),
+    );
     await cp(clientDist, rootDir, { recursive: true });
     await cp(
       join(__dirname, "fixtures", "harness.html"),

@@ -4,12 +4,12 @@ This guide explains how content authors place selected pages above organic resul
 
 ## Authoring
 
-Add one or more `csf-pin` meta tags to a page. The optional `csf-pin-mode` is `exact` by default or `contains`; `csf-pin-priority` is numeric and defaults to `0`; the presence of `csf-pin-exclusive` suppresses organic results for a matching pin.
+Add one or more `searchable-pin` meta tags to a page. The optional `searchable-pin-mode` is `exact` by default or `contains`; `searchable-pin-priority` is numeric and defaults to `0`; the presence of `searchable-pin-exclusive` suppresses organic results for a matching pin.
 
 ```html
-<meta name="csf-pin" content="pricing">
-<meta name="csf-pin-mode" content="contains">
-<meta name="csf-pin-priority" content="10">
+<meta name="searchable-pin" content="pricing">
+<meta name="searchable-pin-mode" content="contains">
+<meta name="searchable-pin-priority" content="10">
 ```
 
 ## What happens at query time

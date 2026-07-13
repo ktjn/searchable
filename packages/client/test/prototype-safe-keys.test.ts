@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";
@@ -16,7 +16,7 @@ import { serveStatic } from "./static-server.js";
  * literal query term (synonym directional expansion, fuzzy deletion
  * variants) must not be fooled by the prototype chain into treating a
  * missing key as present -- see `packages/analysis/src/safe-dict.ts`
- * (shared by `@csf/indexer` and `@csf/client` so the write-time and
+ * (shared by `@ktjn/searchable-indexer` and `@ktjn/searchable-client` so the write-time and
  * read-time halves of this fix can't drift apart) and
  * `docs/reference/compatibility.md` for the full bug class this guards against.
  */
@@ -41,7 +41,7 @@ describe("query-time prototype-collision safety (real HTTP)", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-proto-safe-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-proto-safe-"));
     // A directional synonym entry that has nothing to do with
     // "constructor" -- `synonymShard.directional` ends up a real,
     // non-empty object with no own "constructor" key, exactly the

@@ -1,9 +1,9 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { generateCms2kCorpus } from "@csf/fixtures";
-import type { BuildIndexOptions } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
+import type { BuildIndexOptions } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import type { SearchOptions } from "../src/search.js";
@@ -91,7 +91,7 @@ describe("configuration testbed (matrix of build/query configs, snapshotted per 
   beforeAll(async () => {
     const sources = generateCms2kCorpus({ count: 300, languages: ["en"] });
     for (const variant of VARIANTS) {
-      const outDir = await mkdtemp(join(tmpdir(), "csf-testbed-"));
+      const outDir = await mkdtemp(join(tmpdir(), "searchable-testbed-"));
       outDirs.push(outDir);
       const built = buildIndex(sources, "en", variant.build);
       await writeIndex(built, outDir);

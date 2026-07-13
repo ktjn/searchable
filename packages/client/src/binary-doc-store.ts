@@ -1,4 +1,4 @@
-import type { DocStoreEntry } from "@csf/format";
+import type { DocStoreEntry } from "@ktjn/searchable-format";
 import { ByteReader } from "./byte-reader.js";
 
 /**

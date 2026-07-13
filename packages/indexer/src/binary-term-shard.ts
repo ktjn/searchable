@@ -1,4 +1,4 @@
-import type { TermEntry, TermShard } from "@csf/format";
+import type { TermEntry, TermShard } from "@ktjn/searchable-format";
 import { ByteWriter } from "./byte-writer.js";
 
 /**
@@ -27,7 +27,7 @@ import { ByteWriter } from "./byte-writer.js";
  * `varint(positionCount)`, `varint(positionDelta)` per position.
  *
  * Boost is encoded as float64, not float32: a document boost like 1.8
- * (`csf-boost`, docs/guides/ranking-and-boosts.md) doesn't round-trip
+ * (`searchable-boost`, docs/guides/ranking-and-boosts.md) doesn't round-trip
  * exactly through float32 (1.8 -> f32 -> f64 comes back as
  * 1.7999999523162842) -- a real precision loss the JSON tier's plain
  * decimal text never has.

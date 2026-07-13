@@ -1,4 +1,4 @@
-import type { FuzzyShard } from "@csf/format";
+import type { FuzzyShard } from "@ktjn/searchable-format";
 import { ByteWriter } from "./byte-writer.js";
 
 /**

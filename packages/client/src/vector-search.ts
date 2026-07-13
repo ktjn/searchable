@@ -1,4 +1,4 @@
-import type { VectorShard } from "@csf/format";
+import type { VectorShard } from "@ktjn/searchable-format";
 
 /**
  * Thrown by `mode: "vector"`/`"hybrid"` when no query embedding is

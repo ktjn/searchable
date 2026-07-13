@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import {
   afterAll,
   afterEach,
@@ -69,7 +69,7 @@ describe("fuzzy candidate cap (real HTTP)", () => {
   beforeAll(async () => {
     expect(denseTerms.length).toBeGreaterThan(200);
 
-    outDir = await mkdtemp(join(tmpdir(), "csf-fuzzy-cap-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-fuzzy-cap-"));
     const built = buildIndex(makeDenseSources(), "en", { fuzzy: true });
     await writeIndex(built, outDir);
     const server = await serveStatic(outDir);
@@ -111,7 +111,9 @@ describe("fuzzy candidate cap (real HTTP)", () => {
   });
 
   it("does not warn for an ordinary, small fuzzy vocabulary (every other fuzzy test in this repo)", async () => {
-    const smallOutDir = await mkdtemp(join(tmpdir(), "csf-fuzzy-cap-small-"));
+    const smallOutDir = await mkdtemp(
+      join(tmpdir(), "searchable-fuzzy-cap-small-"),
+    );
     const smallSources: SourceDocument[] = [
       {
         id: 1,

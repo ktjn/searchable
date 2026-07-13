@@ -1,8 +1,8 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";
@@ -30,7 +30,7 @@ const sources: SourceDocument[] = [
   {
     id: 4,
     url: "/draft",
-    html: `<html lang="en"><head><title>Widgets Draft</title><meta name="csf-noindex"></head>
+    html: `<html lang="en"><head><title>Widgets Draft</title><meta name="searchable-noindex"></head>
       <body><main><p>widgets widgets widgets</p></main></body></html>`,
   },
 ];
@@ -41,7 +41,7 @@ describe("indexer -> client end to end (over real HTTP)", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-"));
     const built = buildIndex(sources);
     await writeIndex(built, outDir);
     const server = await serveStatic(outDir);
@@ -64,7 +64,7 @@ describe("indexer -> client end to end (over real HTTP)", () => {
     expect((hits[0]?.score ?? 0) > (hits[1]?.score ?? 0)).toBe(true);
   });
 
-  it("excludes csf-noindex documents from being findable at all", async () => {
+  it("excludes searchable-noindex documents from being findable at all", async () => {
     const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
     const { hits } = await client.search("widgets");
     expect(hits.some((h) => h.url === "/draft")).toBe(false);
@@ -102,7 +102,7 @@ describe("observability hooks (client.on)", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-observability-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-observability-"));
     await writeIndex(buildIndex(sources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -187,7 +187,7 @@ describe("cancellation (options.signal)", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-cancellation-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-cancellation-"));
     await writeIndex(buildIndex(sources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -284,7 +284,7 @@ describe("SearchClient.dispose() in main-thread mode", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-dispose-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-dispose-"));
     await writeIndex(buildIndex(sources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -317,7 +317,7 @@ describe("manifest validation (real HTTP)", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-validate-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-validate-"));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -389,7 +389,7 @@ describe("manifest validation (real HTTP)", () => {
   });
 });
 
-describe("document-level boost (csf-boost)", () => {
+describe("document-level boost (searchable-boost)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
@@ -405,13 +405,13 @@ describe("document-level boost (csf-boost)", () => {
       id: 2,
       url: "/clearance",
       html: `<html lang="en"><head><title>Clearance Sale</title>
-        <meta name="csf-boost" content="50"></head>
+        <meta name="searchable-boost" content="50"></head>
         <body><main><p>Clearance widgets, while supplies last.</p></main></body></html>`,
     },
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-boost-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-boost-"));
     await writeIndex(buildIndex(boostSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -451,7 +451,7 @@ describe("per-query field boost override", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-fieldboost-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-fieldboost-"));
     await writeIndex(buildIndex(fieldBoostSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -505,7 +505,7 @@ describe("per-query term boost", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-termboost-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-termboost-"));
     await writeIndex(buildIndex(termBoostSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -565,7 +565,7 @@ describe("prefix matching (term*)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-prefix-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-prefix-"));
     await writeIndex(buildIndex(prefixSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -649,7 +649,7 @@ describe("prefix-sharded term shard fetching (docs/concepts/index-format.md#term
   };
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-prefix-shard-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-prefix-shard-"));
     await writeIndex(buildIndex(shardedSources), outDir);
     manifest = JSON.parse(
       await readFile(join(outDir, "manifest.json"), "utf8"),
@@ -731,7 +731,7 @@ describe("shardByPrefix:false (docs/guides/indexing.md's small-corpus mode)", ()
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-unsharded-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-unsharded-"));
     await writeIndex(buildIndex(unshardedSources), outDir, {
       shardByPrefix: false,
     });
@@ -791,7 +791,7 @@ describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-phrase-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-phrase-"));
     await writeIndex(buildIndex(phraseSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -865,7 +865,7 @@ describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-
   });
 });
 
-describe("multiWord phrase-level synonym expansion (csf synonyms, docs/guides/synonyms.md#synonym-file-format)", () => {
+describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/guides/synonyms.md#synonym-file-format)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
@@ -898,7 +898,7 @@ describe("multiWord phrase-level synonym expansion (csf synonyms, docs/guides/sy
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-multiword-synonym-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-multiword-synonym-"));
     const built = buildIndex(cityGuideSources, "en", {
       synonyms: { en: { multiWord: [["new york", "nyc", "big apple"]] } },
     });
@@ -982,7 +982,9 @@ describe("multiWord phrase-level synonyms: literal phrase absent from the corpus
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-multiword-synonym-absent-"));
+    outDir = await mkdtemp(
+      join(tmpdir(), "searchable-e2e-multiword-synonym-absent-"),
+    );
     const built = buildIndex(nycOnlySources, "en", {
       synonyms: { en: { multiWord: [["new york", "nyc"]] } },
     });
@@ -1022,29 +1024,29 @@ describe("facet filtering and contextual counts", () => {
       id: 1,
       url: "/a",
       html: `<html lang="en"><head><title>Widget A</title>
-        <meta name="csf-facet-category" content="electronics">
-        <meta name="csf-facet-brand" content="acme"></head>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="acme"></head>
         <body><main><p>A durable widget.</p></main></body></html>`,
     },
     {
       id: 2,
       url: "/b",
       html: `<html lang="en"><head><title>Widget B</title>
-        <meta name="csf-facet-category" content="electronics">
-        <meta name="csf-facet-brand" content="globex"></head>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="globex"></head>
         <body><main><p>A durable widget.</p></main></body></html>`,
     },
     {
       id: 3,
       url: "/c",
       html: `<html lang="en"><head><title>Widget C</title>
-        <meta name="csf-facet-category" content="books"></head>
+        <meta name="searchable-facet-category" content="books"></head>
         <body><main><p>A durable widget.</p></main></body></html>`,
     },
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-facets-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-facets-"));
     await writeIndex(buildIndex(facetSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -1149,34 +1151,34 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
       id: 1,
       url: "/headphones",
       html: `<html lang="en"><head><title>Headphones</title>
-        <meta name="csf-facet-category" content="electronics>audio>headphones"></head>
+        <meta name="searchable-facet-category" content="electronics>audio>headphones"></head>
         <body><main><p>A wireless device.</p></main></body></html>`,
     },
     {
       id: 2,
       url: "/speakers",
       html: `<html lang="en"><head><title>Speakers</title>
-        <meta name="csf-facet-category" content="electronics>audio>speakers"></head>
+        <meta name="searchable-facet-category" content="electronics>audio>speakers"></head>
         <body><main><p>A bluetooth device.</p></main></body></html>`,
     },
     {
       id: 3,
       url: "/tv",
       html: `<html lang="en"><head><title>TV</title>
-        <meta name="csf-facet-category" content="electronics>video>tv"></head>
+        <meta name="searchable-facet-category" content="electronics>video>tv"></head>
         <body><main><p>A smart device.</p></main></body></html>`,
     },
     {
       id: 4,
       url: "/novel",
       html: `<html lang="en"><head><title>Novel</title>
-        <meta name="csf-facet-category" content="books"></head>
+        <meta name="searchable-facet-category" content="books"></head>
         <body><main><p>A great read, nothing electronic about it.</p></main></body></html>`,
     },
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-hierarchy-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-hierarchy-"));
     await writeIndex(
       buildIndex(hierarchySources, "en", {
         hierarchicalFacets: { category: {} },
@@ -1273,7 +1275,9 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
     // Reuses the plain "facet filtering and contextual counts" corpus's
     // shape via a fresh small index, confirming the new field is opt-in
     // per buildIndex() call, not a global default.
-    const plainOutDir = await mkdtemp(join(tmpdir(), "csf-e2e-plain-facet-"));
+    const plainOutDir = await mkdtemp(
+      join(tmpdir(), "searchable-e2e-plain-facet-"),
+    );
     try {
       await writeIndex(
         buildIndex([
@@ -1281,7 +1285,7 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
             id: 1,
             url: "/a",
             html: `<html lang="en"><head><title>A</title>
-              <meta name="csf-facet-category" content="electronics>audio>headphones"></head>
+              <meta name="searchable-facet-category" content="electronics>audio>headphones"></head>
               <body><main><p>device</p></main></body></html>`,
           },
         ]),
@@ -1322,31 +1326,31 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
       id: 1,
       url: "/a",
       html: `<html lang="en"><head><title>Widget A</title>
-        <meta name="csf-facet-category" content="electronics">
-        <meta name="csf-facet-brand" content="acme">
-        <meta name="csf-facet-range-price" content="10"></head>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="acme">
+        <meta name="searchable-facet-range-price" content="10"></head>
         <body><main><p>A durable widget.</p></main></body></html>`,
     },
     {
       id: 2,
       url: "/b",
       html: `<html lang="en"><head><title>Widget B</title>
-        <meta name="csf-facet-category" content="electronics">
-        <meta name="csf-facet-brand" content="globex">
-        <meta name="csf-facet-range-price" content="20"></head>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="globex">
+        <meta name="searchable-facet-range-price" content="20"></head>
         <body><main><p>A durable widget.</p></main></body></html>`,
     },
     {
       id: 3,
       url: "/c",
       html: `<html lang="en"><head><title>Widget C</title>
-        <meta name="csf-facet-category" content="books"></head>
+        <meta name="searchable-facet-category" content="books"></head>
         <body><main><p>A durable widget.</p></main></body></html>`,
     },
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-facet-values-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-facet-values-"));
     await writeIndex(buildIndex(facetSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -1413,27 +1417,27 @@ describe("range facet filtering", () => {
   let outDir: string;
 
   // All four organically match "widget"; price is a range facet
-  // (csf-facet-range-price) so min/max filtering is unambiguous.
+  // (searchable-facet-range-price) so min/max filtering is unambiguous.
   const rangeSources: SourceDocument[] = [
     {
       id: 1,
       url: "/cheap",
       html: `<html lang="en"><head><title>Cheap Widget</title>
-        <meta name="csf-facet-range-price" content="9.99"></head>
+        <meta name="searchable-facet-range-price" content="9.99"></head>
         <body><main><p>An affordable widget.</p></main></body></html>`,
     },
     {
       id: 2,
       url: "/mid",
       html: `<html lang="en"><head><title>Midrange Widget</title>
-        <meta name="csf-facet-range-price" content="49.5"></head>
+        <meta name="searchable-facet-range-price" content="49.5"></head>
         <body><main><p>A midrange widget.</p></main></body></html>`,
     },
     {
       id: 3,
       url: "/premium",
       html: `<html lang="en"><head><title>Premium Widget</title>
-        <meta name="csf-facet-range-price" content="199"></head>
+        <meta name="searchable-facet-range-price" content="199"></head>
         <body><main><p>A premium widget.</p></main></body></html>`,
     },
     {
@@ -1445,7 +1449,7 @@ describe("range facet filtering", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-range-facets-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-range-facets-"));
     await writeIndex(buildIndex(rangeSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -1518,7 +1522,7 @@ describe("range facet filtering", () => {
   });
 });
 
-describe("term-to-page pinning (csf-pin)", () => {
+describe("term-to-page pinning (searchable-pin)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
@@ -1528,7 +1532,7 @@ describe("term-to-page pinning (csf-pin)", () => {
       id: 1,
       url: "/pricing",
       html: `<html lang="en"><head><title>Enterprise Plans</title>
-        <meta name="csf-pin" content="pricing"></head>
+        <meta name="searchable-pin" content="pricing"></head>
         <body><main><p>Our enterprise plans are flexible.</p></main></body></html>`,
     },
     {
@@ -1541,14 +1545,14 @@ describe("term-to-page pinning (csf-pin)", () => {
       id: 3,
       url: "/faq",
       html: `<html lang="en"><head><title>FAQ</title>
-        <meta name="csf-pin" content="cost">
-        <meta name="csf-pin-mode" content="contains"></head>
+        <meta name="searchable-pin" content="cost">
+        <meta name="searchable-pin-mode" content="contains"></head>
         <body><main><p>Answers to common questions about cost and pricing.</p></main></body></html>`,
     },
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-pins-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-pins-"));
     await writeIndex(buildIndex(pinSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -1594,17 +1598,17 @@ describe("term-to-page pinning: conflicts and exclusivity", () => {
       id: 1,
       url: "/vip-a",
       html: `<html lang="en"><head><title>VIP A</title>
-        <meta name="csf-pin" content="vip">
-        <meta name="csf-pin-priority" content="1"></head>
+        <meta name="searchable-pin" content="vip">
+        <meta name="searchable-pin-priority" content="1"></head>
         <body><main><p>A vip page.</p></main></body></html>`,
     },
     {
       id: 2,
       url: "/vip-b",
       html: `<html lang="en"><head><title>VIP B</title>
-        <meta name="csf-pin" content="vip">
-        <meta name="csf-pin-priority" content="10">
-        <meta name="csf-pin-exclusive"></head>
+        <meta name="searchable-pin" content="vip">
+        <meta name="searchable-pin-priority" content="10">
+        <meta name="searchable-pin-exclusive"></head>
         <body><main><p>Another vip page.</p></main></body></html>`,
     },
     {
@@ -1616,7 +1620,7 @@ describe("term-to-page pinning: conflicts and exclusivity", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-pin-conflict-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-pin-conflict-"));
     await writeIndex(buildIndex(conflictSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -1649,21 +1653,21 @@ describe("term-to-page pinning: facet-filter interaction", () => {
       id: 1,
       url: "/pin-target",
       html: `<html lang="en"><head><title>Widget</title>
-        <meta name="csf-pin" content="featured">
-        <meta name="csf-facet-category" content="electronics"></head>
+        <meta name="searchable-pin" content="featured">
+        <meta name="searchable-facet-category" content="electronics"></head>
         <body><main><p>Standard product listing.</p></main></body></html>`,
     },
     {
       id: 2,
       url: "/other-book",
       html: `<html lang="en"><head><title>Book</title>
-        <meta name="csf-facet-category" content="books"></head>
+        <meta name="searchable-facet-category" content="books"></head>
         <body><main><p>An unrelated book.</p></main></body></html>`,
     },
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-pin-filter-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-pin-filter-"));
     await writeIndex(buildIndex(pinFilterSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -1711,7 +1715,7 @@ describe("multi-language corpora", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-i18n-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-i18n-"));
     await writeIndex(buildIndex(multiLangSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -1777,7 +1781,7 @@ describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-cjk-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-cjk-"));
     await writeIndex(buildIndex(cjkSources, "zh"), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
@@ -1815,7 +1819,7 @@ describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#
   });
 });
 
-describe("synonym expansion (csf synonyms)", () => {
+describe("synonym expansion (searchable synonyms)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
@@ -1848,7 +1852,7 @@ describe("synonym expansion (csf synonyms)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-synonyms-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-synonyms-"));
     const built = buildIndex(synonymSources, "en", {
       synonyms: {
         en: {
@@ -1935,7 +1939,7 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-fuzzy-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-fuzzy-"));
     const built = buildIndex(fuzzySources, "en", { fuzzy: true });
     await writeIndex(built, outDir);
     const server = await serveStatic(outDir);
@@ -2025,7 +2029,7 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-fuzzy2-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-fuzzy2-"));
     const built = buildIndex(distance2Sources, "en", {
       fuzzy: true,
       fuzzyMaxEdits: 2,
@@ -2093,7 +2097,7 @@ describe("searchStream() (streaming/incremental results)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-searchstream-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-searchstream-"));
     const built = buildIndex(streamSources, "en", { fuzzy: true });
     await writeIndex(built, outDir);
     const server = await serveStatic(outDir);
@@ -2203,7 +2207,7 @@ describe("result highlighting (options.highlight)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "csf-e2e-highlight-"));
+    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-highlight-"));
     await writeIndex(buildIndex(highlightSources), outDir);
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;

@@ -1,5 +1,5 @@
-import { ownProp } from "@csf/analysis";
-import type { Manifest, Posting } from "@csf/format";
+import { ownProp } from "@ktjn/searchable-analysis";
+import type { Manifest, Posting } from "@ktjn/searchable-format";
 
 /** BM25F parameters (docs/guides/ranking-and-boosts.md#ranking-model-bm25f). */
 const K1 = 1.2;

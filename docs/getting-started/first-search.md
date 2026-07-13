@@ -2,10 +2,10 @@
 
 This page provides the smallest copyable browser path from a deployed index manifest to rendered search results using only implemented exports.
 
-Build an index as described in [Indexing content](../guides/indexing.md), publish the generated directory at `/search-index/`, and copy `@csf/client`'s built worker to `/assets/worker.js`. Then create one client:
+Build an index as described in [Indexing content](../guides/indexing.md), publish the generated directory at `/search-index/`, and copy `@ktjn/searchable-client`'s built worker to `/assets/worker.js`. Then create one client:
 
 ```ts
-import { SearchClient } from "@csf/client";
+import { SearchClient } from "@ktjn/searchable-client";
 
 const search = new SearchClient({
   indexUrl: "/search-index/manifest.json",

@@ -1,4 +1,4 @@
-import type { VectorShard } from "@csf/format";
+import type { VectorShard } from "@ktjn/searchable-format";
 import { describe, expect, it } from "vitest";
 import {
   bruteForceVectorSearch,

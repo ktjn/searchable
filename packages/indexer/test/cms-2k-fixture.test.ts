@@ -1,4 +1,4 @@
-import { generateCms2kCorpus } from "@csf/fixtures";
+import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
 import { describe, expect, it } from "vitest";
 import { buildIndex } from "../src/build-index.js";
 import type { SourceDocument } from "../src/types.js";
@@ -66,7 +66,7 @@ describe("buildIndex against the CMS-2k reference fixture", () => {
     expect(pinsShard.contact?.docs.length).toBeGreaterThan(0);
   });
 
-  it("marks a small, non-zero minority of documents as boosted (csf-boost), not all or none", () => {
+  it("marks a small, non-zero minority of documents as boosted (searchable-boost), not all or none", () => {
     const sources = generateCms2kCorpus({ count: 400, languages: ["en"] });
     const built = buildIndex(sources);
 

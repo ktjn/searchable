@@ -1,6 +1,6 @@
 # Archived target client API
 
-This archive preserves the unimplemented target-only portion of the former client API design. It is historical material, not the `@csf/client` contract; current exports are documented in [`../../reference/client-api.md`](../../reference/client-api.md).
+This archive preserves the unimplemented target-only portion of the former client API design. It is historical material, not the `@ktjn/searchable-client` contract; current exports are documented in [`../../reference/client-api.md`](../../reference/client-api.md).
 
 ## Extended search options
 

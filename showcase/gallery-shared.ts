@@ -43,7 +43,7 @@ export function pageShell(opts: {
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <header>
-      <a href="${opts.root}index.html" class="brand">client-search-framework</a>
+      <a href="${opts.root}index.html" class="brand">Searchable</a>
       <a href="${opts.root}gallery/index.html">Feature gallery</a>
     </header>
     <div class="gallery-layout">

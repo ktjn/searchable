@@ -1,8 +1,8 @@
-# client-search-framework
+# Searchable
 
-`client-search-framework` builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/client-search-framework/gallery/) to see real generated indexes searched by the browser client.
+Searchable builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/searchable/gallery/) to see real generated indexes searched by the browser client.
 
-## Why client-search-framework
+## Why Searchable
 
 - Deploy the index beside any static site or CMS export.
 - Keep user queries in the browser.
@@ -24,14 +24,14 @@
 ## Quick start
 
 ```bash
-pnpm add @csf/client
-pnpm add -D @csf/indexer
+pnpm add @ktjn/searchable-client
+pnpm add -D @ktjn/searchable-indexer
 ```
 
 Build and publish an index, then create a client that points at its manifest:
 
 ```ts
-import { SearchClient } from "@csf/client";
+import { SearchClient } from "@ktjn/searchable-client";
 
 const search = new SearchClient({
   indexUrl: "/search-index/manifest.json",
@@ -69,7 +69,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-Python reference implementations live in `python/csf-analysis` and `python/csf-indexer` and use `uv` for development. Contributions should preserve deterministic output and cross-implementation conformance; see [Project governance](docs/project/governance.md).
+Python reference implementations live in `python/searchable-analysis` and `python/searchable-indexer` and use `uv` for development. Contributions should preserve deterministic output and cross-implementation conformance; see [Project governance](docs/project/governance.md).
 
 ## Status
 

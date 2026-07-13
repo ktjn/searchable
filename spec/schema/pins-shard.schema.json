@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://client-search-framework/schema/pins-shard.schema.json",
+  "$id": "https://raw.githubusercontent.com/ktjn/searchable/main/spec/schema/pins-shard.schema.json",
   "title": "Pins shard",
   "description": "One pins/<lang>.<hash>.json file. See docs/guides/pinning.md.",
   "type": "object",

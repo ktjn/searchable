@@ -19,7 +19,7 @@ Policy, "public APIs should remain stable within a major version" — that
 promise doesn't exist yet, because there's no major version. Cutting 1.0
 means:
 
-- Freezing the public API surface of `@csf/client` and `@csf/indexer`
+- Freezing the public API surface of `@ktjn/searchable-client` and `@ktjn/searchable-indexer`
   (the two packages a consumer actually installs) and committing to
   semver for it going forward.
 - Making the manifest/index-format version number
@@ -70,13 +70,13 @@ storage abstraction / plugin API (specs stay draft per
 
 ### Iteration 1 — API surface audit & freeze
 
-- Enumerate every exported symbol from `@csf/client` and `@csf/indexer`
+- Enumerate every exported symbol from `@ktjn/searchable-client` and `@ktjn/searchable-indexer`
   (their `index.ts` barrel exports). Classify each as stable-for-1.0 or
   experimental (binary tier / vector-hybrid, per Scope above).
-- Decide `@csf/analysis`, `@csf/format`, `@csf/fixtures` publication
-  status: `@csf/format` and `@csf/analysis` are real dependencies of the
+- Decide `@ktjn/searchable-analysis`, `@ktjn/searchable-format`, `@ktjn/searchable-fixtures` publication
+  status: `@ktjn/searchable-format` and `@ktjn/searchable-analysis` are real dependencies of the
   public packages and need their own stable exports too;
-  `@csf/fixtures` is test-only tooling (`@csf/fixtures`' own
+  `@ktjn/searchable-fixtures` is test-only tooling (`@ktjn/searchable-fixtures`' own
   description says "Phase 0 reference fixture corpus") and should ship
   `"private": true` rather than be published to npm at all.
 - Write the ADRs `docs/adr/` was supposed to hold all along
@@ -97,11 +97,11 @@ core-vs-opt-in plugin boundary), indexed in
 
 | Package | Stable for 1.0 | Experimental (may change in a minor) |
 |---|---|---|
-| `@csf/client` | `SearchClient` (+ `SearchClientOptions`, `SearchClientEventMap`), `search()`/`searchStream()`/`facetValues()`/`ready()`/`dispose()`/`on()`, `Hit`/`SearchResult`/`SearchOptions`/`FacetResult*`/`RangeFilter`, `HighlightSpan`/`HighlightTerm`, `registerOfflineCaching`/`OfflineCacheOptions`, `validateManifest`/`InvalidManifestError`/`ValidateManifestOptions`, `isRtlLanguage` | `createTransformersEmbedQuery` + its types, `cosineSimilarity`/`reciprocalRankFusion`/`dequantizeVector`/`DEFAULT_RRF_K`, `VectorHit`, `VectorSearchNotConfiguredError`/`VectorProviderMismatchError`, `EmbeddingProviderConfig` — everything under `mode: "vector"/"hybrid"`, per ADR-0002/0005 |
-| `@csf/indexer` | `buildIndex`/`BuildIndexOptions`, `discoverHtmlDocuments`, `extractDocument` + its types, `writeIndex`/`WriteIndexOptions`, the core `Manifest`/`TermShard`/`FacetShard`/`DocStoreShard`/`PinsShard`/`SynonymShard`/`FuzzyShard`/posting types | `buildVectorShards`/`BuiltVectors`/`VectorsBuildOptions`, `chunkText`/`Chunk`, `createTransformersEmbedder` + its types, `VectorEntry`/`VectorShard`/`EmbeddingProviderConfig`, and `WriteIndexOptions`'s `termShardFormat`/`fuzzyShardFormat`/`docStoreFormat` binary-tier knobs |
-| `@csf/format` | Every type mirroring the JSON-tier manifest/shard shapes | The `vectors` field, `VectorEntry`/`VectorShard`/`EmbeddingProviderConfig`, and every shard's `format?: "binary"` variant — these evolve alongside the experimental features above |
-| `@csf/analysis` | Everything (`analyze`/`normalizePhrase`/`Token`, `detectLanguage`, `isRtlLanguage`, all `LanguageProfile`s, `getLanguageProfile`/`getRegisteredLanguageCodes`, `getOrCreate`/`ownProp`, both segmenters, both stemmers) — this is the core i18n pipeline with no experimental slice. `getOrCreate`/`ownProp` are an internal correctness primitive shared between `@csf/indexer` and `@csf/client` (Iteration 5's prototype-collision fix) rather than something a consuming app is expected to call directly, but they're technically reachable through the public barrel like everything else here, so they're listed rather than left undocumented | — |
-| `@csf/fixtures` | N/A — test-only tooling, not part of the public API at all (see Iteration 3: ships `"private": true`, never published) | — |
+| `@ktjn/searchable-client` | `SearchClient` (+ `SearchClientOptions`, `SearchClientEventMap`), `search()`/`searchStream()`/`facetValues()`/`ready()`/`dispose()`/`on()`, `Hit`/`SearchResult`/`SearchOptions`/`FacetResult*`/`RangeFilter`, `HighlightSpan`/`HighlightTerm`, `registerOfflineCaching`/`OfflineCacheOptions`, `validateManifest`/`InvalidManifestError`/`ValidateManifestOptions`, `isRtlLanguage` | `createTransformersEmbedQuery` + its types, `cosineSimilarity`/`reciprocalRankFusion`/`dequantizeVector`/`DEFAULT_RRF_K`, `VectorHit`, `VectorSearchNotConfiguredError`/`VectorProviderMismatchError`, `EmbeddingProviderConfig` — everything under `mode: "vector"/"hybrid"`, per ADR-0002/0005 |
+| `@ktjn/searchable-indexer` | `buildIndex`/`BuildIndexOptions`, `discoverHtmlDocuments`, `extractDocument` + its types, `writeIndex`/`WriteIndexOptions`, the core `Manifest`/`TermShard`/`FacetShard`/`DocStoreShard`/`PinsShard`/`SynonymShard`/`FuzzyShard`/posting types | `buildVectorShards`/`BuiltVectors`/`VectorsBuildOptions`, `chunkText`/`Chunk`, `createTransformersEmbedder` + its types, `VectorEntry`/`VectorShard`/`EmbeddingProviderConfig`, and `WriteIndexOptions`'s `termShardFormat`/`fuzzyShardFormat`/`docStoreFormat` binary-tier knobs |
+| `@ktjn/searchable-format` | Every type mirroring the JSON-tier manifest/shard shapes | The `vectors` field, `VectorEntry`/`VectorShard`/`EmbeddingProviderConfig`, and every shard's `format?: "binary"` variant — these evolve alongside the experimental features above |
+| `@ktjn/searchable-analysis` | Everything (`analyze`/`normalizePhrase`/`Token`, `detectLanguage`, `isRtlLanguage`, all `LanguageProfile`s, `getLanguageProfile`/`getRegisteredLanguageCodes`, `getOrCreate`/`ownProp`, both segmenters, both stemmers) — this is the core i18n pipeline with no experimental slice. `getOrCreate`/`ownProp` are an internal correctness primitive shared between `@ktjn/searchable-indexer` and `@ktjn/searchable-client` (Iteration 5's prototype-collision fix) rather than something a consuming app is expected to call directly, but they're technically reachable through the public barrel like everything else here, so they're listed rather than left undocumented | — |
+| `@ktjn/searchable-fixtures` | N/A — test-only tooling, not part of the public API at all (see Iteration 3: ships `"private": true`, never published) | — |
 
 A breaking change to a "stable" cell after 1.0.0 needs a major bump per
 [../../project/governance.md](../../project/governance.md); a breaking change
@@ -135,7 +135,7 @@ unsupported version"). Nothing to build here. The one remaining item:
   satisfies 22-project-governance.md's Release Quality Checklist item
   ("Changelog is updated") which nothing has done yet.
 - Decide lockstep vs independent per-package versioning. Recommend
-  lockstep (`@csf/client`, `@csf/indexer`, `@csf/format`, `@csf/analysis`
+  lockstep (`@ktjn/searchable-client`, `@ktjn/searchable-indexer`, `@ktjn/searchable-format`, `@ktjn/searchable-analysis`
   all move to the same version together): the packages are tightly
   coupled through the shared index format, and independent versioning
   would immediately need the client-version/index-version compatibility
@@ -155,10 +155,10 @@ unsupported version"). Nothing to build here. The one remaining item:
 
 **Done**: [`CHANGELOG.md`](../../../CHANGELOG.md) added at the repo root with
 a `1.0.0` entry summarizing everything in the Scope section above.
-Lockstep versioning chosen per the reasoning above — `@csf/client`,
-`@csf/indexer`, `@csf/format`, and `@csf/analysis` are all now
+Lockstep versioning chosen per the reasoning above — `@ktjn/searchable-client`,
+`@ktjn/searchable-indexer`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis` are all now
 `1.0.0`, each with `repository`/`homepage`/`bugs` fields added.
-`@csf/fixtures` is now `"private": true` (test-only tooling, never
+`@ktjn/searchable-fixtures` is now `"private": true` (test-only tooling, never
 published — see Iteration 1's export audit). Added
 [`.github/workflows/publish.yml`](../../../.github/workflows/publish.yml):
 on a `v*` tag push, it re-runs every `ci.yml` check and then
@@ -176,7 +176,7 @@ Two things in 09-roadmap.md are marked incomplete specifically because
 because the code is unfinished:
 
 - Run the already-written, currently-skipped
-  `CSF_TEST_REAL_TRANSFORMERS=1` tests
+  `SEARCHABLE_TEST_REAL_TRANSFORMERS=1` tests
   (`packages/indexer/test/transformers-embed.test.ts`,
   `packages/client/test/transformers-embed.test.ts`) in a CI job that
   actually has that network access, to validate
@@ -192,7 +192,7 @@ because the code is unfinished:
 
 ### Iteration 5 — Hardening pass
 
-- Run `/security-review` against `@csf/client`'s untrusted-input
+- Run `/security-review` against `@ktjn/searchable-client`'s untrusted-input
   surfaces specifically: manifest/shard JSON parsing (fetched from
   wherever a consumer deploys it, not necessarily trusted), Worker
   `postMessage` protocol, Service Worker cache handling. This is a
@@ -239,12 +239,12 @@ the worker-message protocol, the vector-provider-mismatch check),
 `search.ts`'s option handling, and `highlight.ts`'s regex construction.
 Findings:
 - No other dynamic `RegExp`/`Function`/`eval` construction anywhere in
-  `@csf/client`, `@csf/indexer`, or `@csf/analysis` besides
+  `@ktjn/searchable-client`, `@ktjn/searchable-indexer`, or `@ktjn/searchable-analysis` besides
   `highlight.ts`'s `buildPattern()` (grepped for it directly) — which
   escapes every term via `escapeRegExp()` before interpolating and uses
   only a flat alternation (no nested quantifiers), so it's not a ReDoS
   vector.
-- `@csf/indexer` makes zero `fetch()` calls anywhere in its source —
+- `@ktjn/searchable-indexer` makes zero `fetch()` calls anywhere in its source —
   it's genuinely filesystem-only/offline as ADR-0001 describes, so
   there's no SSRF surface to check there.
 - `client.ts`'s dedicated Worker channel needs no `event.origin` check
@@ -263,7 +263,7 @@ but because this very doc's previous paragraph (above) used the word
 (`TypeError: Cannot read properties of undefined (reading 'push')`),
 which traced back to a systemic bug class: every plain-object
 dictionary keyed by corpus- or query-derived strings (`TermShard`,
-fuzzy deletion dictionaries, facet shards, the `@csf/analysis` language
+fuzzy deletion dictionaries, facet shards, the `@ktjn/searchable-analysis` language
 registry, synonym/pins/vector manifest lookups) used a bare
 `if (!dict[key])` / `key in dict` / `dict[key] ?? fallback` existence
 check — every one of those is fooled by the prototype chain when `key`
@@ -271,14 +271,14 @@ happens to be an inherited `Object.prototype` member name
 ("constructor" is the one that survives this project's lowercasing
 analysis unchanged; "toString"/"hasOwnProperty"/etc. fold to
 non-colliding lowercase forms first, but facet *field* names come from
-raw, un-lowercased `csf-facet-<field>` meta-tag suffixes, so those stay
+raw, un-lowercased `searchable-facet-<field>` meta-tag suffixes, so those stay
 exploitable too). A document containing the word "constructor" in
-prose, a `csf-facet-constructor`/`csf-facet-range-hasOwnProperty` meta
+prose, a `searchable-facet-constructor`/`searchable-facet-range-hasOwnProperty` meta
 tag, a `<html lang="constructor">`, or a search query for the literal
 word "constructor" could each crash or silently corrupt scores.
 
 Fixed at every location found, most critically
-`@csf/analysis`'s `getLanguageProfile()` (`packages/analysis/src/registry.ts`) —
+`@ktjn/searchable-analysis`'s `getLanguageProfile()` (`packages/analysis/src/registry.ts`) —
 the root-cause fix, since it's called before any of the
 language-keyed dictionaries downstream are ever touched, so making it
 correctly throw its existing "no LanguageProfile registered" error for
@@ -288,8 +288,8 @@ a colliding code closes off that entire branch at once. Also fixed:
 parsing, and `search.ts`/`score.ts`'s query-time synonym/fuzzy/
 language-keyed lookups — all via one shared `getOrCreate()`/`ownProp()`
 in `packages/analysis/src/safe-dict.ts` (a small correctness primitive
-now exported from `@csf/analysis`'s public barrel alongside
-`getLanguageProfile`, since both `@csf/indexer` and `@csf/client`
+now exported from `@ktjn/searchable-analysis`'s public barrel alongside
+`getLanguageProfile`, since both `@ktjn/searchable-indexer` and `@ktjn/searchable-client`
 already depend on that package and the bug class is identical on the
 build-time and query-time side — first landed as two separately
 duplicated files, one per package, then consolidated here in a

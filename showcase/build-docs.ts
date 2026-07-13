@@ -28,7 +28,7 @@ function extractTitleAndExcerpt(markdown: string): {
     (t): t is Tokens.Paragraph => t.type === "paragraph",
   );
   return {
-    title: heading?.text ?? "client-search-framework",
+    title: heading?.text ?? "Searchable",
     excerpt: paragraph
       ? paragraph.text
           .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // [text](link) -> text

@@ -1,8 +1,8 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SourceDocument } from "@csf/indexer";
-import { buildIndex, writeIndex } from "@csf/indexer";
+import type { SourceDocument } from "@ktjn/searchable-indexer";
+import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import { serveStatic } from "./static-server.js";
@@ -39,13 +39,15 @@ describe("binary fuzzy shards return identical results to JSON (real HTTP)", () 
   let binaryOutDir: string;
 
   beforeAll(async () => {
-    jsonOutDir = await mkdtemp(join(tmpdir(), "csf-binary-fuzzy-json-"));
+    jsonOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-fuzzy-json-"));
     await writeIndex(buildIndex(sources, "en", { fuzzy: true }), jsonOutDir);
     const jsonServer = await serveStatic(jsonOutDir);
     jsonBaseUrl = jsonServer.baseUrl;
     closeJsonServer = jsonServer.close;
 
-    binaryOutDir = await mkdtemp(join(tmpdir(), "csf-binary-fuzzy-bin-"));
+    binaryOutDir = await mkdtemp(
+      join(tmpdir(), "searchable-binary-fuzzy-bin-"),
+    );
     await writeIndex(buildIndex(sources, "en", { fuzzy: true }), binaryOutDir, {
       fuzzyShardFormat: "binary",
     });

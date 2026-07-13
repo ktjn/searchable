@@ -34,7 +34,7 @@ export interface VectorsBuildOptions {
    * every vector (across every language) must have the same length.
    */
   embed: (texts: string[]) => Promise<number[][]> | number[][];
-  /** Recorded on the manifest as-is (@csf/format's EmbeddingProviderConfig doc comment) -- defaults to `{ type: "custom" }`, since `embed` is an arbitrary injectable function this package has no way to identify further. */
+  /** Recorded on the manifest as-is (@ktjn/searchable-format's EmbeddingProviderConfig doc comment) -- defaults to `{ type: "custom" }`, since `embed` is an arbitrary injectable function this package has no way to identify further. */
   provider?: EmbeddingProviderConfig;
   /** Defaults to `"int8"` (docs/guides/vector-search.md's recommended default: ~4x smaller, negligible recall loss). `"float32"` stores `embed()`'s raw output as-is. */
   quantization?: "float32" | "int8";

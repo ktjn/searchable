@@ -1,4 +1,4 @@
-import type { DocStoreShard } from "@csf/format";
+import type { DocStoreShard } from "@ktjn/searchable-format";
 import { ByteWriter } from "./byte-writer.js";
 
 /**

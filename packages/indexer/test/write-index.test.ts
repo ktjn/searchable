@@ -1,8 +1,8 @@
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { generateCms2kCorpus } from "@csf/fixtures";
-import type { TermShard } from "@csf/format";
+import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
+import type { TermShard } from "@ktjn/searchable-format";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildIndex } from "../src/build-index.js";
 import type { SourceDocument } from "../src/types.js";
@@ -10,7 +10,7 @@ import { writeIndex } from "../src/write-index.js";
 
 const outDirs: string[] = [];
 async function tempOutDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "csf-write-index-"));
+  const dir = await mkdtemp(join(tmpdir(), "searchable-write-index-"));
   outDirs.push(dir);
   return dir;
 }
@@ -58,14 +58,14 @@ const docA: SourceDocument = {
   id: 1,
   url: "/alpha",
   html: `<html lang="en"><head><title>Alpha</title>
-    <meta name="csf-facet-category" content="shared"></head>
+    <meta name="searchable-facet-category" content="shared"></head>
     <body><main><p>alpha widgets shared term</p></main></body></html>`,
 };
 const docB: SourceDocument = {
   id: 2,
   url: "/beta",
   html: `<html lang="en"><head><title>Beta</title>
-    <meta name="csf-facet-category" content="shared"></head>
+    <meta name="searchable-facet-category" content="shared"></head>
     <body><main><p>beta widgets shared term</p></main></body></html>`,
 };
 
@@ -218,7 +218,7 @@ describe("writeIndex", () => {
     // through a real client and return identical search results to the
     // JSON equivalent) is proven end-to-end in
     // packages/client/test/binary-term-shard.test.ts, which has both
-    // the encoder (this package) and the decoder (@csf/client)
+    // the encoder (this package) and the decoder (@ktjn/searchable-client)
     // available -- this test only checks the structural contract
     // writeIndex() itself owns: file extension and manifest entries.
     const built = buildIndex([docA, docB]);
@@ -326,14 +326,14 @@ describe("writeIndex", () => {
         id: 1,
         url: "/a",
         html: `<html lang="en"><head><title>A</title>
-          <meta name="csf-facet-range-price" content="29.99"></head>
+          <meta name="searchable-facet-range-price" content="29.99"></head>
           <body><main>a</main></body></html>`,
       },
       {
         id: 2,
         url: "/b",
         html: `<html lang="en"><head><title>B</title>
-          <meta name="csf-facet-range-price" content="9.5"></head>
+          <meta name="searchable-facet-range-price" content="9.5"></head>
           <body><main>b</main></body></html>`,
       },
     ];
@@ -544,7 +544,7 @@ describe("writeIndex", () => {
     // Binary-format decode-correctness for a multi-shard doc store is
     // proven end-to-end in packages/client/test/binary-doc-store.test.ts
     // (same split as the single-shard "writes a .bin doc store" case
-    // above -- @csf/client owns the binary decoder, not this package).
+    // above -- @ktjn/searchable-client owns the binary decoder, not this package).
     const outDir = await tempOutDir();
     const sources = generateCms2kCorpus({ count: 30, languages: ["en"] });
     await writeIndex(buildIndex(sources, "en"), outDir, {
@@ -572,12 +572,12 @@ describe("writeIndex", () => {
     }
   });
 
-  it("still writes exactly one, empty doc-store shard for a corpus where every document is csf-noindex", async () => {
+  it("still writes exactly one, empty doc-store shard for a corpus where every document is searchable-noindex", async () => {
     const outDir = await tempOutDir();
     const noindexOnly: SourceDocument = {
       id: 1,
       url: "/draft",
-      html: `<html lang="en"><head><title>Draft</title><meta name="csf-noindex"></head><body><main>x</main></body></html>`,
+      html: `<html lang="en"><head><title>Draft</title><meta name="searchable-noindex"></head><body><main>x</main></body></html>`,
     };
     await writeIndex(buildIndex([noindexOnly]), outDir, {
       docStoreShardSize: 5,

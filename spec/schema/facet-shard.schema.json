@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://client-search-framework/schema/facet-shard.schema.json",
+  "$id": "https://raw.githubusercontent.com/ktjn/searchable/main/spec/schema/facet-shard.schema.json",
   "title": "Facet shard",
   "description": "One facets/<field>.<hash>.json file. See docs/guides/facets.md.",
   "type": "object",

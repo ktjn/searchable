@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-  <head><meta charset="utf-8" /><title>csf worker test harness</title></head>
+  <head><meta charset="utf-8" /><title>searchable worker test harness</title></head>
   <body>
     <script type="module">
       import { registerOfflineCaching, SearchClient } from "./index.js";
@@ -233,7 +233,7 @@
       };
 
       window.__csfOfflineCacheUrls = async () => {
-        const cache = await caches.open("csf-offline");
+        const cache = await caches.open("searchable-offline");
         const keys = await cache.keys();
         return keys.map((r) => r.url);
       };

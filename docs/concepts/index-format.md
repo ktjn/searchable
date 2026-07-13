@@ -21,7 +21,7 @@ vectors/<language>.<hash>.json
 
 ## Term shard (inverted index)
 
-Term postings contain document IDs, per-field frequency and positions, field length, and an optional document boost. Document-store entries contain the URL, stored display fields, and the boost for inspection. Facet shards contain document sets and aggregate data; pin, synonym, fuzzy, and vector shapes match their exported `@csf/format` types.
+Term postings contain document IDs, per-field frequency and positions, field length, and an optional document boost. Document-store entries contain the URL, stored display fields, and the boost for inspection. Facet shards contain document sets and aggregate data; pin, synonym, fuzzy, and vector shapes match their exported `@ktjn/searchable-format` types.
 
 ## Doc store
 

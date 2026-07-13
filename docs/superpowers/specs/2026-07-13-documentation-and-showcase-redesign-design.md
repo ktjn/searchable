@@ -200,7 +200,7 @@ independent scripts. Each example definition owns:
 - deterministic assertions used by browser tests.
 
 The build generates each real index and serializes the example metadata needed
-by the browser. The client widget loads that metadata, uses `@csf/client` for
+by the browser. The client widget loads that metadata, uses `@ktjn/searchable-client` for
 queries, and renders consistent accessible states for loading, results, no
 results, and errors.
 

@@ -1,4 +1,4 @@
-import { english } from "@csf/analysis";
+import { english } from "@ktjn/searchable-analysis";
 import { describe, expect, it } from "vitest";
 import { parseQuery, parseQueryTerms } from "../src/parse-query.js";
 

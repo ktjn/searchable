@@ -1,15 +1,15 @@
 {
-  "name": "@csf/analysis",
+  "name": "@ktjn/searchable-analysis",
   "version": "1.0.0",
   "description": "Shared tokenization/analysis pipeline used identically by the indexer and the runtime, so index-time and query-time analysis can never drift apart.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ktjn/client-search-framework.git",
+    "url": "git+https://github.com/ktjn/searchable.git",
     "directory": "packages/analysis"
   },
-  "homepage": "https://github.com/ktjn/client-search-framework#readme",
-  "bugs": "https://github.com/ktjn/client-search-framework/issues",
+  "homepage": "https://github.com/ktjn/searchable#readme",
+  "bugs": "https://github.com/ktjn/searchable/issues",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

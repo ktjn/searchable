@@ -4,7 +4,7 @@
 
 **Goal:** Remove obsolete and duplicated code, reduce unnecessary exports and dependencies, make the live showcase prominent on the homepage, and limit feature-gallery searches to four results.
 
-**Architecture:** Keep the existing package boundaries and runtime behavior. Delete completed binary investigation programs, place the one genuinely shared SymSpell helper in the already-shared `@csf/analysis` package, and make implementation-only symbols private without introducing new layers. Apply the gallery limit once in the shared widget so every demo follows the same rule.
+**Architecture:** Keep the existing package boundaries and runtime behavior. Delete completed binary investigation programs, place the one genuinely shared SymSpell helper in the already-shared `@ktjn/searchable-analysis` package, and make implementation-only symbols private without introducing new layers. Apply the gallery limit once in the shared widget so every demo follows the same rule.
 
 **Tech Stack:** TypeScript 7, Node.js 20+, pnpm 11, Vite 8, Vitest 4, Playwright, Biome, Markdown, plain browser DOM APIs.
 
@@ -50,7 +50,7 @@
 
 **Interfaces:**
 - Consumes: existing `SearchClientLike.search(query, options)` and generated homepage from `README.md`.
-- Produces: one homepage introduction link to `https://ktjn.github.io/client-search-framework/gallery/` and a private `RESULT_LIMIT = 4` used by both normal and baseline gallery searches.
+- Produces: one homepage introduction link to `https://ktjn.github.io/searchable/gallery/` and a private `RESULT_LIMIT = 4` used by both normal and baseline gallery searches.
 
 - [ ] **Step 1: Add failing browser assertions for homepage placement and result limits**
 
@@ -61,7 +61,7 @@ test("homepage introduces the live feature gallery", async ({ page }) => {
   await page.goto(`${baseUrl}index.html`);
   await expect(
     page.locator(
-      'main > p:first-of-type a[href="https://ktjn.github.io/client-search-framework/gallery/"]',
+      'main > p:first-of-type a[href="https://ktjn.github.io/searchable/gallery/"]',
     ),
   ).toHaveText("Try the live feature gallery");
 });
@@ -120,7 +120,7 @@ Expected: the homepage-placement assertion fails because the link is in the late
 Change the opening README paragraph to:
 
 ```markdown
-`client-search-framework` builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/client-search-framework/gallery/) to see real generated indexes searched by the browser client.
+`searchable` builds a static search index ahead of time and searches it in the browser. It provides search-service features without a query-time server, hosted API, or per-query bill. [Try the live feature gallery](https://ktjn.github.io/searchable/gallery/) to see real generated indexes searched by the browser client.
 ```
 
 Delete the later `## Showcase` heading and paragraph so the homepage has one content link rather than two placements.
@@ -208,7 +208,7 @@ describe("generateDeletes", () => {
 Run:
 
 ```powershell
-pnpm --filter @csf/analysis test -- generate-deletes.test.ts
+pnpm --filter @ktjn/searchable-analysis test -- generate-deletes.test.ts
 ```
 
 Expected: FAIL because `generateDeletes` is not exported.
@@ -248,14 +248,14 @@ export { generateDeletes } from "./generate-deletes.js";
 Run:
 
 ```powershell
-pnpm --filter @csf/analysis test -- generate-deletes.test.ts
+pnpm --filter @ktjn/searchable-analysis test -- generate-deletes.test.ts
 ```
 
 Expected: four tests pass.
 
 - [ ] **Step 5: Replace both private copies with the shared import**
 
-Add `generateDeletes` to the existing `@csf/analysis` imports in:
+Add `generateDeletes` to the existing `@ktjn/searchable-analysis` imports in:
 
 ```ts
 // packages/client/src/search.ts
@@ -264,7 +264,7 @@ import {
   getLanguageProfile,
   normalizePhrase,
   ownProp,
-} from "@csf/analysis";
+} from "@ktjn/searchable-analysis";
 ```
 
 ```ts
@@ -276,7 +276,7 @@ import {
   getOrCreate,
   normalizePhrase,
   ownProp,
-} from "@csf/analysis";
+} from "@ktjn/searchable-analysis";
 ```
 
 Delete each local `generateDeletes` function and its duplication rationale. Keep the indexer/query-specific comments on the call sites or fuzzy-shard construction where they explain behavior rather than ownership.
@@ -286,12 +286,12 @@ Delete each local `generateDeletes` function and its duplication rationale. Keep
 Run:
 
 ```powershell
-pnpm --filter @csf/analysis test
-pnpm --filter @csf/indexer test -- build-index.test.ts
-pnpm --filter @csf/client test -- e2e.test.ts
-pnpm --filter @csf/analysis typecheck
-pnpm --filter @csf/indexer typecheck
-pnpm --filter @csf/client typecheck
+pnpm --filter @ktjn/searchable-analysis test
+pnpm --filter @ktjn/searchable-indexer test -- build-index.test.ts
+pnpm --filter @ktjn/searchable-client test -- e2e.test.ts
+pnpm --filter @ktjn/searchable-analysis typecheck
+pnpm --filter @ktjn/searchable-indexer typecheck
+pnpm --filter @ktjn/searchable-client typecheck
 ```
 
 Expected: all selected tests and type checks pass. If a known Windows-only baseline test fails, compare it to the recorded four failures before classifying it.
@@ -324,10 +324,10 @@ Run:
 
 ```powershell
 rg -n "PhraseTerm|DEFAULT_MAX_TERM_SHARD_GZIP_BYTES|priceBucketFor" . --glob '!node_modules/**' --glob '!dist/**'
-rg -n 'from "@csf/client"|import\("@csf/client"' showcase --glob '!dist/**'
+rg -n 'from "@ktjn/searchable-client"|import\("@ktjn/searchable-client"' showcase --glob '!dist/**'
 ```
 
-Expected: each symbol is used only in its defining module (documentation may mention the constant by name), and `@csf/client` appears only inside rendered example source strings rather than as a build-time import. The widget dynamically loads `showcase/dist/assets/index.js`, copied from `packages/client/dist` by `build-search.ts`.
+Expected: each symbol is used only in its defining module (documentation may mention the constant by name), and `@ktjn/searchable-client` appears only inside rendered example source strings rather than as a build-time import. The widget dynamically loads `showcase/dist/assets/index.js`, copied from `packages/client/dist` by `build-search.ts`.
 
 - [ ] **Step 2: Make the three declarations module-private**
 
@@ -352,10 +352,10 @@ Do not rename them or alter their call sites.
 Run:
 
 ```powershell
-pnpm --filter showcase remove --save-dev @csf/client
+pnpm --filter showcase remove --save-dev @ktjn/searchable-client
 ```
 
-Expected: `showcase/package.json` no longer lists `@csf/client`, and `pnpm-lock.yaml` updates without changing runtime dependencies.
+Expected: `showcase/package.json` no longer lists `@ktjn/searchable-client`, and `pnpm-lock.yaml` updates without changing runtime dependencies.
 
 - [ ] **Step 4: Run compiler-backed and dead-export checks**
 
@@ -366,7 +366,7 @@ pnpm typecheck
 pnpm dlx knip --reporter compact
 ```
 
-Expected: type checks pass. Knip no longer reports the three unused exports or the showcase `@csf/client` dev dependency. Its known intentional reports may remain: explicit widget TypeScript entry files, the manual specification example, and the external `uv` binary used by conformance tests.
+Expected: type checks pass. Knip no longer reports the three unused exports or the showcase `@ktjn/searchable-client` dev dependency. Its known intentional reports may remain: explicit widget TypeScript entry files, the manual specification example, and the external `uv` binary used by conformance tests.
 
 - [ ] **Step 5: Commit the export and dependency cleanup**
 
@@ -400,9 +400,9 @@ git commit -m "refactor: hide implementation-only symbols"
 Run a small corpus through the supported benchmark:
 
 ```powershell
-$env:CSF_BENCH_SIZES='1000'
+$env:SEARCHABLE_BENCH_SIZES='1000'
 pnpm bench
-Remove-Item Env:CSF_BENCH_SIZES
+Remove-Item Env:SEARCHABLE_BENCH_SIZES
 ```
 
 Expected: `json-tier-scaling.mjs` completes and prints metrics for 1,000 documents.
@@ -462,10 +462,10 @@ Expected: no production/package reference remains. Archive prose may retain the 
 Run:
 
 ```powershell
-$env:CSF_BENCH_SIZES='1000'
+$env:SEARCHABLE_BENCH_SIZES='1000'
 pnpm bench
-Remove-Item Env:CSF_BENCH_SIZES
-pnpm --filter @csf/indexer test
+Remove-Item Env:SEARCHABLE_BENCH_SIZES
+pnpm --filter @ktjn/searchable-indexer test
 ```
 
 Expected: the scale benchmark completes and indexer tests pass.

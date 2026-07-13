@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import type { Manifest } from "@csf/format";
+import type { Manifest } from "@ktjn/searchable-format";
 import { ShardCache } from "./fetch-json.js";
 import { facetValues, search, searchStream } from "./search.js";
 import { validateManifest } from "./validate-manifest.js";

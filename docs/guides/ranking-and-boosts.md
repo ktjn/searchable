@@ -8,11 +8,11 @@ Plain words are analyzed and combined as required query clauses. Append `*` for 
 
 ## Ranking model: BM25F
 
-BM25F combines term frequency across fields before saturation. The indexer defaults to a title boost of `3.0` and body boost of `1.0`; `BuildIndexOptions.fieldBoosts` overrides those values. At query time, `SearchOptions.boosts.fields` overrides field weights and `SearchOptions.boosts.terms` multiplies a normalized term's contribution. A page's `csf-boost` value is applied as a document multiplier.
+BM25F combines term frequency across fields before saturation. The indexer defaults to a title boost of `3.0` and body boost of `1.0`; `BuildIndexOptions.fieldBoosts` overrides those values. At query time, `SearchOptions.boosts.fields` overrides field weights and `SearchOptions.boosts.terms` multiplies a normalized term's contribution. A page's `searchable-boost` value is applied as a document multiplier.
 
 ## Boost types, summarized
 
-Build-time field boosts establish corpus defaults, query field/term boosts tune one search, and `csf-boost` applies to every query that matches the document.
+Build-time field boosts establish corpus defaults, query field/term boosts tune one search, and `searchable-boost` applies to every query that matches the document.
 
 ## Prefix and fuzzy matching
 

@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
-import type { Manifest, TermShard } from "@csf/format";
+import type { Manifest, TermShard } from "@ktjn/searchable-format";
 import { encodeDocStoreBinary } from "./binary-doc-store.js";
 import { encodeFuzzyShardBinary } from "./binary-fuzzy-shard.js";
 import { encodeTermShardBinary } from "./binary-term-shard.js";
@@ -121,7 +121,7 @@ function splitOversizedBucket(
         ? "only one term left"
         : `hit the ${MAX_PREFIX_LENGTH}-character prefix-length cap`;
     console.warn(
-      `[csf-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget and cannot be split further (${reason}) -- see docs/concepts/index-format.md#size-targets-and-sharding-tuning.`,
+      `[searchable-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget and cannot be split further (${reason}) -- see docs/concepts/index-format.md#size-targets-and-sharding-tuning.`,
     );
     result.set(prefix, group);
     return;
@@ -129,7 +129,7 @@ function splitOversizedBucket(
   const subBuckets = groupByPrefixLength(group, prefixLength + 1);
   if (subBuckets.size <= 1) {
     console.warn(
-      `[csf-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget, but every term in it shares the same prefix so it cannot be split further -- see docs/concepts/index-format.md#size-targets-and-sharding-tuning.`,
+      `[searchable-indexer] term shard [${language}] prefix "${prefix}" is ${size} gzip bytes, over the ${maxGzipBytes}-byte budget, but every term in it shares the same prefix so it cannot be split further -- see docs/concepts/index-format.md#size-targets-and-sharding-tuning.`,
     );
     result.set(prefix, group);
     return;
@@ -351,7 +351,7 @@ export async function writeIndex(
     built.docStore,
     docStoreShardSize,
   );
-  // An empty corpus (every document was csf-noindex) still emits exactly
+  // An empty corpus (every document was searchable-noindex) still emits exactly
   // one, empty doc-store shard, matching the pre-sharding behavior of
   // always writing docs/0.json regardless of size.
   if (docStoreChunks.length === 0) {

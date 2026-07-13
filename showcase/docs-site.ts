@@ -54,8 +54,7 @@ export function validateNavigation(sections: readonly DocSection[]): void {
   }
 }
 
-const GITHUB_REPOSITORY_ROOT =
-  "https://github.com/ktjn/client-search-framework";
+const GITHUB_REPOSITORY_ROOT = "https://github.com/ktjn/searchable";
 
 function isExternalLink(path: string): boolean {
   return /^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith("//");
@@ -247,7 +246,7 @@ export function renderSitePage(
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <header>
-      <a href="${root}index.html" class="brand">client-search-framework</a>
+      <a href="${root}index.html" class="brand">Searchable</a>
       <a href="${root}gallery/index.html">Feature gallery</a>
       <div id="search-root" data-search-root></div>
     </header>

@@ -81,7 +81,7 @@ this design* rather than just "that library is good":
    primary ingestion path** (not just an optional extra) for the initial
    deployment — see
    [14-reference-deployment-cms-2k.md](../../guides/indexing.md),
-   which indexes rendered HTML with a `data-csf-*`/`csf-*` meta-tag
+   which indexes rendered HTML with a `data-searchable-*`/`searchable-*` meta-tag
    convention for title/body/boost/facets/excerpt, alongside the
    JSON-feed/CMS-API adapters in
    [01-architecture.md](../../concepts/architecture.md) for
