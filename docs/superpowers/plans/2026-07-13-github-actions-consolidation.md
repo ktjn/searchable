@@ -478,8 +478,8 @@ go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 uvx yamllint -d "{extends: relaxed, rules: {line-length: disable}}" .github/actions
 if (rg -n 'node-version:\s*22|python-version:\s*"3\.12"' .github) { throw 'Obsolete workflow version remains' }
 if (rg -n 'playwright' .github/workflows/deploy-pages.yml .github/workflows/publish.yml) { throw 'Playwright escaped the CI browser job' }
-if ((rg -l 'actions/setup-node|pnpm/action-setup' .github -g '*.yml').Count -ne 1) { throw 'Node setup has more than one owner' }
-if ((rg -l 'actions/setup-python|setup-uv' .github -g '*.yml').Count -ne 1) { throw 'Python setup has more than one owner' }
+if ((rg -l 'uses:\s+(actions/setup-node|pnpm/action-setup)@' .github -g '*.yml').Count -ne 1) { throw 'Node setup has more than one owner' }
+if ((rg -l 'uses:\s+(actions/setup-python|astral-sh/setup-uv)@' .github -g '*.yml').Count -ne 1) { throw 'Python setup has more than one owner' }
 ```
 
 Expected: actionlint exits 0; all policy assertions complete without throwing; setup implementations exist only in their respective composite actions.

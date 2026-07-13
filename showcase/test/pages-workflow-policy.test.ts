@@ -11,19 +11,33 @@ test("docs:check is the exact local gate and includes the full browser suite", (
   expect(pkg.scripts["docs:check"]).toContain("pnpm test:browser");
 });
 
-test("Pages installs Chromium before the single docs gate and uploads afterward", () => {
+test("Pages deploys the exact successful CI revision with a manual override", () => {
   const workflow = readFileSync(
     join(repositoryRoot, ".github", "workflows", "deploy-pages.yml"),
     "utf8",
   );
-  const install = workflow.indexOf(
-    "pnpm exec playwright install --with-deps chromium",
+
+  expect(workflow).toContain("workflow_run:");
+  expect(workflow).toContain("workflows: [CI]");
+  expect(workflow).toContain("branches: [main]");
+  expect(workflow).toContain("workflow_dispatch:");
+  expect(workflow).toContain("workflow_run.conclusion == 'success'");
+  expect(workflow).toContain("github.event.workflow_run.head_sha");
+});
+
+test("Pages builds and validates the static artifact without browser work", () => {
+  const workflow = readFileSync(
+    join(repositoryRoot, ".github", "workflows", "deploy-pages.yml"),
+    "utf8",
   );
-  const gate = workflow.indexOf("pnpm docs:check");
+  const build = workflow.indexOf("pnpm docs:build");
+  const validate = workflow.indexOf("pnpm --filter showcase validate");
   const upload = workflow.indexOf("actions/upload-pages-artifact");
 
-  expect(install).toBeGreaterThan(-1);
-  expect(gate).toBeGreaterThan(install);
-  expect(upload).toBeGreaterThan(gate);
+  expect(build).toBeGreaterThan(-1);
+  expect(validate).toBeGreaterThan(build);
+  expect(upload).toBeGreaterThan(validate);
+  expect(workflow).not.toContain("playwright");
+  expect(workflow).not.toContain("pnpm docs:check");
   expect(workflow.match(/pnpm test:browser/g) ?? []).toHaveLength(0);
 });
