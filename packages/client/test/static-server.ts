@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { createServer } from "node:http";
-import { join } from "node:path";
+import { resolve, sep } from "node:path";
 
 /**
  * The smallest possible "static host" for the e2e test — proves the
@@ -17,11 +17,20 @@ export async function serveStatic(rootDir: string): Promise<{
   /** Every request path served so far, in order -- lets a test assert exactly which shards a query actually fetched. */
   requestedPaths: string[];
 }> {
+  const root = resolve(rootDir);
   const requestedPaths: string[] = [];
   const server: Server = createServer((req, res) => {
-    const path = decodeURIComponent((req.url ?? "/").split("?")[0] ?? "/");
-    requestedPaths.push(path);
-    readFile(join(rootDir, path))
+    const requestPath = decodeURIComponent(
+      (req.url ?? "/").split("?")[0] ?? "/",
+    );
+    requestedPaths.push(requestPath);
+    const path = resolve(root, requestPath.replace(/^[/\\]+/, ""));
+    if (path !== root && !path.startsWith(`${root}${sep}`)) {
+      res.writeHead(403);
+      res.end();
+      return;
+    }
+    readFile(path)
       .then((data) => {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(data);
@@ -32,7 +41,9 @@ export async function serveStatic(rootDir: string): Promise<{
       });
   });
 
-  await new Promise<void>((resolve) => server.listen(0, resolve));
+  await new Promise<void>((resolveListen) =>
+    server.listen(0, "127.0.0.1", resolveListen),
+  );
   const address = server.address();
   if (address === null || typeof address === "string") {
     throw new Error("failed to bind static server");

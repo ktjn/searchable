@@ -4,6 +4,15 @@ import { expect, test } from "vitest";
 
 const repositoryRoot = join(import.meta.dirname, "..", "..");
 
+test("CI grants its jobs only read access to repository contents", () => {
+  const workflow = readFileSync(
+    join(repositoryRoot, ".github", "workflows", "ci.yml"),
+    "utf8",
+  );
+
+  expect(workflow).toMatch(/^permissions:\n {2}contents: read$/m);
+});
+
 test("docs:check is the exact local gate and includes the full browser suite", () => {
   const pkg = JSON.parse(
     readFileSync(join(repositoryRoot, "package.json"), "utf8"),

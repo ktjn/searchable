@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { createServer } from "node:http";
-import { extname, join } from "node:path";
+import { extname, resolve, sep } from "node:path";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html",
@@ -19,11 +19,20 @@ const CONTENT_TYPES: Record<string, string> = {
 export async function serveDir(
   rootDir: string,
 ): Promise<{ baseUrl: string; close: () => Promise<void> }> {
+  const root = resolve(rootDir);
   const server: Server = createServer((req, res) => {
-    const path = decodeURIComponent((req.url ?? "/").split("?")[0] ?? "/");
+    const requestPath = decodeURIComponent(
+      (req.url ?? "/").split("?")[0] ?? "/",
+    );
+    const path = resolve(root, requestPath.replace(/^[/\\]+/, ""));
+    if (path !== root && !path.startsWith(`${root}${sep}`)) {
+      res.writeHead(403);
+      res.end();
+      return;
+    }
     const contentType =
       CONTENT_TYPES[extname(path)] ?? "application/octet-stream";
-    readFile(join(rootDir, path))
+    readFile(path)
       .then((data) => {
         // Permissive CORS so a test can exercise a genuinely cross-origin
         // fetch succeeding (e.g. allowCrossOriginShards: true against a
@@ -42,7 +51,9 @@ export async function serveDir(
       });
   });
 
-  await new Promise<void>((resolve) => server.listen(0, resolve));
+  await new Promise<void>((resolveListen) =>
+    server.listen(0, "127.0.0.1", resolveListen),
+  );
   const address = server.address();
   if (address === null || typeof address === "string") {
     throw new Error("failed to bind static server");
