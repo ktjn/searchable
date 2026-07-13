@@ -1,3 +1,8 @@
+export {
+  normalizePageId,
+  readGeneratedPageInventory,
+  runGeneratedDomainSuite,
+} from "./domain-runner.js";
 export type {
   DomainJudgedQuery,
   DomainPage,
@@ -27,6 +32,7 @@ export {
   recallAtK,
   reciprocalRank,
 } from "./metrics.js";
+export { prepareShowcase } from "./prepare-showcase.js";
 export { renderConsoleReport, serializeJsonReport } from "./report.js";
 export type {
   JudgedQuery,
