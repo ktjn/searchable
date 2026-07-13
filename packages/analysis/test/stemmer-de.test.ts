@@ -33,13 +33,13 @@ describe("stemGerman", () => {
       "utf8",
     )
       .trim()
-      .split("\n");
+      .split(/\r?\n/);
     const stems = readFileSync(
       join(__dirname, "fixtures/german-output.txt"),
       "utf8",
     )
       .trim()
-      .split("\n");
+      .split(/\r?\n/);
     expect(words.length).toBe(stems.length);
     expect(words.length).toBeGreaterThan(30000);
 

@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -31,13 +32,13 @@ describe("package.json exports (consumer-fixture)", () => {
 
   it("resolves the ./worker subpath to a real, existing file", () => {
     const resolved = require.resolve("@csf/client/worker");
-    expect(resolved.endsWith("/dist/worker.js")).toBe(true);
+    expect(resolved.endsWith(join("dist", "worker.js"))).toBe(true);
     expect(existsSync(resolved)).toBe(true);
   });
 
   it("resolves the ./sw subpath to a real, existing file", () => {
     const resolved = require.resolve("@csf/client/sw");
-    expect(resolved.endsWith("/dist/sw.js")).toBe(true);
+    expect(resolved.endsWith(join("dist", "sw.js"))).toBe(true);
     expect(existsSync(resolved)).toBe(true);
   });
 });
