@@ -70,3 +70,4 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
       - run: pnpm test:browser
+      - run: pnpm --filter @ktjn/searchable-benchmark test:browser

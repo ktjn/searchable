@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run --root ../.. --project @ktjn/searchable-benchmark",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
     "typecheck": "tsc --noEmit",
     "baseline": "node dist/cli.js --profile cms-2k",
     "smoke": "node dist/cli.js --profile smoke",
