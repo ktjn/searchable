@@ -8,3 +8,7 @@ playwright-report/
 blob-report/
 playwright/.cache/
 .worktrees/
+/benchmark-results/*
+!/benchmark-results/cms-2k/
+/benchmark-results/cms-2k/*
+!/benchmark-results/cms-2k/reviewed-baseline.json

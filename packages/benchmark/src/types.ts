@@ -103,3 +103,46 @@ export interface BrowserMeasurement {
   cold: ColdQueryMeasurement[];
   warm: WarmMeasurement;
 }
+
+export interface BenchmarkEnvironment {
+  platform: string;
+  release: string;
+  architecture: string;
+  cpuModel: string;
+  logicalCpuCount: number;
+  nodeVersion: string;
+  pnpmVersion: string;
+  playwrightVersion: string;
+  chromiumVersion: string;
+  headless: boolean;
+  launchFlags: string[];
+}
+
+export interface BenchmarkReportV1 {
+  schemaVersion: 1;
+  run: {
+    startedAt: string;
+    completedInMs: number;
+    commit: string;
+    dirty: boolean;
+    profile: BenchmarkProfile;
+    timingMethod: "performance.now";
+    warmupCount: number;
+    repeatCount: number;
+  };
+  environment: BenchmarkEnvironment;
+  corpus: {
+    generator: "generateCms2kCorpus";
+    documentCount: number;
+    languageCounts: Record<string, number>;
+    sha256: string;
+  };
+  index: IndexMeasurement;
+  queries: {
+    id: "cms-2k-lexical-v1";
+    sha256: string;
+    definitions: Array<BenchmarkQuery & { sha256: string }>;
+  };
+  cold: ColdQueryMeasurement[];
+  warm: WarmMeasurement;
+}
