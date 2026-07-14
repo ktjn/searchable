@@ -41,3 +41,22 @@ export interface BenchmarkWorkload {
   queries: BenchmarkQuery[];
   languageCounts: Record<string, number>;
 }
+
+export interface ArtifactMeasurement {
+  path: string;
+  rawBytes: number;
+  gzipBytes: number;
+}
+
+export interface IndexMeasurement {
+  documentCount: number;
+  generationMs: number;
+  buildMs: number;
+  writeMs: number;
+  totalRawBytes: number;
+  totalGzipBytes: number;
+  manifestRawBytes: number;
+  fileCount: number;
+  shardCount: number;
+  artifacts: ArtifactMeasurement[];
+}

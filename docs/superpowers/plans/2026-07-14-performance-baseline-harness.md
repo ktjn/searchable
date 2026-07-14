@@ -497,7 +497,7 @@ git commit -m "feat(benchmark): define CMS workload"
 Use a three-document generated workload in a temporary directory and assert:
 
 ```ts
-const measurement = await measureIndex(documents, directory);
+const measurement = await measureIndex(documents, generationMs, directory);
 expect(measurement.documentCount).toBe(documents.length);
 expect(measurement.generationMs).toBeGreaterThanOrEqual(0);
 expect(measurement.buildMs).toBeGreaterThanOrEqual(0);
