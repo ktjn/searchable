@@ -40,6 +40,18 @@ describe("htmlToText", () => {
     ).toBe("First heading\nSecond line\nThird\nFourth");
   });
 
+  it("treats an unclosed comment as extending to the end of input", () => {
+    expect(htmlToText("Visible<!-- <script>alert(1)</script>")).toBe("Visible");
+  });
+
+  it("treats an unclosed raw-text element as extending to the end of input", () => {
+    expect(htmlToText("Visible<script>alert(1)")).toBe("Visible");
+  });
+
+  it("does not end a tag at a greater-than character inside an attribute", () => {
+    expect(htmlToText('<p title="1 > 0">Visible</p>')).toBe("Visible");
+  });
+
   it("rejects unknown named entities", () => {
     expect(() => htmlToText("A &copy; B")).toThrow(/unknown HTML entity copy/);
   });
