@@ -1,7 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { DOC_SECTIONS } from "../../../showcase/docs-nav.js";
-import { DOMAIN_QUERY_TOPICS } from "../src/domain-schema.js";
+import {
+  DOMAIN_QUERY_TOPICS,
+  GOVUK_DOMAIN_QUERY_TOPICS,
+} from "../src/domain-schema.js";
 import { loadDomainSuite } from "../src/load-domain-suite.js";
 
 const domainFixtureDirectory = fileURLToPath(
@@ -24,10 +27,15 @@ describe("committed documentation relevance fixture", () => {
       "searchable-docs",
     );
     expect(suite.id).toBe("searchable-docs");
-    expect(suite.pages).toHaveLength(28);
+    expect(suite.corpus.kind).toBe("generated-index");
+    if (suite.corpus.kind !== "generated-index") throw new Error("unreachable");
+    expect(suite.corpus.pages).toHaveLength(28);
     expect(suite.queries).toHaveLength(20);
+    const documentationTopics = DOMAIN_QUERY_TOPICS.filter(
+      (topic) => !GOVUK_DOMAIN_QUERY_TOPICS.includes(topic as never),
+    );
     expect(new Set(suite.queries.map((query) => query.topic))).toEqual(
-      new Set(DOMAIN_QUERY_TOPICS),
+      new Set(documentationTopics),
     );
     expect(
       suite.queries.filter(
@@ -52,6 +60,6 @@ describe("committed documentation relevance fixture", () => {
       reviewer: "ktjn",
       reviewedAt: "2026-07-13",
     });
-    expect(suite.pages).toEqual(expectedPages);
+    expect(suite.corpus.pages).toEqual(expectedPages);
   });
 });

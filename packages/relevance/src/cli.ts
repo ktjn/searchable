@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { runGeneratedDomainSuite } from "./domain-runner.js";
+import { runDomainSuite } from "./domain-runner.js";
 import type { DomainRelevanceSuite } from "./domain-schema.js";
 import type { SuiteReport } from "./evaluate.js";
 import {
@@ -26,7 +26,7 @@ export interface CliOptions {
 }
 
 export interface CliDependencies {
-  prepareShowcase(): Promise<void>;
+  prepareDomain(suite: DomainRelevanceSuite): Promise<void>;
   loadBaselines(
     language?: SupportedBaselineLanguage,
   ): Promise<RelevanceSuite[]>;
@@ -81,12 +81,13 @@ const showcaseDistDirectory = fileURLToPath(
 );
 
 export const defaultCliDependencies: CliDependencies = {
-  prepareShowcase,
+  prepareDomain: async (suite) => {
+    if (suite.corpus.kind === "generated-index") await prepareShowcase();
+  },
   loadBaselines: (language) => loadSuites(fixtureDirectory, language),
   loadDomain: (name) => loadDomainSuite(domainFixtureDirectory, name),
   runBaseline: runSearchableSuite,
-  runDomain: (suite, k) =>
-    runGeneratedDomainSuite(suite, showcaseDistDirectory, k),
+  runDomain: (suite, k) => runDomainSuite(suite, showcaseDistDirectory, k),
   writeOutput: (value) => process.stdout.write(value),
 };
 
@@ -97,13 +98,9 @@ export async function main(
   const options = parseCliArgs(args);
   const reports: SuiteReport[] = [];
   if (options.suite) {
-    await dependencies.prepareShowcase();
-    reports.push(
-      await dependencies.runDomain(
-        await dependencies.loadDomain(options.suite),
-        options.k,
-      ),
-    );
+    const suite = await dependencies.loadDomain(options.suite);
+    await dependencies.prepareDomain(suite);
+    reports.push(await dependencies.runDomain(suite, options.k));
   } else {
     for (const suite of await dependencies.loadBaselines(options.language))
       reports.push(await dependencies.runBaseline(suite, options.k));

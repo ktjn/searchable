@@ -3,7 +3,10 @@ import { join } from "node:path";
 import type { DomainRelevanceSuite } from "./domain-schema.js";
 import { validateDomainSuite } from "./validate-domain-suite.js";
 
-export const KNOWN_DOMAIN_SUITES = ["searchable-docs"] as const;
+export const KNOWN_DOMAIN_SUITES = [
+  "searchable-docs",
+  "govuk-learn-to-drive",
+] as const;
 export type KnownDomainSuite = (typeof KNOWN_DOMAIN_SUITES)[number];
 
 export async function loadDomainSuite(

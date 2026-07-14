@@ -1,8 +1,18 @@
-import { describe, expect, it, vi } from "vitest";
-import { type CliDependencies, main, parseCliArgs } from "../src/cli.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  type CliDependencies,
+  defaultCliDependencies,
+  main,
+  parseCliArgs,
+} from "../src/cli.js";
 import type { DomainRelevanceSuite } from "../src/domain-schema.js";
 import type { SuiteReport } from "../src/evaluate.js";
+import { prepareShowcase } from "../src/prepare-showcase.js";
 import type { RelevanceSuite } from "../src/schema.js";
+
+vi.mock("../src/prepare-showcase.js", () => ({
+  prepareShowcase: vi.fn(async () => undefined),
+}));
 
 describe("parseCliArgs", () => {
   it("uses all-language defaults", () => {
@@ -22,6 +32,14 @@ describe("parseCliArgs", () => {
       suite: "searchable-docs",
       k: 5,
       json: true,
+    });
+  });
+
+  it("parses the GOV.UK domain suite", () => {
+    expect(parseCliArgs(["--suite", "govuk-learn-to-drive"])).toEqual({
+      suite: "govuk-learn-to-drive",
+      k: 5,
+      json: false,
     });
   });
 
@@ -73,13 +91,16 @@ const baselineSuite = {
 } satisfies RelevanceSuite;
 
 const domainSuite = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   id: "searchable-docs",
   version: "1.0.0",
   language: "en",
   provenance,
   review: { status: "draft", method: "Maintainer review." },
-  pages: [{ id: "/index.html", title: "Searchable" }],
+  corpus: {
+    kind: "generated-index",
+    pages: [{ id: "/index.html", title: "Searchable" }],
+  },
   queries: [
     {
       id: "home",
@@ -87,6 +108,33 @@ const domainSuite = {
       topic: "setup",
       judgments: { "/index.html": 3 },
       rationales: { "/index.html": "Introduces Searchable." },
+    },
+  ],
+} satisfies DomainRelevanceSuite;
+
+const snapshotSuite = {
+  ...domainSuite,
+  id: "driving-test",
+  corpus: {
+    kind: "snapshot",
+    documents: [
+      {
+        id: "/eyesight",
+        url: "https://www.gov.uk/eyesight",
+        title: "Driving eyesight rules",
+        description: "Eyesight rules for drivers.",
+        body: "Read a number plate from 20 metres.",
+        contentHash: "a".repeat(64),
+      },
+    ],
+  },
+  queries: [
+    {
+      id: "eyesight",
+      text: "number plate eyesight",
+      topic: "setup",
+      judgments: { "/eyesight": 3 },
+      rationales: { "/eyesight": "States the eyesight requirement." },
     },
   ],
 } satisfies DomainRelevanceSuite;
@@ -111,7 +159,7 @@ const report: SuiteReport = {
 
 function dependencies(): CliDependencies {
   return {
-    prepareShowcase: vi.fn(async () => undefined),
+    prepareDomain: vi.fn(async () => undefined),
     loadBaselines: vi.fn(async () => [baselineSuite]),
     loadDomain: vi.fn(async () => domainSuite),
     runBaseline: vi.fn(async () => report),
@@ -121,11 +169,13 @@ function dependencies(): CliDependencies {
 }
 
 describe("main", () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it("keeps baseline execution independent of the showcase", async () => {
     const target = dependencies();
     await main(["--language", "en", "--json"], target);
 
-    expect(target.prepareShowcase).not.toHaveBeenCalled();
+    expect(target.prepareDomain).not.toHaveBeenCalled();
     expect(target.loadBaselines).toHaveBeenCalledWith("en");
     expect(target.runBaseline).toHaveBeenCalledWith(baselineSuite, 5);
     expect(target.loadDomain).not.toHaveBeenCalled();
@@ -136,10 +186,31 @@ describe("main", () => {
     const target = dependencies();
     await main(["--suite", "searchable-docs", "--json"], target);
 
-    expect(target.prepareShowcase).toHaveBeenCalledOnce();
     expect(target.loadDomain).toHaveBeenCalledWith("searchable-docs");
+    expect(target.loadDomain).toHaveBeenCalledBefore(target.prepareDomain);
+    expect(target.prepareDomain).toHaveBeenCalledWith(domainSuite);
+    expect(target.prepareDomain).toHaveBeenCalledOnce();
     expect(target.runDomain).toHaveBeenCalledWith(domainSuite, 5);
     expect(target.loadBaselines).not.toHaveBeenCalled();
     expect(target.writeOutput).toHaveBeenCalledOnce();
+  });
+
+  it("prepares and evaluates a selected snapshot suite", async () => {
+    const target = dependencies();
+    vi.mocked(target.loadDomain).mockResolvedValue(snapshotSuite);
+    await main(["--suite", "govuk-learn-to-drive", "--json"], target);
+
+    expect(target.loadDomain).toHaveBeenCalledWith("govuk-learn-to-drive");
+    expect(target.prepareDomain).toHaveBeenCalledWith(snapshotSuite);
+    expect(target.runDomain).toHaveBeenCalledWith(snapshotSuite, 5);
+  });
+
+  it("prepares the showcase only for generated domain corpora", async () => {
+    await defaultCliDependencies.prepareDomain(domainSuite);
+    expect(prepareShowcase).toHaveBeenCalledOnce();
+
+    vi.mocked(prepareShowcase).mockClear();
+    await defaultCliDependencies.prepareDomain(snapshotSuite);
+    expect(prepareShowcase).not.toHaveBeenCalled();
   });
 });

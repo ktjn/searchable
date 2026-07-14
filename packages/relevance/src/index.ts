@@ -1,22 +1,47 @@
 export {
   normalizePageId,
   readGeneratedPageInventory,
+  runDomainSuite,
   runGeneratedDomainSuite,
 } from "./domain-runner.js";
 export type {
+  DomainCorpus,
   DomainJudgedQuery,
   DomainPage,
   DomainQueryTopic,
   DomainRelevanceSuite,
+  GeneratedIndexDomainCorpus,
   JudgmentReview,
+  SnapshotDomainCorpus,
+  SnapshotDomainDocument,
 } from "./domain-schema.js";
-export { DOMAIN_QUERY_TOPICS } from "./domain-schema.js";
+export {
+  DOMAIN_QUERY_TOPICS,
+  GOVUK_DOMAIN_QUERY_TOPICS,
+} from "./domain-schema.js";
 export type {
   QueryReport,
   SearchForEvaluation,
   SuiteReport,
 } from "./evaluate.js";
 export { evaluateSuite } from "./evaluate.js";
+export type { GovukContentItem } from "./govuk-normalize.js";
+export {
+  hashSnapshotContent,
+  htmlToText,
+  normalizeGovukDocument,
+} from "./govuk-normalize.js";
+export type {
+  RefreshOptions,
+  SnapshotComparison,
+} from "./govuk-refresh.js";
+export {
+  compareSnapshot,
+  extractJourneyRoutes,
+  GOVUK_EXPECTED_ROUTES,
+  GOVUK_JOURNEY_PATH,
+  refreshGovukSuite,
+} from "./govuk-refresh.js";
 export type { KnownDomainSuite } from "./load-domain-suite.js";
 export {
   KNOWN_DOMAIN_SUITES,

@@ -7,7 +7,7 @@ This page is the single current list of shipped capability and remaining work; d
 | Area | Current state | Remaining work |
 |---|---|---|
 | Documentation and showcase | Published, searchable, and covered by link, accessibility, and browser checks | Ongoing maintenance alongside product changes |
-| Lexical search | Stable; native six-language regression baseline plus one reviewed documentation-domain corpus | Additional representative domains, broader judged query sets, quality thresholds, and an internal query-planner abstraction |
+| Lexical search | Stable; native six-language regression baseline plus reviewed documentation and GOV.UK learner-driving domain corpora | Broader representative domains and judged sets, real query evidence, quality thresholds, and an internal query-planner abstraction |
 | Facets, synonyms, fuzzy search, and pins | Stable | No required 1.0 work |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
 | Offline and worker execution | Stable | Resource-aware loading refinements |
@@ -17,7 +17,7 @@ This page is the single current list of shipped capability and remaining work; d
 
 ## Near-term work
 
-- Expand relevance coverage beyond the initial reviewed documentation domain with representative corpora and judgments before defining thresholds or making production-scale claims.
+- Expand relevance coverage beyond the documentation and learner-driving domains with broader judged sets and real query evidence before defining thresholds or making production-scale claims.
 - Add a semantic-search example that states model, download, memory, and latency costs clearly; keep lexical search as the default for content sites.
 - Expand full language profiles only with representative corpora, analyzer fixtures, relevance queries, and cross-implementation conformance tests.
 - Refine loading priority, memory controls, and prefetching from measured browser behavior rather than fixed speculative policies.
@@ -48,11 +48,13 @@ Treat relevance as a measurable quality attribute rather than only a correctness
 - zero-result rate
 
 The deterministic evaluator and small native-source regression suites cover all
-six full language profiles, and one reviewed 28-page documentation-domain
-corpus supplies graded multi-page judgments. See [Relevance
+six full language profiles, and two reviewed domains supply graded multi-page
+judgments: the 28-page documentation corpus and the 22-page GOV.UK
+learner-driving journey. See [Relevance
 baselines](relevance-baselines.md) for commands, metrics, provenance
-requirements, and interpretation limits. This is an initial representative
-domain, not broad domain coverage or a CI quality gate.
+requirements, and interpretation limits. These remain narrow representative
+domains, not broad domain coverage or a CI quality gate. Quality thresholds,
+performance evidence, query-planning work, and CI enforcement remain open.
 
 Run relevance evaluation when changing analyzers, tokenization, stemming, synonyms, fuzzy expansion, BM25 parameters, field boosts, phrase behavior, or hybrid fusion. Keep domain-specific relevance suites separate from generic engine conformance tests.
 

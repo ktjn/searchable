@@ -4,7 +4,7 @@ import type {
   SupportedBaselineLanguage,
 } from "./schema.js";
 
-export const DOMAIN_QUERY_TOPICS = [
+const EXISTING_DOMAIN_QUERY_TOPICS = [
   "setup",
   "indexing-deployment",
   "lexical-features",
@@ -14,12 +14,48 @@ export const DOMAIN_QUERY_TOPICS = [
   "vector-hybrid",
 ] as const;
 
+export const GOVUK_DOMAIN_QUERY_TOPICS = [
+  "eligibility-eyesight",
+  "provisional-licence",
+  "lessons-practice",
+  "theory-preparation",
+  "theory-test-management",
+  "practical-test-management",
+  "after-passing",
+] as const;
+
+export const DOMAIN_QUERY_TOPICS = [
+  ...EXISTING_DOMAIN_QUERY_TOPICS,
+  ...GOVUK_DOMAIN_QUERY_TOPICS,
+] as const;
+
 export type DomainQueryTopic = (typeof DOMAIN_QUERY_TOPICS)[number];
 
 export interface DomainPage {
   id: string;
   title: string;
 }
+
+export interface GeneratedIndexDomainCorpus {
+  kind: "generated-index";
+  pages: DomainPage[];
+}
+
+export interface SnapshotDomainDocument {
+  id: string;
+  url: string;
+  title: string;
+  description: string;
+  body: string;
+  contentHash: string;
+}
+
+export interface SnapshotDomainCorpus {
+  kind: "snapshot";
+  documents: SnapshotDomainDocument[];
+}
+
+export type DomainCorpus = GeneratedIndexDomainCorpus | SnapshotDomainCorpus;
 
 export interface DomainJudgedQuery {
   id: string;
@@ -39,12 +75,12 @@ export type JudgmentReview =
     };
 
 export interface DomainRelevanceSuite {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string;
   version: string;
   language: SupportedBaselineLanguage;
   provenance: SuiteProvenance;
   review: JudgmentReview;
-  pages: DomainPage[];
+  corpus: DomainCorpus;
   queries: DomainJudgedQuery[];
 }
