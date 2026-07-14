@@ -1,12 +1,16 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
-import {
-  promoteAndRender,
-  renderPerformanceBaseline,
-} from "../src/render.js";
+import { promoteAndRender, renderPerformanceBaseline } from "../src/render.js";
 import { createReportFixture } from "./report-fixture.js";
 
 const roots: string[] = [];
@@ -20,7 +24,9 @@ async function temporaryRoot(): Promise<string> {
 }
 
 afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  await Promise.all(
+    roots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
+  );
 });
 
 it("renders the reviewed evidence and interpretation limits", () => {
@@ -49,26 +55,41 @@ it("promotes one explicit full report and supports rendering the stable input", 
   expect(await readFile(result.markdownPath, "utf8")).toContain(
     createHash("sha256").update(bytes).digest("hex"),
   );
-  await expect(promoteAndRender(result.reviewedReportPath, root)).resolves.toEqual(
-    result,
-  );
+  await expect(
+    promoteAndRender(result.reviewedReportPath, root),
+  ).resolves.toEqual(result);
 });
 
 it("rejects missing, smoke, and unknown-schema input", async () => {
   const root = await temporaryRoot();
-  await expect(promoteAndRender(join(root, "missing.json"), root)).rejects.toThrow();
-  const smoke = { ...createReportFixture(), run: { ...createReportFixture().run, profile: "smoke" as const } };
+  await expect(
+    promoteAndRender(join(root, "missing.json"), root),
+  ).rejects.toThrow();
+  const smoke = {
+    ...createReportFixture(),
+    run: { ...createReportFixture().run, profile: "smoke" as const },
+  };
   const smokePath = join(root, "smoke.json");
   await writeFile(smokePath, JSON.stringify(smoke));
   await expect(promoteAndRender(smokePath, root)).rejects.toThrow(/cms-2k/);
   const unknownPath = join(root, "unknown.json");
-  await writeFile(unknownPath, JSON.stringify({ ...createReportFixture(), schemaVersion: 2 }));
-  await expect(promoteAndRender(unknownPath, root)).rejects.toThrow(/schemaVersion/);
+  await writeFile(
+    unknownPath,
+    JSON.stringify({ ...createReportFixture(), schemaVersion: 2 }),
+  );
+  await expect(promoteAndRender(unknownPath, root)).rejects.toThrow(
+    /schemaVersion/,
+  );
 });
 
 it("restores both previous stable artifacts when the second promotion fails", async () => {
   const root = await temporaryRoot();
-  const reviewed = join(root, "benchmark-results", "cms-2k", "reviewed-baseline.json");
+  const reviewed = join(
+    root,
+    "benchmark-results",
+    "cms-2k",
+    "reviewed-baseline.json",
+  );
   const markdown = join(root, "docs", "project", "performance-baseline.md");
   await writeFile(reviewed, "previous report");
   await writeFile(markdown, "previous markdown");
@@ -78,7 +99,8 @@ it("restores both previous stable artifacts when the second promotion fails", as
   await expect(
     promoteAndRender(input, root, {
       rename: async (from, to) => {
-        if (to === markdown && from.includes(".stage-")) throw new Error("second rename failed");
+        if (to === markdown && from.includes(".stage-"))
+          throw new Error("second rename failed");
         await rename(from, to);
       },
     }),

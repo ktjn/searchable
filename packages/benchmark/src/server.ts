@@ -120,9 +120,7 @@ export async function serveBenchmark({
     }
     try {
       const bytes = await readFile(file);
-      response
-        .writeHead(200, { "content-type": contentType(file) })
-        .end(bytes);
+      response.writeHead(200, { "content-type": contentType(file) }).end(bytes);
     } catch {
       response.writeHead(404).end();
     }

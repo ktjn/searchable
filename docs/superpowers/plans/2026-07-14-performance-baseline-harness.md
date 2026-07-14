@@ -1146,7 +1146,7 @@ $report = Get-Content -Raw -LiteralPath $reportPath | ConvertFrom-Json
 Check that exact parsed report. Confirm:
 
 - schema version `1`, profile `cms-2k`, dirty `false`, repeats `10`;
-- exactly 2,008 documents and six queries;
+- exactly 2,006 documents and six queries;
 - every cold query contains 10 initialize/query/combined/transfer samples;
 - warm contains 10 whole-pass samples and zero index requests;
 - all correctness expectations passed;

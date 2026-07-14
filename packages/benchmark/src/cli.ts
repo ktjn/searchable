@@ -1,5 +1,5 @@
-import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { BASELINE_CONFIG, SMOKE_CONFIG } from "./config.js";
 import { runBenchmark } from "./run.js";
 import type { BenchmarkProfile, HeapMeasurement } from "./types.js";
@@ -29,13 +29,23 @@ async function main(): Promise<void> {
   );
   const { report, outputPath } = await runBenchmark(config, repositoryRoot);
   console.log(`Report: ${outputPath}`);
-  console.log(`Corpus: ${report.corpus.documentCount} documents (${report.corpus.sha256})`);
-  console.log(`Index: ${report.index.totalRawBytes} raw bytes; ${report.index.totalGzipBytes} gzip-equivalent bytes`);
+  console.log(
+    `Corpus: ${report.corpus.documentCount} documents (${report.corpus.sha256})`,
+  );
+  console.log(
+    `Index: ${report.index.totalRawBytes} raw bytes; ${report.index.totalGzipBytes} gzip-equivalent bytes`,
+  );
   for (const cold of report.cold) {
-    console.log(`Cold ${cold.id}: p50 ${cold.combined.p50.toFixed(2)} ms; p95 ${cold.combined.p95.toFixed(2)} ms; ${cold.gzipBytes.p50} gzip-equivalent bytes`);
+    console.log(
+      `Cold ${cold.id}: p50 ${cold.combined.p50.toFixed(2)} ms; p95 ${cold.combined.p95.toFixed(2)} ms; ${cold.gzipBytes.p50} gzip-equivalent bytes`,
+    );
   }
-  console.log(`Warm pass: p50 ${report.warm.wholePass.p50.toFixed(2)} ms; p95 ${report.warm.wholePass.p95.toFixed(2)} ms`);
-  console.log(`Heap: initialize ${heapStatus(report.warm.heapAfterInitialize)}; final ${heapStatus(report.warm.heapAfterFinalPass)}`);
+  console.log(
+    `Warm pass: p50 ${report.warm.wholePass.p50.toFixed(2)} ms; p95 ${report.warm.wholePass.p95.toFixed(2)} ms`,
+  );
+  console.log(
+    `Heap: initialize ${heapStatus(report.warm.heapAfterInitialize)}; final ${heapStatus(report.warm.heapAfterFinalPass)}`,
+  );
 }
 
 main().catch((error: unknown) => {

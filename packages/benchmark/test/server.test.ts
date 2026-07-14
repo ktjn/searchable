@@ -1,5 +1,5 @@
-import { request } from "node:http";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vitest";
@@ -34,9 +34,9 @@ function requestStatus(baseUrl: string, path: string): Promise<number> {
 
 afterEach(async () => {
   await Promise.all(
-    directories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    directories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -52,12 +52,12 @@ it("serves only the benchmark page, client, and index roots", async () => {
 
   const server = await serveBenchmark({ indexDirectory, clientDirectory });
   try {
-    expect(await fetch(server.baseUrl).then((response) => response.text())).toContain(
-      "window.searchableBenchmark",
-    );
-    expect(await fetch(server.indexUrl).then((response) => response.json())).toEqual(
-      { ok: true },
-    );
+    expect(
+      await fetch(server.baseUrl).then((response) => response.text()),
+    ).toContain("window.searchableBenchmark");
+    expect(
+      await fetch(server.indexUrl).then((response) => response.json()),
+    ).toEqual({ ok: true });
     expect(
       await fetch(new URL("client/index.js", server.baseUrl)).then((response) =>
         response.text(),

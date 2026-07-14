@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BASELINE_CONFIG } from "../src/config.js";
 import {
-  BENCHMARK_QUERIES,
   assertExpectedResult,
+  BENCHMARK_QUERIES,
   createWorkload,
 } from "../src/workload.js";
 
@@ -29,8 +29,10 @@ describe("CMS benchmark workload", () => {
   });
 
   it("rejects an incorrect timed result", () => {
+    const query = BENCHMARK_QUERIES[0];
+    if (!query) throw new Error("benchmark query fixture is empty");
     expect(() =>
-      assertExpectedResult(BENCHMARK_QUERIES[0]!, {
+      assertExpectedResult(query, {
         hits: [],
         totalHits: 0,
         language: "en",

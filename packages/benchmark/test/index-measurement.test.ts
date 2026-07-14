@@ -1,13 +1,10 @@
-import { gzipSync } from "node:zlib";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  inventoryArtifacts,
-  measureIndex,
-} from "../src/index-measurement.js";
+import { inventoryArtifacts, measureIndex } from "../src/index-measurement.js";
 
 const directories: string[] = [];
 
@@ -19,9 +16,9 @@ async function temporaryDirectory(): Promise<string> {
 
 afterEach(async () => {
   await Promise.all(
-    directories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    directories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -54,7 +51,9 @@ describe("index measurement", () => {
   it("recursively inventories raw and level-9 gzip-equivalent bytes", async () => {
     const directory = await temporaryDirectory();
     const rootBytes = Buffer.from("root artifact\n");
-    const nestedBytes = Buffer.from("nested artifact with repeated repeated text\n");
+    const nestedBytes = Buffer.from(
+      "nested artifact with repeated repeated text\n",
+    );
     await mkdir(join(directory, "zeta"));
     await writeFile(join(directory, "root.txt"), rootBytes);
     await writeFile(join(directory, "zeta", "nested.txt"), nestedBytes);

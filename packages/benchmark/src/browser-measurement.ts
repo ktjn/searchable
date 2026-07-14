@@ -1,6 +1,6 @@
-import { chromium } from "@playwright/test";
-import type { Page, Response } from "@playwright/test";
 import type { SearchResult } from "@ktjn/searchable-client";
+import type { Page, Response } from "@playwright/test";
+import { chromium } from "@playwright/test";
 import type { BenchmarkServer } from "./server.js";
 import { summarizeSamples } from "./statistics.js";
 import type {
@@ -37,7 +37,10 @@ interface SearchRun {
   heap: HeapMeasurement;
 }
 
-async function loadBenchmarkPage(page: Page, server: BenchmarkServer): Promise<void> {
+async function loadBenchmarkPage(
+  page: Page,
+  server: BenchmarkServer,
+): Promise<void> {
   await page.goto(server.baseUrl);
   await page.waitForFunction(() =>
     Boolean(
@@ -52,22 +55,17 @@ async function initialize(
   indexUrl: string,
 ): Promise<{ durationMs: number; heap: HeapMeasurement }> {
   return page.evaluate(async (url) => {
-    const api = (
-      window as unknown as { searchableBenchmark: BrowserApi }
-    ).searchableBenchmark;
+    const api = (window as unknown as { searchableBenchmark: BrowserApi })
+      .searchableBenchmark;
     const durationMs = await api.initialize(url);
     return { durationMs, heap: api.heap() };
   }, indexUrl);
 }
 
-async function runQuery(
-  page: Page,
-  query: BenchmarkQuery,
-): Promise<SearchRun> {
+async function runQuery(page: Page, query: BenchmarkQuery): Promise<SearchRun> {
   return page.evaluate(async (definition) => {
-    const api = (
-      window as unknown as { searchableBenchmark: BrowserApi }
-    ).searchableBenchmark;
+    const api = (window as unknown as { searchableBenchmark: BrowserApi })
+      .searchableBenchmark;
     const measured = await api.search(definition.query, definition.options);
     return { ...measured, heap: api.heap() };
   }, query);
@@ -81,9 +79,8 @@ async function runPass(
   queries: Array<{ id: string; durationMs: number; result: SearchResult }>;
 }> {
   return page.evaluate(async (definitions) => {
-    const api = (
-      window as unknown as { searchableBenchmark: BrowserApi }
-    ).searchableBenchmark;
+    const api = (window as unknown as { searchableBenchmark: BrowserApi })
+      .searchableBenchmark;
     const started = performance.now();
     const results = [];
     for (const definition of definitions) {
@@ -112,8 +109,12 @@ function createTransferCollector(
   snapshot: () => Promise<TransferSample>;
 } {
   const base = new URL(server.baseUrl);
-  const byPath = new Map(artifacts.map((artifact) => [artifact.path, artifact]));
-  const pending: Array<Promise<{ path: string; rawBytes: number; gzipBytes: number }>> = [];
+  const byPath = new Map(
+    artifacts.map((artifact) => [artifact.path, artifact]),
+  );
+  const pending: Array<
+    Promise<{ path: string; rawBytes: number; gzipBytes: number }>
+  > = [];
 
   return {
     handler(response) {
@@ -130,7 +131,9 @@ function createTransferCollector(
         (async () => {
           const artifact = byPath.get(path);
           if (!artifact) {
-            throw new Error(`index response has no artifact measurement: ${path}`);
+            throw new Error(
+              `index response has no artifact measurement: ${path}`,
+            );
           }
           const body = await response.body();
           return {
@@ -145,7 +148,10 @@ function createTransferCollector(
       const responses = await Promise.all(pending);
       return {
         requestCount: responses.length,
-        rawBytes: responses.reduce((total, response) => total + response.rawBytes, 0),
+        rawBytes: responses.reduce(
+          (total, response) => total + response.rawBytes,
+          0,
+        ),
         gzipBytes: responses.reduce(
           (total, response) => total + response.gzipBytes,
           0,
@@ -177,7 +183,10 @@ async function measureCold(
     ) {
       const context = await browser.newContext();
       const page = await context.newPage();
-      const collector = createTransferCollector(options.server, options.artifacts);
+      const collector = createTransferCollector(
+        options.server,
+        options.artifacts,
+      );
       page.on("response", collector.handler);
       try {
         await loadBenchmarkPage(page, options.server);
@@ -210,7 +219,9 @@ async function measureCold(
       requestCount: summarizeSamples(
         transfers.map((transfer) => transfer.requestCount),
       ),
-      rawBytes: summarizeSamples(transfers.map((transfer) => transfer.rawBytes)),
+      rawBytes: summarizeSamples(
+        transfers.map((transfer) => transfer.rawBytes),
+      ),
       gzipBytes: summarizeSamples(
         transfers.map((transfer) => transfer.gzipBytes),
       ),
@@ -244,7 +255,10 @@ async function measureWarm(
     }
 
     page.off("response", ignoredResponse);
-    const collector = createTransferCollector(options.server, options.artifacts);
+    const collector = createTransferCollector(
+      options.server,
+      options.artifacts,
+    );
     page.on("response", collector.handler);
     const wholePassSamples: number[] = [];
     const querySamples = new Map(

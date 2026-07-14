@@ -1,12 +1,9 @@
 import { readdir, readFile } from "node:fs/promises";
-import { performance } from "node:perf_hooks";
 import { join, relative, sep } from "node:path";
+import { performance } from "node:perf_hooks";
 import { gzipSync } from "node:zlib";
 import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
-import type {
-  ArtifactMeasurement,
-  IndexMeasurement,
-} from "./types.js";
+import type { ArtifactMeasurement, IndexMeasurement } from "./types.js";
 
 async function listFiles(
   rootDirectory: string,

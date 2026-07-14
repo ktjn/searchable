@@ -3,12 +3,13 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { measureBrowser } from "../src/browser-measurement.js";
 import { SMOKE_CONFIG } from "../src/config.js";
 import { measureIndex } from "../src/index-measurement.js";
-import { serveBenchmark } from "../src/server.js";
 import type { BenchmarkServer } from "../src/server.js";
+import { serveBenchmark } from "../src/server.js";
 import type { ArtifactMeasurement, BenchmarkQuery } from "../src/types.js";
 import { createWorkload } from "../src/workload.js";
 
@@ -17,6 +18,7 @@ describe("Chromium browser measurement", () => {
   let server: BenchmarkServer;
   let artifacts: ArtifactMeasurement[];
   const workload = createWorkload(SMOKE_CONFIG);
+  const repositoryRoot = fileURLToPath(new URL("../../..", import.meta.url));
 
   beforeAll(async () => {
     directory = await mkdtemp(join(tmpdir(), "searchable-browser-benchmark-"));
@@ -24,7 +26,7 @@ describe("Chromium browser measurement", () => {
     artifacts = index.artifacts;
     server = await serveBenchmark({
       indexDirectory: directory,
-      clientDirectory: join(process.cwd(), "packages", "client", "dist"),
+      clientDirectory: join(repositoryRoot, "packages", "client", "dist"),
     });
   });
 
@@ -96,7 +98,9 @@ it("rejects an unexpected successful index response during warm measurement", as
     }
     response.writeHead(200, { "content-type": "text/html" }).end(html);
   });
-  await new Promise<void>((resolve) => nodeServer.listen(0, "127.0.0.1", resolve));
+  await new Promise<void>((resolve) =>
+    nodeServer.listen(0, "127.0.0.1", resolve),
+  );
   const address = nodeServer.address() as AddressInfo;
   const baseUrl = `http://127.0.0.1:${address.port}/`;
   const server: BenchmarkServer = {

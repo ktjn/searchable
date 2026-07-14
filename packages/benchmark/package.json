@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "vitest run",
+    "test": "vitest run --root ../.. --project @ktjn/searchable-benchmark",
     "typecheck": "tsc --noEmit",
     "baseline": "node dist/cli.js --profile cms-2k",
     "smoke": "node dist/cli.js --profile smoke",

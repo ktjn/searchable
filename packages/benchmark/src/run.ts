@@ -12,8 +12,8 @@ import {
   validateReport,
   writeReportAtomic,
 } from "./report.js";
-import { serveBenchmark } from "./server.js";
 import type { BenchmarkServer } from "./server.js";
+import { serveBenchmark } from "./server.js";
 import type {
   BenchmarkConfig,
   BenchmarkEnvironment,
@@ -78,7 +78,8 @@ async function captureGitState(repositoryRoot: string): Promise<GitState> {
 const DEFAULT_DEPENDENCIES: RunBenchmarkDependencies = {
   createTemporaryDirectory: () =>
     mkdtemp(join(tmpdir(), "searchable-benchmark-run-")),
-  removeTemporaryDirectory: (path) => rm(path, { recursive: true, force: true }),
+  removeTemporaryDirectory: (path) =>
+    rm(path, { recursive: true, force: true }),
   captureGitState,
   createWorkload,
   measureIndex,
@@ -107,7 +108,8 @@ export async function runBenchmark(
   const runStarted = dependencies.now();
   const temporaryDirectory = await dependencies.createTemporaryDirectory();
   let server: BenchmarkServer | undefined;
-  let failed = false;
+  let result: { report: BenchmarkReportV1; outputPath: string } | undefined;
+  let runError: unknown;
   try {
     const generationStarted = dependencies.now();
     const workload = dependencies.createWorkload(config);
@@ -165,7 +167,11 @@ export async function runBenchmark(
     };
     validateReport(report);
 
-    const outputDirectory = join(repositoryRoot, "benchmark-results", config.profile);
+    const outputDirectory = join(
+      repositoryRoot,
+      "benchmark-results",
+      config.profile,
+    );
     await dependencies.ensureDirectory(outputDirectory);
     const timestamp = startedAt.replace(/[:.]/g, "-");
     const outputPath = join(
@@ -173,18 +179,22 @@ export async function runBenchmark(
       `${timestamp}-${git.commit.slice(0, 7)}.json`,
     );
     await dependencies.writeReport(report, outputPath);
-    return { report, outputPath };
+    result = { report, outputPath };
   } catch (error) {
-    failed = true;
-    throw error;
-  } finally {
-    const cleanupErrors: unknown[] = [];
-    if (server) {
-      await server.close().catch((error) => cleanupErrors.push(error));
-    }
-    await dependencies
-      .removeTemporaryDirectory(temporaryDirectory)
-      .catch((error) => cleanupErrors.push(error));
-    if (!failed && cleanupErrors.length > 0) throw cleanupErrors[0];
+    runError = error;
   }
+
+  const cleanupErrors: unknown[] = [];
+  if (server) {
+    await server.close().catch((error) => cleanupErrors.push(error));
+  }
+  await dependencies
+    .removeTemporaryDirectory(temporaryDirectory)
+    .catch((error) => cleanupErrors.push(error));
+
+  if (runError !== undefined) throw runError;
+  if (cleanupErrors.length > 0) throw cleanupErrors[0];
+  if (result === undefined)
+    throw new Error("benchmark completed without a result");
+  return result;
 }

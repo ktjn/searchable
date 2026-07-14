@@ -24,6 +24,8 @@ describe("benchmark report validation", () => {
 
   it("validates a complete schema-v1 report and its invariants", () => {
     const report = createReportFixture();
+    const coldMeasurement = report.cold[0];
+    if (!coldMeasurement) throw new Error("fixture must contain a cold query");
     expect(validateReport(report)).toBe(report);
     expect(() => validateReport({ ...report, schemaVersion: 2 })).toThrow(
       /schemaVersion/,
@@ -39,7 +41,7 @@ describe("benchmark report validation", () => {
         ...report,
         cold: [
           {
-            ...report.cold[0]!,
+            ...coldMeasurement,
             firstQuery: { samples: [Number.NaN] },
           },
         ],

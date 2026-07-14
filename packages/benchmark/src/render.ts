@@ -1,5 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
-import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { validateReport } from "./report.js";
 import type { BenchmarkReportV1, HeapMeasurement } from "./types.js";
@@ -52,7 +59,9 @@ This reviewed run records ${report.run.repeatCount} measured repetitions after $
 
 - Generator: \`${report.corpus.generator}\`
 - Documents: ${report.corpus.documentCount}
-- Languages: ${Object.entries(report.corpus.languageCounts).map(([language, count]) => `${language}: ${count}`).join(", ")}
+- Languages: ${Object.entries(report.corpus.languageCounts)
+    .map(([language, count]) => `${language}: ${count}`)
+    .join(", ")}
 - Corpus SHA-256: \`${report.corpus.sha256}\`
 - Query set: \`${report.queries.id}\` (\`${report.queries.sha256}\`)
 
@@ -121,7 +130,11 @@ This is reproducible evidence for one vertical configuration, not a performance 
 
 interface PromotionIo {
   readFile(path: string): Promise<Buffer>;
-  writeFile(path: string, data: string | Buffer, options: { flag: "wx" }): Promise<unknown>;
+  writeFile(
+    path: string,
+    data: string | Buffer,
+    options: { flag: "wx" },
+  ): Promise<unknown>;
   rename(from: string, to: string): Promise<unknown>;
   rm(path: string, options: { force: true }): Promise<unknown>;
   mkdir(path: string): Promise<unknown>;
@@ -134,7 +147,11 @@ const DEFAULT_IO: PromotionIo = {
   rename,
   rm,
   mkdir: (path) => mkdir(path, { recursive: true }),
-  exists: (path) => access(path).then(() => true, () => false),
+  exists: (path) =>
+    access(path).then(
+      () => true,
+      () => false,
+    ),
 };
 
 export async function promoteAndRender(
@@ -158,8 +175,10 @@ export async function promoteAndRender(
   );
   const inputBytes = await io.readFile(inputPath);
   const report = validateReport(JSON.parse(inputBytes.toString("utf8")));
-  if (report.run.profile !== "cms-2k") throw new Error("only cms-2k reports can be promoted");
-  if (report.run.dirty) throw new Error("cms-2k report must come from a clean worktree");
+  if (report.run.profile !== "cms-2k")
+    throw new Error("only cms-2k reports can be promoted");
+  if (report.run.dirty)
+    throw new Error("cms-2k report must come from a clean worktree");
   const reportSha256 = createHash("sha256").update(inputBytes).digest("hex");
   const markdown = renderPerformanceBaseline(report, reportSha256);
 
@@ -195,8 +214,10 @@ export async function promoteAndRender(
     }
   } catch (error) {
     for (const state of [...states].reverse()) {
-      if (state.promoted) await io.rm(state.path, { force: true }).catch(() => undefined);
-      if (state.backedUp) await io.rename(state.backup, state.path).catch(() => undefined);
+      if (state.promoted)
+        await io.rm(state.path, { force: true }).catch(() => undefined);
+      if (state.backedUp)
+        await io.rename(state.backup, state.path).catch(() => undefined);
     }
     throw error;
   } finally {

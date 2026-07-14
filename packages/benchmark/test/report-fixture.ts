@@ -68,8 +68,18 @@ export function createReportFixture(): BenchmarkReportV1 {
         rawBytes: structuredClone(summary),
         gzipBytes: structuredClone(summary),
         transfers: [
-          { requestCount: 1, rawBytes: 10, gzipBytes: 20, paths: ["manifest.json"] },
-          { requestCount: 1, rawBytes: 10, gzipBytes: 20, paths: ["manifest.json"] },
+          {
+            requestCount: 1,
+            rawBytes: 10,
+            gzipBytes: 20,
+            paths: ["manifest.json"],
+          },
+          {
+            requestCount: 1,
+            rawBytes: 10,
+            gzipBytes: 20,
+            paths: ["manifest.json"],
+          },
         ],
         heapAfterInitialize: [heap, heap],
         heapAfterQuery: [heap, heap],

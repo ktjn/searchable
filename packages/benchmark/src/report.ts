@@ -1,10 +1,10 @@
-import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { access, rename, rm, writeFile } from "node:fs/promises";
-import { cpus, arch, platform, release } from "node:os";
+import { createRequire } from "node:module";
+import { arch, cpus, platform, release } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { promisify } from "node:util";
-import { createRequire } from "node:module";
 import { summarizeSamples } from "./statistics.js";
 import type {
   BenchmarkConfig,
@@ -12,7 +12,6 @@ import type {
   BenchmarkQuery,
   BenchmarkReportV1,
   HeapMeasurement,
-  SampleSummary,
 } from "./types.js";
 import { hashCanonical } from "./workload.js";
 
@@ -42,7 +41,9 @@ function finite(value: unknown, name: string, integer = false): number {
     value < 0 ||
     (integer && !Number.isInteger(value))
   ) {
-    throw new Error(`${name} must be a finite non-negative${integer ? " integer" : ""}`);
+    throw new Error(
+      `${name} must be a finite non-negative${integer ? " integer" : ""}`,
+    );
   }
   return value;
 }
@@ -55,7 +56,8 @@ function positiveInteger(value: unknown, name: string): number {
 
 function sha256(value: unknown, name: string): string {
   const result = string(value, name);
-  if (!/^[a-f0-9]{64}$/.test(result)) throw new Error(`${name} must be SHA-256`);
+  if (!/^[a-f0-9]{64}$/.test(result))
+    throw new Error(`${name} must be SHA-256`);
   return result;
 }
 
@@ -65,8 +67,8 @@ function validateSummary(
   expectedLength: number,
 ): void {
   const summary = record(value, name);
-  const samples = array(summary.samples, `${name}.samples`).map((sample, index) =>
-    finite(sample, `${name}.samples[${index}]`),
+  const samples = array(summary.samples, `${name}.samples`).map(
+    (sample, index) => finite(sample, `${name}.samples[${index}]`),
   );
   if (samples.length !== expectedLength) {
     throw new Error(`${name}.samples must contain ${expectedLength} values`);
@@ -79,7 +81,10 @@ function validateSummary(
   }
 }
 
-function validateHeap(value: unknown, name: string): asserts value is HeapMeasurement {
+function validateHeap(
+  value: unknown,
+  name: string,
+): asserts value is HeapMeasurement {
   const heap = record(value, name);
   if (heap.status === "available") {
     finite(heap.usedBytes, `${name}.usedBytes`, true);
@@ -93,11 +98,14 @@ function validateHeap(value: unknown, name: string): asserts value is HeapMeasur
 function validateQuery(value: unknown, name: string): BenchmarkQuery {
   const query = record(value, name);
   string(query.id, `${name}.id`);
-  if (typeof query.query !== "string") throw new Error(`${name}.query must be a string`);
+  if (typeof query.query !== "string")
+    throw new Error(`${name}.query must be a string`);
   const options = record(query.options, `${name}.options`);
   positiveInteger(options.limit, `${name}.options.limit`);
   if (options.filters !== undefined) {
-    for (const [field, filter] of Object.entries(record(options.filters, `${name}.options.filters`))) {
+    for (const [field, filter] of Object.entries(
+      record(options.filters, `${name}.options.filters`),
+    )) {
       string(field, `${name}.options.filters field`);
       if (typeof filter !== "string") {
         for (const entry of array(filter, `${name}.options.filters.${field}`)) {
@@ -113,13 +121,18 @@ function validateQuery(value: unknown, name: string): BenchmarkQuery {
   }
   const expected = record(query.expected, `${name}.expected`);
   finite(expected.totalHits, `${name}.expected.totalHits`, true);
-  if (expected.topUrl !== undefined) string(expected.topUrl, `${name}.expected.topUrl`);
+  if (expected.topUrl !== undefined)
+    string(expected.topUrl, `${name}.expected.topUrl`);
   if (expected.facetValues !== undefined) {
-    for (const [index, value] of array(expected.facetValues, `${name}.expected.facetValues`).entries()) {
+    for (const [index, value] of array(
+      expected.facetValues,
+      `${name}.expected.facetValues`,
+    ).entries()) {
       const facet = record(value, `${name}.expected.facetValues[${index}]`);
       string(facet.value, `${name}.expected.facetValues[${index}].value`);
       finite(facet.count, `${name}.expected.facetValues[${index}].count`, true);
-      if (typeof facet.selected !== "boolean") throw new Error(`${name}.expected facet selected must be boolean`);
+      if (typeof facet.selected !== "boolean")
+        throw new Error(`${name}.expected facet selected must be boolean`);
     }
   }
   return value as BenchmarkQuery;
@@ -131,86 +144,170 @@ export function validateReport(value: unknown): BenchmarkReportV1 {
 
   const run = record(report.run, "run");
   const startedAt = string(run.startedAt, "run.startedAt");
-  if (new Date(startedAt).toISOString() !== startedAt) throw new Error("run.startedAt must be an ISO date");
+  if (new Date(startedAt).toISOString() !== startedAt)
+    throw new Error("run.startedAt must be an ISO date");
   finite(run.completedInMs, "run.completedInMs");
-  if (!/^[a-f0-9]{40}$/.test(string(run.commit, "run.commit"))) throw new Error("run.commit must be a full Git hash");
-  if (typeof run.dirty !== "boolean") throw new Error("run.dirty must be boolean");
-  if (run.profile !== "cms-2k" && run.profile !== "smoke") throw new Error("run.profile is invalid");
-  if (run.timingMethod !== "performance.now") throw new Error("run.timingMethod is invalid");
+  if (!/^[a-f0-9]{40}$/.test(string(run.commit, "run.commit")))
+    throw new Error("run.commit must be a full Git hash");
+  if (typeof run.dirty !== "boolean")
+    throw new Error("run.dirty must be boolean");
+  if (run.profile !== "cms-2k" && run.profile !== "smoke")
+    throw new Error("run.profile is invalid");
+  if (run.timingMethod !== "performance.now")
+    throw new Error("run.timingMethod is invalid");
   finite(run.warmupCount, "run.warmupCount", true);
   const repeatCount = positiveInteger(run.repeatCount, "run.repeatCount");
 
   const environment = record(report.environment, "environment");
-  for (const field of ["platform", "release", "architecture", "cpuModel", "nodeVersion", "pnpmVersion", "playwrightVersion", "chromiumVersion"]) {
+  for (const field of [
+    "platform",
+    "release",
+    "architecture",
+    "cpuModel",
+    "nodeVersion",
+    "pnpmVersion",
+    "playwrightVersion",
+    "chromiumVersion",
+  ]) {
     string(environment[field], `environment.${field}`);
   }
   positiveInteger(environment.logicalCpuCount, "environment.logicalCpuCount");
-  if (typeof environment.headless !== "boolean") throw new Error("environment.headless must be boolean");
-  for (const flag of array(environment.launchFlags, "environment.launchFlags")) string(flag, "environment.launchFlags entry");
+  if (typeof environment.headless !== "boolean")
+    throw new Error("environment.headless must be boolean");
+  for (const flag of array(environment.launchFlags, "environment.launchFlags"))
+    string(flag, "environment.launchFlags entry");
 
   const corpus = record(report.corpus, "corpus");
-  if (corpus.generator !== "generateCms2kCorpus") throw new Error("corpus.generator is invalid");
-  const documentCount = positiveInteger(corpus.documentCount, "corpus.documentCount");
+  if (corpus.generator !== "generateCms2kCorpus")
+    throw new Error("corpus.generator is invalid");
+  const documentCount = positiveInteger(
+    corpus.documentCount,
+    "corpus.documentCount",
+  );
   sha256(corpus.sha256, "corpus.sha256");
   const languageCounts = record(corpus.languageCounts, "corpus.languageCounts");
   let languageTotal = 0;
   for (const [language, count] of Object.entries(languageCounts)) {
     string(language, "corpus language");
-    languageTotal += positiveInteger(count, `corpus.languageCounts.${language}`);
+    languageTotal += positiveInteger(
+      count,
+      `corpus.languageCounts.${language}`,
+    );
   }
-  if (languageTotal !== documentCount) throw new Error("corpus language counts must equal documentCount");
+  if (languageTotal !== documentCount)
+    throw new Error("corpus language counts must equal documentCount");
 
   const index = record(report.index, "index");
-  for (const field of ["documentCount", "fileCount", "shardCount"] as const) finite(index[field], `index.${field}`, true);
-  for (const field of ["generationMs", "buildMs", "writeMs", "totalRawBytes", "totalGzipBytes", "manifestRawBytes"] as const) finite(index[field], `index.${field}`);
-  if (index.documentCount !== documentCount) throw new Error("index.documentCount must match corpus");
+  for (const field of ["documentCount", "fileCount", "shardCount"] as const)
+    finite(index[field], `index.${field}`, true);
+  for (const field of [
+    "generationMs",
+    "buildMs",
+    "writeMs",
+    "totalRawBytes",
+    "totalGzipBytes",
+    "manifestRawBytes",
+  ] as const)
+    finite(index[field], `index.${field}`);
+  if (index.documentCount !== documentCount)
+    throw new Error("index.documentCount must match corpus");
   const artifacts = array(index.artifacts, "index.artifacts");
   let rawTotal = 0;
   let gzipTotal = 0;
   let previousPath = "";
   for (const [artifactIndex, value] of artifacts.entries()) {
     const artifact = record(value, `index.artifacts[${artifactIndex}]`);
-    const path = string(artifact.path, `index.artifacts[${artifactIndex}].path`);
-    if (path <= previousPath) throw new Error("index artifacts must be uniquely path-sorted");
+    const path = string(
+      artifact.path,
+      `index.artifacts[${artifactIndex}].path`,
+    );
+    if (path <= previousPath)
+      throw new Error("index artifacts must be uniquely path-sorted");
     previousPath = path;
-    rawTotal += finite(artifact.rawBytes, `index.artifacts[${artifactIndex}].rawBytes`, true);
-    gzipTotal += finite(artifact.gzipBytes, `index.artifacts[${artifactIndex}].gzipBytes`, true);
+    rawTotal += finite(
+      artifact.rawBytes,
+      `index.artifacts[${artifactIndex}].rawBytes`,
+      true,
+    );
+    gzipTotal += finite(
+      artifact.gzipBytes,
+      `index.artifacts[${artifactIndex}].gzipBytes`,
+      true,
+    );
   }
-  if (index.fileCount !== artifacts.length || index.totalRawBytes !== rawTotal || index.totalGzipBytes !== gzipTotal) throw new Error("index artifact totals do not match inventory");
+  if (
+    index.fileCount !== artifacts.length ||
+    index.totalRawBytes !== rawTotal ||
+    index.totalGzipBytes !== gzipTotal
+  )
+    throw new Error("index artifact totals do not match inventory");
 
   const queries = record(report.queries, "queries");
-  if (queries.id !== "cms-2k-lexical-v1") throw new Error("queries.id is invalid");
+  if (queries.id !== "cms-2k-lexical-v1")
+    throw new Error("queries.id is invalid");
   const definitions = array(queries.definitions, "queries.definitions");
   const plainQueries: BenchmarkQuery[] = [];
   for (const [queryIndex, value] of definitions.entries()) {
     const definition = record(value, `queries.definitions[${queryIndex}]`);
-    const definitionHash = sha256(definition.sha256, `queries.definitions[${queryIndex}].sha256`);
+    const definitionHash = sha256(
+      definition.sha256,
+      `queries.definitions[${queryIndex}].sha256`,
+    );
     const { sha256: _hash, ...plain } = definition;
     const query = validateQuery(plain, `queries.definitions[${queryIndex}]`);
-    if (hashCanonical(query) !== definitionHash) throw new Error(`query ${query.id} hash mismatch`);
+    if (hashCanonical(query) !== definitionHash)
+      throw new Error(`query ${query.id} hash mismatch`);
     plainQueries.push(query);
   }
-  if (hashCanonical(plainQueries) !== sha256(queries.sha256, "queries.sha256")) throw new Error("query-set hash mismatch");
+  if (hashCanonical(plainQueries) !== sha256(queries.sha256, "queries.sha256"))
+    throw new Error("query-set hash mismatch");
   const queryIds = plainQueries.map(({ id }) => id);
 
   const cold = array(report.cold, "cold");
-  if (cold.map((entry) => record(entry, "cold entry").id).join("\0") !== queryIds.join("\0")) throw new Error("cold query IDs must match definitions");
+  if (
+    cold.map((entry) => record(entry, "cold entry").id).join("\0") !==
+    queryIds.join("\0")
+  )
+    throw new Error("cold query IDs must match definitions");
   for (const [coldIndex, value] of cold.entries()) {
     const measurement = record(value, `cold[${coldIndex}]`);
-    for (const field of ["initialize", "firstQuery", "combined", "requestCount", "rawBytes", "gzipBytes"]) validateSummary(measurement[field], `cold[${coldIndex}].${field}`, repeatCount);
+    for (const field of [
+      "initialize",
+      "firstQuery",
+      "combined",
+      "requestCount",
+      "rawBytes",
+      "gzipBytes",
+    ])
+      validateSummary(
+        measurement[field],
+        `cold[${coldIndex}].${field}`,
+        repeatCount,
+      );
     for (const field of ["heapAfterInitialize", "heapAfterQuery"] as const) {
       const heaps = array(measurement[field], `cold[${coldIndex}].${field}`);
-      if (heaps.length !== repeatCount) throw new Error(`cold[${coldIndex}].${field} length mismatch`);
-      heaps.forEach((heap, heapIndex) => validateHeap(heap, `cold[${coldIndex}].${field}[${heapIndex}]`));
+      if (heaps.length !== repeatCount)
+        throw new Error(`cold[${coldIndex}].${field} length mismatch`);
+      heaps.forEach((heap, heapIndex) => {
+        validateHeap(heap, `cold[${coldIndex}].${field}[${heapIndex}]`);
+      });
     }
-    const transfers = array(measurement.transfers, `cold[${coldIndex}].transfers`);
-    if (transfers.length !== repeatCount) throw new Error("cold transfers length mismatch");
+    const transfers = array(
+      measurement.transfers,
+      `cold[${coldIndex}].transfers`,
+    );
+    if (transfers.length !== repeatCount)
+      throw new Error("cold transfers length mismatch");
     for (const [transferIndex, value] of transfers.entries()) {
-      const transfer = record(value, `cold[${coldIndex}].transfers[${transferIndex}]`);
+      const transfer = record(
+        value,
+        `cold[${coldIndex}].transfers[${transferIndex}]`,
+      );
       finite(transfer.requestCount, "transfer.requestCount", true);
       finite(transfer.rawBytes, "transfer.rawBytes", true);
       finite(transfer.gzipBytes, "transfer.gzipBytes", true);
-      for (const path of array(transfer.paths, "transfer.paths")) string(path, "transfer path");
+      for (const path of array(transfer.paths, "transfer.paths"))
+        string(path, "transfer path");
     }
   }
 
@@ -218,8 +315,18 @@ export function validateReport(value: unknown): BenchmarkReportV1 {
   if (warm.indexRequestCount !== 0) throw new Error("unexpected warm network");
   validateSummary(warm.wholePass, "warm.wholePass", repeatCount);
   const warmQueries = array(warm.queries, "warm.queries");
-  if (warmQueries.map((entry) => record(entry, "warm query").id).join("\0") !== queryIds.join("\0")) throw new Error("warm query IDs must match definitions");
-  warmQueries.forEach((value, index) => validateSummary(record(value, `warm.queries[${index}]`).duration, `warm.queries[${index}].duration`, repeatCount));
+  if (
+    warmQueries.map((entry) => record(entry, "warm query").id).join("\0") !==
+    queryIds.join("\0")
+  )
+    throw new Error("warm query IDs must match definitions");
+  warmQueries.forEach((value, index) => {
+    validateSummary(
+      record(value, `warm.queries[${index}]`).duration,
+      `warm.queries[${index}].duration`,
+      repeatCount,
+    );
+  });
   validateHeap(warm.heapAfterInitialize, "warm.heapAfterInitialize");
   validateHeap(warm.heapAfterFinalPass, "warm.heapAfterFinalPass");
 
@@ -227,7 +334,11 @@ export function validateReport(value: unknown): BenchmarkReportV1 {
 }
 
 export interface ReportWriteIo {
-  writeFile(path: string, data: string, options: { flag: "wx" }): Promise<unknown>;
+  writeFile(
+    path: string,
+    data: string,
+    options: { flag: "wx" },
+  ): Promise<unknown>;
   rename(from: string, to: string): Promise<unknown>;
   rm(path: string, options: { force: true }): Promise<unknown>;
   destinationExists(path: string): Promise<boolean>;
@@ -237,7 +348,11 @@ const DEFAULT_WRITE_IO: ReportWriteIo = {
   writeFile,
   rename,
   rm,
-  destinationExists: async (path) => access(path).then(() => true, () => false),
+  destinationExists: async (path) =>
+    access(path).then(
+      () => true,
+      () => false,
+    ),
 };
 
 export async function writeReportAtomic(
@@ -246,10 +361,16 @@ export async function writeReportAtomic(
   io: ReportWriteIo = DEFAULT_WRITE_IO,
 ): Promise<void> {
   validateReport(report);
-  if (await io.destinationExists(destination)) throw new Error(`report already exists: ${destination}`);
-  const temporary = join(dirname(destination), `${basename(destination)}.${randomUUID()}.tmp`);
+  if (await io.destinationExists(destination))
+    throw new Error(`report already exists: ${destination}`);
+  const temporary = join(
+    dirname(destination),
+    `${basename(destination)}.${randomUUID()}.tmp`,
+  );
   try {
-    await io.writeFile(temporary, `${JSON.stringify(report, null, 2)}\n`, { flag: "wx" });
+    await io.writeFile(temporary, `${JSON.stringify(report, null, 2)}\n`, {
+      flag: "wx",
+    });
     await io.rename(temporary, destination);
   } finally {
     await io.rm(temporary, { force: true }).catch(() => undefined);
