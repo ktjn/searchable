@@ -61,7 +61,7 @@ Treat relevance as a measurable quality attribute rather than only a correctness
 
 The deterministic evaluator and small native-source regression suites cover all
 six full language profiles, and two reviewed domains supply graded multi-page
-judgments: the 28-page documentation corpus and the 22-page GOV.UK
+judgments: the 29-page documentation corpus and the 22-page GOV.UK
 learner-driving journey. See [Relevance
 baselines](relevance-baselines.md) for commands, metrics, provenance
 requirements, and interpretation limits. These remain narrow representative

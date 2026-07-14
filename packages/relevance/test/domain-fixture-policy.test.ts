@@ -29,7 +29,7 @@ describe("committed documentation relevance fixture", () => {
     expect(suite.id).toBe("searchable-docs");
     expect(suite.corpus.kind).toBe("generated-index");
     if (suite.corpus.kind !== "generated-index") throw new Error("unreachable");
-    expect(suite.corpus.pages).toHaveLength(28);
+    expect(suite.corpus.pages).toHaveLength(29);
     expect(suite.queries).toHaveLength(20);
     const documentationTopics = DOMAIN_QUERY_TOPICS.filter(
       (topic) => !GOVUK_DOMAIN_QUERY_TOPICS.includes(topic as never),
@@ -58,7 +58,7 @@ describe("committed documentation relevance fixture", () => {
       method:
         "Maintainer review of every query, grade, rationale, and measured top-five result.",
       reviewer: "ktjn",
-      reviewedAt: "2026-07-13",
+      reviewedAt: "2026-07-14",
     });
     expect(suite.corpus.pages).toEqual(expectedPages);
   });
