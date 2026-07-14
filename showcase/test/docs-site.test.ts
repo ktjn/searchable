@@ -272,6 +272,11 @@ describe("documentation rendering", () => {
     });
 
     expect(html).toContain("pnpm relevance -- --suite searchable-docs");
+    expect(html).toContain("pnpm relevance -- --suite govuk-learn-to-drive");
+    expect(html).toContain(
+      "pnpm relevance:refresh -- --suite govuk-learn-to-drive --check",
+    );
+    expect(html).toContain("source-credit audit");
     expect(html).toContain("not a pass/fail threshold");
   });
 

@@ -1,5 +1,8 @@
 # GOV.UK Learner-Driving Relevance Corpus Design
 
+> Archived after implementation on `feat/govuk-driving-relevance-corpus`.
+> Durable operating guidance is in [Relevance baselines](../../project/relevance-baselines.md).
+
 ## Purpose
 
 Add Searchable's second representative relevance domain: the GOV.UK "Learn to

@@ -46,7 +46,13 @@ describe("committed GOV.UK driving relevance fixture", () => {
     expect(new Set(suite.queries.map((query) => query.topic))).toEqual(
       new Set(GOVUK_DOMAIN_QUERY_TOPICS),
     );
-    expect(suite.review.status).toBe("draft");
+    expect(suite.review).toEqual({
+      status: "reviewed",
+      method:
+        "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result.",
+      reviewer: "ktjn",
+      reviewedAt: "2026-07-14",
+    });
     expect(suite.corpus.documents.map((document) => document.id)).toEqual(
       GOVUK_EXPECTED_ROUTES,
     );

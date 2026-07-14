@@ -1,5 +1,8 @@
 # GOV.UK Learner-Driving Relevance Corpus Implementation Plan
 
+> Archived after implementation on `feat/govuk-driving-relevance-corpus`.
+> Durable operating guidance is in [Relevance baselines](../../project/relevance-baselines.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a reviewed, deterministic 22-document GOV.UK learner-driving relevance corpus with 20 judged task queries and a safe manual Content API refresh workflow.
@@ -861,7 +864,7 @@ expect(suite.review).toEqual({
   method:
     "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result.",
   reviewer: "ktjn",
-  reviewedAt: "2026-07-13",
+  reviewedAt: "2026-07-14",
 });
 ```
 

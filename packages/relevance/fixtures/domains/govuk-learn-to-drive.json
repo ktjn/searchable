@@ -14,8 +14,10 @@
     "selectionNotes": "The journey hub and its 21 internal GOV.UK destinations are included. The external theory-test application and neighboring pages are excluded. Searchable text is normalized from the GOV.UK Content API."
   },
   "review": {
-    "status": "draft",
-    "method": "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result."
+    "status": "reviewed",
+    "method": "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result.",
+    "reviewer": "ktjn",
+    "reviewedAt": "2026-07-14"
   },
   "corpus": {
     "kind": "snapshot",
