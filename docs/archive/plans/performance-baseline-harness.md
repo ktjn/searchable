@@ -1,5 +1,10 @@
 # Performance Baseline Harness Implementation Plan
 
+Status: Archived after implementation on branch
+`feat/performance-baseline-harness`. The reviewed output is preserved in
+[`benchmark-results/cms-2k/reviewed-baseline.json`](../../../benchmark-results/cms-2k/reviewed-baseline.json)
+and published as the [performance baseline](../../project/performance-baseline.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build and publish the first reproducible CMS-2k Chromium performance baseline with correctness-checked cold and warm lexical measurements, stable JSON evidence, and a reviewed Markdown report.

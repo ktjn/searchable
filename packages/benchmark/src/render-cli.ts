@@ -11,7 +11,7 @@ async function main(): Promise<void> {
     fileURLToPath(new URL("../../..", import.meta.url)),
   );
   const result = await promoteAndRender(
-    resolve(arguments_[0] as string),
+    arguments_[0] as string,
     repositoryRoot,
   );
   console.log(`Reviewed report: ${result.reviewedReportPath}`);

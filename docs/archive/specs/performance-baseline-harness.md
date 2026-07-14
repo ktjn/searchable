@@ -1,8 +1,13 @@
 # Performance Baseline Harness Design
 
-Status: Approved
+Status: Archived after implementation
 
 Date: 2026-07-14
+
+Implemented on branch `feat/performance-baseline-harness`. The reviewed output
+is preserved in
+[`benchmark-results/cms-2k/reviewed-baseline.json`](../../../benchmark-results/cms-2k/reviewed-baseline.json)
+and published as the [performance baseline](../../project/performance-baseline.md).
 
 ## Purpose
 

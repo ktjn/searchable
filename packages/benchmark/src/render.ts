@@ -64,12 +64,13 @@ This reviewed run records ${report.run.repeatCount} measured repetitions after $
     .join(", ")}
 - Corpus SHA-256: \`${report.corpus.sha256}\`
 - Query set: \`${report.queries.id}\` (\`${report.queries.sha256}\`)
+- Reviewed raw JSON: [\`reviewed-baseline.json\`](../../benchmark-results/cms-2k/reviewed-baseline.json)
 
 ## Environment
 
 - Commit: \`${report.run.commit}\` (clean: ${String(!report.run.dirty)})
 - Platform: ${report.environment.platform} ${report.environment.release} (${report.environment.architecture})
-- CPU: ${report.environment.cpuModel}, ${report.environment.logicalCpuCount} logical CPUs
+- CPU: ${report.environment.cpuModel.trim()}, ${report.environment.logicalCpuCount} logical CPUs
 - Node: ${report.environment.nodeVersion}; pnpm: ${report.environment.pnpmVersion}
 - Playwright: ${report.environment.playwrightVersion}; Chromium: ${report.environment.chromiumVersion}
 - Headless: ${String(report.environment.headless)}; flags: ${report.environment.launchFlags.map((flag) => `\`${flag}\``).join(", ")}
@@ -124,7 +125,9 @@ ${JSON.stringify(report.queries.definitions, null, 2)}
 
 ## Interpretation limits
 
-This is reproducible evidence for one vertical configuration, not a performance budget. It is also not a supported operating range: different corpora, hardware, browsers, cache states, and query mixes can produce materially different results. gzip-equivalent sizes are level-9 calculations over emitted bytes, not observed Content-Encoding payload sizes.
+This is reproducible evidence from one machine, one Chromium version, one corpus size, and one main-thread lexical profile, not a performance budget. It is also not a supported operating range: different corpora, hardware, browsers, cache states, and query mixes can produce materially different results. gzip-equivalent sizes are level-9 calculations over emitted bytes, not observed Content-Encoding payload sizes.
+
+Remaining work includes multiple corpus sizes and deployment classes; Firefox, WebKit, and low-end mobile measurements; worker, Service Worker, and browser-cache-warm modes; broader lexical, vector, and hybrid query classes; supported operating ranges and shard guidance; and CI comparison without prematurely turning this baseline into a threshold.
 `;
 }
 
@@ -160,7 +163,7 @@ export async function promoteAndRender(
   overrides: Partial<PromotionIo> = {},
 ): Promise<{ reviewedReportPath: string; markdownPath: string }> {
   const io = { ...DEFAULT_IO, ...overrides };
-  const inputPath = resolve(reportPath);
+  const inputPath = resolve(repositoryRoot, reportPath);
   const reviewedReportPath = join(
     repositoryRoot,
     "benchmark-results",

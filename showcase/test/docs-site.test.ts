@@ -24,11 +24,16 @@ describe("documentation navigation", () => {
 
   test("contains no archived or internal source", () => {
     const pages = flattenNavigation(DOC_SECTIONS);
-    expect(pages).toHaveLength(27);
+    expect(pages).toHaveLength(28);
     expect(pages).toContainEqual({
       source: "docs/project/relevance-baselines.md",
       route: "docs/project/relevance-baselines",
       title: "Relevance baselines",
+    });
+    expect(pages).toContainEqual({
+      source: "docs/project/performance-baseline.md",
+      route: "docs/project/performance-baseline",
+      title: "Performance baseline",
     });
     expect(pages.some((page) => /archive|superpowers/.test(page.source))).toBe(
       false,
@@ -262,6 +267,30 @@ describe("documentation navigation", () => {
 });
 
 describe("documentation rendering", () => {
+  test("publishes the reviewed CMS-2k performance baseline", async () => {
+    const source = await readFile(
+      new URL("../../docs/project/performance-baseline.md", import.meta.url),
+      "utf8",
+    );
+    const html = await marked.parse(source, {
+      renderer: createMarkdownRenderer(),
+    });
+
+    expect(html).toContain("CMS-2k Chromium vertical baseline");
+    expect(html).toContain("pnpm benchmark:baseline");
+    expect(html).toContain("pnpm benchmark:render");
+    expect(html).toContain("reviewed-baseline.json");
+    expect(html).toContain("fresh Chromium context");
+    expect(html).toContain("Warm search");
+    expect(html).toContain("p50");
+    expect(html).toContain("p95");
+    expect(html).toContain("gzip-equivalent");
+    expect(html).toContain("Heap status");
+    expect(html).toContain("not a performance budget");
+    expect(html).toContain("not a supported operating range");
+    expect(html).toContain("multiple corpus sizes");
+  });
+
   test("publishes the reviewed documentation-domain baseline", async () => {
     const source = await readFile(
       new URL("../../docs/project/relevance-baselines.md", import.meta.url),

@@ -31,6 +31,7 @@ afterEach(async () => {
 
 it("renders the reviewed evidence and interpretation limits", () => {
   const report = createReportFixture();
+  report.environment.cpuModel = "  Test CPU  ";
   const reportSha256 = "b".repeat(64);
   const markdown = renderPerformanceBaseline(report, reportSha256);
   expect(markdown).toContain("# Performance baseline");
@@ -41,6 +42,9 @@ it("renders the reviewed evidence and interpretation limits", () => {
   expect(markdown).toContain("gzip-equivalent");
   expect(markdown).toContain("not a performance budget");
   expect(markdown).toContain("not a supported operating range");
+  expect(markdown).toContain("reviewed-baseline.json");
+  expect(markdown).toContain("multiple corpus sizes");
+  expect(markdown).toContain("- CPU: Test CPU, 8 logical CPUs");
   expect(markdown).toContain(reportSha256);
 });
 
@@ -50,7 +54,7 @@ it("promotes one explicit full report and supports rendering the stable input", 
   const bytes = `${JSON.stringify(createReportFixture(), null, 2)}\n`;
   await writeFile(input, bytes);
 
-  const result = await promoteAndRender(input, root);
+  const result = await promoteAndRender("candidate.json", root);
   expect(await readFile(result.reviewedReportPath, "utf8")).toBe(bytes);
   expect(await readFile(result.markdownPath, "utf8")).toContain(
     createHash("sha256").update(bytes).digest("hex"),
