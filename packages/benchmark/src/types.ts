@@ -60,3 +60,46 @@ export interface IndexMeasurement {
   shardCount: number;
   artifacts: ArtifactMeasurement[];
 }
+
+export type HeapMeasurement =
+  | { status: "available"; usedBytes: number }
+  | { status: "unavailable"; reason: string };
+
+export interface TransferSample {
+  requestCount: number;
+  rawBytes: number;
+  gzipBytes: number;
+  paths: string[];
+}
+
+export interface ColdQueryMeasurement {
+  id: string;
+  initialize: SampleSummary;
+  firstQuery: SampleSummary;
+  combined: SampleSummary;
+  requestCount: SampleSummary;
+  rawBytes: SampleSummary;
+  gzipBytes: SampleSummary;
+  transfers: TransferSample[];
+  heapAfterInitialize: HeapMeasurement[];
+  heapAfterQuery: HeapMeasurement[];
+}
+
+export interface WarmQueryMeasurement {
+  id: string;
+  duration: SampleSummary;
+}
+
+export interface WarmMeasurement {
+  wholePass: SampleSummary;
+  queries: WarmQueryMeasurement[];
+  indexRequestCount: 0;
+  heapAfterInitialize: HeapMeasurement;
+  heapAfterFinalPass: HeapMeasurement;
+}
+
+export interface BrowserMeasurement {
+  browser: { name: "chromium"; version: string };
+  cold: ColdQueryMeasurement[];
+  warm: WarmMeasurement;
+}
