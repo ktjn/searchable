@@ -9,6 +9,13 @@ export function createReportFixture(): BenchmarkReportV1 {
     expected: { totalHits: 0 },
   };
   const summary = { samples: [1, 2], p50: 1, p95: 2, min: 1, max: 2 };
+  const combinedSummary = {
+    samples: [2, 4],
+    p50: 2,
+    p95: 4,
+    min: 2,
+    max: 4,
+  };
   const heap = { status: "unavailable" as const, reason: "test fixture" };
   return {
     schemaVersion: 1,
@@ -63,10 +70,10 @@ export function createReportFixture(): BenchmarkReportV1 {
         id: "no-match",
         initialize: structuredClone(summary),
         firstQuery: structuredClone(summary),
-        combined: structuredClone(summary),
-        requestCount: structuredClone(summary),
-        rawBytes: structuredClone(summary),
-        gzipBytes: structuredClone(summary),
+        combined: structuredClone(combinedSummary),
+        requestCount: { samples: [1, 1], p50: 1, p95: 1, min: 1, max: 1 },
+        rawBytes: { samples: [10, 10], p50: 10, p95: 10, min: 10, max: 10 },
+        gzipBytes: { samples: [20, 20], p50: 20, p95: 20, min: 20, max: 20 },
         transfers: [
           {
             requestCount: 1,

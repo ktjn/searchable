@@ -9,9 +9,20 @@ and published as the [performance baseline](../../project/performance-baseline.m
 
 **Goal:** Build and publish the first reproducible CMS-2k Chromium performance baseline with correctness-checked cold and warm lexical measurements, stable JSON evidence, and a reviewed Markdown report.
 
-**Architecture:** Add a private `@ktjn/searchable-benchmark` workspace package that composes the existing deterministic fixtures, real indexer, built browser client, and Playwright Chromium. Keep workload identity, index measurement, loopback serving, browser measurement, report validation, atomic publication, and Markdown rendering as separate internal units; preserve the historical indexer scaling script unchanged.
+**Architecture:** Add a private `@ktjn/searchable-benchmark` workspace package that composes the existing deterministic fixtures, real indexer, built browser client, and Playwright Chromium. Keep workload identity, index measurement, loopback serving, browser measurement, report validation, recoverable staged publication, and Markdown rendering as separate internal units; preserve the historical indexer scaling script unchanged.
 
 **Tech Stack:** Node.js 24, TypeScript 7, pnpm 11, Vitest 4, Playwright Chromium, existing Searchable fixtures/indexer/client workspaces, SHA-256, loopback HTTP, JSON, Markdown.
+
+## Post-implementation review hardening
+
+Independent review tightened the evidence boundary before publication. Promotion
+now requires the exact canonical CMS-2k workload identity and run counts, report
+validation recomputes derived cold-transfer metrics from the artifact inventory,
+and warm measurement rejects every generated-index request, including failed or
+aborted requests. Final reports are written only after server and temporary-file
+cleanup succeeds. The two reviewed artifacts use a recoverable staged
+transaction: rollback failures preserve named backup files and report their
+paths instead of deleting the last recoverable copy.
 
 ## Global Constraints
 
@@ -1007,7 +1018,7 @@ git commit -m "feat(benchmark): emit validated reports"
 
 **Interfaces:**
 - Consumes: one explicit validated schema-version-1 JSON path.
-- Produces: `promoteAndRender(reportPath, repositoryRoot)` that atomically writes reviewed JSON and deterministic Markdown.
+- Produces: `promoteAndRender(reportPath, repositoryRoot)` that publishes reviewed JSON and deterministic Markdown through a recoverable staged transaction.
 
 - [ ] **Step 1: Write failing renderer and promotion tests**
 
@@ -1044,7 +1055,8 @@ Expected: FAIL because the renderer does not exist.
 `promoteAndRender()` must:
 
 1. read the explicit input and validate it;
-2. require `run.profile === "cms-2k"` and `run.dirty === false`;
+2. require `run.profile === "cms-2k"`, `run.dirty === false`, and exact
+   canonical CMS-2k run/workload identity;
 3. hash the exact input bytes with SHA-256;
 4. render Markdown only from the parsed validated report;
 5. stage reviewed JSON and Markdown as temporary siblings;
@@ -1052,7 +1064,8 @@ Expected: FAIL because the renderer does not exist.
 7. rename both staged files only after both writes succeed;
 8. restore both backups and remove any newly promoted file if either rename
    fails; and
-9. remove temporary siblings/backups in `finally` after success.
+9. remove temporary siblings/backups after success, while preserving and
+   reporting any backup whose rollback restoration fails.
 
 Render sections for workload, environment, index build/output, cold per-query
 latency/transfers, warm per-query and whole-pass latency, heap status,

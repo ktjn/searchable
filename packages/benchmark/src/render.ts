@@ -8,8 +8,10 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { BASELINE_CONFIG } from "./config.js";
 import { validateReport } from "./report.js";
 import type { BenchmarkReportV1, HeapMeasurement } from "./types.js";
+import { createWorkload, hashCanonical } from "./workload.js";
 
 function milliseconds(value: number): string {
   return `${value.toFixed(2)} ms`;
@@ -97,7 +99,7 @@ ${coldRows}
 
 ## Warm search
 
-Measured passes made ${report.warm.indexRequestCount} successful index requests.
+Measured passes made ${report.warm.indexRequestCount} generated-index requests.
 
 | Query | p50 | p95 |
 | --- | ---: | ---: |
@@ -182,6 +184,18 @@ export async function promoteAndRender(
     throw new Error("only cms-2k reports can be promoted");
   if (report.run.dirty)
     throw new Error("cms-2k report must come from a clean worktree");
+  const canonical = createWorkload(BASELINE_CONFIG);
+  if (
+    report.run.warmupCount !== BASELINE_CONFIG.warmupCount ||
+    report.run.repeatCount !== BASELINE_CONFIG.repeatCount ||
+    report.corpus.documentCount !== canonical.documents.length ||
+    report.corpus.sha256 !== canonical.corpusHash ||
+    hashCanonical(report.corpus.languageCounts) !==
+      hashCanonical(canonical.languageCounts) ||
+    report.queries.sha256 !== canonical.querySetHash
+  ) {
+    throw new Error("report does not match the canonical CMS-2k profile");
+  }
   const reportSha256 = createHash("sha256").update(inputBytes).digest("hex");
   const markdown = renderPerformanceBaseline(report, reportSha256);
 
@@ -201,6 +215,7 @@ export async function promoteAndRender(
     promoted: false,
   }));
 
+  let promotionSucceeded = false;
   try {
     for (const state of states) {
       await io.writeFile(state.stage, state.data, { flag: "wx" });
@@ -215,18 +230,45 @@ export async function promoteAndRender(
       await io.rename(state.stage, state.path);
       state.promoted = true;
     }
+    promotionSucceeded = true;
   } catch (error) {
+    const rollbackErrors: unknown[] = [];
     for (const state of [...states].reverse()) {
-      if (state.promoted)
-        await io.rm(state.path, { force: true }).catch(() => undefined);
-      if (state.backedUp)
-        await io.rename(state.backup, state.path).catch(() => undefined);
+      let targetAbsent = !state.promoted;
+      if (state.promoted) {
+        try {
+          await io.rm(state.path, { force: true });
+          state.promoted = false;
+          targetAbsent = true;
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError);
+        }
+      }
+      if (state.backedUp && targetAbsent) {
+        try {
+          await io.rename(state.backup, state.path);
+          state.backedUp = false;
+        } catch (rollbackError) {
+          rollbackErrors.push(rollbackError);
+        }
+      }
+    }
+    if (rollbackErrors.length > 0) {
+      const recoverable = states
+        .filter((state) => state.backedUp)
+        .map((state) => state.backup)
+        .join(", ");
+      throw new AggregateError(
+        [error, ...rollbackErrors],
+        `promotion failed and rollback failed; recover from: ${recoverable}`,
+      );
     }
     throw error;
   } finally {
     for (const state of states) {
       await io.rm(state.stage, { force: true }).catch(() => undefined);
-      await io.rm(state.backup, { force: true }).catch(() => undefined);
+      if (promotionSucceeded || !state.backedUp)
+        await io.rm(state.backup, { force: true }).catch(() => undefined);
     }
   }
 

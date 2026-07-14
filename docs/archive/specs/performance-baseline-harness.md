@@ -108,11 +108,14 @@ The reviewed raw baseline is copied to a stable checked-in path:
 benchmark-results/cms-2k/reviewed-baseline.json
 ```
 
-`benchmark:render` accepts an explicit report path, validates it, atomically
-copies it to `reviewed-baseline.json`, and renders the published summary at
+`benchmark:render` accepts an explicit report path, validates it against the
+canonical CMS-2k identity, copies it through a recoverable staged transaction to
+`reviewed-baseline.json`, and renders the published summary at
 `docs/project/performance-baseline.md` from that stable copy. It never discovers
 the newest report implicitly. The summary records the reviewed report path and
-content hash so the reviewed prose cannot silently refer to a different run.
+content hash so the reviewed prose cannot silently refer to a different run. If
+rollback restoration fails, the command preserves and reports the backup path
+instead of deleting the last recoverable copy.
 
 `benchmark:smoke` uses a small corpus, one discarded warm-up, and two measured
 repetitions. It proves the full Node-to-browser data path without establishing

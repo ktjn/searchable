@@ -2,18 +2,36 @@ import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   rename,
   rm,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { promoteAndRender, renderPerformanceBaseline } from "../src/render.js";
+import type { BenchmarkReportV1 } from "../src/types.js";
+import { hashCanonical } from "../src/workload.js";
 import { createReportFixture } from "./report-fixture.js";
 
 const roots: string[] = [];
+const reviewedFixturePath = fileURLToPath(
+  new URL(
+    "../../../benchmark-results/cms-2k/reviewed-baseline.json",
+    import.meta.url,
+  ),
+);
+
+async function canonicalReportBytes(): Promise<Buffer> {
+  return readFile(reviewedFixturePath);
+}
+
+async function canonicalReport(): Promise<BenchmarkReportV1> {
+  return JSON.parse((await canonicalReportBytes()).toString("utf8"));
+}
 
 async function temporaryRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "searchable-render-"));
@@ -51,11 +69,13 @@ it("renders the reviewed evidence and interpretation limits", () => {
 it("promotes one explicit full report and supports rendering the stable input", async () => {
   const root = await temporaryRoot();
   const input = join(root, "candidate.json");
-  const bytes = `${JSON.stringify(createReportFixture(), null, 2)}\n`;
+  const bytes = await canonicalReportBytes();
   await writeFile(input, bytes);
 
   const result = await promoteAndRender("candidate.json", root);
-  expect(await readFile(result.reviewedReportPath, "utf8")).toBe(bytes);
+  expect(await readFile(result.reviewedReportPath, "utf8")).toBe(
+    bytes.toString("utf8"),
+  );
   expect(await readFile(result.markdownPath, "utf8")).toContain(
     createHash("sha256").update(bytes).digest("hex"),
   );
@@ -84,6 +104,58 @@ it("rejects missing, smoke, and unknown-schema input", async () => {
   await expect(promoteAndRender(unknownPath, root)).rejects.toThrow(
     /schemaVersion/,
   );
+
+  const altered = await canonicalReport();
+  const firstDefinition = altered.queries.definitions[0];
+  if (!firstDefinition)
+    throw new Error("canonical report must contain a query");
+  firstDefinition.expected.totalHits = 1;
+  const { sha256: _oldHash, ...alteredQuery } = firstDefinition;
+  firstDefinition.sha256 = hashCanonical(alteredQuery);
+  altered.queries.sha256 = hashCanonical(
+    altered.queries.definitions.map(({ sha256: _hash, ...query }) => query),
+  );
+  const alteredPath = join(root, "altered.json");
+  await writeFile(alteredPath, JSON.stringify(altered));
+  await expect(promoteAndRender(alteredPath, root)).rejects.toThrow(
+    /canonical CMS-2k/,
+  );
+});
+
+it("preserves a recoverable backup when rollback restoration fails", async () => {
+  const root = await temporaryRoot();
+  const reviewed = join(
+    root,
+    "benchmark-results",
+    "cms-2k",
+    "reviewed-baseline.json",
+  );
+  const markdown = join(root, "docs", "project", "performance-baseline.md");
+  await writeFile(reviewed, "previous report");
+  await writeFile(markdown, "previous markdown");
+  const input = join(root, "candidate.json");
+  await writeFile(input, await canonicalReportBytes());
+
+  await expect(
+    promoteAndRender(input, root, {
+      rename: async (from, to) => {
+        if (to === markdown && from.includes(".stage-"))
+          throw new Error("promotion failed");
+        if (to === reviewed && from.includes(".backup-"))
+          throw new Error("restore failed");
+        await rename(from, to);
+      },
+    }),
+  ).rejects.toThrow(/rollback failed/);
+  const recoverable = (await readdir(dirname(reviewed))).filter((name) =>
+    name.includes("reviewed-baseline.json.backup-"),
+  );
+  expect(recoverable).toHaveLength(1);
+  const backup = recoverable[0];
+  if (!backup) throw new Error("recoverable backup must exist");
+  expect(await readFile(join(dirname(reviewed), backup), "utf8")).toBe(
+    "previous report",
+  );
 });
 
 it("restores both previous stable artifacts when the second promotion fails", async () => {
@@ -98,7 +170,7 @@ it("restores both previous stable artifacts when the second promotion fails", as
   await writeFile(reviewed, "previous report");
   await writeFile(markdown, "previous markdown");
   const input = join(root, "candidate.json");
-  await writeFile(input, JSON.stringify(createReportFixture()));
+  await writeFile(input, await canonicalReportBytes());
 
   await expect(
     promoteAndRender(input, root, {

@@ -72,7 +72,7 @@ describe("Chromium browser measurement", () => {
   }, 30_000);
 });
 
-it("rejects an unexpected successful index response during warm measurement", async () => {
+it("rejects an unexpected failed index response during warm measurement", async () => {
   const html = `<!doctype html><script>
     window.searchableBenchmark = {
       count: 0,
@@ -92,7 +92,7 @@ it("rejects an unexpected successful index response during warm measurement", as
   const nodeServer = createServer((request, response) => {
     if (request.url === "/index/probe.json") {
       response
-        .writeHead(200, { "content-type": "application/json" })
+        .writeHead(503, { "content-type": "application/json" })
         .end('{"ok":true}');
       return;
     }

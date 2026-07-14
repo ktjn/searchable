@@ -65,7 +65,7 @@ function validateSummary(
   value: unknown,
   name: string,
   expectedLength: number,
-): void {
+): number[] {
   const summary = record(value, name);
   const samples = array(summary.samples, `${name}.samples`).map(
     (sample, index) => finite(sample, `${name}.samples[${index}]`),
@@ -79,6 +79,7 @@ function validateSummary(
       throw new Error(`${name}.${key} does not match samples`);
     }
   }
+  return samples;
 }
 
 function validateHeap(
@@ -212,6 +213,10 @@ export function validateReport(value: unknown): BenchmarkReportV1 {
   if (index.documentCount !== documentCount)
     throw new Error("index.documentCount must match corpus");
   const artifacts = array(index.artifacts, "index.artifacts");
+  const artifactsByPath = new Map<
+    string,
+    { rawBytes: number; gzipBytes: number }
+  >();
   let rawTotal = 0;
   let gzipTotal = 0;
   let previousPath = "";
@@ -224,16 +229,19 @@ export function validateReport(value: unknown): BenchmarkReportV1 {
     if (path <= previousPath)
       throw new Error("index artifacts must be uniquely path-sorted");
     previousPath = path;
-    rawTotal += finite(
+    const rawBytes = finite(
       artifact.rawBytes,
       `index.artifacts[${artifactIndex}].rawBytes`,
       true,
     );
-    gzipTotal += finite(
+    const gzipBytes = finite(
       artifact.gzipBytes,
       `index.artifacts[${artifactIndex}].gzipBytes`,
       true,
     );
+    rawTotal += rawBytes;
+    gzipTotal += gzipBytes;
+    artifactsByPath.set(path, { rawBytes, gzipBytes });
   }
   if (
     index.fileCount !== artifacts.length ||
@@ -246,6 +254,8 @@ export function validateReport(value: unknown): BenchmarkReportV1 {
   if (queries.id !== "cms-2k-lexical-v1")
     throw new Error("queries.id is invalid");
   const definitions = array(queries.definitions, "queries.definitions");
+  if (definitions.length === 0)
+    throw new Error("queries.definitions must not be empty");
   const plainQueries: BenchmarkQuery[] = [];
   for (const [queryIndex, value] of definitions.entries()) {
     const definition = record(value, `queries.definitions[${queryIndex}]`);
@@ -271,19 +281,49 @@ export function validateReport(value: unknown): BenchmarkReportV1 {
     throw new Error("cold query IDs must match definitions");
   for (const [coldIndex, value] of cold.entries()) {
     const measurement = record(value, `cold[${coldIndex}]`);
-    for (const field of [
-      "initialize",
-      "firstQuery",
-      "combined",
-      "requestCount",
-      "rawBytes",
-      "gzipBytes",
-    ])
-      validateSummary(
-        measurement[field],
-        `cold[${coldIndex}].${field}`,
-        repeatCount,
-      );
+    const initializeSamples = validateSummary(
+      measurement.initialize,
+      `cold[${coldIndex}].initialize`,
+      repeatCount,
+    );
+    const firstQuerySamples = validateSummary(
+      measurement.firstQuery,
+      `cold[${coldIndex}].firstQuery`,
+      repeatCount,
+    );
+    const combinedSamples = validateSummary(
+      measurement.combined,
+      `cold[${coldIndex}].combined`,
+      repeatCount,
+    );
+    const requestCountSamples = validateSummary(
+      measurement.requestCount,
+      `cold[${coldIndex}].requestCount`,
+      repeatCount,
+    );
+    const rawBytesSamples = validateSummary(
+      measurement.rawBytes,
+      `cold[${coldIndex}].rawBytes`,
+      repeatCount,
+    );
+    const gzipBytesSamples = validateSummary(
+      measurement.gzipBytes,
+      `cold[${coldIndex}].gzipBytes`,
+      repeatCount,
+    );
+    for (let sample = 0; sample < repeatCount; sample += 1) {
+      const initialize = initializeSamples[sample];
+      const firstQuery = firstQuerySamples[sample];
+      const combined = combinedSamples[sample];
+      if (
+        initialize === undefined ||
+        firstQuery === undefined ||
+        combined === undefined ||
+        combined !== initialize + firstQuery
+      ) {
+        throw new Error(`cold[${coldIndex}].combined sample mismatch`);
+      }
+    }
     for (const field of ["heapAfterInitialize", "heapAfterQuery"] as const) {
       const heaps = array(measurement[field], `cold[${coldIndex}].${field}`);
       if (heaps.length !== repeatCount)
@@ -303,11 +343,38 @@ export function validateReport(value: unknown): BenchmarkReportV1 {
         value,
         `cold[${coldIndex}].transfers[${transferIndex}]`,
       );
-      finite(transfer.requestCount, "transfer.requestCount", true);
-      finite(transfer.rawBytes, "transfer.rawBytes", true);
-      finite(transfer.gzipBytes, "transfer.gzipBytes", true);
-      for (const path of array(transfer.paths, "transfer.paths"))
-        string(path, "transfer path");
+      const requestCount = finite(
+        transfer.requestCount,
+        "transfer.requestCount",
+        true,
+      );
+      const rawBytes = finite(transfer.rawBytes, "transfer.rawBytes", true);
+      const gzipBytes = finite(transfer.gzipBytes, "transfer.gzipBytes", true);
+      const paths = array(transfer.paths, "transfer.paths").map((path) =>
+        string(path, "transfer path"),
+      );
+      if (requestCount !== paths.length)
+        throw new Error("transfer requestCount must match paths length");
+      let artifactRawBytes = 0;
+      let artifactGzipBytes = 0;
+      for (const path of paths) {
+        const artifact = artifactsByPath.get(path);
+        if (!artifact)
+          throw new Error(`transfer path is missing from artifacts: ${path}`);
+        artifactRawBytes += artifact.rawBytes;
+        artifactGzipBytes += artifact.gzipBytes;
+      }
+      if (rawBytes !== artifactRawBytes)
+        throw new Error("transfer artifact raw bytes mismatch");
+      if (gzipBytes !== artifactGzipBytes)
+        throw new Error("transfer artifact gzip bytes mismatch");
+      if (
+        requestCountSamples[transferIndex] !== requestCount ||
+        rawBytesSamples[transferIndex] !== rawBytes ||
+        gzipBytesSamples[transferIndex] !== gzipBytes
+      ) {
+        throw new Error("cold transfer summary samples mismatch");
+      }
     }
   }
 

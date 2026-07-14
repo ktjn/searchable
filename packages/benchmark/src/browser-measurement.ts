@@ -1,5 +1,5 @@
 import type { SearchResult } from "@ktjn/searchable-client";
-import type { Page, Response } from "@playwright/test";
+import type { Page, Request, Response } from "@playwright/test";
 import { chromium } from "@playwright/test";
 import type { BenchmarkServer } from "./server.js";
 import { summarizeSamples } from "./statistics.js";
@@ -255,11 +255,17 @@ async function measureWarm(
     }
 
     page.off("response", ignoredResponse);
-    const collector = createTransferCollector(
-      options.server,
-      options.artifacts,
-    );
-    page.on("response", collector.handler);
+    const base = new URL(options.server.baseUrl);
+    const warmIndexPaths: string[] = [];
+    const observeWarmRequest = (request: Request): void => {
+      const url = new URL(request.url());
+      if (url.origin === base.origin && url.pathname.startsWith("/index/")) {
+        warmIndexPaths.push(
+          decodeURIComponent(url.pathname.slice("/index/".length)),
+        );
+      }
+    };
+    page.on("request", observeWarmRequest);
     const wholePassSamples: number[] = [];
     const querySamples = new Map(
       options.queries.map((query) => [query.id, [] as number[]]),
@@ -277,10 +283,9 @@ async function measureWarm(
         }
       }
 
-      const transfer = await collector.snapshot();
-      if (transfer.requestCount !== 0) {
+      if (warmIndexPaths.length !== 0) {
         throw new Error(
-          `unexpected warm network: ${transfer.paths.join(", ")}`,
+          `unexpected warm network: ${warmIndexPaths.join(", ")}`,
         );
       }
 
@@ -300,7 +305,7 @@ async function measureWarm(
         heapAfterFinalPass,
       };
     } finally {
-      page.off("response", collector.handler);
+      page.off("request", observeWarmRequest);
     }
   } finally {
     page.off("response", ignoredResponse);

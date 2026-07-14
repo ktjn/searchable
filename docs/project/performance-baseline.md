@@ -49,7 +49,7 @@ Each sample initializes a fresh strict, main-thread client in a fresh Chromium c
 
 ## Warm search
 
-Measured passes made 0 successful index requests.
+Measured passes made 0 generated-index requests.
 
 | Query | p50 | p95 |
 | --- | ---: | ---: |

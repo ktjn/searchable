@@ -4,7 +4,15 @@ import {
   validateReport,
   writeReportAtomic,
 } from "../src/report.js";
+import { summarizeSamples } from "../src/statistics.js";
+import type { BenchmarkReportV1, ColdQueryMeasurement } from "../src/types.js";
 import { createReportFixture } from "./report-fixture.js";
+
+function firstCold(report: BenchmarkReportV1): ColdQueryMeasurement {
+  const measurement = report.cold[0];
+  if (!measurement) throw new Error("fixture must contain a cold query");
+  return measurement;
+}
 
 describe("benchmark report validation", () => {
   it("captures the installed pnpm version on the host platform", async () => {
@@ -72,5 +80,28 @@ describe("benchmark report validation", () => {
       expect.stringContaining('"schemaVersion": 1'),
       { flag: "wx" },
     );
+  });
+
+  it("rejects internally inconsistent derived cold measurements", () => {
+    const combined = createReportFixture();
+    firstCold(combined).combined = summarizeSamples([99, 2]);
+    expect(() => validateReport(combined)).toThrow(/combined/);
+
+    const requestCount = createReportFixture();
+    const requestMeasurement = firstCold(requestCount);
+    const firstRequestTransfer = requestMeasurement.transfers[0];
+    if (!firstRequestTransfer)
+      throw new Error("fixture must contain a transfer");
+    firstRequestTransfer.requestCount = 2;
+    requestMeasurement.requestCount = summarizeSamples([2, 1]);
+    expect(() => validateReport(requestCount)).toThrow(/paths/);
+
+    const bytes = createReportFixture();
+    const bytesMeasurement = firstCold(bytes);
+    const firstBytesTransfer = bytesMeasurement.transfers[0];
+    if (!firstBytesTransfer) throw new Error("fixture must contain a transfer");
+    firstBytesTransfer.rawBytes = 11;
+    bytesMeasurement.rawBytes = summarizeSamples([11, 10]);
+    expect(() => validateReport(bytes)).toThrow(/artifact raw bytes/);
   });
 });

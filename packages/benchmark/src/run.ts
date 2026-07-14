@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { performance } from "node:perf_hooks";
 import { promisify } from "node:util";
 import { measureBrowser } from "./browser-measurement.js";
@@ -172,13 +172,11 @@ export async function runBenchmark(
       "benchmark-results",
       config.profile,
     );
-    await dependencies.ensureDirectory(outputDirectory);
     const timestamp = startedAt.replace(/[:.]/g, "-");
     const outputPath = join(
       outputDirectory,
       `${timestamp}-${git.commit.slice(0, 7)}.json`,
     );
-    await dependencies.writeReport(report, outputPath);
     result = { report, outputPath };
   } catch (error) {
     runError = error;
@@ -196,5 +194,7 @@ export async function runBenchmark(
   if (cleanupErrors.length > 0) throw cleanupErrors[0];
   if (result === undefined)
     throw new Error("benchmark completed without a result");
+  await dependencies.ensureDirectory(dirname(result.outputPath));
+  await dependencies.writeReport(result.report, result.outputPath);
   return result;
 }
