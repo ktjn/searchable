@@ -13,6 +13,7 @@ This page is the single current list of shipped capability and remaining work; d
 | Offline and worker execution | Stable | Resource-aware loading refinements |
 | Binary storage | Term, fuzzy, and document-store codecs | Evaluate remaining shard formats from measured evidence |
 | Vector and hybrid search | Optional storage, similarity, and local embeddings implemented | Public semantic showcase and documented scale limits |
+| Performance and scale | One reviewed CMS-2k Chromium main-thread lexical vertical baseline with raw JSON evidence | Broader sizes, browsers, execution modes, query classes, operating guidance, and CI comparison |
 | Extensibility and diagnostics | Draft designs archived | Implement only with a concrete consumer |
 
 ## Near-term work
@@ -27,15 +28,26 @@ This page is the single current list of shipped capability and remaining work; d
 
 ## Performance and scale evidence
 
-Publish reproducible benchmarks for representative corpus sizes and deployment classes. At minimum, measure:
+The first reviewed vertical baseline now measures the deterministic CMS-2k
+corpus with the real indexer and a strict main-thread client in headless
+Chromium. It records cold and warm p50/p95 latency, fetched bytes,
+gzip-equivalent artifact sizes, shard counts, and explicit heap availability.
+See [Performance baseline](performance-baseline.md) for the environment,
+commands, query definitions, interpretation limits, and reviewed raw JSON.
 
-- cold-cache and warm-cache query latency, including p50 and p95
-- bytes fetched per query, total index size, and shard count
-- peak browser heap usage and low-end mobile behavior
-- prefix, fuzzy, phrase, facet, lexical, vector, and hybrid queries
-- vector search across representative vector counts and dimensions
+This is one narrow evidence point, not complete performance-and-scale coverage.
+Keep the following work open:
 
-Publish the corpus generator, benchmark configuration, browser versions, and raw results. Use the results to document supported operating ranges, warning thresholds, shard-sizing guidance, and feature-specific costs.
+- multiple corpus sizes and deployment classes
+- Firefox, WebKit, and low-end mobile measurements
+- worker, Service Worker, and browser-cache-warm modes
+- prefix, fuzzy, phrase, facet, vector, and hybrid expansion beyond the current six-query slice
+- supported operating ranges, shard-sizing guidance, and warning thresholds
+- CI benchmark comparison and enforcement
+
+Add each dimension only with a fixed workload, recorded environment, raw
+evidence, and explicit interpretation boundary. Do not infer a budget or
+supported range from the current single-machine run.
 
 ## Relevance quality gates
 
@@ -49,12 +61,13 @@ Treat relevance as a measurable quality attribute rather than only a correctness
 
 The deterministic evaluator and small native-source regression suites cover all
 six full language profiles, and two reviewed domains supply graded multi-page
-judgments: the 28-page documentation corpus and the 22-page GOV.UK
+judgments: the 29-page documentation corpus and the 22-page GOV.UK
 learner-driving journey. See [Relevance
 baselines](relevance-baselines.md) for commands, metrics, provenance
 requirements, and interpretation limits. These remain narrow representative
 domains, not broad domain coverage or a CI quality gate. Quality thresholds,
-performance evidence, query-planning work, and CI enforcement remain open.
+broader performance evidence, query-planning work, and CI enforcement remain
+open.
 
 Run relevance evaluation when changing analyzers, tokenization, stemming, synonyms, fuzzy expansion, BM25 parameters, field boosts, phrase behavior, or hybrid fusion. Keep domain-specific relevance suites separate from generic engine conformance tests.
 

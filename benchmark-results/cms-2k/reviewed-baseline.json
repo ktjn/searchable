@@ -1,0 +1,2466 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "startedAt": "2026-07-14T07:40:34.883Z",
+    "completedInMs": 7808.9592,
+    "commit": "083ef8bf52a425d1c67a370524cfc65996b24644",
+    "dirty": false,
+    "profile": "cms-2k",
+    "timingMethod": "performance.now",
+    "warmupCount": 1,
+    "repeatCount": 10
+  },
+  "environment": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "architecture": "x64",
+    "cpuModel": "AMD Ryzen 7 7800X3D 8-Core Processor           ",
+    "logicalCpuCount": 16,
+    "nodeVersion": "v24.17.0",
+    "pnpmVersion": "11.11.0",
+    "playwrightVersion": "1.61.1",
+    "chromiumVersion": "149.0.7827.55",
+    "headless": true,
+    "launchFlags": [
+      "--enable-precise-memory-info"
+    ]
+  },
+  "corpus": {
+    "generator": "generateCms2kCorpus",
+    "documentCount": 2006,
+    "languageCounts": {
+      "en": 1003,
+      "de": 1003
+    },
+    "sha256": "af958e84d0169f55258440c0d683604d9411dc4dbe965acd0199a84111c1428d"
+  },
+  "index": {
+    "documentCount": 2006,
+    "generationMs": 26.78729999999996,
+    "buildMs": 557.3499999999999,
+    "writeMs": 421.1670999999999,
+    "totalRawBytes": 13655943,
+    "totalGzipBytes": 650659,
+    "manifestRawBytes": 4315,
+    "fileCount": 54,
+    "shardCount": 51,
+    "artifacts": [
+      {
+        "path": "docs/0.b8690f27.json",
+        "rawBytes": 650232,
+        "gzipBytes": 18817
+      },
+      {
+        "path": "facets/category.9d08b404.json",
+        "rawBytes": 9073,
+        "gzipBytes": 4001
+      },
+      {
+        "path": "facets/tags.1470d304.json",
+        "rawBytes": 18267,
+        "gzipBytes": 5177
+      },
+      {
+        "path": "manifest.json",
+        "rawBytes": 4315,
+        "gzipBytes": 1062
+      },
+      {
+        "path": "pins/de.9498d23a.json",
+        "rawBytes": 151,
+        "gzipBytes": 104
+      },
+      {
+        "path": "pins/en.c241a889.json",
+        "rawBytes": 151,
+        "gzipBytes": 101
+      },
+      {
+        "path": "terms/de/a.2befe3c9.json",
+        "rawBytes": 472466,
+        "gzipBytes": 22135
+      },
+      {
+        "path": "terms/de/b.3f082bc6.json",
+        "rawBytes": 367426,
+        "gzipBytes": 17187
+      },
+      {
+        "path": "terms/de/c.38479a1a.json",
+        "rawBytes": 27354,
+        "gzipBytes": 1214
+      },
+      {
+        "path": "terms/de/d.668ab730.json",
+        "rawBytes": 559936,
+        "gzipBytes": 26678
+      },
+      {
+        "path": "terms/de/e.3ef2bfa0.json",
+        "rawBytes": 532125,
+        "gzipBytes": 25179
+      },
+      {
+        "path": "terms/de/f.2911b12d.json",
+        "rawBytes": 257991,
+        "gzipBytes": 12376
+      },
+      {
+        "path": "terms/de/g.a18e3910.json",
+        "rawBytes": 190569,
+        "gzipBytes": 8952
+      },
+      {
+        "path": "terms/de/h.9b5bf466.json",
+        "rawBytes": 139525,
+        "gzipBytes": 6346
+      },
+      {
+        "path": "terms/de/i.c3cb3819.json",
+        "rawBytes": 251689,
+        "gzipBytes": 12084
+      },
+      {
+        "path": "terms/de/j.4443b16c.json",
+        "rawBytes": 94211,
+        "gzipBytes": 4663
+      },
+      {
+        "path": "terms/de/k.868c2517.json",
+        "rawBytes": 235616,
+        "gzipBytes": 11009
+      },
+      {
+        "path": "terms/de/l.f1b46377.json",
+        "rawBytes": 165903,
+        "gzipBytes": 7752
+      },
+      {
+        "path": "terms/de/m.fbbf912d.json",
+        "rawBytes": 199267,
+        "gzipBytes": 9362
+      },
+      {
+        "path": "terms/de/n.ecf71807.json",
+        "rawBytes": 197772,
+        "gzipBytes": 9474
+      },
+      {
+        "path": "terms/de/o.edc37f3c.json",
+        "rawBytes": 91115,
+        "gzipBytes": 4296
+      },
+      {
+        "path": "terms/de/p.819d6514.json",
+        "rawBytes": 109350,
+        "gzipBytes": 5123
+      },
+      {
+        "path": "terms/de/r.ba6d4586.json",
+        "rawBytes": 98254,
+        "gzipBytes": 4282
+      },
+      {
+        "path": "terms/de/s.9e24010e.json",
+        "rawBytes": 608167,
+        "gzipBytes": 28788
+      },
+      {
+        "path": "terms/de/t.f28fb067.json",
+        "rawBytes": 185437,
+        "gzipBytes": 8723
+      },
+      {
+        "path": "terms/de/u.6b1ecdf5.json",
+        "rawBytes": 206828,
+        "gzipBytes": 10042
+      },
+      {
+        "path": "terms/de/v.d7ec264b.json",
+        "rawBytes": 331766,
+        "gzipBytes": 15827
+      },
+      {
+        "path": "terms/de/w.7e5cc9a6.json",
+        "rawBytes": 317751,
+        "gzipBytes": 14974
+      },
+      {
+        "path": "terms/de/z.590822ec.json",
+        "rawBytes": 117138,
+        "gzipBytes": 5705
+      },
+      {
+        "path": "terms/en/a.6175e41e.json",
+        "rawBytes": 696878,
+        "gzipBytes": 33237
+      },
+      {
+        "path": "terms/en/b.ccde1cf8.json",
+        "rawBytes": 418346,
+        "gzipBytes": 20417
+      },
+      {
+        "path": "terms/en/c.c93967d5.json",
+        "rawBytes": 429745,
+        "gzipBytes": 20189
+      },
+      {
+        "path": "terms/en/d.79f4b591.json",
+        "rawBytes": 207065,
+        "gzipBytes": 10152
+      },
+      {
+        "path": "terms/en/e.b3a246c7.json",
+        "rawBytes": 268128,
+        "gzipBytes": 13142
+      },
+      {
+        "path": "terms/en/f.24329f54.json",
+        "rawBytes": 430836,
+        "gzipBytes": 20633
+      },
+      {
+        "path": "terms/en/g.e281b1ec.json",
+        "rawBytes": 83909,
+        "gzipBytes": 4133
+      },
+      {
+        "path": "terms/en/h.1436efc1.json",
+        "rawBytes": 167010,
+        "gzipBytes": 8024
+      },
+      {
+        "path": "terms/en/i.aa05a067.json",
+        "rawBytes": 335124,
+        "gzipBytes": 16500
+      },
+      {
+        "path": "terms/en/j.f4635809.json",
+        "rawBytes": 45686,
+        "gzipBytes": 2228
+      },
+      {
+        "path": "terms/en/k.51f99ecd.json",
+        "rawBytes": 38432,
+        "gzipBytes": 1918
+      },
+      {
+        "path": "terms/en/l.054786e9.json",
+        "rawBytes": 170714,
+        "gzipBytes": 7887
+      },
+      {
+        "path": "terms/en/m.d658eea1.json",
+        "rawBytes": 347462,
+        "gzipBytes": 16822
+      },
+      {
+        "path": "terms/en/n.389f051b.json",
+        "rawBytes": 184657,
+        "gzipBytes": 9207
+      },
+      {
+        "path": "terms/en/o.d28283a0.json",
+        "rawBytes": 396318,
+        "gzipBytes": 19433
+      },
+      {
+        "path": "terms/en/p.aef15ebf.json",
+        "rawBytes": 306791,
+        "gzipBytes": 14984
+      },
+      {
+        "path": "terms/en/q.042af2f3.json",
+        "rawBytes": 50244,
+        "gzipBytes": 2455
+      },
+      {
+        "path": "terms/en/r.0db0bbc5.json",
+        "rawBytes": 340667,
+        "gzipBytes": 16209
+      },
+      {
+        "path": "terms/en/s.f95d8e9c.json",
+        "rawBytes": 797822,
+        "gzipBytes": 38702
+      },
+      {
+        "path": "terms/en/t.b005f5b2.json",
+        "rawBytes": 741265,
+        "gzipBytes": 35738
+      },
+      {
+        "path": "terms/en/u.9074d521.json",
+        "rawBytes": 148354,
+        "gzipBytes": 7334
+      },
+      {
+        "path": "terms/en/v.c91b17aa.json",
+        "rawBytes": 58187,
+        "gzipBytes": 2852
+      },
+      {
+        "path": "terms/en/w.9a1f0ed0.json",
+        "rawBytes": 497432,
+        "gzipBytes": 24196
+      },
+      {
+        "path": "terms/en/y.99193e13.json",
+        "rawBytes": 47379,
+        "gzipBytes": 2403
+      },
+      {
+        "path": "terms/en/z.1397e456.json",
+        "rawBytes": 7647,
+        "gzipBytes": 431
+      }
+    ]
+  },
+  "queries": {
+    "id": "cms-2k-lexical-v1",
+    "sha256": "ffdc3c47d0e6a522a2f8b044348eca9660664a6b7d458bd80ff5d77ca01d4a72",
+    "definitions": [
+      {
+        "id": "single-term",
+        "query": "benchmark",
+        "options": {
+          "limit": 10
+        },
+        "expected": {
+          "topUrl": "/en/engineering/engineering-scaling-regression-testing-7.html",
+          "totalHits": 125
+        },
+        "sha256": "55420af95e8c75b32c81c00b55fed377a6854fb1e6a644b4a7f029b0430a504a"
+      },
+      {
+        "id": "multi-term",
+        "query": "static shard hosting",
+        "options": {
+          "limit": 10
+        },
+        "expected": {
+          "topUrl": "/en/guides/guides-how-to-configure-progressive-feature-adoption-10.html",
+          "totalHits": 125
+        },
+        "sha256": "85b3b7b38c25f3a41820b11c8293c0542e97a2ff727fdd4afcf8ed8b90745ff3"
+      },
+      {
+        "id": "prefix",
+        "query": "bench*",
+        "options": {
+          "limit": 10
+        },
+        "expected": {
+          "topUrl": "/en/engineering/engineering-scaling-regression-testing-7.html",
+          "totalHits": 125
+        },
+        "sha256": "52ed379a69dffd1b00d8eda2852edda7f7f6e85b69ef4e24e5ade92fe08a1893"
+      },
+      {
+        "id": "no-match",
+        "query": "zzzz-no-match",
+        "options": {
+          "limit": 10
+        },
+        "expected": {
+          "totalHits": 0
+        },
+        "sha256": "57c5663f5aee64a184d0b235fe2f3669916166457fa9c69af5cda3e549b2159d"
+      },
+      {
+        "id": "filtered",
+        "query": "search",
+        "options": {
+          "limit": 10,
+          "filters": {
+            "category": "Engineering"
+          }
+        },
+        "expected": {
+          "topUrl": "/en/engineering/engineering-scaling-regression-testing-7.html",
+          "totalHits": 250
+        },
+        "sha256": "67237ffb03bd1f2fde90bb75be14172cbf7d87c065d16aeeb3495d3d13ae7c51"
+      },
+      {
+        "id": "faceted",
+        "query": "search",
+        "options": {
+          "limit": 10,
+          "facets": [
+            "category"
+          ]
+        },
+        "expected": {
+          "topUrl": "/en/product/product-a-closer-look-at-opt-in-search-features-20.html",
+          "totalHits": 627,
+          "facetValues": [
+            {
+              "value": "Company",
+              "count": 125,
+              "selected": false
+            },
+            {
+              "value": "Engineering",
+              "count": 250,
+              "selected": false
+            },
+            {
+              "value": "Guides",
+              "count": 125,
+              "selected": false
+            },
+            {
+              "value": "Product",
+              "count": 125,
+              "selected": false
+            }
+          ]
+        },
+        "sha256": "87518f6b7c9374bd47394477618b4bdf94c3afeb1e127d4498108bfa76e7777d"
+      }
+    ]
+  },
+  "cold": [
+    {
+      "id": "single-term",
+      "initialize": {
+        "samples": [
+          2.100000023841858,
+          2,
+          2,
+          1.9000000357627869,
+          1.899999976158142,
+          1.899999976158142,
+          1.800000011920929,
+          2,
+          2,
+          1.9000000357627869
+        ],
+        "p50": 1.9000000357627869,
+        "p95": 2.100000023841858,
+        "min": 1.800000011920929,
+        "max": 2.100000023841858
+      },
+      "firstQuery": {
+        "samples": [
+          13.399999976158142,
+          13.099999964237213,
+          14.600000023841858,
+          13.300000011920929,
+          13.399999976158142,
+          12.899999976158142,
+          13.199999988079071,
+          13.399999976158142,
+          13.799999952316284,
+          13.199999988079071
+        ],
+        "p50": 13.300000011920929,
+        "p95": 14.600000023841858,
+        "min": 12.899999976158142,
+        "max": 14.600000023841858
+      },
+      "combined": {
+        "samples": [
+          15.5,
+          15.099999964237213,
+          16.600000023841858,
+          15.200000047683716,
+          15.299999952316284,
+          14.799999952316284,
+          15,
+          15.399999976158142,
+          15.799999952316284,
+          15.100000023841858
+        ],
+        "p50": 15.200000047683716,
+        "p95": 16.600000023841858,
+        "min": 14.799999952316284,
+        "max": 16.600000023841858
+      },
+      "requestCount": {
+        "samples": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "p50": 4,
+        "p95": 4,
+        "min": 4,
+        "max": 4
+      },
+      "rawBytes": {
+        "samples": [
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044
+        ],
+        "p50": 1073044,
+        "p95": 1073044,
+        "min": 1073044,
+        "max": 1073044
+      },
+      "gzipBytes": {
+        "samples": [
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397
+        ],
+        "p50": 40397,
+        "p95": 40397,
+        "min": 40397,
+        "max": 40397
+      },
+      "transfers": [
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        }
+      ],
+      "heapAfterInitialize": [
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        }
+      ],
+      "heapAfterQuery": [
+        {
+          "status": "available",
+          "usedBytes": 4694628
+        },
+        {
+          "status": "available",
+          "usedBytes": 4703196
+        },
+        {
+          "status": "available",
+          "usedBytes": 4745980
+        },
+        {
+          "status": "available",
+          "usedBytes": 4700560
+        },
+        {
+          "status": "available",
+          "usedBytes": 4694628
+        },
+        {
+          "status": "available",
+          "usedBytes": 4709432
+        },
+        {
+          "status": "available",
+          "usedBytes": 4707732
+        },
+        {
+          "status": "available",
+          "usedBytes": 4711196
+        },
+        {
+          "status": "available",
+          "usedBytes": 4703984
+        },
+        {
+          "status": "available",
+          "usedBytes": 4716488
+        }
+      ]
+    },
+    {
+      "id": "multi-term",
+      "initialize": {
+        "samples": [
+          2,
+          1.899999976158142,
+          2,
+          2.099999964237213,
+          1.800000011920929,
+          2.100000023841858,
+          2,
+          1.9000000357627869,
+          2,
+          2
+        ],
+        "p50": 2,
+        "p95": 2.100000023841858,
+        "min": 1.800000011920929,
+        "max": 2.100000023841858
+      },
+      "firstQuery": {
+        "samples": [
+          18.899999976158142,
+          19.400000035762787,
+          20.599999964237213,
+          21.19999998807907,
+          19,
+          20,
+          20,
+          20.100000023841858,
+          21,
+          18.80000001192093
+        ],
+        "p50": 20,
+        "p95": 21.19999998807907,
+        "min": 18.80000001192093,
+        "max": 21.19999998807907
+      },
+      "combined": {
+        "samples": [
+          20.899999976158142,
+          21.30000001192093,
+          22.599999964237213,
+          23.299999952316284,
+          20.80000001192093,
+          22.100000023841858,
+          22,
+          22.000000059604645,
+          23,
+          20.80000001192093
+        ],
+        "p50": 22,
+        "p95": 23.299999952316284,
+        "min": 20.80000001192093,
+        "max": 23.299999952316284
+      },
+      "requestCount": {
+        "samples": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "p50": 5,
+        "p95": 5,
+        "min": 5,
+        "max": 5
+      },
+      "rawBytes": {
+        "samples": [
+          1619530,
+          1619530,
+          1619530,
+          1619530,
+          1619530,
+          1619530,
+          1619530,
+          1619530,
+          1619530,
+          1619530
+        ],
+        "p50": 1619530,
+        "p95": 1619530,
+        "min": 1619530,
+        "max": 1619530
+      },
+      "gzipBytes": {
+        "samples": [
+          66706,
+          66706,
+          66706,
+          66706,
+          66706,
+          66706,
+          66706,
+          66706,
+          66706,
+          66706
+        ],
+        "p50": 66706,
+        "p95": 66706,
+        "min": 66706,
+        "max": 66706
+      },
+      "transfers": [
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1619530,
+          "gzipBytes": 66706,
+          "paths": [
+            "manifest.json",
+            "terms/en/h.1436efc1.json",
+            "terms/en/s.f95d8e9c.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        }
+      ],
+      "heapAfterInitialize": [
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726727
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        }
+      ],
+      "heapAfterQuery": [
+        {
+          "status": "available",
+          "usedBytes": 6200019
+        },
+        {
+          "status": "available",
+          "usedBytes": 6209939
+        },
+        {
+          "status": "available",
+          "usedBytes": 6185663
+        },
+        {
+          "status": "available",
+          "usedBytes": 6231815
+        },
+        {
+          "status": "available",
+          "usedBytes": 6189159
+        },
+        {
+          "status": "available",
+          "usedBytes": 6215635
+        },
+        {
+          "status": "available",
+          "usedBytes": 6215859
+        },
+        {
+          "status": "available",
+          "usedBytes": 6188427
+        },
+        {
+          "status": "available",
+          "usedBytes": 6213015
+        },
+        {
+          "status": "available",
+          "usedBytes": 6199603
+        }
+      ]
+    },
+    {
+      "id": "prefix",
+      "initialize": {
+        "samples": [
+          2.099999964237213,
+          1.899999976158142,
+          1.899999976158142,
+          1.800000011920929,
+          2,
+          1.9000000357627869,
+          1.800000011920929,
+          1.9000000357627869,
+          1.800000011920929,
+          2
+        ],
+        "p50": 1.899999976158142,
+        "p95": 2.099999964237213,
+        "min": 1.800000011920929,
+        "max": 2.099999964237213
+      },
+      "firstQuery": {
+        "samples": [
+          13.800000011920929,
+          14.199999988079071,
+          13.099999964237213,
+          13.100000023841858,
+          13.399999976158142,
+          13.599999964237213,
+          13.899999976158142,
+          14,
+          13.5,
+          13.5
+        ],
+        "p50": 13.5,
+        "p95": 14.199999988079071,
+        "min": 13.099999964237213,
+        "max": 14.199999988079071
+      },
+      "combined": {
+        "samples": [
+          15.899999976158142,
+          16.099999964237213,
+          14.999999940395355,
+          14.900000035762787,
+          15.399999976158142,
+          15.5,
+          15.699999988079071,
+          15.900000035762787,
+          15.300000011920929,
+          15.5
+        ],
+        "p50": 15.5,
+        "p95": 16.099999964237213,
+        "min": 14.900000035762787,
+        "max": 16.099999964237213
+      },
+      "requestCount": {
+        "samples": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "p50": 4,
+        "p95": 4,
+        "min": 4,
+        "max": 4
+      },
+      "rawBytes": {
+        "samples": [
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044,
+          1073044
+        ],
+        "p50": 1073044,
+        "p95": 1073044,
+        "min": 1073044,
+        "max": 1073044
+      },
+      "gzipBytes": {
+        "samples": [
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397,
+          40397
+        ],
+        "p50": 40397,
+        "p95": 40397,
+        "min": 40397,
+        "max": 40397
+      },
+      "transfers": [
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 4,
+          "rawBytes": 1073044,
+          "gzipBytes": 40397,
+          "paths": [
+            "manifest.json",
+            "terms/en/b.ccde1cf8.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        }
+      ],
+      "heapAfterInitialize": [
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        }
+      ],
+      "heapAfterQuery": [
+        {
+          "status": "available",
+          "usedBytes": 4696784
+        },
+        {
+          "status": "available",
+          "usedBytes": 4707296
+        },
+        {
+          "status": "available",
+          "usedBytes": 4697092
+        },
+        {
+          "status": "available",
+          "usedBytes": 4704800
+        },
+        {
+          "status": "available",
+          "usedBytes": 4704000
+        },
+        {
+          "status": "available",
+          "usedBytes": 4710344
+        },
+        {
+          "status": "available",
+          "usedBytes": 4697848
+        },
+        {
+          "status": "available",
+          "usedBytes": 4693056
+        },
+        {
+          "status": "available",
+          "usedBytes": 4704800
+        },
+        {
+          "status": "available",
+          "usedBytes": 4704988
+        }
+      ]
+    },
+    {
+      "id": "no-match",
+      "initialize": {
+        "samples": [
+          2.199999988079071,
+          1.899999976158142,
+          1.800000011920929,
+          1.9000000357627869,
+          1.9000000357627869,
+          1.800000011920929,
+          1.9000000357627869,
+          1.800000011920929,
+          1.7999999523162842,
+          1.899999976158142
+        ],
+        "p50": 1.899999976158142,
+        "p95": 2.199999988079071,
+        "min": 1.7999999523162842,
+        "max": 2.199999988079071
+      },
+      "firstQuery": {
+        "samples": [
+          10.5,
+          10.800000011920929,
+          10.699999988079071,
+          12.599999964237213,
+          12.699999988079071,
+          11.100000023841858,
+          10.399999976158142,
+          10.699999988079071,
+          11.400000035762787,
+          10.5
+        ],
+        "p50": 10.699999988079071,
+        "p95": 12.699999988079071,
+        "min": 10.399999976158142,
+        "max": 12.699999988079071
+      },
+      "combined": {
+        "samples": [
+          12.699999988079071,
+          12.699999988079071,
+          12.5,
+          14.5,
+          14.600000023841858,
+          12.900000035762787,
+          12.300000011920929,
+          12.5,
+          13.199999988079071,
+          12.399999976158142
+        ],
+        "p50": 12.699999988079071,
+        "p95": 14.600000023841858,
+        "min": 12.300000011920929,
+        "max": 14.600000023841858
+      },
+      "requestCount": {
+        "samples": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "p50": 5,
+        "p95": 5,
+        "min": 5,
+        "max": 5
+      },
+      "rawBytes": {
+        "samples": [
+          544232,
+          544232,
+          544232,
+          544232,
+          544232,
+          544232,
+          544232,
+          544232,
+          544232,
+          544232
+        ],
+        "p50": 544232,
+        "p95": 544232,
+        "min": 544232,
+        "max": 544232
+      },
+      "gzipBytes": {
+        "samples": [
+          27623,
+          27623,
+          27623,
+          27623,
+          27623,
+          27623,
+          27623,
+          27623,
+          27623,
+          27623
+        ],
+        "p50": 27623,
+        "p95": 27623,
+        "min": 27623,
+        "max": 27623
+      },
+      "transfers": [
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 544232,
+          "gzipBytes": 27623,
+          "paths": [
+            "manifest.json",
+            "terms/en/m.d658eea1.json",
+            "terms/en/n.389f051b.json",
+            "terms/en/z.1397e456.json",
+            "pins/en.c241a889.json"
+          ]
+        }
+      ],
+      "heapAfterInitialize": [
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        }
+      ],
+      "heapAfterQuery": [
+        {
+          "status": "available",
+          "usedBytes": 3277373
+        },
+        {
+          "status": "available",
+          "usedBytes": 3306281
+        },
+        {
+          "status": "available",
+          "usedBytes": 3306281
+        },
+        {
+          "status": "available",
+          "usedBytes": 3291877
+        },
+        {
+          "status": "available",
+          "usedBytes": 3288077
+        },
+        {
+          "status": "available",
+          "usedBytes": 3306269
+        },
+        {
+          "status": "available",
+          "usedBytes": 3277001
+        },
+        {
+          "status": "available",
+          "usedBytes": 3306281
+        },
+        {
+          "status": "available",
+          "usedBytes": 3305301
+        },
+        {
+          "status": "available",
+          "usedBytes": 3284849
+        }
+      ]
+    },
+    {
+      "id": "filtered",
+      "initialize": {
+        "samples": [
+          2.300000011920929,
+          1.899999976158142,
+          1.899999976158142,
+          1.800000011920929,
+          1.899999976158142,
+          1.800000011920929,
+          2.100000023841858,
+          1.9000000357627869,
+          1.9000000357627869,
+          1.800000011920929
+        ],
+        "p50": 1.899999976158142,
+        "p95": 2.300000011920929,
+        "min": 1.800000011920929,
+        "max": 2.300000011920929
+      },
+      "firstQuery": {
+        "samples": [
+          22.19999998807907,
+          22.30000001192093,
+          21.600000023841858,
+          22.099999964237213,
+          21.700000047683716,
+          22.399999976158142,
+          22.899999976158142,
+          24.299999952316284,
+          22,
+          38.799999952316284
+        ],
+        "p50": 22.19999998807907,
+        "p95": 38.799999952316284,
+        "min": 21.600000023841858,
+        "max": 38.799999952316284
+      },
+      "combined": {
+        "samples": [
+          24.5,
+          24.19999998807907,
+          23.5,
+          23.899999976158142,
+          23.600000023841858,
+          24.19999998807907,
+          25,
+          26.19999998807907,
+          23.900000035762787,
+          40.59999996423721
+        ],
+        "p50": 24.19999998807907,
+        "p95": 40.59999996423721,
+        "min": 23.5,
+        "max": 40.59999996423721
+      },
+      "requestCount": {
+        "samples": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "p50": 5,
+        "p95": 5,
+        "min": 5,
+        "max": 5
+      },
+      "rawBytes": {
+        "samples": [
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593
+        ],
+        "p50": 1461593,
+        "p95": 1461593,
+        "min": 1461593,
+        "max": 1461593
+      },
+      "gzipBytes": {
+        "samples": [
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683
+        ],
+        "p50": 62683,
+        "p95": 62683,
+        "min": 62683,
+        "max": 62683
+      },
+      "transfers": [
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        }
+      ],
+      "heapAfterInitialize": [
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        }
+      ],
+      "heapAfterQuery": [
+        {
+          "status": "available",
+          "usedBytes": 5804631
+        },
+        {
+          "status": "available",
+          "usedBytes": 5829499
+        },
+        {
+          "status": "available",
+          "usedBytes": 5792011
+        },
+        {
+          "status": "available",
+          "usedBytes": 5860011
+        },
+        {
+          "status": "available",
+          "usedBytes": 5812155
+        },
+        {
+          "status": "available",
+          "usedBytes": 5777115
+        },
+        {
+          "status": "available",
+          "usedBytes": 5796891
+        },
+        {
+          "status": "available",
+          "usedBytes": 5801991
+        },
+        {
+          "status": "available",
+          "usedBytes": 5824651
+        },
+        {
+          "status": "available",
+          "usedBytes": 5801991
+        }
+      ]
+    },
+    {
+      "id": "faceted",
+      "initialize": {
+        "samples": [
+          1.899999976158142,
+          1.9000000357627869,
+          2.300000011920929,
+          1.899999976158142,
+          1.7999999523162842,
+          1.800000011920929,
+          1.800000011920929,
+          1.800000011920929,
+          2,
+          1.800000011920929
+        ],
+        "p50": 1.800000011920929,
+        "p95": 2.300000011920929,
+        "min": 1.7999999523162842,
+        "max": 2.300000011920929
+      },
+      "firstQuery": {
+        "samples": [
+          22.100000023841858,
+          23.299999952316284,
+          22.69999998807907,
+          21.80000001192093,
+          22.30000001192093,
+          22.19999998807907,
+          22,
+          22.19999998807907,
+          22.80000001192093,
+          23.100000023841858
+        ],
+        "p50": 22.19999998807907,
+        "p95": 23.299999952316284,
+        "min": 21.80000001192093,
+        "max": 23.299999952316284
+      },
+      "combined": {
+        "samples": [
+          24,
+          25.19999998807907,
+          25,
+          23.69999998807907,
+          24.099999964237213,
+          24,
+          23.80000001192093,
+          24,
+          24.80000001192093,
+          24.900000035762787
+        ],
+        "p50": 24,
+        "p95": 25.19999998807907,
+        "min": 23.69999998807907,
+        "max": 25.19999998807907
+      },
+      "requestCount": {
+        "samples": [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "p50": 5,
+        "p95": 5,
+        "min": 5,
+        "max": 5
+      },
+      "rawBytes": {
+        "samples": [
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593,
+          1461593
+        ],
+        "p50": 1461593,
+        "p95": 1461593,
+        "min": 1461593,
+        "max": 1461593
+      },
+      "gzipBytes": {
+        "samples": [
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683,
+          62683
+        ],
+        "p50": 62683,
+        "p95": 62683,
+        "min": 62683,
+        "max": 62683
+      },
+      "transfers": [
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        },
+        {
+          "requestCount": 5,
+          "rawBytes": 1461593,
+          "gzipBytes": 62683,
+          "paths": [
+            "manifest.json",
+            "terms/en/s.f95d8e9c.json",
+            "facets/category.9d08b404.json",
+            "pins/en.c241a889.json",
+            "docs/0.b8690f27.json"
+          ]
+        }
+      ],
+      "heapAfterInitialize": [
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726915
+        },
+        {
+          "status": "available",
+          "usedBytes": 1726903
+        }
+      ],
+      "heapAfterQuery": [
+        {
+          "status": "available",
+          "usedBytes": 6006135
+        },
+        {
+          "status": "available",
+          "usedBytes": 6031579
+        },
+        {
+          "status": "available",
+          "usedBytes": 5994871
+        },
+        {
+          "status": "available",
+          "usedBytes": 6042595
+        },
+        {
+          "status": "available",
+          "usedBytes": 5998587
+        },
+        {
+          "status": "available",
+          "usedBytes": 5997811
+        },
+        {
+          "status": "available",
+          "usedBytes": 6009591
+        },
+        {
+          "status": "available",
+          "usedBytes": 6039779
+        },
+        {
+          "status": "available",
+          "usedBytes": 6035463
+        },
+        {
+          "status": "available",
+          "usedBytes": 6041051
+        }
+      ]
+    }
+  ],
+  "warm": {
+    "wholePass": {
+      "samples": [
+        2.600000023841858,
+        2.199999988079071,
+        1.5999999642372131,
+        1.5,
+        2.699999988079071,
+        1.9000000357627869,
+        1.600000023841858,
+        1.4000000357627869,
+        1.399999976158142,
+        1.399999976158142
+      ],
+      "p50": 1.5999999642372131,
+      "p95": 2.699999988079071,
+      "min": 1.399999976158142,
+      "max": 2.699999988079071
+    },
+    "queries": [
+      {
+        "id": "single-term",
+        "duration": {
+          "samples": [
+            0.30000001192092896,
+            0.2999999523162842,
+            0.30000001192092896,
+            0.19999998807907104,
+            0.3999999761581421,
+            0.40000003576278687,
+            0.5,
+            0.20000004768371582,
+            0.19999998807907104,
+            0.19999998807907104
+          ],
+          "p50": 0.2999999523162842,
+          "p95": 0.5,
+          "min": 0.19999998807907104,
+          "max": 0.5
+        }
+      },
+      {
+        "id": "multi-term",
+        "duration": {
+          "samples": [
+            0.5,
+            0.30000001192092896,
+            0.19999998807907104,
+            0.40000003576278687,
+            0.3999999761581421,
+            0.2999999523162842,
+            0.30000001192092896,
+            0.2999999523162842,
+            0.19999998807907104,
+            0.30000001192092896
+          ],
+          "p50": 0.30000001192092896,
+          "p95": 0.5,
+          "min": 0.19999998807907104,
+          "max": 0.5
+        }
+      },
+      {
+        "id": "prefix",
+        "duration": {
+          "samples": [
+            0.800000011920929,
+            0.40000003576278687,
+            0.19999998807907104,
+            0.09999996423721313,
+            0.40000003576278687,
+            0.20000004768371582,
+            0.19999998807907104,
+            0.20000004768371582,
+            0.19999998807907104,
+            0.19999998807907104
+          ],
+          "p50": 0.19999998807907104,
+          "p95": 0.800000011920929,
+          "min": 0.09999996423721313,
+          "max": 0.800000011920929
+        }
+      },
+      {
+        "id": "no-match",
+        "duration": {
+          "samples": [
+            0.19999998807907104,
+            0,
+            0.10000002384185791,
+            0.10000002384185791,
+            0.09999996423721313,
+            0,
+            0,
+            0,
+            0,
+            0.10000002384185791
+          ],
+          "p50": 0,
+          "p95": 0.19999998807907104,
+          "min": 0,
+          "max": 0.19999998807907104
+        }
+      },
+      {
+        "id": "filtered",
+        "duration": {
+          "samples": [
+            0.3999999761581421,
+            0.5,
+            0.2999999523162842,
+            0.30000001192092896,
+            0.6000000238418579,
+            0.2999999523162842,
+            0.20000004768371582,
+            0.2999999523162842,
+            0.40000003576278687,
+            0.19999998807907104
+          ],
+          "p50": 0.2999999523162842,
+          "p95": 0.6000000238418579,
+          "min": 0.19999998807907104,
+          "max": 0.6000000238418579
+        }
+      },
+      {
+        "id": "faceted",
+        "duration": {
+          "samples": [
+            0.40000003576278687,
+            0.699999988079071,
+            0.5,
+            0.3999999761581421,
+            0.800000011920929,
+            0.7000000476837158,
+            0.3999999761581421,
+            0.40000003576278687,
+            0.3999999761581421,
+            0.3999999761581421
+          ],
+          "p50": 0.40000003576278687,
+          "p95": 0.800000011920929,
+          "min": 0.3999999761581421,
+          "max": 0.800000011920929
+        }
+      }
+    ],
+    "indexRequestCount": 0,
+    "heapAfterInitialize": {
+      "status": "available",
+      "usedBytes": 1726915
+    },
+    "heapAfterFinalPass": {
+      "status": "available",
+      "usedBytes": 10959576
+    }
+  }
+}

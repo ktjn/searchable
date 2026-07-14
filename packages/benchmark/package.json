@@ -1,0 +1,31 @@
+{
+  "name": "@ktjn/searchable-benchmark",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Private reproducible performance evidence tooling for Searchable.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run --root ../.. --project @ktjn/searchable-benchmark",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "typecheck": "tsc --noEmit",
+    "baseline": "node dist/cli.js --profile cms-2k",
+    "smoke": "node dist/cli.js --profile smoke",
+    "render": "node dist/render-cli.js"
+  },
+  "dependencies": {
+    "@ktjn/searchable-client": "workspace:*",
+    "@ktjn/searchable-fixtures": "workspace:*",
+    "@ktjn/searchable-indexer": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

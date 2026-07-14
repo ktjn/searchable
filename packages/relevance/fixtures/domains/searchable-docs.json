@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "searchable-docs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "language": "en",
   "provenance": {
     "publisher": "Searchable contributors",
@@ -9,15 +9,15 @@
     "sourceUrl": "https://ktjn.github.io/searchable/",
     "license": "MIT",
     "licenseUrl": "https://github.com/ktjn/searchable/blob/main/LICENSE",
-    "retrievedAt": "2026-07-13",
+    "retrievedAt": "2026-07-14",
     "attribution": "Searchable contributors",
-    "selectionNotes": "All 28 generated documentation pages are included. Queries are task-oriented search intents authored for this judged domain corpus rather than copied page headings."
+    "selectionNotes": "All 29 generated documentation pages are included. Queries are task-oriented search intents authored for this judged domain corpus rather than copied page headings."
   },
   "review": {
     "status": "reviewed",
     "method": "Maintainer review of every query, grade, rationale, and measured top-five result.",
     "reviewer": "ktjn",
-    "reviewedAt": "2026-07-13"
+    "reviewedAt": "2026-07-14"
   },
   "corpus": {
     "kind": "generated-index",
@@ -105,6 +105,10 @@
       {
         "id": "/docs/project/governance.html",
         "title": "Governance"
+      },
+      {
+        "id": "/docs/project/performance-baseline.html",
+        "title": "Performance baseline"
       },
       {
         "id": "/docs/project/relevance-baselines.html",
