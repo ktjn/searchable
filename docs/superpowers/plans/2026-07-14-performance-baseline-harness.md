@@ -309,7 +309,7 @@ describe("CMS benchmark workload", () => {
   it("generates a deterministic CMS-2k identity", () => {
     const left = createWorkload(BASELINE_CONFIG);
     const right = createWorkload(BASELINE_CONFIG);
-    expect(left.documents).toHaveLength(2008);
+    expect(left.documents).toHaveLength(2006);
     expect(left.corpusHash).toMatch(/^[a-f0-9]{64}$/);
     expect(left.querySetHash).toMatch(/^[a-f0-9]{64}$/);
     expect(right.corpusHash).toBe(left.corpusHash);

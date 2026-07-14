@@ -16,3 +16,28 @@ export interface SampleSummary {
   min: number;
   max: number;
 }
+
+export interface ExpectedSearchResult {
+  topUrl?: string;
+  totalHits: number;
+  facetValues?: Array<{ value: string; count: number; selected: boolean }>;
+}
+
+export interface BenchmarkQuery {
+  id: string;
+  query: string;
+  options: {
+    limit: number;
+    filters?: Record<string, string | string[]>;
+    facets?: string[];
+  };
+  expected: ExpectedSearchResult;
+}
+
+export interface BenchmarkWorkload {
+  documents: Array<{ id: number; url: string; html: string }>;
+  corpusHash: string;
+  querySetHash: string;
+  queries: BenchmarkQuery[];
+  languageCounts: Record<string, number>;
+}
