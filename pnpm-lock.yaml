@@ -39,6 +39,31 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.0))
 
+  packages/benchmark:
+    dependencies:
+      '@ktjn/searchable-client':
+        specifier: workspace:*
+        version: link:../client
+      '@ktjn/searchable-fixtures':
+        specifier: workspace:*
+        version: link:../fixtures
+      '@ktjn/searchable-indexer':
+        specifier: workspace:*
+        version: link:../indexer
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.49.1
+        version: 1.61.1
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.0))
+
   packages/client:
     dependencies:
       '@ktjn/searchable-analysis':
