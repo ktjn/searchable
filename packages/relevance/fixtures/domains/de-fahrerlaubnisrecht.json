@@ -297,7 +297,7 @@
     },
     {
       "id": "wann-mpu-noetig",
-      "text": "Wann muss ich zur MPU?",
+      "text": "Anordnung einer MPU",
       "topic": "fitness-to-drive-mpu",
       "judgments": {
         "/wiki/Medizinisch-Psychologische_Untersuchung": 3,
@@ -355,7 +355,7 @@
     },
     {
       "id": "strafe-fahren-ohne-fuehrerschein",
-      "text": "Strafe für Fahren ohne Führerschein",
+      "text": "Fahren ohne Führerschein oder Fahrerlaubnis",
       "topic": "penalties-license-withdrawal",
       "judgments": {
         "/wiki/Fahren_ohne_F%C3%BChrerschein": 3,
@@ -370,7 +370,7 @@
     },
     {
       "id": "sperrfrist-nach-entzug",
-      "text": "Sperrfrist nach Fahrerlaubnisentzug",
+      "text": "Sperrfrist nach Führerscheinentzug",
       "topic": "penalties-license-withdrawal",
       "judgments": {
         "/wiki/Sperrfrist_(Fahrerlaubnis)": 3,
@@ -413,7 +413,7 @@
     },
     {
       "id": "alkoholverbot-fahranfaenger",
-      "text": "Alkoholverbot für Fahranfänger",
+      "text": "Null-Promille-Grenze für Fahranfänger",
       "topic": "probationary-period",
       "judgments": {
         "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 3,
@@ -443,7 +443,7 @@
     },
     {
       "id": "mofa-pruefbescheinigung-beantragen",
-      "text": "Mofa Prüfbescheinigung beantragen",
+      "text": "Mofa-Prüfbescheinigung erwerben",
       "topic": "special-permits-courses",
       "judgments": {
         "/wiki/Mofa-Pr%C3%BCfbescheinigung": 3,
