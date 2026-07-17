@@ -279,6 +279,37 @@ describe("validateDomainSuite", () => {
     expect(() => validateDomainSuite(suite)).toThrow(message);
   });
 
+  it("rejects a document facets value that is not a non-empty string array", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: [] };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /facets\.genre must be a non-empty array/,
+    );
+  });
+
+  it("rejects a document rangeFacets value that is not a finite number", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].rangeFacets = { year: Number.NaN };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /rangeFacets\.year must be a finite number/,
+    );
+  });
+
+  it("rejects a query filters field referencing a facet field no document declares", () => {
+    const suite = snapshotCopy();
+    suite.queries[0].filters = { nonexistentField: "x" };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /filters references unknown facet field nonexistentField/,
+    );
+  });
+
+  it("accepts a query filters field referencing a facet field a document declares", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: ["Adventure"] };
+    suite.queries[0].filters = { genre: "Adventure" };
+    expect(() => validateDomainSuite(suite)).not.toThrow();
+  });
+
   it("accepts a snapshot document with facets and rangeFacets, and a query with filters", () => {
     const suite = snapshotCopy();
     suite.corpus.documents[0].facets = { genre: ["Adventure", "Classic"] };

@@ -36,9 +36,18 @@ function hasOwn(value: UnknownRecord, key: string): boolean {
   return Object.hasOwn(value, key);
 }
 
-function validateCorpus(value: unknown, errors: string[]): Set<string> {
+interface CorpusValidationResult {
+  documentIds: Set<string>;
+  facetFields: Set<string>;
+}
+
+function validateCorpus(
+  value: unknown,
+  errors: string[],
+): CorpusValidationResult {
   const corpus = record(value, "suite.corpus", errors);
   const documentIds = new Set<string>();
+  const allFacetFields = new Set<string>();
 
   if (corpus.kind === "generated-index") {
     if (hasOwn(corpus, "documents"))
@@ -55,7 +64,7 @@ function validateCorpus(value: unknown, errors: string[]): Set<string> {
       documentIds.add(id);
       nonBlank(page.title, `suite.corpus.pages[${index}].title`, errors);
     }
-    return documentIds;
+    return { documentIds, facetFields: allFacetFields };
   }
 
   if (corpus.kind === "snapshot") {
@@ -91,12 +100,37 @@ function validateCorpus(value: unknown, errors: string[]): Set<string> {
         !/^[a-f0-9]{64}$/.test(document.contentHash)
       )
         errors.push(`${path}.contentHash must be a lowercase SHA-256 hash`);
+
+      if (hasOwn(document, "facets")) {
+        const facets = record(document.facets, `${path}.facets`, errors);
+        for (const [field, values] of Object.entries(facets)) {
+          allFacetFields.add(field);
+          if (!Array.isArray(values) || values.length === 0) {
+            errors.push(`${path}.facets.${field} must be a non-empty array`);
+            continue;
+          }
+          for (const [valueIndex, entry] of values.entries())
+            nonBlank(entry, `${path}.facets.${field}[${valueIndex}]`, errors);
+        }
+      }
+      if (hasOwn(document, "rangeFacets")) {
+        const rangeFacets = record(
+          document.rangeFacets,
+          `${path}.rangeFacets`,
+          errors,
+        );
+        for (const [field, val] of Object.entries(rangeFacets)) {
+          allFacetFields.add(field);
+          if (typeof val !== "number" || !Number.isFinite(val))
+            errors.push(`${path}.rangeFacets.${field} must be a finite number`);
+        }
+      }
     }
-    return documentIds;
+    return { documentIds, facetFields: allFacetFields };
   }
 
   errors.push('suite.corpus.kind must be "generated-index" or "snapshot"');
-  return documentIds;
+  return { documentIds, facetFields: allFacetFields };
 }
 
 function isoDate(value: unknown, path: string, errors: string[]): void {
@@ -138,7 +172,7 @@ export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
   )
     errors.push("suite.language is not a supported baseline language");
   validateProvenance(suite.provenance, errors);
-  const documentIds = validateCorpus(suite.corpus, errors);
+  const { documentIds, facetFields } = validateCorpus(suite.corpus, errors);
 
   const review = record(suite.review, "suite.review", errors);
   nonBlank(review.method, "suite.review.method", errors);
@@ -213,6 +247,20 @@ export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
       errors.push(
         `query ${id} rationale keys must exactly match positive judgments`,
       );
+
+    if (hasOwn(query, "filters")) {
+      const filters = record(
+        query.filters,
+        `suite.queries[${index}].filters`,
+        errors,
+      );
+      for (const field of Object.keys(filters)) {
+        if (!facetFields.has(field))
+          errors.push(
+            `query ${id} filters references unknown facet field ${field}`,
+          );
+      }
+    }
   }
 
   if (errors.length)
