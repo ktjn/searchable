@@ -254,11 +254,47 @@ export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
         `suite.queries[${index}].filters`,
         errors,
       );
-      for (const field of Object.keys(filters)) {
-        if (!facetFields.has(field))
+      for (const [field, filterValue] of Object.entries(filters)) {
+        if (!facetFields.has(field)) {
           errors.push(
             `query ${id} filters references unknown facet field ${field}`,
           );
+          continue;
+        }
+        const path = `suite.queries[${index}].filters.${field}`;
+        const invalidShape = () =>
+          errors.push(
+            `${path} must be a non-blank string, a non-empty array of non-blank strings, or a range filter`,
+          );
+        if (typeof filterValue === "string") {
+          nonBlank(filterValue, path, errors);
+        } else if (Array.isArray(filterValue)) {
+          if (filterValue.length === 0) {
+            invalidShape();
+          } else {
+            for (const [valueIndex, entry] of filterValue.entries())
+              nonBlank(entry, `${path}[${valueIndex}]`, errors);
+          }
+        } else if (
+          filterValue &&
+          typeof filterValue === "object" &&
+          (hasOwn(filterValue as UnknownRecord, "min") ||
+            hasOwn(filterValue as UnknownRecord, "max"))
+        ) {
+          const range = filterValue as UnknownRecord;
+          if (
+            hasOwn(range, "min") &&
+            (typeof range.min !== "number" || !Number.isFinite(range.min))
+          )
+            errors.push(`${path}.min must be a finite number`);
+          if (
+            hasOwn(range, "max") &&
+            (typeof range.max !== "number" || !Number.isFinite(range.max))
+          )
+            errors.push(`${path}.max must be a finite number`);
+        } else {
+          invalidShape();
+        }
       }
     }
   }
