@@ -77,7 +77,10 @@ it("loads all committed allowlisted domain suites", async () => {
   ).resolves.toMatchObject({ id: "de-fahrerlaubnisrecht", version: "1.0.0" });
   await expect(
     loadDomainSuite(fixtureDirectory, "gutenberg-fiction-facets"),
-  ).rejects.toThrow(/ENOENT/);
+  ).resolves.toMatchObject({
+    id: "gutenberg-fiction-facets",
+    version: "1.0.0",
+  });
 });
 
 it("rejects unknown suite names before filesystem access", async () => {
