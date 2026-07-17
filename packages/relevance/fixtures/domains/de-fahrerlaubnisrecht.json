@@ -14,8 +14,10 @@
     "selectionNotes": "Aus der Wikipedia-Kategorie \"Fahrerlaubnisrecht (Deutschland)\" (41 Artikel) wurden 28 thematisch zentrale Artikel zum deutschen Fahrerlaubnisrecht ausgewählt, die das Thema deutsches Führerschein- und Fahrerlaubnisrecht abdecken (Führerscheinklassen, MPU/Fahreignung, Fahrverbote und Punktesystem, Fahranfänger/Probezeit, Sonderkurse und -genehmigungen). Von diesen 28 wurden bei der Normalisierung 9 Artikel als zu kurze Stubs oder inhaltlich stark überlappend mit einem bereits aufgenommenen Artikel verworfen (u. a. Fahrerlaubnisbehörde, Regelfahrverbot, Beurteilungskriterien in der Fahreignungsbegutachtung, Begutachtungsstelle für Fahreignung, Führerschein ab 17 als Dublette zu Begleitetes Fahren, Führerschein ab 16, Aufbauseminar für punkteauffällige Kraftfahrer, Fortbildungsseminar für Fahranfänger, Besondere Ausbildungsfahrt) und durch 4 Artikel aus den 13 ungenutzten Titeln derselben Kategorie ersetzt (Fahrschüler-Ausbildungsordnung, Amtlich anerkannter Sachverständiger oder Prüfer für den Kraftfahrzeugverkehr, Berufskraftfahrerqualifikationsregister, Führerschein-Prüfungsrichtlinie). Der Artikel \"Sperrfrist (Fahrerlaubnis)\" ist ein Wikipedia-Redirect auf \"Entziehung der Fahrerlaubnis\"; Titel und Textinhalt des Dokuments spiegeln die tatsächlich unter dieser URL angezeigte Zielseite wider. Ergebnis: 23 Dokumente mit substanziellem Fließtext."
   },
   "review": {
-    "status": "draft",
-    "method": "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result."
+    "status": "reviewed",
+    "method": "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result.",
+    "reviewer": "ktjn",
+    "reviewedAt": "2026-07-17"
   },
   "corpus": {
     "kind": "snapshot",
