@@ -4,8 +4,9 @@ Searchable includes a deterministic lexical relevance evaluator for every full
 language profile: English (`en`), German (`de`), Swedish (`sv`), Dutch (`nl`),
 Bokmål (`nb`), and Nynorsk (`nn`). It exercises the public indexer and client
 APIs over local HTTP, using committed native-language FAQ and help excerpts.
-Two reviewed domain suites evaluate the generated Searchable documentation
-index and a normalized snapshot of the GOV.UK learner-driving journey.
+Three reviewed domain suites evaluate the generated Searchable documentation
+index, a normalized snapshot of the GOV.UK learner-driving journey, and a
+German-language corpus of Wikipedia articles on driving-license law.
 
 ## Run the baseline
 
@@ -49,6 +50,12 @@ For its per-query report:
 
 ```sh
 pnpm relevance -- --suite govuk-learn-to-drive --json
+```
+
+Run the German driving-license-law suite the same way:
+
+```sh
+pnpm relevance -- --suite de-fahrerlaubnisrecht
 ```
 
 `--suite` and `--language` are mutually exclusive. The default command remains
@@ -152,9 +159,40 @@ report, and record a fresh reviewer and review date before treating the new
 version as a baseline. Increment the version whenever documents, queries,
 judgments, grades, or rationales change.
 
+## Reviewed German domain corpus
+
+`de-fahrerlaubnisrecht@1.0.0` contains 23 normalized documents drawn from
+German Wikipedia's `Kategorie:Fahrerlaubnisrecht (Deutschland)` category and a
+few buffer-list swaps made during normalization. It has 19 German
+task-oriented queries across five topics: license classes and eligibility,
+fitness-to-drive and the MPU exam, penalties and license withdrawal, the
+probationary period, and special permits and courses.
+
+The suite uses the same graded judgment and page-specific rationale policy as
+the documentation and GOV.UK corpora. Maintainer `ktjn` reviewed every
+normalized document, query, grade, rationale, and measured top-five result on
+2026-07-17.
+
+The reviewed baseline at `k = 5` is:
+
+| Metric | Value |
+|---|---:|
+| MRR | 0.855263 |
+| Precision@5 | 0.284211 |
+| Recall@5 | 0.517544 |
+| nDCG@5 | 0.690330 |
+| Zero-result rate | 0.052632 |
+
+The source snapshot was retrieved on 2026-07-17. It contains German Wikipedia
+article text licensed under [CC BY-SA
+4.0](https://creativecommons.org/licenses/by-sa/4.0/), attributed to Wikipedia
+contributors with edit history available via each source page. Selection
+notes recording the category listing, discarded stubs/overlaps, and buffer
+swaps are recorded in the fixture's `provenance` field.
+
 ## Interpretation and limits
 
-The language suites are small regression fixtures, and the two domain suites
+The language suites are small regression fixtures, and the three domain suites
 are reviewed but intentionally narrow corpora. They verify that content can be
 indexed and retrieved through the shipped public path and provide a
 reproducible signal when ranking or analysis changes. They are not
@@ -162,11 +200,19 @@ production-scale benchmarks.
 
 The language suites use one strongly relevant document per native source
 question or help topic. The domain suites use graded multi-page judgments, but
-cover only one English documentation site and one UK learner-driving journey.
-Their queries are authored intents rather than user-query logs. These scores
-are not latency or memory evidence and do not establish web-scale quality or
-superiority over another engine. Do not compare scores across suites because
-their source material, query sets, and judgments differ.
+cover only one English documentation site, one UK learner-driving journey, and
+one German-language encyclopedia corpus — three domains across two languages
+(English and German). Their queries are authored intents rather than
+user-query logs. These scores are not latency or memory evidence and do not
+establish web-scale quality or superiority over another engine. Do not compare
+scores across suites because their source material, query sets, and judgments
+differ.
+
+The German suite's one remaining zero-result query (out of 19) is an accepted
+lexical-matching limitation rather than a defect: this project's search
+performs strict AND across query terms with no compound-word splitting and no
+stopword filtering, which can miss a match when a query's terms are split
+across a German compound word in the indexed text.
 
 There are deliberately no pass/fail score thresholds yet. Before relevance
 becomes a CI gate, the project still needs broader representative domains,

@@ -67,6 +67,11 @@ below was built and tested across prior unreleased commits.
 - Five retroactive ADRs (`docs/adr/`) recording the transport, index
   format, ranking model, compatibility policy, and plugin/opt-in-tier
   decisions above.
+- **Relevance domain corpora**: a reviewed German-language judged relevance
+  domain corpus (`de-fahrerlaubnisrecht`, 23 German Wikipedia driving-license-law
+  pages, 19 queries), alongside the existing documentation and GOV.UK
+  learner-driving corpora, evaluated by the deterministic offline relevance
+  evaluator (docs/project/relevance-baselines.md).
 
 ### Notes
 

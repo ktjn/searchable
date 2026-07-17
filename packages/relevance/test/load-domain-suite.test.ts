@@ -59,17 +59,21 @@ it("loads an allowlisted domain suite", async () => {
   );
 });
 
-it("loads both committed allowlisted domain suites", async () => {
+it("loads all committed allowlisted domain suites", async () => {
   const fixtureDirectory = fileURLToPath(
     new URL("../fixtures/domains/", import.meta.url),
   );
   expect(KNOWN_DOMAIN_SUITES).toEqual([
     "searchable-docs",
     "govuk-learn-to-drive",
+    "de-fahrerlaubnisrecht",
   ]);
   await expect(
     loadDomainSuite(fixtureDirectory, "govuk-learn-to-drive"),
   ).resolves.toMatchObject({ id: "govuk-learn-to-drive", version: "1.0.0" });
+  await expect(
+    loadDomainSuite(fixtureDirectory, "de-fahrerlaubnisrecht"),
+  ).resolves.toMatchObject({ id: "de-fahrerlaubnisrecht", version: "1.0.0" });
 });
 
 it("rejects unknown suite names before filesystem access", async () => {

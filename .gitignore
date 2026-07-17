@@ -8,6 +8,7 @@ playwright-report/
 blob-report/
 playwright/.cache/
 .worktrees/
+docs/superpowers/
 /benchmark-results/*
 !/benchmark-results/cms-2k/
 /benchmark-results/cms-2k/*
