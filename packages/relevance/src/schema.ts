@@ -1,3 +1,5 @@
+import type { RangeFilter } from "@ktjn/searchable-client";
+
 export const SUPPORTED_BASELINE_LANGUAGES = [
   "en",
   "de",
@@ -16,12 +18,15 @@ export interface RelevanceDocument {
   title: string;
   body: string;
   url: string;
+  facets?: Record<string, string[]>;
+  rangeFacets?: Record<string, number>;
 }
 
 export interface JudgedQuery {
   id: string;
   text: string;
   judgments: Record<string, RelevanceGrade>;
+  filters?: Record<string, string | string[] | RangeFilter>;
 }
 
 export interface SuiteProvenance {

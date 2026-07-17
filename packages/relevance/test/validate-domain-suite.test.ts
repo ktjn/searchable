@@ -279,6 +279,31 @@ describe("validateDomainSuite", () => {
     expect(() => validateDomainSuite(suite)).toThrow(message);
   });
 
+  it("accepts a snapshot document with facets and rangeFacets, and a query with filters", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: ["Adventure", "Classic"] };
+    suite.corpus.documents[0].rangeFacets = { year: 1850 };
+    suite.queries[0].filters = {
+      genre: "Adventure",
+      year: { min: 1800, max: 1900 },
+    };
+    const result = validateDomainSuite(suite);
+    expect(
+      result.corpus.kind === "snapshot"
+        ? result.corpus.documents[0].facets
+        : undefined,
+    ).toEqual({ genre: ["Adventure", "Classic"] });
+    expect(
+      result.corpus.kind === "snapshot"
+        ? result.corpus.documents[0].rangeFacets
+        : undefined,
+    ).toEqual({ year: 1850 });
+    expect(result.queries[0].filters).toEqual({
+      genre: "Adventure",
+      year: { min: 1800, max: 1900 },
+    });
+  });
+
   it("accepts complete reviewed metadata", () => {
     const suite = copy();
     suite.review = {

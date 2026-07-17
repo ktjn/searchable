@@ -1,3 +1,4 @@
+import type { RangeFilter } from "@ktjn/searchable-client";
 import type {
   RelevanceGrade,
   SuiteProvenance,
@@ -66,6 +67,8 @@ export interface SnapshotDomainDocument {
   description: string;
   body: string;
   contentHash: string;
+  facets?: Record<string, string[]>;
+  rangeFacets?: Record<string, number>;
 }
 
 export interface SnapshotDomainCorpus {
@@ -81,6 +84,7 @@ export interface DomainJudgedQuery {
   topic: DomainQueryTopic;
   judgments: Record<string, RelevanceGrade>;
   rationales: Record<string, string>;
+  filters?: Record<string, string | string[] | RangeFilter>;
 }
 
 export type JudgmentReview =
