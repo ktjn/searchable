@@ -14,8 +14,10 @@
     "selectionNotes": "30 real Project Gutenberg public-domain books selected across 5 real, Gutenberg-defined bookshelf genres (Gothic Fiction, Science Fiction, Adventure, Detective Fiction, Children's Literature; https://www.gutenberg.org/ebooks/bookshelf/39, /68, /82, /30, /20 respectively), 5-7 books per genre, sourced from live fetches of those bookshelf pages on 2026-07-17. Publication years span 1764-1929 (165 years), covering the 1700s, 1800s (every decade from the 1840s onward except the 1850s), and the 1900s-1920s, deliberately cross-cutting with genre (e.g. Gothic Fiction spans 1764-1897, Detective Fiction spans 1868-1920) so a combined genre+year facet filter exercises real facet intersection rather than two independent single-value filters. One book, Kidnapped, carries two genres (Adventure and Children's Literature) because it appears on both corresponding Gutenberg bookshelves. 5 of the 30 excerpts are verbatim quotes fetched directly from the book's actual Project Gutenberg plain-text file (Frankenstein, Alice's Adventures in Wonderland, The Adventures of Sherlock Holmes, Dracula, Treasure Island); the remaining 25 are faithful short summaries of the book's actual opening scene/premise written from well-documented plot knowledge, not verbatim Gutenberg text, per the source selection decision note's documented allowance. See docs/superpowers/notes/2026-07-17-gutenberg-facets-source-selection.md for full sourcing detail."
   },
   "review": {
-    "status": "draft",
-    "method": "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result."
+    "status": "reviewed",
+    "method": "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result.",
+    "reviewer": "ktjn",
+    "reviewedAt": "2026-07-17"
   },
   "corpus": {
     "kind": "snapshot",
