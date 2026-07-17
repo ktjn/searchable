@@ -10,11 +10,13 @@ This page is the single current list of shipped capability and remaining work; d
 | Lexical search | Stable; native six-language regression baseline plus reviewed documentation and GOV.UK learner-driving domain corpora | Broader representative domains and judged sets, real query evidence, quality thresholds, and an internal query-planner abstraction |
 | Facets, synonyms, fuzzy search, and pins | Stable | No required 1.0 work |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
-| Offline and worker execution | Stable | Resource-aware loading refinements |
-| Binary storage | Term, fuzzy, and document-store codecs | Evaluate remaining shard formats from measured evidence |
+| Offline and worker execution | Stable | Bounded shard caching and documented memory behavior; resource-aware loading refinements |
+| Binary storage | Term, fuzzy, and document-store codecs | Reader bounds-check hardening with malformed-payload tests to match the documented guarantee; evaluate remaining shard formats from measured evidence |
+| Index format and conformance | JSON schemas under `spec/` with Python-side output validation and independent example generators | TypeScript-side schema validation of indexer output so the schemas remain the normative contract for both producers |
 | Vector and hybrid search | Optional storage, similarity, and local embeddings implemented | Public semantic showcase and documented scale limits |
 | Performance and scale | One reviewed CMS-2k Chromium main-thread lexical vertical baseline with raw JSON evidence | Broader sizes, browsers, execution modes, query classes, operating guidance, and CI comparison |
 | Extensibility and diagnostics | Draft designs archived | Implement only with a concrete consumer |
+| Release engineering | Full CI reused as a publish gate, provenance workflow, enforced bundle budget | Tarball inspection and consumer smoke test, manifest hardening, tag/version automation, Python dependency coverage |
 
 ## Near-term work
 
@@ -25,6 +27,26 @@ This page is the single current list of shipped capability and remaining work; d
 - Evaluate any further binary encoding only when lazy access and benchmarks show a meaningful gain over JSON.
 - Make ranking parameters configurable only with stable defaults and manifest-recorded configuration so results remain reproducible.
 - Add prominent guidance that every generated index artifact is public data and must not contain restricted content.
+
+## Release and engineering hardening
+
+Findings from the July 2026 repository review, recorded here so this page remains the single list of remaining work. Complete the pre-release items before tagging `v1.0.0`.
+
+Before the first release:
+
+- Validate TypeScript indexer output against `spec/schema/*.schema.json` in tests. Only `python/searchable-indexer/tests/test_schema_conformance.py` checks the schemas today, leaving the normative contract unenforced for the reference TypeScript producer.
+- Add bounds checks to the client binary readers (`readBytes` currently clamps silently past the buffer end and `readVarint` has no overflow guard) plus malformed- and truncated-payload tests, matching the guarantee [Binary storage](../concepts/binary-storage.md) states.
+- Add a package-artifact gate to the publish pipeline: `pnpm pack`/`--dry-run` tarball inspection and a consumer smoke test that installs the tarballs and imports each package, as [Project governance](governance.md) requires.
+- Harden the publishable manifests: `publishConfig.access`, `sideEffects`, `publint`/`attw` checks, declarations or explicit untyped-script documentation for the `worker`/`sw` entries, and no `declarationMap` output pointing at unshipped `src/` paths.
+- Commit a `uv.lock` for `python/searchable-analysis` (the indexer already has one) and add the `uv` ecosystem to Dependabot for both Python packages.
+
+After the first release:
+
+- Add a tag/version guard and version-bump automation for the lockstep packages; move npm authentication from a long-lived token to trusted publishing (OIDC).
+- Test the supported runtime range in CI: Node floor and latest, Python 3.10 through 3.14 against `requires-python`.
+- Add coverage reporting to expose thin test spots; add direct unit tests for the TypeScript indexer CLI, discovery, and hashing to match the Python port's coverage.
+- Bound the client shard cache or expose explicit clearing, and document expected memory behavior per deployment profile (part of the resource-aware loading work above).
+- Hygiene: prune stale worktrees, sweep phase-era comments that describe development history instead of current behavior, add READMEs to the internal packages, and add the missing `engines` field to `packages/fixtures`.
 
 ## Performance and scale evidence
 
