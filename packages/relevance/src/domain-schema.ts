@@ -24,9 +24,18 @@ export const GOVUK_DOMAIN_QUERY_TOPICS = [
   "after-passing",
 ] as const;
 
+export const DE_FAHRERLAUBNISRECHT_DOMAIN_QUERY_TOPICS = [
+  "license-classes-eligibility",
+  "fitness-to-drive-mpu",
+  "penalties-license-withdrawal",
+  "probationary-period",
+  "special-permits-courses",
+] as const;
+
 export const DOMAIN_QUERY_TOPICS = [
   ...EXISTING_DOMAIN_QUERY_TOPICS,
   ...GOVUK_DOMAIN_QUERY_TOPICS,
+  ...DE_FAHRERLAUBNISRECHT_DOMAIN_QUERY_TOPICS,
 ] as const;
 
 export type DomainQueryTopic = (typeof DOMAIN_QUERY_TOPICS)[number];
