@@ -36,9 +36,18 @@ function hasOwn(value: UnknownRecord, key: string): boolean {
   return Object.hasOwn(value, key);
 }
 
-function validateCorpus(value: unknown, errors: string[]): Set<string> {
+interface CorpusValidationResult {
+  documentIds: Set<string>;
+  facetFields: Set<string>;
+}
+
+function validateCorpus(
+  value: unknown,
+  errors: string[],
+): CorpusValidationResult {
   const corpus = record(value, "suite.corpus", errors);
   const documentIds = new Set<string>();
+  const allFacetFields = new Set<string>();
 
   if (corpus.kind === "generated-index") {
     if (hasOwn(corpus, "documents"))
@@ -55,7 +64,7 @@ function validateCorpus(value: unknown, errors: string[]): Set<string> {
       documentIds.add(id);
       nonBlank(page.title, `suite.corpus.pages[${index}].title`, errors);
     }
-    return documentIds;
+    return { documentIds, facetFields: allFacetFields };
   }
 
   if (corpus.kind === "snapshot") {
@@ -91,12 +100,37 @@ function validateCorpus(value: unknown, errors: string[]): Set<string> {
         !/^[a-f0-9]{64}$/.test(document.contentHash)
       )
         errors.push(`${path}.contentHash must be a lowercase SHA-256 hash`);
+
+      if (hasOwn(document, "facets")) {
+        const facets = record(document.facets, `${path}.facets`, errors);
+        for (const [field, values] of Object.entries(facets)) {
+          allFacetFields.add(field);
+          if (!Array.isArray(values) || values.length === 0) {
+            errors.push(`${path}.facets.${field} must be a non-empty array`);
+            continue;
+          }
+          for (const [valueIndex, entry] of values.entries())
+            nonBlank(entry, `${path}.facets.${field}[${valueIndex}]`, errors);
+        }
+      }
+      if (hasOwn(document, "rangeFacets")) {
+        const rangeFacets = record(
+          document.rangeFacets,
+          `${path}.rangeFacets`,
+          errors,
+        );
+        for (const [field, val] of Object.entries(rangeFacets)) {
+          allFacetFields.add(field);
+          if (typeof val !== "number" || !Number.isFinite(val))
+            errors.push(`${path}.rangeFacets.${field} must be a finite number`);
+        }
+      }
     }
-    return documentIds;
+    return { documentIds, facetFields: allFacetFields };
   }
 
   errors.push('suite.corpus.kind must be "generated-index" or "snapshot"');
-  return documentIds;
+  return { documentIds, facetFields: allFacetFields };
 }
 
 function isoDate(value: unknown, path: string, errors: string[]): void {
@@ -138,7 +172,7 @@ export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
   )
     errors.push("suite.language is not a supported baseline language");
   validateProvenance(suite.provenance, errors);
-  const documentIds = validateCorpus(suite.corpus, errors);
+  const { documentIds, facetFields } = validateCorpus(suite.corpus, errors);
 
   const review = record(suite.review, "suite.review", errors);
   nonBlank(review.method, "suite.review.method", errors);
@@ -213,6 +247,56 @@ export function validateDomainSuite(value: unknown): DomainRelevanceSuite {
       errors.push(
         `query ${id} rationale keys must exactly match positive judgments`,
       );
+
+    if (hasOwn(query, "filters")) {
+      const filters = record(
+        query.filters,
+        `suite.queries[${index}].filters`,
+        errors,
+      );
+      for (const [field, filterValue] of Object.entries(filters)) {
+        if (!facetFields.has(field)) {
+          errors.push(
+            `query ${id} filters references unknown facet field ${field}`,
+          );
+          continue;
+        }
+        const path = `suite.queries[${index}].filters.${field}`;
+        const invalidShape = () =>
+          errors.push(
+            `${path} must be a non-blank string, a non-empty array of non-blank strings, or a range filter`,
+          );
+        if (typeof filterValue === "string") {
+          nonBlank(filterValue, path, errors);
+        } else if (Array.isArray(filterValue)) {
+          if (filterValue.length === 0) {
+            invalidShape();
+          } else {
+            for (const [valueIndex, entry] of filterValue.entries())
+              nonBlank(entry, `${path}[${valueIndex}]`, errors);
+          }
+        } else if (
+          filterValue &&
+          typeof filterValue === "object" &&
+          (hasOwn(filterValue as UnknownRecord, "min") ||
+            hasOwn(filterValue as UnknownRecord, "max"))
+        ) {
+          const range = filterValue as UnknownRecord;
+          if (
+            hasOwn(range, "min") &&
+            (typeof range.min !== "number" || !Number.isFinite(range.min))
+          )
+            errors.push(`${path}.min must be a finite number`);
+          if (
+            hasOwn(range, "max") &&
+            (typeof range.max !== "number" || !Number.isFinite(range.max))
+          )
+            errors.push(`${path}.max must be a finite number`);
+        } else {
+          invalidShape();
+        }
+      }
+    }
   }
 
   if (errors.length)

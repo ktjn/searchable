@@ -72,6 +72,12 @@ below was built and tested across prior unreleased commits.
   pages, 19 queries), alongside the existing documentation and GOV.UK
   learner-driving corpora, evaluated by the deterministic offline relevance
   evaluator (docs/project/relevance-baselines.md).
+- **Faceted relevance domain corpus**: a reviewed Project Gutenberg
+  public-domain fiction corpus (`gutenberg-fiction-facets`, 30 books, 20
+  queries, `genre` terms facet + `year` range facet), the first domain suite
+  to judge relevance under real facet-filtered search — including a combined
+  genre-and-year intersection query — alongside the existing documentation,
+  GOV.UK, and German corpora (docs/project/relevance-baselines.md).
 
 ### Notes
 

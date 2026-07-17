@@ -164,11 +164,14 @@ function toSnapshotEvaluationSuite(
       url: document.url,
       title: document.title,
       body: `${document.description}\n${document.body}`,
+      ...(document.facets ? { facets: document.facets } : {}),
+      ...(document.rangeFacets ? { rangeFacets: document.rangeFacets } : {}),
     })),
-    queries: suite.queries.map(({ id, text, judgments }) => ({
+    queries: suite.queries.map(({ id, text, judgments, filters }) => ({
       id,
       text,
       judgments,
+      ...(filters ? { filters } : {}),
     })),
   };
 }

@@ -1,3 +1,4 @@
+import type { RangeFilter } from "@ktjn/searchable-client";
 import { evaluateRanking, type RankingMetrics } from "./metrics.js";
 import type {
   RelevanceGrade,
@@ -9,7 +10,11 @@ import { validateSuite } from "./validate-suite.js";
 
 export type SearchForEvaluation = (
   query: string,
-  options: { language: SupportedBaselineLanguage; limit: number },
+  options: {
+    language: SupportedBaselineLanguage;
+    limit: number;
+    filters?: Record<string, string | string[] | RangeFilter>;
+  },
 ) => Promise<readonly string[]>;
 
 export interface QueryReport extends RankingMetrics {
@@ -54,6 +59,7 @@ export async function evaluateSuite(
       returnedIds = await search(query.text, {
         language: suite.language,
         limit: k,
+        ...(query.filters ? { filters: query.filters } : {}),
       });
     } catch (cause) {
       throw new Error(

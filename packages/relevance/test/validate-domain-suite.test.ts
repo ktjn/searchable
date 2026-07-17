@@ -279,6 +279,105 @@ describe("validateDomainSuite", () => {
     expect(() => validateDomainSuite(suite)).toThrow(message);
   });
 
+  it("rejects a document facets value that is not a non-empty string array", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: [] };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /facets\.genre must be a non-empty array/,
+    );
+  });
+
+  it("rejects a document rangeFacets value that is not a finite number", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].rangeFacets = { year: Number.NaN };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /rangeFacets\.year must be a finite number/,
+    );
+  });
+
+  it("rejects a query filters field referencing a facet field no document declares", () => {
+    const suite = snapshotCopy();
+    suite.queries[0].filters = { nonexistentField: "x" };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /filters references unknown facet field nonexistentField/,
+    );
+  });
+
+  it("accepts a query filters field referencing a facet field a document declares", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: ["Adventure"] };
+    suite.queries[0].filters = { genre: "Adventure" };
+    expect(() => validateDomainSuite(suite)).not.toThrow();
+  });
+
+  it("rejects a query filters value that is an empty array", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: ["Adventure"] };
+    suite.queries[0].filters = { genre: [] };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /filters\.genre must be a non-blank string, a non-empty array of non-blank strings, or a range filter/,
+    );
+  });
+
+  it("rejects a query filters value that is a plain object with no min/max", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: ["Adventure"] };
+    suite.queries[0].filters = { genre: {} };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /filters\.genre must be a non-blank string, a non-empty array of non-blank strings, or a range filter/,
+    );
+  });
+
+  it("rejects a query filters range value whose min is not a finite number", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].rangeFacets = { year: 1850 };
+    suite.queries[0].filters = { year: { min: "oops" } };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /filters\.year\.min must be a finite number/,
+    );
+  });
+
+  it("rejects a query filters range value whose max is not a finite number", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].rangeFacets = { year: 1850 };
+    suite.queries[0].filters = { year: { min: 1800, max: Number.NaN } };
+    expect(() => validateDomainSuite(suite)).toThrow(
+      /filters\.year\.max must be a finite number/,
+    );
+  });
+
+  it("accepts a query filters value that is a non-empty array of non-blank strings", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: ["Adventure", "Classic"] };
+    suite.queries[0].filters = { genre: ["Adventure", "Classic"] };
+    expect(() => validateDomainSuite(suite)).not.toThrow();
+  });
+
+  it("accepts a snapshot document with facets and rangeFacets, and a query with filters", () => {
+    const suite = snapshotCopy();
+    suite.corpus.documents[0].facets = { genre: ["Adventure", "Classic"] };
+    suite.corpus.documents[0].rangeFacets = { year: 1850 };
+    suite.queries[0].filters = {
+      genre: "Adventure",
+      year: { min: 1800, max: 1900 },
+    };
+    const result = validateDomainSuite(suite);
+    expect(
+      result.corpus.kind === "snapshot"
+        ? result.corpus.documents[0].facets
+        : undefined,
+    ).toEqual({ genre: ["Adventure", "Classic"] });
+    expect(
+      result.corpus.kind === "snapshot"
+        ? result.corpus.documents[0].rangeFacets
+        : undefined,
+    ).toEqual({ year: 1850 });
+    expect(result.queries[0].filters).toEqual({
+      genre: "Adventure",
+      year: { min: 1800, max: 1900 },
+    });
+  });
+
   it("accepts complete reviewed metadata", () => {
     const suite = copy();
     suite.review = {

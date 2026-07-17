@@ -7,8 +7,8 @@ This page is the single current list of shipped capability and remaining work; d
 | Area | Current state | Remaining work |
 |---|---|---|
 | Documentation and showcase | Published, searchable, and covered by link, accessibility, and browser checks | Ongoing maintenance alongside product changes |
-| Lexical search | Stable; native six-language regression baseline plus reviewed documentation, GOV.UK learner-driving, and German (`de-fahrerlaubnisrecht`) domain corpora | Broader representative domains and judged sets, real query evidence, quality thresholds, and an internal query-planner abstraction |
-| Facets, synonyms, fuzzy search, and pins | Stable | No required 1.0 work |
+| Lexical search | Stable; native six-language regression baseline plus reviewed documentation, GOV.UK learner-driving, German (`de-fahrerlaubnisrecht`), and Gutenberg facets (`gutenberg-fiction-facets`) domain corpora | Broader representative domains and judged sets, real query evidence, quality thresholds, and an internal query-planner abstraction |
+| Facets, synonyms, fuzzy search, and pins | Stable; a reviewed domain corpus (`gutenberg-fiction-facets`) now exercises terms and range facet filtering under judged relevance | No required 1.0 work; facet counts (`facetValues()`) remain outside judged relevance coverage |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
 | Offline and worker execution | Stable | Resource-aware loading refinements |
 | Binary storage | Term, fuzzy, and document-store codecs | Evaluate remaining shard formats from measured evidence |
@@ -18,7 +18,7 @@ This page is the single current list of shipped capability and remaining work; d
 
 ## Near-term work
 
-- Expand relevance coverage beyond the documentation, learner-driving, and German driving-license-law domains — now spanning English and German — with broader judged sets and real query evidence before defining thresholds or making production-scale claims.
+- Expand relevance coverage beyond the documentation, learner-driving, German driving-license-law, and Gutenberg faceted-fiction domains — now spanning English and German, and now including judged-relevance coverage of terms and range facet filtering — with broader judged sets and real query evidence before defining thresholds or making production-scale claims.
 - Add a semantic-search example that states model, download, memory, and latency costs clearly; keep lexical search as the default for content sites.
 - Expand full language profiles only with representative corpora, analyzer fixtures, relevance queries, and cross-implementation conformance tests.
 - Refine loading priority, memory controls, and prefetching from measured browser behavior rather than fixed speculative policies.
@@ -60,15 +60,17 @@ Treat relevance as a measurable quality attribute rather than only a correctness
 - zero-result rate
 
 The deterministic evaluator and small native-source regression suites cover all
-six full language profiles, and three reviewed domains supply graded multi-page
+six full language profiles, and four reviewed domains supply graded multi-page
 judgments: the 29-page documentation corpus, the 22-page GOV.UK
-learner-driving journey, and the 23-page German (`de-fahrerlaubnisrecht`)
-driving-license-law corpus. See [Relevance
-baselines](relevance-baselines.md) for commands, metrics, provenance
-requirements, and interpretation limits. These remain narrow representative
-domains, not broad domain coverage or a CI quality gate. Quality thresholds,
-broader performance evidence, query-planning work, and CI enforcement remain
-open.
+learner-driving journey, the 23-page German (`de-fahrerlaubnisrecht`)
+driving-license-law corpus, and the 30-book Gutenberg (`gutenberg-fiction-facets`)
+faceted-fiction corpus, the last of which is the first to judge relevance
+under terms and range facet filtering rather than free-text search alone. See
+[Relevance baselines](relevance-baselines.md) for commands, metrics,
+provenance requirements, and interpretation limits. These remain narrow
+representative domains, not broad domain coverage or a CI quality gate.
+Quality thresholds, broader performance evidence, query-planning work, and CI
+enforcement remain open.
 
 Run relevance evaluation when changing analyzers, tokenization, stemming, synonyms, fuzzy expansion, BM25 parameters, field boosts, phrase behavior, or hybrid fusion. Keep domain-specific relevance suites separate from generic engine conformance tests.
 

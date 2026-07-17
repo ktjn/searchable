@@ -4,9 +4,10 @@ Searchable includes a deterministic lexical relevance evaluator for every full
 language profile: English (`en`), German (`de`), Swedish (`sv`), Dutch (`nl`),
 Bokmål (`nb`), and Nynorsk (`nn`). It exercises the public indexer and client
 APIs over local HTTP, using committed native-language FAQ and help excerpts.
-Three reviewed domain suites evaluate the generated Searchable documentation
-index, a normalized snapshot of the GOV.UK learner-driving journey, and a
-German-language corpus of Wikipedia articles on driving-license law.
+Four reviewed domain suites evaluate the generated Searchable documentation
+index, a normalized snapshot of the GOV.UK learner-driving journey, a
+German-language corpus of Wikipedia articles on driving-license law, and a
+faceted Project Gutenberg public-domain fiction corpus.
 
 ## Run the baseline
 
@@ -56,6 +57,12 @@ Run the German driving-license-law suite the same way:
 
 ```sh
 pnpm relevance -- --suite de-fahrerlaubnisrecht
+```
+
+Run the Gutenberg faceted-fiction suite the same way:
+
+```sh
+pnpm relevance -- --suite gutenberg-fiction-facets
 ```
 
 `--suite` and `--language` are mutually exclusive. The default command remains
@@ -190,9 +197,56 @@ contributors with edit history available via each source page. Selection
 notes recording the category listing, discarded stubs/overlaps, and buffer
 swaps are recorded in the fixture's `provenance` field.
 
+## Reviewed Gutenberg facets domain corpus
+
+`gutenberg-fiction-facets@1.0.0` contains 30 real Project Gutenberg
+public-domain books across 5 real Gutenberg bookshelf genres (Gothic Fiction,
+Science Fiction, Adventure, Detective Fiction, Children's Literature),
+published 1764-1929. It has 20 English task-oriented queries across five
+topics: genre browsing, publication era, author-and-title lookup,
+plot-and-theme search, and cross-genre comparison. Each document carries a
+`genre` terms facet and a `year` range facet; 7 of the 20 queries apply a real
+facet filter (a `genre` terms filter, a `year` range filter, or both together).
+
+This is the first corpus in this project to exercise judged relevance under
+facet-filtered search rather than free-text search alone. For example,
+`gothic-castle-genre-filter` applies a `genre: "Gothic Fiction"` terms filter,
+`castle-pre-1800` applies a `year: { max: 1800 }` range filter, and
+`gothic-castle-before-1780` combines both — a `genre: "Gothic Fiction"` terms
+filter intersected with a `year: { max: 1780 }` range filter — narrowing the
+corpus to the single correctly-judged match (The Castle of Otranto, 1764) and
+correctly excluding The Mysteries of Udolpho (1794), which matches the genre
+and the "castle" text but falls outside the narrower year cutoff. This
+exercises real facet intersection, not just independent single-value filters,
+because genre and publication year deliberately cross-cut in the underlying
+corpus (e.g. Gothic Fiction spans 1764-1897).
+
+The suite uses the same graded judgment and page-specific rationale policy as
+the documentation, GOV.UK, and German corpora. Maintainer `ktjn` reviewed
+every normalized document, query, grade, rationale, and measured top-five
+result on 2026-07-17.
+
+The reviewed baseline at `k = 5` is:
+
+| Metric | Value |
+|---|---:|
+| MRR | 1.000000 |
+| Precision@5 | 0.360000 |
+| Recall@5 | 1.000000 |
+| nDCG@5 | 0.960733 |
+| Zero-result rate | 0.000000 |
+
+The source snapshot was retrieved on 2026-07-17. It contains Project
+Gutenberg bibliographic metadata and text, in the public domain in the United
+States, attributed to Project Gutenberg. Selection notes recording the
+bookshelf sources, genre/year cross-cutting rationale, and the mix of
+verbatim-excerpt and summary documents are recorded in the fixture's
+`provenance` field and in
+`docs/superpowers/notes/2026-07-17-gutenberg-facets-source-selection.md`.
+
 ## Interpretation and limits
 
-The language suites are small regression fixtures, and the three domain suites
+The language suites are small regression fixtures, and the four domain suites
 are reviewed but intentionally narrow corpora. They verify that content can be
 indexed and retrieved through the shipped public path and provide a
 reproducible signal when ranking or analysis changes. They are not
@@ -200,13 +254,16 @@ production-scale benchmarks.
 
 The language suites use one strongly relevant document per native source
 question or help topic. The domain suites use graded multi-page judgments, but
-cover only one English documentation site, one UK learner-driving journey, and
-one German-language encyclopedia corpus — three domains across two languages
-(English and German). Their queries are authored intents rather than
-user-query logs. These scores are not latency or memory evidence and do not
-establish web-scale quality or superiority over another engine. Do not compare
-scores across suites because their source material, query sets, and judgments
-differ.
+cover only one English documentation site, one UK learner-driving journey, one
+German-language encyclopedia corpus, and one English-language faceted fiction
+catalog — four domains across two languages (English and German). Only the
+Gutenberg facets corpus exercises facet-filtered search under judged
+relevance; the other three domains judge free-text search only. Facet
+*counts* (`facetValues()`) remain unexercised by any relevance suite. Their
+queries are authored intents rather than user-query logs. These scores are
+not latency or memory evidence and do not establish web-scale quality or
+superiority over another engine. Do not compare scores across suites because
+their source material, query sets, and judgments differ.
 
 The German suite's one remaining zero-result query (out of 19) is an accepted
 lexical-matching limitation rather than a defect: this project's search
