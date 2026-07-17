@@ -503,5 +503,290 @@
       }
     ]
   },
-  "queries": []
+  "queries": [
+    {
+      "id": "gothic-castle-genre-filter",
+      "text": "gothic castle",
+      "topic": "genre-browsing",
+      "filters": {
+        "genre": "Gothic Fiction"
+      },
+      "judgments": {
+        "/ebooks/696": 3,
+        "/ebooks/3268": 2
+      },
+      "rationales": {
+        "/ebooks/696": "The Castle of Otranto is the founding Gothic novel, and its entire plot is anchored in the haunted castle and the prophecy about its rightful owner.",
+        "/ebooks/3268": "The Mysteries of Udolpho centers on Emily's imprisonment in Montoni's decaying Gothic castle, though the castle is a setting for the plot rather than the plot's origin the way Otranto's is."
+      }
+    },
+    {
+      "id": "detective-genre-filter",
+      "text": "detective",
+      "topic": "genre-browsing",
+      "filters": {
+        "genre": "Detective Fiction"
+      },
+      "judgments": {
+        "/ebooks/863": 3,
+        "/ebooks/155": 2,
+        "/ebooks/204": 2
+      },
+      "rationales": {
+        "/ebooks/863": "The Mysterious Affair at Styles introduces Hercule Poirot, a refugee Belgian ex-policeman turned detective, whose investigation is the whole plot.",
+        "/ebooks/155": "The Moonstone is described as one of the first detective novels in English, with Sergeant Cuff drawn into the diamond theft case.",
+        "/ebooks/204": "The Innocence of Father Brown introduces the priest-detective Father Brown, though the story frames him as an unassuming amateur rather than a professional investigator."
+      }
+    },
+    {
+      "id": "orphan-childrens-genre-filter",
+      "text": "orphan",
+      "topic": "genre-browsing",
+      "filters": {
+        "genre": "Children's Literature"
+      },
+      "judgments": {
+        "/ebooks/45": 3,
+        "/ebooks/421": 2
+      },
+      "rationales": {
+        "/ebooks/45": "Anne of Green Gables is centrally about the orphan Anne Shirley being sent by mistake to Matthew and Marilla Cuthbert.",
+        "/ebooks/421": "Kidnapped's David Balfour is orphaned at the start and cheated of his inheritance by his uncle, though the orphan status is a plot trigger rather than the book's ongoing focus the way Anne's is; Kidnapped also carries the Children's Literature genre tag alongside Adventure."
+      }
+    },
+    {
+      "id": "castle-pre-1800",
+      "text": "castle",
+      "topic": "publication-era",
+      "filters": {
+        "year": {
+          "max": 1800
+        }
+      },
+      "judgments": {
+        "/ebooks/696": 3,
+        "/ebooks/3268": 2
+      },
+      "rationales": {
+        "/ebooks/696": "The Castle of Otranto (1764) is the earliest and most castle-defining book in the corpus, well inside the pre-1800 window.",
+        "/ebooks/3268": "The Mysteries of Udolpho (1794) is also set almost entirely in Montoni's castle and falls just inside the pre-1800 cutoff."
+      }
+    },
+    {
+      "id": "detective-1900-to-1929",
+      "text": "detective",
+      "topic": "publication-era",
+      "filters": {
+        "year": {
+          "min": 1900,
+          "max": 1929
+        }
+      },
+      "judgments": {
+        "/ebooks/863": 3,
+        "/ebooks/204": 2
+      },
+      "rationales": {
+        "/ebooks/863": "The Mysterious Affair at Styles (1920), introducing Poirot, falls in the 1900-1929 window; The Moonstone (1868) and Around the World in Eighty Days (1873) also use the word \"detective\" but predate this range and are correctly excluded.",
+        "/ebooks/204": "The Innocence of Father Brown (1911) also falls in this range, though its priest-detective is a lighter match than Poirot's professional investigation."
+      }
+    },
+    {
+      "id": "gothic-castle-before-1780",
+      "text": "castle",
+      "topic": "publication-era",
+      "filters": {
+        "genre": "Gothic Fiction",
+        "year": {
+          "max": 1780
+        }
+      },
+      "judgments": {
+        "/ebooks/696": 3
+      },
+      "rationales": {
+        "/ebooks/696": "The Castle of Otranto (1764) is the only Gothic Fiction book about a castle published before 1780; The Mysteries of Udolpho (1794) matches the genre and the castle setting but is excluded by this narrower year cutoff."
+      }
+    },
+    {
+      "id": "volcano-centre-earth-1850s-1860s",
+      "text": "volcano centre earth",
+      "topic": "publication-era",
+      "filters": {
+        "year": {
+          "min": 1850,
+          "max": 1870
+        }
+      },
+      "judgments": {
+        "/ebooks/18857": 3
+      },
+      "rationales": {
+        "/ebooks/18857": "A Journey to the Centre of the Earth (1864) is Lidenbrock and Axel's descent through the Icelandic volcano Snæfellsjökull toward the centre of the Earth, falling squarely in the 1850-1870 window."
+      }
+    },
+    {
+      "id": "sherlock-holmes-lookup",
+      "text": "Sherlock Holmes",
+      "topic": "author-and-title-lookup",
+      "judgments": {
+        "/ebooks/244": 3,
+        "/ebooks/1661": 2
+      },
+      "rationales": {
+        "/ebooks/244": "A Study in Scarlet is explicitly the first Sherlock Holmes story, introducing Holmes and Watson at Baker Street.",
+        "/ebooks/1661": "The Adventures of Sherlock Holmes is the first Sherlock Holmes short-story anthology, opening with \"A Scandal in Bohemia.\""
+      }
+    },
+    {
+      "id": "frankenstein-lookup",
+      "text": "Frankenstein creature",
+      "topic": "author-and-title-lookup",
+      "judgments": {
+        "/ebooks/84": 3
+      },
+      "rationales": {
+        "/ebooks/84": "Frankenstein; or, the Modern Prometheus is Mary Shelley's novel of Victor Frankenstein and the creature he assembles and abandons."
+      }
+    },
+    {
+      "id": "long-john-silver-lookup",
+      "text": "Long John Silver",
+      "topic": "author-and-title-lookup",
+      "judgments": {
+        "/ebooks/120": 3
+      },
+      "rationales": {
+        "/ebooks/120": "Treasure Island is Jim Hawkins's voyage that brings him face to face with the duplicitous Long John Silver."
+      }
+    },
+    {
+      "id": "anne-shirley-lookup",
+      "text": "Anne Shirley",
+      "topic": "author-and-title-lookup",
+      "judgments": {
+        "/ebooks/45": 3
+      },
+      "rationales": {
+        "/ebooks/45": "Anne of Green Gables follows the imaginative orphan Anne Shirley sent by mistake to the Cuthberts."
+      }
+    },
+    {
+      "id": "vampire-count-theme",
+      "text": "vampire count",
+      "topic": "plot-and-theme-search",
+      "judgments": {
+        "/ebooks/345": 3
+      },
+      "rationales": {
+        "/ebooks/345": "Dracula is Stoker's novel of the vampire Count Dracula's journey from Transylvania to England."
+      }
+    },
+    {
+      "id": "wrongly-imprisoned-theme",
+      "text": "wrongly imprisoned",
+      "topic": "plot-and-theme-search",
+      "judgments": {
+        "/ebooks/1184": 3
+      },
+      "rationales": {
+        "/ebooks/1184": "The Count of Monte Cristo's Edmond Dantès is denounced on false charges and thrown without trial into the Château d'If, the corpus's clearest wrongful-imprisonment plot."
+      }
+    },
+    {
+      "id": "shipwreck-highlands-theme",
+      "text": "shipwreck Highlands",
+      "topic": "plot-and-theme-search",
+      "judgments": {
+        "/ebooks/421": 3
+      },
+      "rationales": {
+        "/ebooks/421": "Kidnapped's David Balfour is thrown together with Alan Breck Stewart after a shipwreck off the Scottish coast during the Jacobite Highlands unrest."
+      }
+    },
+    {
+      "id": "raised-by-apes-theme",
+      "text": "raised jungle apes",
+      "topic": "plot-and-theme-search",
+      "judgments": {
+        "/ebooks/78": 3
+      },
+      "rationales": {
+        "/ebooks/78": "Tarzan of the Apes is the story of the infant John Clayton raised in the African jungle by the she-ape Kala among a tribe of great apes."
+      }
+    },
+    {
+      "id": "curse-hound-theme",
+      "text": "curse hound",
+      "topic": "plot-and-theme-search",
+      "judgments": {
+        "/ebooks/2852": 3
+      },
+      "rationales": {
+        "/ebooks/2852": "The Hound of the Baskervilles centers on the old family curse and the phantom hound stalking Dartmoor."
+      }
+    },
+    {
+      "id": "treasure-map-cross-genre",
+      "text": "treasure map",
+      "topic": "cross-genre-comparison",
+      "judgments": {
+        "/ebooks/2166": 3,
+        "/ebooks/120": 3
+      },
+      "rationales": {
+        "/ebooks/2166": "King Solomon's Mines (Adventure) is guided by an old map drawn in blood in search of King Solomon's legendary treasure.",
+        "/ebooks/120": "Treasure Island (Children's Literature) is built entirely around a pirate's treasure map, showing the same theme surfacing under a different Gutenberg genre tag."
+      }
+    },
+    {
+      "id": "orphan-cross-genre",
+      "text": "orphan",
+      "topic": "cross-genre-comparison",
+      "judgments": {
+        "/ebooks/45": 3,
+        "/ebooks/3268": 2,
+        "/ebooks/421": 2,
+        "/ebooks/78": 2
+      },
+      "rationales": {
+        "/ebooks/45": "Anne of Green Gables (Children's Literature) is centrally about the orphan Anne Shirley.",
+        "/ebooks/3268": "The Mysteries of Udolpho (Gothic Fiction) opens with Emily orphaned and placed under her sinister guardian's control.",
+        "/ebooks/421": "Kidnapped (Adventure and Children's Literature) opens with the newly orphaned David Balfour being cheated of his inheritance.",
+        "/ebooks/78": "Tarzan of the Apes (Adventure) is orphaned as an infant when his aristocrat parents die in the jungle, then raised by apes."
+      }
+    },
+    {
+      "id": "island-cross-genre",
+      "text": "island",
+      "topic": "cross-genre-comparison",
+      "judgments": {
+        "/ebooks/1268": 3,
+        "/ebooks/1184": 2,
+        "/ebooks/120": 2
+      },
+      "rationales": {
+        "/ebooks/1268": "The Mysterious Island (Science Fiction) is entirely about escaped prisoners rebuilding civilization on a deserted Pacific island.",
+        "/ebooks/1184": "The Count of Monte Cristo (Adventure) imprisons Dantès in the island fortress of the Château d'If and later has him claim treasure via an island connection.",
+        "/ebooks/120": "Treasure Island (Children's Literature) is Jim Hawkins's voyage to the island named in the title."
+      }
+    },
+    {
+      "id": "detective-cross-genre",
+      "text": "detective",
+      "topic": "cross-genre-comparison",
+      "judgments": {
+        "/ebooks/863": 3,
+        "/ebooks/155": 2,
+        "/ebooks/204": 2,
+        "/ebooks/103": 1
+      },
+      "rationales": {
+        "/ebooks/863": "The Mysterious Affair at Styles (Detective Fiction) introduces Hercule Poirot's detective work as its whole plot.",
+        "/ebooks/155": "The Moonstone (Detective Fiction) is called one of the first detective novels in English.",
+        "/ebooks/204": "The Innocence of Father Brown (Detective Fiction) introduces the priest-detective Father Brown.",
+        "/ebooks/103": "Around the World in Eighty Days (Adventure) only mentions a detective as a Scotland Yard investigator trailing Phileas Fogg as a suspected bank robber, a minor subplot rather than the book's main focus."
+      }
+    }
+  ]
 }
