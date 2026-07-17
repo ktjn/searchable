@@ -32,10 +32,19 @@ export const DE_FAHRERLAUBNISRECHT_DOMAIN_QUERY_TOPICS = [
   "special-permits-courses",
 ] as const;
 
+export const GUTENBERG_FICTION_FACETS_DOMAIN_QUERY_TOPICS = [
+  "genre-browsing",
+  "publication-era",
+  "author-and-title-lookup",
+  "plot-and-theme-search",
+  "cross-genre-comparison",
+] as const;
+
 export const DOMAIN_QUERY_TOPICS = [
   ...EXISTING_DOMAIN_QUERY_TOPICS,
   ...GOVUK_DOMAIN_QUERY_TOPICS,
   ...DE_FAHRERLAUBNISRECHT_DOMAIN_QUERY_TOPICS,
+  ...GUTENBERG_FICTION_FACETS_DOMAIN_QUERY_TOPICS,
 ] as const;
 
 export type DomainQueryTopic = (typeof DOMAIN_QUERY_TOPICS)[number];

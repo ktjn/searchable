@@ -7,6 +7,7 @@ export const KNOWN_DOMAIN_SUITES = [
   "searchable-docs",
   "govuk-learn-to-drive",
   "de-fahrerlaubnisrecht",
+  "gutenberg-fiction-facets",
 ] as const;
 export type KnownDomainSuite = (typeof KNOWN_DOMAIN_SUITES)[number];
 

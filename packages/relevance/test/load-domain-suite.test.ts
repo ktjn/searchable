@@ -67,6 +67,7 @@ it("loads all committed allowlisted domain suites", async () => {
     "searchable-docs",
     "govuk-learn-to-drive",
     "de-fahrerlaubnisrecht",
+    "gutenberg-fiction-facets",
   ]);
   await expect(
     loadDomainSuite(fixtureDirectory, "govuk-learn-to-drive"),
@@ -74,6 +75,9 @@ it("loads all committed allowlisted domain suites", async () => {
   await expect(
     loadDomainSuite(fixtureDirectory, "de-fahrerlaubnisrecht"),
   ).resolves.toMatchObject({ id: "de-fahrerlaubnisrecht", version: "1.0.0" });
+  await expect(
+    loadDomainSuite(fixtureDirectory, "gutenberg-fiction-facets"),
+  ).rejects.toThrow(/ENOENT/);
 });
 
 it("rejects unknown suite names before filesystem access", async () => {
