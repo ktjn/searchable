@@ -1,10 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { DOC_SECTIONS } from "../../../showcase/docs-nav.js";
-import {
-  DOMAIN_QUERY_TOPICS,
-  GOVUK_DOMAIN_QUERY_TOPICS,
-} from "../src/domain-schema.js";
 import { loadDomainSuite } from "../src/load-domain-suite.js";
 
 // Topics for the searchable-docs fixture: existing documentation topics (excluding GOV.UK and domain-specific topics)
