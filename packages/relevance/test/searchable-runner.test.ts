@@ -55,3 +55,43 @@ it("evaluates a suite through the public indexer and client APIs", async () => {
   ]);
   expect(report.metrics.meanReciprocalRank).toBe(1);
 });
+
+const facetSuite: RelevanceSuite = {
+  schemaVersion: 1,
+  id: "facet-test",
+  version: "1.0.0",
+  language: "en",
+  provenance: suite.provenance,
+  documents: [
+    {
+      id: "/a",
+      url: "https://example.com/a",
+      title: "Book A",
+      body: "An adventure story.",
+      facets: { genre: ["Adventure"] },
+      rangeFacets: { year: 1850 },
+    },
+    {
+      id: "/b",
+      url: "https://example.com/b",
+      title: "Book B",
+      body: "A science fiction story.",
+      facets: { genre: ["Science Fiction"] },
+      rangeFacets: { year: 1950 },
+    },
+  ],
+  queries: [
+    {
+      id: "adventure-only",
+      text: "story",
+      judgments: { "/a": 3, "/b": 1 },
+      filters: { genre: "Adventure" },
+    },
+  ],
+};
+
+it("applies query filters and returns only matching documents", async () => {
+  const report = await runSearchableSuite(facetSuite);
+  const query = report.queries.find((q) => q.id === "adventure-only");
+  expect(query?.returnedIds).toEqual(["/a"]);
+});

@@ -8,7 +8,7 @@ import {
   writeIndex,
 } from "@ktjn/searchable-indexer";
 import { evaluateSuite, type SuiteReport } from "./evaluate.js";
-import type { RelevanceSuite } from "./schema.js";
+import type { RelevanceDocument, RelevanceSuite } from "./schema.js";
 import { type StaticServer, serveDirectory } from "./static-server.js";
 
 function escapeHtml(text: string): string {
@@ -17,6 +17,20 @@ function escapeHtml(text: string): string {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function facetMetaTags(document: RelevanceDocument): string {
+  const tags: string[] = [];
+  for (const [field, values] of Object.entries(document.facets ?? {}))
+    for (const value of values)
+      tags.push(
+        `<meta name="searchable-facet-${escapeHtml(field)}" content="${escapeHtml(value)}">`,
+      );
+  for (const [field, value] of Object.entries(document.rangeFacets ?? {}))
+    tags.push(
+      `<meta name="searchable-facet-range-${escapeHtml(field)}" content="${value}">`,
+    );
+  return tags.join("");
 }
 
 export async function runSearchableSuite(
@@ -37,7 +51,7 @@ export async function runSearchableSuite(
       return {
         id,
         url: document.url,
-        html: `<!doctype html><html lang="${suite.language}"><head><title>${escapeHtml(document.title)}</title></head><body><main>${escapeHtml(document.body)}</main></body></html>`,
+        html: `<!doctype html><html lang="${suite.language}"><head><title>${escapeHtml(document.title)}</title>${facetMetaTags(document)}</head><body><main>${escapeHtml(document.body)}</main></body></html>`,
       };
     });
     await writeIndex(buildIndex(sources, suite.language), outDirectory);
