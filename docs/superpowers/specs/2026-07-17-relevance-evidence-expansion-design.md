@@ -38,6 +38,18 @@ This is scoped as 1.0-required work, not deferred near-term roadmap work.
 2. No domain corpus exercising real facet usage.
 3. No real (non-authored) query evidence anywhere in the relevance suite.
 
+## Implementation split
+
+Research during planning found that Domain B (faceted-content) requires new
+facet-filter support in the evaluator itself — no facet concept exists
+anywhere in `packages/relevance`'s schema, validator, runner, or metrics
+today. Domain A (German snapshot corpus) is a straightforward reuse of the
+existing `govuk-learn-to-drive`-style pattern. The two are therefore
+implemented as separate plans:
+
+- `docs/superpowers/plans/2026-07-17-relevance-domain-german.md` — Domain A.
+- Domain B's plan is written separately, later, once Domain A ships.
+
 ## Phase 1 — two new judged domain corpora
 
 ### Domain A: non-English domain corpus (German)
