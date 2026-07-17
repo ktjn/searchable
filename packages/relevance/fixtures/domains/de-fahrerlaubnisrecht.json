@@ -21,7 +21,7 @@
     "kind": "snapshot",
     "documents": [
       {
-        "id": "/wiki/Führerschein",
+        "id": "/wiki/F%C3%BChrerschein",
         "url": "https://de.wikipedia.org/wiki/Führerschein",
         "title": "Führerschein",
         "description": "Übersichtsartikel zum Führerschein und zur damit verbundenen Fahrerlaubnis, einschließlich rechtlicher Grundlagen, Mindestaltersregelungen und Fahren ohne Führerschein bzw. Fahrerlaubnis in verschiedenen Ländern.",
@@ -29,7 +29,7 @@
         "contentHash": "2ff46565600f60300d250aea1db788e48146084395e5d20195152a3f77239305"
       },
       {
-        "id": "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)",
+        "id": "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)",
         "url": "https://de.wikipedia.org/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)",
         "title": "Führerschein und Fahrerlaubnis (Deutschland)",
         "description": "Umfassende Darstellung des deutschen Fahrerlaubnisrechts einschließlich nationaler Fahrerlaubnisklassen, Sonderregelungen, Bestandsschutz, Umtauschfristen und Erteilungsvoraussetzungen.",
@@ -69,7 +69,7 @@
         "contentHash": "8937fe72c2961c097c5307a2d69d05d13f14f188c66a3ec38cdb9802493321ab"
       },
       {
-        "id": "/wiki/Fahren_ohne_Führerschein",
+        "id": "/wiki/Fahren_ohne_F%C3%BChrerschein",
         "url": "https://de.wikipedia.org/wiki/Fahren_ohne_Führerschein",
         "title": "Fahren ohne Führerschein",
         "description": "Abgrenzung des bloßen Nichtmitführens des Führerscheindokuments (Ordnungswidrigkeit) vom strafbaren Fahren ohne Fahrerlaubnis.",
@@ -125,7 +125,7 @@
         "contentHash": "fcebf14e1c92c6baba4db76546fd619e057792bf18e395f85c692a6b2229d311"
       },
       {
-        "id": "/wiki/Aufbauseminar_für_Fahranfänger",
+        "id": "/wiki/Aufbauseminar_f%C3%BCr_Fahranf%C3%A4nger",
         "url": "https://de.wikipedia.org/wiki/Aufbauseminar_für_Fahranfänger",
         "title": "Aufbauseminar für Fahranfänger",
         "description": "Beschreibung des Aufbauseminars für Fahranfänger als Maßnahme bei Verkehrsverstößen während der Probezeit, einschließlich des besonderen Aufbauseminars für alkohol- und drogenauffällige Fahranfänger.",
@@ -141,7 +141,7 @@
         "contentHash": "054463131adf042bcc2cef41c9da26b99b1ac1c6c5035cc384c4858d4b26d337"
       },
       {
-        "id": "/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnisprüfung",
+        "id": "/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnispr%C3%BCfung",
         "url": "https://de.wikipedia.org/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnisprüfung",
         "title": "Fragenkatalog der theoretischen Fahrerlaubnisprüfung",
         "description": "Geschichte und Aufbau des amtlichen Fragenkatalogs für die theoretische Führerscheinprüfung sowie der computergestützten Prüfung.",
@@ -149,7 +149,7 @@
         "contentHash": "644ee463a2d995aee7dbea5840dac22674dab01da7b25ac5740822b3beea13d4"
       },
       {
-        "id": "/wiki/Mofa-Prüfbescheinigung",
+        "id": "/wiki/Mofa-Pr%C3%BCfbescheinigung",
         "url": "https://de.wikipedia.org/wiki/Mofa-Prüfbescheinigung",
         "title": "Mofa-Prüfbescheinigung",
         "description": "Erläuterung der deutschen Mofa-Prüfbescheinigung als Befähigungsnachweis für Kleinstfahrzeuge bis 25 km/h.",
@@ -165,7 +165,7 @@
         "contentHash": "9a0ade8cf8674ce3e0f64aa4c9b03d6b4aefd6ae149863b47418673d05fa3a0b"
       },
       {
-        "id": "/wiki/§-70-Kurs",
+        "id": "/wiki/%C2%A7-70-Kurs",
         "url": "https://de.wikipedia.org/wiki/§-70-Kurs",
         "title": "§-70-Kurs",
         "description": "Darstellung der Kurse nach § 70 Fahrerlaubnis-Verordnung zur Wiederherstellung der Fahreignung nach positiver Kursempfehlung im MPU-Gutachten.",
@@ -173,7 +173,7 @@
         "contentHash": "fe30d2591cd7f93c163539c28284249aeda8f8c26d238de40d684b3a73f45b2b"
       },
       {
-        "id": "/wiki/Fahrschüler-Ausbildungsordnung",
+        "id": "/wiki/Fahrsch%C3%BCler-Ausbildungsordnung",
         "url": "https://de.wikipedia.org/wiki/Fahrschüler-Ausbildungsordnung",
         "title": "Fahrschüler-Ausbildungsordnung",
         "description": "Überblick über die bundeseinheitliche Fahrschüler-Ausbildungsordnung (FahrschAusbO) und ihre Regelung von Zielen, Inhalten und Stufenausbildung der Fahrausbildung.",
@@ -181,7 +181,7 @@
         "contentHash": "ca20eae59841fc703c3d42e46a9edd0266a9f35c4c9165ed5ba79bfd2387ec79"
       },
       {
-        "id": "/wiki/Amtlich_anerkannter_Sachverständiger_oder_Prüfer_für_den_Kraftfahrzeugverkehr",
+        "id": "/wiki/Amtlich_anerkannter_Sachverst%C3%A4ndiger_oder_Pr%C3%BCfer_f%C3%BCr_den_Kraftfahrzeugverkehr",
         "url": "https://de.wikipedia.org/wiki/Amtlich_anerkannter_Sachverständiger_oder_Prüfer_für_den_Kraftfahrzeugverkehr",
         "title": "Amtlich anerkannter Sachverständiger oder Prüfer für den Kraftfahrzeugverkehr",
         "description": "Beschreibung der amtlich anerkannten Sachverständigen und Prüfer, die Fahrzeug- und Fahrerlaubnisprüfungen bei Technischen Prüfstellen wie TÜV und DEKRA durchführen.",
@@ -197,7 +197,7 @@
         "contentHash": "4bc9c45a99852c8c17a316044fd8afcab76087f67f631a08e6a7a701b751ab0e"
       },
       {
-        "id": "/wiki/Führerschein-Prüfungsrichtlinie",
+        "id": "/wiki/F%C3%BChrerschein-Pr%C3%BCfungsrichtlinie",
         "url": "https://de.wikipedia.org/wiki/Führerschein-Prüfungsrichtlinie",
         "title": "Führerschein-Prüfungsrichtlinie",
         "description": "Beschreibung der Führerschein-Prüfungsrichtlinie, die Ablauf und Anforderungen der theoretischen und praktischen Fahrerlaubnisprüfung in Deutschland verbindlich regelt.",
@@ -212,14 +212,14 @@
       "text": "Führerscheinklassen Deutschland",
       "topic": "license-classes-eligibility",
       "judgments": {
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 3,
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 3,
         "/wiki/Fahrerlaubnis-Verordnung": 2,
-        "/wiki/Führerschein": 1
+        "/wiki/F%C3%BChrerschein": 1
       },
       "rationales": {
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Beschreibt ausführlich die nationalen Fahrerlaubnisklassen L, T, S und AM sowie deren Voraussetzungen und Geschichte in Deutschland.",
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": "Beschreibt ausführlich die nationalen Fahrerlaubnisklassen L, T, S und AM sowie deren Voraussetzungen und Geschichte in Deutschland.",
         "/wiki/Fahrerlaubnis-Verordnung": "Erläutert, dass die FeV die Einteilung in Fahrerlaubnisklassen und das Mindestalter für jede Klasse regelt.",
-        "/wiki/Führerschein": "Erklärt allgemein, dass die Fahrerlaubnis an eine bestimmte Fahrzeugklasse gebunden ist, ohne die deutschen Klassen im Detail aufzuzählen."
+        "/wiki/F%C3%BChrerschein": "Erklärt allgemein, dass die Fahrerlaubnis an eine bestimmte Fahrzeugklasse gebunden ist, ohne die deutschen Klassen im Detail aufzuzählen."
       }
     },
     {
@@ -227,14 +227,14 @@
       "text": "Voraussetzungen für den Führerschein",
       "topic": "license-classes-eligibility",
       "judgments": {
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 3,
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 3,
         "/wiki/Fahrtauglichkeitsuntersuchung": 2,
-        "/wiki/Fahrschüler-Ausbildungsordnung": 1
+        "/wiki/Fahrsch%C3%BCler-Ausbildungsordnung": 1
       },
       "rationales": {
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Listet im Abschnitt Erteilungsvoraussetzungen Wohnsitz, Mindestalter, Eignung, Sehvermögen, Erste Hilfe und Fahrausbildung als Bedingungen für die Fahrerlaubnis auf.",
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": "Listet im Abschnitt Erteilungsvoraussetzungen Wohnsitz, Mindestalter, Eignung, Sehvermögen, Erste Hilfe und Fahrausbildung als Bedingungen für die Fahrerlaubnis auf.",
         "/wiki/Fahrtauglichkeitsuntersuchung": "Beschreibt die gesetzlich vorgeschriebene ärztliche und augenärztliche Untersuchung, die Teil der Erteilungsvoraussetzungen ist.",
-        "/wiki/Fahrschüler-Ausbildungsordnung": "Regelt die verpflichtende Fahrschulausbildung, die als Nachweis der Befähigung Voraussetzung für die Fahrerlaubnis ist."
+        "/wiki/Fahrsch%C3%BCler-Ausbildungsordnung": "Regelt die verpflichtende Fahrschulausbildung, die als Nachweis der Befähigung Voraussetzung für die Fahrerlaubnis ist."
       }
     },
     {
@@ -242,14 +242,14 @@
       "text": "Mindestalter Führerschein Klasse AM",
       "topic": "license-classes-eligibility",
       "judgments": {
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 3,
-        "/wiki/Mofa-Prüfbescheinigung": 2,
-        "/wiki/Führerschein": 1
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 3,
+        "/wiki/Mofa-Pr%C3%BCfbescheinigung": 2,
+        "/wiki/F%C3%BChrerschein": 1
       },
       "rationales": {
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Enthält den eigenen Abschnitt 'Klasse AM ab 15 Jahren' mit der Historie der Altersabsenkung von 16 auf 15 Jahre einschließlich der Modellversuche und des bundesweiten Inkrafttretens 2021.",
-        "/wiki/Mofa-Prüfbescheinigung": "Vergleicht die Prüfbescheinigung mit der Führerscheinklasse AM und nennt deren Mindestalter von ursprünglich 16, seit 2021 15 Jahren.",
-        "/wiki/Führerschein": "Gibt allgemeinen internationalen Kontext zu Mindestaltersregelungen für Führerscheine, ohne die deutsche Klasse AM konkret zu behandeln."
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": "Enthält den eigenen Abschnitt 'Klasse AM ab 15 Jahren' mit der Historie der Altersabsenkung von 16 auf 15 Jahre einschließlich der Modellversuche und des bundesweiten Inkrafttretens 2021.",
+        "/wiki/Mofa-Pr%C3%BCfbescheinigung": "Vergleicht die Prüfbescheinigung mit der Führerscheinklasse AM und nennt deren Mindestalter von ursprünglich 16, seit 2021 15 Jahren.",
+        "/wiki/F%C3%BChrerschein": "Gibt allgemeinen internationalen Kontext zu Mindestaltersregelungen für Führerscheine, ohne die deutsche Klasse AM konkret zu behandeln."
       }
     },
     {
@@ -257,13 +257,13 @@
       "text": "Unterschied Führerschein und Fahrerlaubnis",
       "topic": "license-classes-eligibility",
       "judgments": {
-        "/wiki/Führerschein": 3,
-        "/wiki/Fahren_ohne_Führerschein": 2,
+        "/wiki/F%C3%BChrerschein": 3,
+        "/wiki/Fahren_ohne_F%C3%BChrerschein": 2,
         "/wiki/Fahren_ohne_Fahrerlaubnis": 1
       },
       "rationales": {
-        "/wiki/Führerschein": "Erklärt direkt, dass die Fahrerlaubnis der Verwaltungsakt und der Führerschein lediglich das Dokument dazu ist.",
-        "/wiki/Fahren_ohne_Führerschein": "Grenzt konkret das bloße Nichtmitführen des Führerscheindokuments von der fehlenden Fahrerlaubnis ab.",
+        "/wiki/F%C3%BChrerschein": "Erklärt direkt, dass die Fahrerlaubnis der Verwaltungsakt und der Führerschein lediglich das Dokument dazu ist.",
+        "/wiki/Fahren_ohne_F%C3%BChrerschein": "Grenzt konkret das bloße Nichtmitführen des Führerscheindokuments von der fehlenden Fahrerlaubnis ab.",
         "/wiki/Fahren_ohne_Fahrerlaubnis": "Beschreibt die Gegenseite der Abgrenzung, das strafbare Fehlen der eigentlichen Fahrerlaubnis."
       }
     },
@@ -316,11 +316,11 @@
       "topic": "fitness-to-drive-mpu",
       "judgments": {
         "/wiki/Fahrtauglichkeitsuntersuchung": 3,
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 1
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 1
       },
       "rationales": {
         "/wiki/Fahrtauglichkeitsuntersuchung": "Beschreibt den augenärztlichen Teil der Fahrtauglichkeitsuntersuchung, Sehkraft und räumliches Sehen, ausdrücklich als eigenen Abschnitt.",
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Nennt die Erfüllung der Anforderungen an das Sehvermögen knapp als eine der allgemeinen Erteilungsvoraussetzungen."
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": "Nennt die Erfüllung der Anforderungen an das Sehvermögen knapp als eine der allgemeinen Erteilungsvoraussetzungen."
       }
     },
     {
@@ -358,12 +358,12 @@
       "text": "Strafe für Fahren ohne Führerschein",
       "topic": "penalties-license-withdrawal",
       "judgments": {
-        "/wiki/Fahren_ohne_Führerschein": 3,
+        "/wiki/Fahren_ohne_F%C3%BChrerschein": 3,
         "/wiki/Fahren_ohne_Fahrerlaubnis": 3,
         "/wiki/Fahrverbot_(Deutschland)": 1
       },
       "rationales": {
-        "/wiki/Fahren_ohne_Führerschein": "Beschreibt direkt das bundesweite Verwarnungsgeld von 10 Euro für das bloße Nichtmitführen des Führerscheindokuments.",
+        "/wiki/Fahren_ohne_F%C3%BChrerschein": "Beschreibt direkt das bundesweite Verwarnungsgeld von 10 Euro für das bloße Nichtmitführen des Führerscheindokuments.",
         "/wiki/Fahren_ohne_Fahrerlaubnis": "Nennt die deutlich höhere Strafe (Freiheitsstrafe bis zu einem Jahr oder Geldstrafe) für das tatsächliche Fahren ohne gültige Fahrerlaubnis.",
         "/wiki/Fahrverbot_(Deutschland)": "Erwähnt, dass ein Verstoß gegen ein bestehendes Fahrverbot ebenfalls zur Strafbarkeit wegen Fahrens ohne Fahrerlaubnis führt."
       }
@@ -375,12 +375,12 @@
       "judgments": {
         "/wiki/Sperrfrist_(Fahrerlaubnis)": 3,
         "/wiki/Medizinisch-Psychologische_Untersuchung": 2,
-        "/wiki/§-70-Kurs": 1
+        "/wiki/%C2%A7-70-Kurs": 1
       },
       "rationales": {
         "/wiki/Sperrfrist_(Fahrerlaubnis)": "Erläutert die gerichtlich angeordnete Sperre von sechs Monaten bis fünf Jahren nach § 69a StGB und deren mögliche vorzeitige Aufhebung.",
         "/wiki/Medizinisch-Psychologische_Untersuchung": "Beschreibt die Möglichkeit einer Sperrfristverkürzung um ein bis zwei Monate bei früher verkehrspsychologischer Intervention.",
-        "/wiki/§-70-Kurs": "Beschreibt einen Kurs, der bei entsprechender MPU-Empfehlung während oder nach der Sperrfrist zur Wiedererteilung ohne erneute Prüfung führt."
+        "/wiki/%C2%A7-70-Kurs": "Beschreibt einen Kurs, der bei entsprechender MPU-Empfehlung während oder nach der Sperrfrist zur Wiedererteilung ohne erneute Prüfung führt."
       }
     },
     {
@@ -388,12 +388,12 @@
       "text": "Was passiert bei einem Verstoß in der Probezeit?",
       "topic": "probationary-period",
       "judgments": {
-        "/wiki/Aufbauseminar_für_Fahranfänger": 3,
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 1
+        "/wiki/Aufbauseminar_f%C3%BCr_Fahranf%C3%A4nger": 3,
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 1
       },
       "rationales": {
-        "/wiki/Aufbauseminar_für_Fahranfänger": "Beschreibt direkt, dass ein A-Verstoß sofort und zwei B-Verstöße ein Aufbauseminar während der Probezeit auslösen und bei Nichtteilnahme die Fahrerlaubnis entzogen wird.",
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Erwähnt die Null-Promille-Grenze für Fahranfänger während der Probezeit als eine der besonderen Regelungen."
+        "/wiki/Aufbauseminar_f%C3%BCr_Fahranf%C3%A4nger": "Beschreibt direkt, dass ein A-Verstoß sofort und zwei B-Verstöße ein Aufbauseminar während der Probezeit auslösen und bei Nichtteilnahme die Fahrerlaubnis entzogen wird.",
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": "Erwähnt die Null-Promille-Grenze für Fahranfänger während der Probezeit als eine der besonderen Regelungen."
       }
     },
     {
@@ -402,13 +402,13 @@
       "topic": "probationary-period",
       "judgments": {
         "/wiki/Begleitetes_Fahren": 3,
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 2,
-        "/wiki/Aufbauseminar_für_Fahranfänger": 1
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 2,
+        "/wiki/Aufbauseminar_f%C3%BCr_Fahranf%C3%A4nger": 1
       },
       "rationales": {
         "/wiki/Begleitetes_Fahren": "Ist vollständig dem Begleiteten Fahren ab 17 (BF17) gewidmet, einschließlich Voraussetzungen, Prüfungsbescheinigung und Begleitpersonen.",
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Beschreibt im Abschnitt 'Begleitetes Fahren mit 17 (BF17)' die rechtliche Verankerung in § 48a FeV und § 6e StVG.",
-        "/wiki/Aufbauseminar_für_Fahranfänger": "Nennt beiläufig, dass die reguläre Probezeit zwei Jahre beträgt und bei schweren Verstößen ein Aufbauseminar zur Folge haben kann, was auch für BF17-Inhaber gilt."
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": "Beschreibt im Abschnitt 'Begleitetes Fahren mit 17 (BF17)' die rechtliche Verankerung in § 48a FeV und § 6e StVG.",
+        "/wiki/Aufbauseminar_f%C3%BCr_Fahranf%C3%A4nger": "Nennt beiläufig, dass die reguläre Probezeit zwei Jahre beträgt und bei schweren Verstößen ein Aufbauseminar zur Folge haben kann, was auch für BF17-Inhaber gilt."
       }
     },
     {
@@ -416,13 +416,13 @@
       "text": "Alkoholverbot für Fahranfänger",
       "topic": "probationary-period",
       "judgments": {
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 3,
-        "/wiki/Aufbauseminar_für_Fahranfänger": 2,
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 3,
+        "/wiki/Aufbauseminar_f%C3%BCr_Fahranf%C3%A4nger": 2,
         "/wiki/Cannabisgesetz": 1
       },
       "rationales": {
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Enthält den Abschnitt 'Null-Promille-Grenze', der das Alkoholverbot für Fahranfänger in der Probezeit und für unter 21-Jährige festlegt.",
-        "/wiki/Aufbauseminar_für_Fahranfänger": "Beschreibt, dass Trunkenheitsfahrten in der Probezeit ein 'besonderes Aufbauseminar' zur Folge haben.",
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": "Enthält den Abschnitt 'Null-Promille-Grenze', der das Alkoholverbot für Fahranfänger in der Probezeit und für unter 21-Jährige festlegt.",
+        "/wiki/Aufbauseminar_f%C3%BCr_Fahranf%C3%A4nger": "Beschreibt, dass Trunkenheitsfahrten in der Probezeit ein 'besonderes Aufbauseminar' zur Folge haben.",
         "/wiki/Cannabisgesetz": "Legt fest, dass für Fahranfänger und unter 21-Jährige beim Cannabiskonsum weiterhin ein striktes Verbot wie beim Alkohol gilt."
       }
     },
@@ -431,12 +431,12 @@
       "text": "Kurs nach § 70 FeV",
       "topic": "special-permits-courses",
       "judgments": {
-        "/wiki/§-70-Kurs": 3,
+        "/wiki/%C2%A7-70-Kurs": 3,
         "/wiki/Sperrfrist_(Fahrerlaubnis)": 2,
         "/wiki/Medizinisch-Psychologische_Untersuchung": 1
       },
       "rationales": {
-        "/wiki/§-70-Kurs": "Ist die vollständige Darstellung der Kurse nach § 70 FeV, ihrer Teilnahmevoraussetzungen und Anbieter.",
+        "/wiki/%C2%A7-70-Kurs": "Ist die vollständige Darstellung der Kurse nach § 70 FeV, ihrer Teilnahmevoraussetzungen und Anbieter.",
         "/wiki/Sperrfrist_(Fahrerlaubnis)": "Beschreibt, dass die Fahreignung durch Teilnahme an einem Kurs nach § 70 FeV wiederhergestellt werden kann, wenn die MPU dies empfiehlt.",
         "/wiki/Medizinisch-Psychologische_Untersuchung": "Nennt die 'Kursempfehlung' als möglichen Ausgang eines MPU-Gutachtens, die zum §-70-Kurs berechtigt."
       }
@@ -446,12 +446,12 @@
       "text": "Mofa Prüfbescheinigung beantragen",
       "topic": "special-permits-courses",
       "judgments": {
-        "/wiki/Mofa-Prüfbescheinigung": 3,
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 1
+        "/wiki/Mofa-Pr%C3%BCfbescheinigung": 3,
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": 1
       },
       "rationales": {
-        "/wiki/Mofa-Prüfbescheinigung": "Beschreibt den kompletten Erwerbsprozess der Mofa-Prüfbescheinigung, einschließlich Ausbildung, theoretischer Prüfung und Mindestalter.",
-        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Erklärt kurz im Abschnitt 'Mofas', dass für das Führen eines Mofas keine Fahrerlaubnis, aber eine Prüfung nötig ist."
+        "/wiki/Mofa-Pr%C3%BCfbescheinigung": "Beschreibt den kompletten Erwerbsprozess der Mofa-Prüfbescheinigung, einschließlich Ausbildung, theoretischer Prüfung und Mindestalter.",
+        "/wiki/F%C3%BChrerschein_und_Fahrerlaubnis_(Deutschland)": "Erklärt kurz im Abschnitt 'Mofas', dass für das Führen eines Mofas keine Fahrerlaubnis, aber eine Prüfung nötig ist."
       }
     },
     {
@@ -459,14 +459,14 @@
       "text": "Fragenkatalog Führerscheinprüfung Theorie",
       "topic": "special-permits-courses",
       "judgments": {
-        "/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnisprüfung": 3,
-        "/wiki/Führerschein-Prüfungsrichtlinie": 2,
-        "/wiki/Amtlich_anerkannter_Sachverständiger_oder_Prüfer_für_den_Kraftfahrzeugverkehr": 1
+        "/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnispr%C3%BCfung": 3,
+        "/wiki/F%C3%BChrerschein-Pr%C3%BCfungsrichtlinie": 2,
+        "/wiki/Amtlich_anerkannter_Sachverst%C3%A4ndiger_oder_Pr%C3%BCfer_f%C3%BCr_den_Kraftfahrzeugverkehr": 1
       },
       "rationales": {
-        "/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnisprüfung": "Ist die vollständige Darstellung des amtlichen Fragenkatalogs, seiner Geschichte und der computergestützten Prüfung.",
-        "/wiki/Führerschein-Prüfungsrichtlinie": "Beschreibt, dass die Prüfungsrichtlinie auf Grundlage des amtlichen Fragenkatalogs Form und Umfang der theoretischen Prüfung festlegt.",
-        "/wiki/Amtlich_anerkannter_Sachverständiger_oder_Prüfer_für_den_Kraftfahrzeugverkehr": "Nennt, dass diese Prüfer die Fahrerlaubnisprüfungen einschließlich der theoretischen Prüfung durchführen."
+        "/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnispr%C3%BCfung": "Ist die vollständige Darstellung des amtlichen Fragenkatalogs, seiner Geschichte und der computergestützten Prüfung.",
+        "/wiki/F%C3%BChrerschein-Pr%C3%BCfungsrichtlinie": "Beschreibt, dass die Prüfungsrichtlinie auf Grundlage des amtlichen Fragenkatalogs Form und Umfang der theoretischen Prüfung festlegt.",
+        "/wiki/Amtlich_anerkannter_Sachverst%C3%A4ndiger_oder_Pr%C3%BCfer_f%C3%BCr_den_Kraftfahrzeugverkehr": "Nennt, dass diese Prüfer die Fahrerlaubnisprüfungen einschließlich der theoretischen Prüfung durchführen."
       }
     },
     {

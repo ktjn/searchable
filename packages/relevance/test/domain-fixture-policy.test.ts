@@ -7,6 +7,17 @@ import {
 } from "../src/domain-schema.js";
 import { loadDomainSuite } from "../src/load-domain-suite.js";
 
+// Topics for the searchable-docs fixture: existing documentation topics (excluding GOV.UK and domain-specific topics)
+const SEARCHABLE_DOCS_TOPICS = [
+  "setup",
+  "indexing-deployment",
+  "lexical-features",
+  "internationalization",
+  "offline-worker",
+  "relevance",
+  "vector-hybrid",
+] as const;
+
 const domainFixtureDirectory = fileURLToPath(
   new URL("../fixtures/domains/", import.meta.url),
 );
@@ -31,11 +42,8 @@ describe("committed documentation relevance fixture", () => {
     if (suite.corpus.kind !== "generated-index") throw new Error("unreachable");
     expect(suite.corpus.pages).toHaveLength(29);
     expect(suite.queries).toHaveLength(20);
-    const documentationTopics = DOMAIN_QUERY_TOPICS.filter(
-      (topic) => !GOVUK_DOMAIN_QUERY_TOPICS.includes(topic as never),
-    );
     expect(new Set(suite.queries.map((query) => query.topic))).toEqual(
-      new Set(documentationTopics),
+      new Set(SEARCHABLE_DOCS_TOPICS),
     );
     expect(
       suite.queries.filter(
