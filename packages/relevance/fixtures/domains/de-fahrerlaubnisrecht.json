@@ -206,5 +206,283 @@
       }
     ]
   },
-  "queries": []
+  "queries": [
+    {
+      "id": "fuehrerscheinklassen-deutschland",
+      "text": "Führerscheinklassen Deutschland",
+      "topic": "license-classes-eligibility",
+      "judgments": {
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 3,
+        "/wiki/Fahrerlaubnis-Verordnung": 2,
+        "/wiki/Führerschein": 1
+      },
+      "rationales": {
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Beschreibt ausführlich die nationalen Fahrerlaubnisklassen L, T, S und AM sowie deren Voraussetzungen und Geschichte in Deutschland.",
+        "/wiki/Fahrerlaubnis-Verordnung": "Erläutert, dass die FeV die Einteilung in Fahrerlaubnisklassen und das Mindestalter für jede Klasse regelt.",
+        "/wiki/Führerschein": "Erklärt allgemein, dass die Fahrerlaubnis an eine bestimmte Fahrzeugklasse gebunden ist, ohne die deutschen Klassen im Detail aufzuzählen."
+      }
+    },
+    {
+      "id": "voraussetzungen-fuehrerschein",
+      "text": "Voraussetzungen für den Führerschein",
+      "topic": "license-classes-eligibility",
+      "judgments": {
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 3,
+        "/wiki/Fahrtauglichkeitsuntersuchung": 2,
+        "/wiki/Fahrschüler-Ausbildungsordnung": 1
+      },
+      "rationales": {
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Listet im Abschnitt Erteilungsvoraussetzungen Wohnsitz, Mindestalter, Eignung, Sehvermögen, Erste Hilfe und Fahrausbildung als Bedingungen für die Fahrerlaubnis auf.",
+        "/wiki/Fahrtauglichkeitsuntersuchung": "Beschreibt die gesetzlich vorgeschriebene ärztliche und augenärztliche Untersuchung, die Teil der Erteilungsvoraussetzungen ist.",
+        "/wiki/Fahrschüler-Ausbildungsordnung": "Regelt die verpflichtende Fahrschulausbildung, die als Nachweis der Befähigung Voraussetzung für die Fahrerlaubnis ist."
+      }
+    },
+    {
+      "id": "mindestalter-klasse-am",
+      "text": "Mindestalter Führerschein Klasse AM",
+      "topic": "license-classes-eligibility",
+      "judgments": {
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 3,
+        "/wiki/Mofa-Prüfbescheinigung": 2,
+        "/wiki/Führerschein": 1
+      },
+      "rationales": {
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Enthält den eigenen Abschnitt 'Klasse AM ab 15 Jahren' mit der Historie der Altersabsenkung von 16 auf 15 Jahre einschließlich der Modellversuche und des bundesweiten Inkrafttretens 2021.",
+        "/wiki/Mofa-Prüfbescheinigung": "Vergleicht die Prüfbescheinigung mit der Führerscheinklasse AM und nennt deren Mindestalter von ursprünglich 16, seit 2021 15 Jahren.",
+        "/wiki/Führerschein": "Gibt allgemeinen internationalen Kontext zu Mindestaltersregelungen für Führerscheine, ohne die deutsche Klasse AM konkret zu behandeln."
+      }
+    },
+    {
+      "id": "unterschied-fuehrerschein-fahrerlaubnis",
+      "text": "Unterschied Führerschein und Fahrerlaubnis",
+      "topic": "license-classes-eligibility",
+      "judgments": {
+        "/wiki/Führerschein": 3,
+        "/wiki/Fahren_ohne_Führerschein": 2,
+        "/wiki/Fahren_ohne_Fahrerlaubnis": 1
+      },
+      "rationales": {
+        "/wiki/Führerschein": "Erklärt direkt, dass die Fahrerlaubnis der Verwaltungsakt und der Führerschein lediglich das Dokument dazu ist.",
+        "/wiki/Fahren_ohne_Führerschein": "Grenzt konkret das bloße Nichtmitführen des Führerscheindokuments von der fehlenden Fahrerlaubnis ab.",
+        "/wiki/Fahren_ohne_Fahrerlaubnis": "Beschreibt die Gegenseite der Abgrenzung, das strafbare Fehlen der eigentlichen Fahrerlaubnis."
+      }
+    },
+    {
+      "id": "mpu-idiotentest",
+      "text": "MPU Idiotentest",
+      "topic": "fitness-to-drive-mpu",
+      "judgments": {
+        "/wiki/Medizinisch-Psychologische_Untersuchung": 3,
+        "/wiki/MPU-Vorbereitung": 2,
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": 1
+      },
+      "rationales": {
+        "/wiki/Medizinisch-Psychologische_Untersuchung": "Erklärt direkt den umgangssprachlichen Begriff 'Idiotentest' für die MPU und dessen Herkunft aus der Boulevardpresse.",
+        "/wiki/MPU-Vorbereitung": "Beschreibt, dass seriöse Vorbereiter den abwertenden Begriff 'Idiotentest' bewusst vermeiden.",
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": "Erwähnt die MPU als Instrument der Fahrerlaubnisbehörde zur Vorbereitung der Entziehungs- und Neuerteilungsentscheidung, ohne auf den Begriff selbst einzugehen."
+      }
+    },
+    {
+      "id": "seriöse-mpu-vorbereitung",
+      "text": "seriöse MPU-Vorbereitung finden",
+      "topic": "fitness-to-drive-mpu",
+      "judgments": {
+        "/wiki/MPU-Vorbereitung": 3,
+        "/wiki/Medizinisch-Psychologische_Untersuchung": 2
+      },
+      "rationales": {
+        "/wiki/MPU-Vorbereitung": "Behandelt zentral die Auswahlkriterien des Berufsverbands Deutscher Psychologinnen und Psychologen zur Erkennung seriöser Anbieter und warnt vor Geld-zurück-Garantien.",
+        "/wiki/Medizinisch-Psychologische_Untersuchung": "Berichtet über das seit 2013 verfügbare BASt-Infoportal mit Empfehlungen zur Auswahl geeigneter Berater als seriöse Informationsquelle."
+      }
+    },
+    {
+      "id": "wann-mpu-noetig",
+      "text": "Wann muss ich zur MPU?",
+      "topic": "fitness-to-drive-mpu",
+      "judgments": {
+        "/wiki/Medizinisch-Psychologische_Untersuchung": 3,
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": 2,
+        "/wiki/Fahreignungsregister": 1
+      },
+      "rationales": {
+        "/wiki/Medizinisch-Psychologische_Untersuchung": "Listet die häufigsten Untersuchungsanlässe (Alkohol, Drogen, mehr als 7 Punkte, strafrechtliche Auffälligkeiten) im Abschnitt Untersuchungsanlässe auf.",
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": "Erklärt, dass bei der Neuerteilung nach Entzug innerhalb von 15 Jahren regelmäßig ein medizinisch-psychologisches Gutachten angeordnet wird.",
+        "/wiki/Fahreignungsregister": "Nennt die Überschreitung der 8-Punkte-Marke als einen der Auslöser für Fahrerlaubnisentzug, der zu einer MPU führen kann."
+      }
+    },
+    {
+      "id": "augenaerztliche-untersuchung-fuehrerschein",
+      "text": "augenärztliche Untersuchung für den Führerschein",
+      "topic": "fitness-to-drive-mpu",
+      "judgments": {
+        "/wiki/Fahrtauglichkeitsuntersuchung": 3,
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 1
+      },
+      "rationales": {
+        "/wiki/Fahrtauglichkeitsuntersuchung": "Beschreibt den augenärztlichen Teil der Fahrtauglichkeitsuntersuchung, Sehkraft und räumliches Sehen, ausdrücklich als eigenen Abschnitt.",
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Nennt die Erfüllung der Anforderungen an das Sehvermögen knapp als eine der allgemeinen Erteilungsvoraussetzungen."
+      }
+    },
+    {
+      "id": "punkte-flensburg",
+      "text": "Punkte in Flensburg",
+      "topic": "penalties-license-withdrawal",
+      "judgments": {
+        "/wiki/Fahreignungsregister": 3,
+        "/wiki/Fahreignungsseminar": 2,
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": 1
+      },
+      "rationales": {
+        "/wiki/Fahreignungsregister": "Ist das beim Kraftfahrt-Bundesamt in Flensburg geführte Punkteregister selbst und beschreibt Punktebewertung und Tilgungsfristen im Detail.",
+        "/wiki/Fahreignungsseminar": "Erklärt, wie bei vier bis sieben Punkten ermahnt bzw. verwarnt wird und wie ein Punkt durch Seminarteilnahme abgebaut werden kann.",
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": "Nennt die Überschreitung der 8-Punkte-Marke als Grund für eine Entziehung der Fahrerlaubnis."
+      }
+    },
+    {
+      "id": "fahrverbot-vs-fuehrerscheinentzug",
+      "text": "Fahrverbot oder Führerscheinentzug: was ist der Unterschied?",
+      "topic": "penalties-license-withdrawal",
+      "judgments": {
+        "/wiki/Fahrverbot_(Deutschland)": 3,
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": 3,
+        "/wiki/Fahren_ohne_Fahrerlaubnis": 1
+      },
+      "rationales": {
+        "/wiki/Fahrverbot_(Deutschland)": "Enthält einen eigenen Abschnitt 'Abgrenzung', der das schuldbezogene Fahrverbot von der gefahrenabwehrenden Entziehung der Fahrerlaubnis unterscheidet.",
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": "Behandelt die Entziehung der Fahrerlaubnis als eigenständiges Thema mit Sperrfrist, Neuerteilung und Abgrenzung zum Fahrverbot.",
+        "/wiki/Fahren_ohne_Fahrerlaubnis": "Nennt als Randaspekt, dass ein zeitlich befristetes Fahrverbot ebenfalls den Straftatbestand des Fahrens ohne Fahrerlaubnis auslösen kann."
+      }
+    },
+    {
+      "id": "strafe-fahren-ohne-fuehrerschein",
+      "text": "Strafe für Fahren ohne Führerschein",
+      "topic": "penalties-license-withdrawal",
+      "judgments": {
+        "/wiki/Fahren_ohne_Führerschein": 3,
+        "/wiki/Fahren_ohne_Fahrerlaubnis": 3,
+        "/wiki/Fahrverbot_(Deutschland)": 1
+      },
+      "rationales": {
+        "/wiki/Fahren_ohne_Führerschein": "Beschreibt direkt das bundesweite Verwarnungsgeld von 10 Euro für das bloße Nichtmitführen des Führerscheindokuments.",
+        "/wiki/Fahren_ohne_Fahrerlaubnis": "Nennt die deutlich höhere Strafe (Freiheitsstrafe bis zu einem Jahr oder Geldstrafe) für das tatsächliche Fahren ohne gültige Fahrerlaubnis.",
+        "/wiki/Fahrverbot_(Deutschland)": "Erwähnt, dass ein Verstoß gegen ein bestehendes Fahrverbot ebenfalls zur Strafbarkeit wegen Fahrens ohne Fahrerlaubnis führt."
+      }
+    },
+    {
+      "id": "sperrfrist-nach-entzug",
+      "text": "Sperrfrist nach Fahrerlaubnisentzug",
+      "topic": "penalties-license-withdrawal",
+      "judgments": {
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": 3,
+        "/wiki/Medizinisch-Psychologische_Untersuchung": 2,
+        "/wiki/§-70-Kurs": 1
+      },
+      "rationales": {
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": "Erläutert die gerichtlich angeordnete Sperre von sechs Monaten bis fünf Jahren nach § 69a StGB und deren mögliche vorzeitige Aufhebung.",
+        "/wiki/Medizinisch-Psychologische_Untersuchung": "Beschreibt die Möglichkeit einer Sperrfristverkürzung um ein bis zwei Monate bei früher verkehrspsychologischer Intervention.",
+        "/wiki/§-70-Kurs": "Beschreibt einen Kurs, der bei entsprechender MPU-Empfehlung während oder nach der Sperrfrist zur Wiedererteilung ohne erneute Prüfung führt."
+      }
+    },
+    {
+      "id": "verstoss-probezeit-folgen",
+      "text": "Was passiert bei einem Verstoß in der Probezeit?",
+      "topic": "probationary-period",
+      "judgments": {
+        "/wiki/Aufbauseminar_für_Fahranfänger": 3,
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 1
+      },
+      "rationales": {
+        "/wiki/Aufbauseminar_für_Fahranfänger": "Beschreibt direkt, dass ein A-Verstoß sofort und zwei B-Verstöße ein Aufbauseminar während der Probezeit auslösen und bei Nichtteilnahme die Fahrerlaubnis entzogen wird.",
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Erwähnt die Null-Promille-Grenze für Fahranfänger während der Probezeit als eine der besonderen Regelungen."
+      }
+    },
+    {
+      "id": "fuehrerschein-mit-17",
+      "text": "Führerschein mit 17 machen",
+      "topic": "probationary-period",
+      "judgments": {
+        "/wiki/Begleitetes_Fahren": 3,
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 2,
+        "/wiki/Aufbauseminar_für_Fahranfänger": 1
+      },
+      "rationales": {
+        "/wiki/Begleitetes_Fahren": "Ist vollständig dem Begleiteten Fahren ab 17 (BF17) gewidmet, einschließlich Voraussetzungen, Prüfungsbescheinigung und Begleitpersonen.",
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Beschreibt im Abschnitt 'Begleitetes Fahren mit 17 (BF17)' die rechtliche Verankerung in § 48a FeV und § 6e StVG.",
+        "/wiki/Aufbauseminar_für_Fahranfänger": "Nennt beiläufig, dass die reguläre Probezeit zwei Jahre beträgt und bei schweren Verstößen ein Aufbauseminar zur Folge haben kann, was auch für BF17-Inhaber gilt."
+      }
+    },
+    {
+      "id": "alkoholverbot-fahranfaenger",
+      "text": "Alkoholverbot für Fahranfänger",
+      "topic": "probationary-period",
+      "judgments": {
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 3,
+        "/wiki/Aufbauseminar_für_Fahranfänger": 2,
+        "/wiki/Cannabisgesetz": 1
+      },
+      "rationales": {
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Enthält den Abschnitt 'Null-Promille-Grenze', der das Alkoholverbot für Fahranfänger in der Probezeit und für unter 21-Jährige festlegt.",
+        "/wiki/Aufbauseminar_für_Fahranfänger": "Beschreibt, dass Trunkenheitsfahrten in der Probezeit ein 'besonderes Aufbauseminar' zur Folge haben.",
+        "/wiki/Cannabisgesetz": "Legt fest, dass für Fahranfänger und unter 21-Jährige beim Cannabiskonsum weiterhin ein striktes Verbot wie beim Alkohol gilt."
+      }
+    },
+    {
+      "id": "kurs-nach-paragraph-70",
+      "text": "Kurs nach § 70 FeV",
+      "topic": "special-permits-courses",
+      "judgments": {
+        "/wiki/§-70-Kurs": 3,
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": 2,
+        "/wiki/Medizinisch-Psychologische_Untersuchung": 1
+      },
+      "rationales": {
+        "/wiki/§-70-Kurs": "Ist die vollständige Darstellung der Kurse nach § 70 FeV, ihrer Teilnahmevoraussetzungen und Anbieter.",
+        "/wiki/Sperrfrist_(Fahrerlaubnis)": "Beschreibt, dass die Fahreignung durch Teilnahme an einem Kurs nach § 70 FeV wiederhergestellt werden kann, wenn die MPU dies empfiehlt.",
+        "/wiki/Medizinisch-Psychologische_Untersuchung": "Nennt die 'Kursempfehlung' als möglichen Ausgang eines MPU-Gutachtens, die zum §-70-Kurs berechtigt."
+      }
+    },
+    {
+      "id": "mofa-pruefbescheinigung-beantragen",
+      "text": "Mofa Prüfbescheinigung beantragen",
+      "topic": "special-permits-courses",
+      "judgments": {
+        "/wiki/Mofa-Prüfbescheinigung": 3,
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": 1
+      },
+      "rationales": {
+        "/wiki/Mofa-Prüfbescheinigung": "Beschreibt den kompletten Erwerbsprozess der Mofa-Prüfbescheinigung, einschließlich Ausbildung, theoretischer Prüfung und Mindestalter.",
+        "/wiki/Führerschein_und_Fahrerlaubnis_(Deutschland)": "Erklärt kurz im Abschnitt 'Mofas', dass für das Führen eines Mofas keine Fahrerlaubnis, aber eine Prüfung nötig ist."
+      }
+    },
+    {
+      "id": "fragenkatalog-theorie",
+      "text": "Fragenkatalog Führerscheinprüfung Theorie",
+      "topic": "special-permits-courses",
+      "judgments": {
+        "/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnisprüfung": 3,
+        "/wiki/Führerschein-Prüfungsrichtlinie": 2,
+        "/wiki/Amtlich_anerkannter_Sachverständiger_oder_Prüfer_für_den_Kraftfahrzeugverkehr": 1
+      },
+      "rationales": {
+        "/wiki/Fragenkatalog_der_theoretischen_Fahrerlaubnisprüfung": "Ist die vollständige Darstellung des amtlichen Fragenkatalogs, seiner Geschichte und der computergestützten Prüfung.",
+        "/wiki/Führerschein-Prüfungsrichtlinie": "Beschreibt, dass die Prüfungsrichtlinie auf Grundlage des amtlichen Fragenkatalogs Form und Umfang der theoretischen Prüfung festlegt.",
+        "/wiki/Amtlich_anerkannter_Sachverständiger_oder_Prüfer_für_den_Kraftfahrzeugverkehr": "Nennt, dass diese Prüfer die Fahrerlaubnisprüfungen einschließlich der theoretischen Prüfung durchführen."
+      }
+    },
+    {
+      "id": "zentrales-fahrerlaubnisregister-kba",
+      "text": "Zentrales Fahrerlaubnisregister beim KBA",
+      "topic": "special-permits-courses",
+      "judgments": {
+        "/wiki/Zentrales_Fahrerlaubnisregister": 3,
+        "/wiki/Fahreignungsregister": 1,
+        "/wiki/Berufskraftfahrerqualifikationsregister": 1
+      },
+      "rationales": {
+        "/wiki/Zentrales_Fahrerlaubnisregister": "Ist die vollständige Darstellung des ZFER, seiner Rechtsgrundlage nach § 48 StVG und der EUCARIS-Anbindung.",
+        "/wiki/Fahreignungsregister": "Nennt am Ende, dass das KBA neben dem Fahreignungsregister auch das Zentrale Fahrerlaubnisregister führt, und grenzt beide Register voneinander ab.",
+        "/wiki/Berufskraftfahrerqualifikationsregister": "Beschreibt ein weiteres, ähnlich strukturiertes KBA-Register für Berufskraftfahrer-Qualifikationsnachweise als Vergleichsfall."
+      }
+    }
+  ]
 }
