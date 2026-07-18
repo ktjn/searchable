@@ -71,7 +71,7 @@ it("loads all committed allowlisted domain suites", async () => {
   ]);
   await expect(
     loadDomainSuite(fixtureDirectory, "govuk-learn-to-drive"),
-  ).resolves.toMatchObject({ id: "govuk-learn-to-drive", version: "1.0.0" });
+  ).resolves.toMatchObject({ id: "govuk-learn-to-drive", version: "1.1.0" });
   await expect(
     loadDomainSuite(fixtureDirectory, "de-fahrerlaubnisrecht"),
   ).resolves.toMatchObject({ id: "de-fahrerlaubnisrecht", version: "1.0.0" });
