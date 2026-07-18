@@ -484,7 +484,7 @@
         "/learn-to-drive-a-car": 1
       },
       "rationales": {
-        "/driving-eyesight-rules": "Gives the Snellen-scale visual-acuity standard (decimal 0.5 / 6-12) and the number-plate-at-20-metres check used at the start of the practical driving test.",
+        "/driving-eyesight-rules": "Gives the Snellen-scale visual-acuity standard (decimal 0.5 / 6/12) and the number-plate-at-20-metres check used at the start of the practical driving test.",
         "/apply-first-provisional-driving-licence": "Restates the number-plate-at-20-metres eyesight check as a first-licence application requirement.",
         "/learn-to-drive-a-car": "Links 'Driving eyesight rules' from the eligibility step of the learner journey."
       }
