@@ -459,7 +459,7 @@
     },
     {
       "id": "glasses-need-to-drive",
-      "text": "do i need glasses to drive",
+      "text": "do you need glasses to drive",
       "topic": "eligibility-eyesight",
       "judgments": {
         "/driving-eyesight-rules": 3,
@@ -474,7 +474,7 @@
     },
     {
       "id": "eyesight-legal-standard",
-      "text": "legal eyesight standard for driving test",
+      "text": "minimum eyesight standard for driving test",
       "topic": "eligibility-eyesight",
       "judgments": {
         "/driving-eyesight-rules": 3,
@@ -489,7 +489,7 @@
     },
     {
       "id": "provisional-licence-cost",
-      "text": "how much does a provisional licence cost",
+      "text": "how much is a provisional driving licence",
       "topic": "provisional-licence",
       "judgments": {
         "/apply-first-provisional-driving-licence": 3,
@@ -502,7 +502,7 @@
     },
     {
       "id": "learners-motorway",
-      "text": "can learners drive on the motorway",
+      "text": "driving on the motorway when learning to drive",
       "topic": "lessons-practice",
       "judgments": {
         "/driving-lessons-learning-to-drive": 3,
@@ -530,7 +530,7 @@
     },
     {
       "id": "how-to-book-theory-test",
-      "text": "how to book theory test",
+      "text": "book a theory test online",
       "topic": "theory-test-management",
       "judgments": {
         "/book-theory-test": 3,
@@ -556,7 +556,7 @@
     },
     {
       "id": "lessons-after-passing",
-      "text": "driving lessons after passing test",
+      "text": "driving course after passing test",
       "topic": "after-passing",
       "judgments": {
         "/pass-plus": 3,
