@@ -79,6 +79,20 @@ below was built and tested across prior unreleased commits.
   genre-and-year intersection query — alongside the existing documentation,
   GOV.UK, and German corpora (docs/project/relevance-baselines.md).
 
+### Changed
+
+- **GOV.UK relevance corpus expanded to real-query-derived phrasing**:
+  `govuk-learn-to-drive` bumped `1.0.0` → `1.1.0` (20 → 28 queries, 22
+  documents unchanged). The 8 added queries are sourced from Google's public
+  autocomplete suggestion endpoint as real-search-language phrasing
+  inspiration — not a licensed dataset, and not GOV.UK query-log evidence
+  (GOV.UK does not publish query logs) — and are hand-graded and reviewed
+  like the rest of the suite. The reviewed `k = 5` baseline improves on every
+  metric but recall versus `1.0.0` (MRR 0.650000 → 0.732143, Precision@5
+  0.160000 → 0.171429, Recall@5 0.475000 → 0.464286, nDCG@5 0.585738 →
+  0.642698, zero-result rate 0.300000 → 0.214286) despite the added queries
+  being harder and more naturally phrased (docs/project/relevance-baselines.md).
+
 ### Notes
 
 - The core runtime bundle (`index.js` + `worker.js` + `sw.js`) is held
