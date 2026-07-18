@@ -30,19 +30,19 @@ describe("committed GOV.UK driving relevance fixture", () => {
       "govuk-learn-to-drive" as never,
     );
     expect(suite.id).toBe("govuk-learn-to-drive");
-    expect(suite.version).toBe("1.0.0");
+    expect(suite.version).toBe("1.1.0");
     expect(suite.corpus.kind).toBe("snapshot");
     if (suite.corpus.kind !== "snapshot") throw new Error("unreachable");
     expect(suite.corpus.documents).toHaveLength(22);
-    expect(suite.queries).toHaveLength(20);
+    expect(suite.queries).toHaveLength(28);
 
     const wordCounts = suite.queries.map(
       (query) => query.text.trim().split(/\s+/u).length,
     );
     expect(wordCounts.filter((count) => count >= 2 && count <= 5)).toHaveLength(
-      16,
+      18,
     );
-    expect(wordCounts.filter((count) => count >= 6)).toHaveLength(4);
+    expect(wordCounts.filter((count) => count >= 6)).toHaveLength(10);
     expect(new Set(suite.queries.map((query) => query.topic))).toEqual(
       new Set(GOVUK_DOMAIN_QUERY_TOPICS),
     );
@@ -51,7 +51,7 @@ describe("committed GOV.UK driving relevance fixture", () => {
       method:
         "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result.",
       reviewer: "ktjn",
-      reviewedAt: "2026-07-14",
+      reviewedAt: "2026-07-18",
     });
     expect(suite.corpus.documents.map((document) => document.id)).toEqual(
       GOVUK_EXPECTED_ROUTES,

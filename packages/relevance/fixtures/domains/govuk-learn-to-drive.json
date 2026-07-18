@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "govuk-learn-to-drive",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "language": "en",
   "provenance": {
     "publisher": "Government Digital Service and GOV.UK publishing organisations",
@@ -17,7 +17,7 @@
     "status": "reviewed",
     "method": "Maintainer review of every normalized document, query, grade, rationale, and measured top-five result.",
     "reviewer": "ktjn",
-    "reviewedAt": "2026-07-14"
+    "reviewedAt": "2026-07-18"
   },
   "corpus": {
     "kind": "snapshot",
@@ -457,6 +457,116 @@
         "/learn-to-drive-a-car": "States when a successful candidate may drive and the insurance requirement.",
         "/pass-plus": "Explains optional post-test training and possible insurance discounts.",
         "/legal-obligations-drivers-riders": "Supplies continuing legal obligations for drivers."
+      }
+    },
+    {
+      "id": "glasses-need-to-drive",
+      "text": "do you need glasses to drive",
+      "topic": "eligibility-eyesight",
+      "judgments": {
+        "/driving-eyesight-rules": 3,
+        "/learn-to-drive-a-car": 1,
+        "/legal-obligations-drivers-riders": 1
+      },
+      "rationales": {
+        "/driving-eyesight-rules": "States you must wear glasses or contact lenses every time you drive if you need them to meet the standards of vision for driving.",
+        "/learn-to-drive-a-car": "Links 'Driving eyesight rules' from the eligibility step of the learner journey.",
+        "/legal-obligations-drivers-riders": "Lists meeting the minimum eyesight rules as one of the legal requirements before driving or riding."
+      }
+    },
+    {
+      "id": "eyesight-legal-standard",
+      "text": "minimum eyesight standard for driving test",
+      "topic": "eligibility-eyesight",
+      "judgments": {
+        "/driving-eyesight-rules": 3,
+        "/apply-first-provisional-driving-licence": 1,
+        "/learn-to-drive-a-car": 1
+      },
+      "rationales": {
+        "/driving-eyesight-rules": "Gives the Snellen-scale visual-acuity standard (decimal 0.5 / 6/12) and the number-plate-at-20-metres check used at the start of the practical driving test.",
+        "/apply-first-provisional-driving-licence": "Restates the number-plate-at-20-metres eyesight check as a first-licence application requirement.",
+        "/learn-to-drive-a-car": "Links 'Driving eyesight rules' from the eligibility step of the learner journey."
+      }
+    },
+    {
+      "id": "provisional-licence-cost",
+      "text": "how much is a provisional driving licence",
+      "topic": "provisional-licence",
+      "judgments": {
+        "/apply-first-provisional-driving-licence": 3,
+        "/learn-to-drive-a-car": 1
+      },
+      "rationales": {
+        "/apply-first-provisional-driving-licence": "States the £34 online fee and the £43 cheque/postal-order fee for a first provisional licence.",
+        "/learn-to-drive-a-car": "Repeats the '£34 to £43' fee range under the 'Get a provisional licence' step of the journey hub."
+      }
+    },
+    {
+      "id": "learners-motorway",
+      "text": "driving on the motorway when learning to drive",
+      "topic": "lessons-practice",
+      "judgments": {
+        "/driving-lessons-learning-to-drive": 3,
+        "/guidance/the-highway-code": 1
+      },
+      "rationales": {
+        "/driving-lessons-learning-to-drive": "States the exact motorway rule for learners: only allowed if driving in England, Scotland or Wales, with an approved driving instructor, in a car fitted with dual controls.",
+        "/guidance/the-highway-code": "Indexes the Highway Code's dedicated motorways chapter (rules 253-274) as further reading on motorway driving."
+      }
+    },
+    {
+      "id": "prepare-theory-test",
+      "text": "how to prepare for theory test",
+      "topic": "theory-preparation",
+      "judgments": {
+        "/theory-test/revision-and-practice": 3,
+        "/take-practice-theory-test": 2,
+        "/guidance/the-highway-code": 1
+      },
+      "rationales": {
+        "/theory-test/revision-and-practice": "Explains preparing for the theory test using the three official study books, DVSA apps, free practice tests, and hazard-perception prep guidance.",
+        "/take-practice-theory-test": "Provides the free official DVSA practice tests referenced by the general revision guidance.",
+        "/guidance/the-highway-code": "Is one of the three named study books ('The Highway Code') used to prepare for the theory test's multiple-choice questions."
+      }
+    },
+    {
+      "id": "how-to-book-theory-test",
+      "text": "book a theory test online",
+      "topic": "theory-test-management",
+      "judgments": {
+        "/book-theory-test": 3,
+        "/learn-to-drive-a-car": 1
+      },
+      "rationales": {
+        "/book-theory-test": "Provides the official theory-test booking service for cars, motorcycles, lorries, buses and coaches.",
+        "/learn-to-drive-a-car": "Shows theory-test booking within the learner journey, including the £23 fee and the provisional-licence prerequisite."
+      }
+    },
+    {
+      "id": "theory-before-practical",
+      "text": "how long after theory test can you book practical",
+      "topic": "practical-test-management",
+      "judgments": {
+        "/book-driving-test": 2,
+        "/learn-to-drive-a-car": 2
+      },
+      "rationales": {
+        "/book-driving-test": "States 'You must usually have passed your theory test before booking' — confirms the required order but gives no minimum wait time, so it only partially answers the literal 'how long' framing of the query.",
+        "/learn-to-drive-a-car": "States the same ordering rule in the journey hub ('You must pass your theory test before you can book your driving test') but likewise gives no duration or cooling-off period."
+      }
+    },
+    {
+      "id": "lessons-after-passing",
+      "text": "driving course after passing test",
+      "topic": "after-passing",
+      "judgments": {
+        "/pass-plus": 3,
+        "/learn-to-drive-a-car": 2
+      },
+      "rationales": {
+        "/pass-plus": "Describes Pass Plus, a practical training course of at least 6 hours, as 'most useful to new drivers in the year after passing their test'.",
+        "/learn-to-drive-a-car": "Links to Pass Plus training courses from the 'When you pass' step and states the insurance-without-supervision requirement once you pass."
       }
     }
   ]

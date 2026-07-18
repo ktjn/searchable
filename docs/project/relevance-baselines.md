@@ -114,26 +114,48 @@ does not determine whether a ranking change is acceptable.
 
 ## Reviewed GOV.UK learner-driving corpus
 
-`govuk-learn-to-drive@1.0.0` contains the 22 public pages in GOV.UK's “Learn to
-drive a car” journey: the journey hub and its 21 internal destinations. It has
-20 English task-oriented queries, comprising 16 concise queries and four
-longer natural-language queries, across seven topics: eligibility and eyesight,
-provisional licences, lessons and practice, theory preparation, theory-test
-management, practical-test management, and after passing.
+`govuk-learn-to-drive@1.1.0` contains the 22 public pages in GOV.UK's “Learn to
+drive a car” journey: the journey hub and its 21 internal destinations
+(unchanged from `1.0.0`). It has 28 English task-oriented queries across seven
+topics: eligibility and eyesight, provisional licences, lessons and practice,
+theory preparation, theory-test management, practical-test management, and
+after passing.
+
+Twenty of the 28 queries are the original authored queries from `1.0.0`. The
+remaining 8 are sourced from Google's public, unauthenticated autocomplete
+suggestion endpoint (`suggestqueries.google.com/complete/search`), used as
+phrasing inspiration for authoring genuine evaluation queries — **this is not
+a licensed dataset**, unlike the GOV.UK OGL content itself, and it is not a
+GOV.UK search-query log: GOV.UK does not publish query-log data. Each
+candidate suggestion was screened against the corpus for genuine
+answerability and non-duplication with existing queries, hand-graded against
+the real documents, and reviewed for vocabulary grounding (several needed
+rewording so their significant terms appear in the judged documents' literal
+text before being added). Example new query ids: `glasses-need-to-drive`,
+`learners-motorway`, and `lessons-after-passing`. Full sourcing detail,
+including rejected candidates and the vocabulary-grounding review, is in
+`docs/superpowers/notes/2026-07-17-govuk-real-query-candidates.md`.
 
 The suite uses the same graded judgment and page-specific rationale policy as
 the documentation corpus. Maintainer `ktjn` reviewed every normalized
-document, query, grade, rationale, and measured top-five result on 2026-07-14.
+document, query, grade, rationale, and measured top-five result on 2026-07-18.
 
 The reviewed baseline at `k = 5` is:
 
-| Metric | Value |
-|---|---:|
-| MRR | 0.650000 |
-| Precision@5 | 0.160000 |
-| Recall@5 | 0.475000 |
-| nDCG@5 | 0.585738 |
-| Zero-result rate | 0.300000 |
+| Metric | `1.0.0` (20 queries) | `1.1.0` (28 queries) |
+|---|---:|---:|
+| MRR | 0.650000 | 0.732143 |
+| Precision@5 | 0.160000 | 0.171429 |
+| Recall@5 | 0.475000 | 0.464286 |
+| nDCG@5 | 0.585738 | 0.642698 |
+| Zero-result rate | 0.300000 (6/20) | 0.214286 (6/28) |
+
+The `1.1.0` aggregate is measurably better than `1.0.0` on every metric except
+a small dip in recall, despite the 8 added queries being harder and more
+naturally phrased (several are longer, informally-worded questions rather
+than concise keyword searches) — see the source note above for the per-query
+vocabulary-grounding risks that were identified and, where needed, addressed
+before this baseline was recorded.
 
 The source snapshot was retrieved on 2026-07-13. It contains public sector
 information licensed under the [Open Government Licence
@@ -260,7 +282,13 @@ catalog — four domains across two languages (English and German). Only the
 Gutenberg facets corpus exercises facet-filtered search under judged
 relevance; the other three domains judge free-text search only. Facet
 *counts* (`facetValues()`) remain unexercised by any relevance suite. Their
-queries are authored intents rather than user-query logs. These scores are
+queries are authored intents rather than user-query logs, with one exception:
+8 of the 28 `govuk-learn-to-drive` queries are sourced from Google
+autocomplete suggestions as real-world phrasing inspiration (see that
+section above). This is a proxy for real search language, not query-log
+evidence — GOV.UK does not publish query logs, and an informal, unauthenticated
+autocomplete endpoint is not equivalent to production search analytics.
+These scores are
 not latency or memory evidence and do not establish web-scale quality or
 superiority over another engine. Do not compare scores across suites because
 their source material, query sets, and judgments differ.
