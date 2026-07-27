@@ -36,6 +36,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.5",
     "@playwright/test": "catalog:",
+    "@types/node": "^26.1.1",
     "typescript": "catalog:",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
