@@ -1,7 +1,7 @@
-import { readdir, readFile } from "fs/promises";
-import type { Server } from "http";
-import { createServer } from "http";
-import { extname, join, resolve } from "path";
+import { readdir, readFile } from "node:fs/promises";
+import type { Server } from "node:http";
+import { createServer } from "node:http";
+import { extname, join, resolve } from "node:path";
 
 export interface StaticServer {
   baseUrl: string;
