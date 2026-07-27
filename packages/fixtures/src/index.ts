@@ -6,3 +6,8 @@ export type {
   GenerateCms2kCorpusOptions,
 } from "./generate.js";
 export { generateCms2kCorpus } from "./generate.js";
+export {
+  type ServeDirectoryOptions,
+  type StaticServer,
+  serveDirectory,
+} from "./serve-directory.js";
