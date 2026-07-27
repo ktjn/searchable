@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { SearchResult } from "@ktjn/searchable-client";
 import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
+import { canonicalize } from "@ktjn/searchable-format";
 import type {
   BenchmarkConfig,
   BenchmarkQuery,
@@ -84,18 +85,6 @@ const SMOKE_CATEGORY_FACETS = [
   { value: "Guides", count: 3, selected: false },
   { value: "Product", count: 2, selected: false },
 ];
-
-function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, entry]) => [key, canonicalize(entry)]),
-    );
-  }
-  return value;
-}
 
 export function hashCanonical(value: unknown): string {
   return createHash("sha256")

@@ -1,9 +1,11 @@
 /**
  * Manifest and shard shapes, mirroring spec/schema/*.schema.json and
- * docs/concepts/index-format.md. This package has no runtime logic — it
- * exists so the indexer (which writes this shape) and the client
- * (which reads it) share one type definition instead of two that could
- * silently drift apart.
+ * docs/concepts/index-format.md. This package exists so the indexer
+ * (which writes this shape) and the client (which reads it) share one
+ * type definition instead of two that could silently drift apart. It
+ * also owns the small, dependency-free runtime helpers (currently
+ * `canonicalize`) that both sides must apply identically so their
+ * canonical hashes can never diverge.
  */
 
 export interface FieldConfig {
@@ -265,3 +267,5 @@ export interface FuzzyShard {
   maxEdits: 1 | 2;
   deletions: Record<string, string[]>;
 }
+
+export { canonicalize } from "./canonicalize.js";

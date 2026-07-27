@@ -1,5 +1,5 @@
 export type { MarketingPage, Topic } from "./content.js";
-export { MARKETING_PAGES, TOPICS } from "./content.js";
+export { MARKETING_PAGES } from "./content.js";
 export type {
   FixtureDocument,
   FixtureLanguage,

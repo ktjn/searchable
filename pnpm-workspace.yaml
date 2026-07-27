@@ -3,6 +3,7 @@ packages:
   - "showcase"
 catalog:
   "@playwright/test": ^1.62.0
+  typescript: ^7.0.2
 allowBuilds:
   '@biomejs/biome': true
   esbuild: true

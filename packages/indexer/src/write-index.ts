@@ -2,34 +2,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { gzipSync } from "node:zlib";
 import type { Manifest, TermShard } from "@ktjn/searchable-format";
+import { canonicalize } from "@ktjn/searchable-format";
 import { encodeDocStoreBinary } from "./binary-doc-store.js";
 import { encodeFuzzyShardBinary } from "./binary-fuzzy-shard.js";
 import { encodeTermShardBinary } from "./binary-term-shard.js";
 import type { BuiltVectors } from "./build-vectors.js";
 import { contentHash } from "./hash.js";
 import type { BuiltIndex, DocStoreShard } from "./types.js";
-
-/**
- * Recursively sorts object keys (array element order is left alone --
- * it's semantically meaningful for postings/doc-id lists) so the same
- * logical data always serializes to the same bytes regardless of
- * insertion order. `JSON.stringify` alone is deterministic for one
- * producer's own iteration order, but not guaranteed stable across
- * independent producers or a corpus fed in a different order
- * (REVIEW.md#10) -- sorting keys before serializing removes that
- * degree of freedom entirely.
- */
-function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value !== null && typeof value === "object") {
-    const sorted: Record<string, unknown> = {};
-    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
-      sorted[key] = canonicalize((value as Record<string, unknown>)[key]);
-    }
-    return sorted;
-  }
-  return value;
-}
 
 async function writeJson(
   outDir: string,

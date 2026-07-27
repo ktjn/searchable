@@ -15,11 +15,10 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^7.0.2",
+    "typescript": "catalog:",
     "vitest": "^4.1.10"
   }
 }

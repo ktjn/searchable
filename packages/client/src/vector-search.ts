@@ -112,7 +112,7 @@ export function bruteForceVectorSearch(
 }
 
 /** Standard IR constant (docs/guides/vector-search.md#hybrid-search-combining-lexical-and-vector-scores). */
-export const DEFAULT_RRF_K = 60;
+const DEFAULT_RRF_K = 60;
 
 /**
  * Combines any number of independently-ranked id lists (best first) into

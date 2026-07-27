@@ -20,7 +20,7 @@ function record(value: unknown, path: string): UnknownRecord {
   return value as UnknownRecord;
 }
 
-export function normalizePageId(value: string): string {
+function normalizePageId(value: string): string {
   const normalized = value.replaceAll("\\", "/");
   return normalized.startsWith("/") ? normalized : `/${normalized}`;
 }

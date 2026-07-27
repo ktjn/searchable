@@ -32,7 +32,6 @@ export { InvalidManifestError, validateManifest } from "./validate-manifest.js";
 export type { VectorHit } from "./vector-search.js";
 export {
   cosineSimilarity,
-  DEFAULT_RRF_K,
   dequantizeVector,
   reciprocalRankFusion,
   VectorProviderMismatchError,
