@@ -1,6 +1,8 @@
 packages:
   - "packages/*"
   - "showcase"
+catalog:
+  "@playwright/test": ^1.62.0
 allowBuilds:
   '@biomejs/biome': true
   esbuild: true

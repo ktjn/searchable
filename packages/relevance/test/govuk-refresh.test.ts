@@ -439,17 +439,20 @@ describe("refreshGovukSuite", () => {
         }),
       /redirected outside GOV\.UK Content API/,
     ],
-  ])("does not modify the fixture after %s", async (_name, transform, message) => {
-    const target = await fixture(suite());
-    await expect(
-      refreshGovukSuite({
-        mode: "check",
-        fixturePath: target.path,
-        fetch: fakeFetch(contentItems(), transform),
-      }),
-    ).rejects.toThrow(message);
-    expect(await readFile(target.path, "utf8")).toBe(target.original);
-  });
+  ])(
+    "does not modify the fixture after %s",
+    async (_name, transform, message) => {
+      const target = await fixture(suite());
+      await expect(
+        refreshGovukSuite({
+          mode: "check",
+          fixturePath: target.path,
+          fetch: fakeFetch(contentItems(), transform),
+        }),
+      ).rejects.toThrow(message);
+      expect(await readFile(target.path, "utf8")).toBe(target.original);
+    },
+  );
 
   it("removes the temporary sibling if atomic rename fails", async () => {
     const target = await fixture(suite());
