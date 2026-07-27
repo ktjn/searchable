@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import type { SnapshotDomainDocument } from "./domain-schema.js";
-
-type UnknownRecord = Record<string, unknown>;
+import {
+  expectArray as array,
+  expectRecord as record,
+  expectString as string,
+  type UnknownRecord,
+} from "./validation.js";
 
 export interface GovukContentItem {
   schema_name: string;
@@ -26,22 +30,6 @@ const NAMED_ENTITIES: Record<string, string> = {
   rdquo: "”",
   pound: "£",
 };
-
-function record(value: unknown, path: string): UnknownRecord {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error(`${path} must be an object`);
-  return value as UnknownRecord;
-}
-
-function array(value: unknown, path: string): unknown[] {
-  if (!Array.isArray(value)) throw new Error(`${path} must be an array`);
-  return value;
-}
-
-function string(value: unknown, path: string): string {
-  if (typeof value !== "string") throw new Error(`${path} must be a string`);
-  return value;
-}
 
 function decodeEntity(entity: string): string {
   if (entity.startsWith("#x") || entity.startsWith("#X")) {

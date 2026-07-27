@@ -10,8 +10,7 @@ import {
   normalizeGovukDocument,
 } from "./govuk-normalize.js";
 import { validateDomainSuite } from "./validate-domain-suite.js";
-
-type UnknownRecord = Record<string, unknown>;
+import { expectRecord as record, type UnknownRecord } from "./validation.js";
 
 export const GOVUK_JOURNEY_PATH = "/learn-to-drive-a-car";
 export const GOVUK_EXPECTED_ROUTES = [
@@ -73,12 +72,6 @@ export interface RefreshOptions {
   writeFile?: typeof defaultWriteFile;
   rename?: typeof defaultRename;
   rm?: typeof defaultRm;
-}
-
-function record(value: unknown, path: string): UnknownRecord {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error(`${path} must be an object`);
-  return value as UnknownRecord;
 }
 
 function collectHrefs(value: unknown, hrefs: unknown[]): void {

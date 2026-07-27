@@ -221,7 +221,7 @@ Behavior-preserving moves only; no logic edits beyond moving code.
 | 1.5 | Move `typescript` pin to pnpm catalog | done | docs/cleanup-plan | |
 | 2.1 | Unify `canonicalize` (code-unit order), fix hash divergence | done | docs/cleanup-plan | moved to `@ktjn/searchable-format`; benchmark baseline hash unchanged (ASCII keys) |
 | 2.2 | One shared static server in fixtures | pending | | |
-| 2.3 | One validation kit (relevance + benchmark) | pending | | |
+| 2.3 | One validation kit (relevance + benchmark) | done | chore/validation-kit | relevance only: shared `validation.ts` (errors-collecting `record`/`nonBlank`/`httpUrl`/`isoDate` + throwing `expectRecord`/`expectArray`/`expectString`); 5 relevance copies removed. Benchmark deferred — its `string`/`finite`/`positiveInteger`/`sha256` are single-site and benchmark-specific, so a cross-package dependency wasn't worth it |
 | 2.4 | Share transformers constants via format | pending | | |
 | 2.5 | Mechanical small-fry dedupes | pending | | |
 | 3.1 | Collapse pre-hook sprawl, cut CI rebuilds | pending | | CI builds 4× today |
