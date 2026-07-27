@@ -227,8 +227,8 @@ Behavior-preserving moves only; no logic edits beyond moving code.
 | 3.1 | Collapse pre-hook sprawl, cut CI rebuilds | pending | | CI builds 4× today |
 | 3.2 | Delete no-op vitest configs | pending | | deferred: requires switching `--filter` test scripts to the benchmark `--root ../.. --project` pattern too, else deleting the no-op config breaks package-local vitest runs (walks up to root projects config). Fiddly vitest workspace resolution — defer to a dedicated PR |
 | 3.3 | Intermediate tsconfig base | dropped | | `rootDir`/`outDir`/`include` resolve relative to the config that defines them, so a shared `tsconfig.package.json` at repo root would point every package at `../../src`. Only `lib`/`types`/`verbatimModuleSyntax` could be shared, and those already differ per package — no real collapse available |
-| 3.4 | Parameterize fixture-policy tests | pending | | |
-| 3.5 | Rename misleading browser config | pending | | |
+| 3.4 | Parameterize fixture-policy tests | done | chore/cleanup-phase3-test-hygiene | extracted shared `assertSnapshotSuitePolicy` helper; de-fahrerlaubnisrecht + gutenberg now call it (gutenberg keeps its filter-consistency block). govuk/domain-fixture-policy/fixture-policy stay — they pin exact provenance/counts/kind and aren't shape-compatible with the snapshot core. Also dropped the stale `as never` casts in de/govuk/gutenberg (KNOWN_DOMAIN_SUITES already lists them; searchable-docs never had the cast) |
+| 3.5 | Rename misleading browser config | done | chore/cleanup-phase3-test-hygiene | `vitest.browser.config.ts` → `vitest.playwright.config.ts` (runs under `environment: "node"` driving Playwright's chromium, not vitest browser mode). Updated the benchmark `test:browser` script and the `pages-workflow-policy` test that pins the name |
 | 4.1 | Split `client/src/search.ts` | pending | | |
 | 4.2 | Split `indexer/src/build-index.ts` | pending | | |
 | 4.3 | Split `indexer/src/write-index.ts` | pending | | |
