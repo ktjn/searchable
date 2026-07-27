@@ -11,10 +11,7 @@ it("preserves samples and uses nearest-rank p50 and p95", () => {
   });
 });
 
-it.each([
-  [],
-  [1, Number.NaN],
-  [1, -1],
-  [Number.POSITIVE_INFINITY],
-])("rejects invalid samples %#", (samples) =>
-  expect(() => summarizeSamples(samples)).toThrow());
+it.each([[], [1, Number.NaN], [1, -1], [Number.POSITIVE_INFINITY]])(
+  "rejects invalid samples %#",
+  (samples) => expect(() => summarizeSamples(samples)).toThrow(),
+);
