@@ -269,3 +269,7 @@ export interface FuzzyShard {
 }
 
 export { canonicalize } from "./canonicalize.js";
+export {
+  DEFAULT_TRANSFORMERS_MODEL,
+  type TransformersDtype,
+} from "./transformers.js";

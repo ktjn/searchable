@@ -7,6 +7,7 @@ import python from "highlight.js/lib/languages/python";
 import typescript from "highlight.js/lib/languages/typescript";
 import { Renderer, type Token } from "marked";
 import type { DocPage, DocSection } from "./docs-nav.js";
+import { escapeHtml } from "./gallery-shared.js";
 
 hljs.registerLanguage("javascript", javascript);
 hljs.registerLanguage("typescript", typescript);
@@ -183,14 +184,6 @@ export function createMarkdownRenderer(): Renderer {
 function depthPrefix(route: string): string {
   const depth = route.split("/").length - 1;
   return depth === 0 ? "./" : "../".repeat(depth);
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 function renderNavigation(
