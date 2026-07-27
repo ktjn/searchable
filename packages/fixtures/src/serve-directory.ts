@@ -63,13 +63,17 @@ export async function serveDirectory(
   options: ServeDirectoryOptions = {},
 ): Promise<StaticServer> {
   const contentTypes = options.contentTypes ?? {};
-  const defaultContentType = options.defaultContentType ?? "application/octet-stream";
+  const defaultContentType =
+    options.defaultContentType ?? "application/octet-stream";
   const cors = options.cors ?? false;
   const root = resolve(rootDir);
   const files = await discoverFiles(root);
   const requestedPaths: string[] = [];
   const server: Server = createServer(
-    (req: import("http").IncomingMessage, res: import("http").ServerResponse) => {
+    (
+      req: import("http").IncomingMessage,
+      res: import("http").ServerResponse,
+    ) => {
       const requestPath = decodeURIComponent(
         (req.url ?? "/").split("?")[0] ?? "/",
       ).replaceAll("\\", "/");
@@ -88,7 +92,9 @@ export async function serveDirectory(
       const contentType = contentTypes[extname(filePath)] ?? defaultContentType;
       readFile(filePath)
         .then((data: Buffer) => {
-          const headers: Record<string, string> = { "content-type": contentType };
+          const headers: Record<string, string> = {
+            "content-type": contentType,
+          };
           if (cors) headers["access-control-allow-origin"] = "*";
           res.writeHead(200, headers);
           res.end(data);
