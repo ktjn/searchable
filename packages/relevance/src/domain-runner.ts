@@ -11,14 +11,7 @@ import type { RelevanceSuite } from "./schema.js";
 import { runSearchableSuite } from "./searchable-runner.js";
 import { type StaticServer, serveDirectory } from "./static-server.js";
 import { validateDomainSuite } from "./validate-domain-suite.js";
-
-type UnknownRecord = Record<string, unknown>;
-
-function record(value: unknown, path: string): UnknownRecord {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error(`${path} must be an object`);
-  return value as UnknownRecord;
-}
+import { expectRecord as record } from "./validation.js";
 
 function normalizePageId(value: string): string {
   const normalized = value.replaceAll("\\", "/");

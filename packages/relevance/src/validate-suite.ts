@@ -1,44 +1,5 @@
 import { type RelevanceSuite, SUPPORTED_BASELINE_LANGUAGES } from "./schema.js";
-
-type UnknownRecord = Record<string, unknown>;
-
-function record(value: unknown, path: string, errors: string[]): UnknownRecord {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    errors.push(`${path} must be an object`);
-    return {};
-  }
-  return value as UnknownRecord;
-}
-
-function nonBlank(value: unknown, path: string, errors: string[]): string {
-  if (typeof value !== "string" || value.trim() === "") {
-    errors.push(`${path} must be a non-blank string`);
-    return "";
-  }
-  return value;
-}
-
-function httpUrl(value: unknown, path: string, errors: string[]): void {
-  const text = nonBlank(value, path, errors);
-  if (!text) return;
-  try {
-    if (!/^https?:$/.test(new URL(text).protocol)) throw new Error();
-  } catch {
-    errors.push(`${path} must be an HTTP(S) URL`);
-  }
-}
-
-function isoDate(value: unknown, path: string, errors: string[]): void {
-  const text = nonBlank(value, path, errors);
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
-  if (!match) {
-    errors.push(`${path} must be a valid YYYY-MM-DD date`);
-    return;
-  }
-  const date = new Date(`${text}T00:00:00Z`);
-  if (Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== text)
-    errors.push(`${path} must be a valid YYYY-MM-DD date`);
-}
+import { httpUrl, isoDate, nonBlank, record } from "./validation.js";
 
 export function validateSuite(value: unknown): RelevanceSuite {
   const errors: string[] = [];
