@@ -222,11 +222,11 @@ Behavior-preserving moves only; no logic edits beyond moving code.
 | 2.1 | Unify `canonicalize` (code-unit order), fix hash divergence | done | docs/cleanup-plan | moved to `@ktjn/searchable-format`; benchmark baseline hash unchanged (ASCII keys) |
 | 2.2 | One shared static server in fixtures | pending | | |
 | 2.3 | One validation kit (relevance + benchmark) | done | chore/validation-kit | relevance only: shared `validation.ts` (errors-collecting `record`/`nonBlank`/`httpUrl`/`isoDate` + throwing `expectRecord`/`expectArray`/`expectString`); 5 relevance copies removed. Benchmark deferred — its `string`/`finite`/`positiveInteger`/`sha256` are single-site and benchmark-specific, so a cross-package dependency wasn't worth it |
-| 2.4 | Share transformers constants via format | pending | | |
-| 2.5 | Mechanical small-fry dedupes | pending | | |
+| 2.4 | Share transformers constants via format | done | chore/cleanup-round-b | `DEFAULT_TRANSFORMERS_MODEL` + `TransformersDtype` moved to `@ktjn/searchable-format`; both packages import and re-export. Loading strategies unchanged |
+| 2.5 | Mechanical small-fry dedupes | in-progress | chore/cleanup-round-b | showcase `escapeHtml` deduped within showcase (docs-site imports gallery-shared). `resolve()` ×2 deferred (module-private 3-liners; sharing adds coupling for ~3 lines). `writeJson`/`writeBinary` + per-language shard loop + `#fetchCached` deferred to a focused production-path PR. concept-bucket embedder ×5 deferred (test-only; harness.html needs a plain-JS copy) |
 | 3.1 | Collapse pre-hook sprawl, cut CI rebuilds | pending | | CI builds 4× today |
-| 3.2 | Delete no-op vitest configs | pending | | |
-| 3.3 | Intermediate tsconfig base | pending | | |
+| 3.2 | Delete no-op vitest configs | pending | | deferred: requires switching `--filter` test scripts to the benchmark `--root ../.. --project` pattern too, else deleting the no-op config breaks package-local vitest runs (walks up to root projects config). Fiddly vitest workspace resolution — defer to a dedicated PR |
+| 3.3 | Intermediate tsconfig base | dropped | | `rootDir`/`outDir`/`include` resolve relative to the config that defines them, so a shared `tsconfig.package.json` at repo root would point every package at `../../src`. Only `lib`/`types`/`verbatimModuleSyntax` could be shared, and those already differ per package — no real collapse available |
 | 3.4 | Parameterize fixture-policy tests | pending | | |
 | 3.5 | Rename misleading browser config | pending | | |
 | 4.1 | Split `client/src/search.ts` | pending | | |

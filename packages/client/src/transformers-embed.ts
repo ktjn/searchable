@@ -24,20 +24,13 @@
  * consuming application has installed `@huggingface/transformers` itself.
  */
 
-import type { EmbeddingProviderConfig } from "@ktjn/searchable-format";
+import {
+  DEFAULT_TRANSFORMERS_MODEL,
+  type EmbeddingProviderConfig,
+  type TransformersDtype,
+} from "@ktjn/searchable-format";
 
-/** `Xenova/all-MiniLM-L6-v2`: matches `packages/indexer/src/transformers-embed.ts`'s own default -- keep both ends on the same default unless a deployment explicitly overrides both. */
-export const DEFAULT_TRANSFORMERS_MODEL = "Xenova/all-MiniLM-L6-v2";
-
-export type TransformersDtype =
-  | "fp32"
-  | "fp16"
-  | "q8"
-  | "int8"
-  | "uint8"
-  | "q4"
-  | "bnb4"
-  | "q4f16";
+export { DEFAULT_TRANSFORMERS_MODEL, type TransformersDtype };
 
 export interface TransformersEmbedQueryOptions {
   /** Must match whatever model built the index's vector shards. Defaults to `DEFAULT_TRANSFORMERS_MODEL`. */

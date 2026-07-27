@@ -1,5 +1,11 @@
 import { pipeline } from "@huggingface/transformers";
-import type { EmbeddingProviderConfig } from "./types.js";
+import {
+  DEFAULT_TRANSFORMERS_MODEL,
+  type EmbeddingProviderConfig,
+  type TransformersDtype,
+} from "@ktjn/searchable-format";
+
+export { DEFAULT_TRANSFORMERS_MODEL, type TransformersDtype };
 
 /**
  * A real, local (no query-time backend) embedding source for
@@ -21,26 +27,6 @@ import type { EmbeddingProviderConfig } from "./types.js";
  * verified without network (the batching/shape logic, via a mocked
  * `pipeline`) versus the explicitly opt-in real-model test.
  */
-
-/** `Xenova/all-MiniLM-L6-v2`: a widely-used, small (~90MB fp32, ~23MB int8-quantized), 384-dim sentence-embedding model -- a reasonable, well-known default, not a claim that it's the best choice for every deployment. */
-export const DEFAULT_TRANSFORMERS_MODEL = "Xenova/all-MiniLM-L6-v2";
-
-/**
- * ONNX Runtime's supported weight precisions, matching
- * `@huggingface/transformers`'s own `PretrainedOptions.dtype` (which
- * this option is passed straight through to) -- re-declared here rather
- * than imported so this package's own public type doesn't leak an
- * exact-version dependency on that library's internal type name.
- */
-export type TransformersDtype =
-  | "fp32"
-  | "fp16"
-  | "q8"
-  | "int8"
-  | "uint8"
-  | "q4"
-  | "bnb4"
-  | "q4f16";
 
 export interface TransformersEmbedderOptions {
   /** Any Hugging Face Hub sentence-embedding model id compatible with the `feature-extraction` pipeline. Defaults to `DEFAULT_TRANSFORMERS_MODEL`. */
