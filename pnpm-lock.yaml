@@ -9,6 +9,9 @@ catalogs:
     '@playwright/test':
       specifier: ^1.62.0
       version: 1.62.0
+    typescript:
+      specifier: ^7.0.2
+      version: 7.0.2
 
 importers:
 
@@ -20,11 +23,8 @@ importers:
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.62.0
-      '@vitest/coverage-v8':
-        specifier: ^4.1.10
-        version: 4.1.10(vitest@4.1.10)
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vite:
         specifier: ^8.1.5
@@ -36,7 +36,7 @@ importers:
   packages/analysis:
     devDependencies:
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vite:
         specifier: ^8.1.5
@@ -53,6 +53,9 @@ importers:
       '@ktjn/searchable-fixtures':
         specifier: workspace:*
         version: link:../fixtures
+      '@ktjn/searchable-format':
+        specifier: workspace:*
+        version: link:../format
       '@ktjn/searchable-indexer':
         specifier: workspace:*
         version: link:../indexer
@@ -64,7 +67,7 @@ importers:
         specifier: ^26.1.1
         version: 26.1.1
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vitest:
         specifier: ^4.1.10
@@ -92,7 +95,7 @@ importers:
         specifier: ^26.1.1
         version: 26.1.1
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vite:
         specifier: ^8.1.5
@@ -104,7 +107,7 @@ importers:
   packages/fixtures:
     devDependencies:
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vitest:
         specifier: ^4.1.10
@@ -113,11 +116,8 @@ importers:
   packages/format:
     devDependencies:
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.1))
 
   packages/indexer:
     dependencies:
@@ -141,7 +141,7 @@ importers:
         specifier: ^26.1.1
         version: 26.1.1
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vite:
         specifier: ^8.1.5
@@ -163,7 +163,7 @@ importers:
         specifier: ^26.1.1
         version: 26.1.1
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
       vitest:
         specifier: ^4.1.10
@@ -188,7 +188,7 @@ importers:
         specifier: ^4.23.1
         version: 4.23.1
       typescript:
-        specifier: ^7.0.2
+        specifier: 'catalog:'
         version: 7.0.2
 
 packages:
@@ -1424,20 +1424,25 @@ packages:
 
 snapshots:
 
-  '@babel/helper-string-parser@7.29.7': {}
+  '@babel/helper-string-parser@7.29.7':
+    optional: true
 
-  '@babel/helper-validator-identifier@7.29.7': {}
+  '@babel/helper-validator-identifier@7.29.7':
+    optional: true
 
   '@babel/parser@7.29.7':
     dependencies:
       '@babel/types': 7.29.7
+    optional: true
 
   '@babel/types@7.29.7':
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
+    optional: true
 
-  '@bcoe/v8-coverage@1.0.2': {}
+  '@bcoe/v8-coverage@1.0.2':
+    optional: true
 
   '@biomejs/biome@2.5.5':
     optionalDependencies:
@@ -1681,7 +1686,8 @@ snapshots:
   '@img/sharp-win32-x64@0.34.5':
     optional: true
 
-  '@jridgewell/resolve-uri@3.1.2': {}
+  '@jridgewell/resolve-uri@3.1.2':
+    optional: true
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
@@ -1689,6 +1695,7 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+    optional: true
 
   '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
@@ -1867,6 +1874,7 @@ snapshots:
       std-env: 4.2.0
       tinyrainbow: 3.1.0
       vitest: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.1))
+    optional: true
 
   '@vitest/expect@4.1.10':
     dependencies:
@@ -1918,6 +1926,7 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       estree-walker: 3.0.3
       js-tokens: 10.0.0
+    optional: true
 
   boolbase@1.0.0: {}
 
@@ -2050,7 +2059,8 @@ snapshots:
 
   guid-typescript@1.0.9: {}
 
-  has-flag@4.0.0: {}
+  has-flag@4.0.0:
+    optional: true
 
   has-property-descriptors@1.0.2:
     dependencies:
@@ -2058,22 +2068,27 @@ snapshots:
 
   highlight.js@11.11.1: {}
 
-  html-escaper@2.0.2: {}
+  html-escaper@2.0.2:
+    optional: true
 
-  istanbul-lib-coverage@3.2.2: {}
+  istanbul-lib-coverage@3.2.2:
+    optional: true
 
   istanbul-lib-report@3.0.1:
     dependencies:
       istanbul-lib-coverage: 3.2.2
       make-dir: 4.0.0
       supports-color: 7.2.0
+    optional: true
 
   istanbul-reports@3.2.0:
     dependencies:
       html-escaper: 2.0.2
       istanbul-lib-report: 3.0.1
+    optional: true
 
-  js-tokens@10.0.0: {}
+  js-tokens@10.0.0:
+    optional: true
 
   json-stringify-safe@5.0.1: {}
 
@@ -2137,10 +2152,12 @@ snapshots:
       '@babel/parser': 7.29.7
       '@babel/types': 7.29.7
       source-map-js: 1.2.1
+    optional: true
 
   make-dir@4.0.0:
     dependencies:
       semver: 7.8.5
+    optional: true
 
   marked@18.0.7: {}
 
@@ -2300,6 +2317,7 @@ snapshots:
   supports-color@7.2.0:
     dependencies:
       has-flag: 4.0.0
+    optional: true
 
   tinybench@2.9.0: {}
 

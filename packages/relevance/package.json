@@ -8,11 +8,6 @@
   "engines": {
     "node": ">=24"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": "./dist/index.js"
-  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
@@ -26,7 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
-    "typescript": "^7.0.2",
+    "typescript": "catalog:",
     "vitest": "^4.1.10"
   }
 }

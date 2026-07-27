@@ -214,12 +214,12 @@ Behavior-preserving moves only; no logic edits beyond moving code.
 
 | Item | Description | Status | PR | Notes |
 |---|---|---|---|---|
-| 1.1 | Delete dead relevance barrel + package.json exports | pending | | |
-| 1.2 | Remove unused `@vitest/coverage-v8` | pending | | |
-| 1.3 | Remove broken format/fixtures test scripts | pending | | |
-| 1.4 | Narrow over-public exports to module-private | pending | | |
-| 1.5 | Move `typescript` pin to pnpm catalog | pending | | |
-| 2.1 | Unify `canonicalize` (code-unit order), fix hash divergence | pending | | correctness fix |
+| 1.1 | Delete dead relevance barrel + package.json exports | done | docs/cleanup-plan | |
+| 1.2 | Remove unused `@vitest/coverage-v8` | done | docs/cleanup-plan | |
+| 1.3 | Remove broken format/fixtures test scripts | done | docs/cleanup-plan | fixtures keeps vitest devDep (tests run via root) |
+| 1.4 | Narrow over-public exports to module-private | done | docs/cleanup-plan | normalizePageId/DEFAULT_RRF_K/TOPICS narrowed; isZeroResult retained (direct test consumer) |
+| 1.5 | Move `typescript` pin to pnpm catalog | done | docs/cleanup-plan | |
+| 2.1 | Unify `canonicalize` (code-unit order), fix hash divergence | done | docs/cleanup-plan | moved to `@ktjn/searchable-format`; benchmark baseline hash unchanged (ASCII keys) |
 | 2.2 | One shared static server in fixtures | pending | | |
 | 2.3 | One validation kit (relevance + benchmark) | pending | | |
 | 2.4 | Share transformers constants via format | pending | | |
@@ -240,7 +240,7 @@ Behavior-preserving moves only; no logic edits beyond moving code.
 | 5.4 | One atomic-write helper | pending | | |
 | 5.5 | Single CLI per package with subcommands | pending | | |
 | 5.6 | Decide `Manifest.format` fate | pending | | |
-| 5.7 | Replace literal NUL byte with escape | pending | | |
+| 5.7 | Replace literal NUL byte with escape | done | docs/cleanup-plan | validate-manifest.ts now `\0` escape; runtime NUL separator preserved |
 | 6.1 | Binary format single home in `format` | pending | | separate decision |
 | 6.2 | Unify relevance v1/v2 frameworks | pending | | fixture migration |
 
