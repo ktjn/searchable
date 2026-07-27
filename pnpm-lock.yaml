@@ -181,6 +181,9 @@ importers:
         specifier: ^18.0.7
         version: 18.0.7
     devDependencies:
+      '@ktjn/searchable-fixtures':
+        specifier: workspace:*
+        version: link:../packages/fixtures
       '@ktjn/searchable-indexer':
         specifier: workspace:*
         version: link:../packages/indexer
