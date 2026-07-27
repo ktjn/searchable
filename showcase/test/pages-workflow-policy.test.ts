@@ -26,7 +26,12 @@ test("CI runs benchmark browser measurements only after installing Chromium", ()
     "utf8",
   );
   const benchmarkBrowserConfig = readFileSync(
-    join(repositoryRoot, "packages", "benchmark", "vitest.browser.config.ts"),
+    join(
+      repositoryRoot,
+      "packages",
+      "benchmark",
+      "vitest.playwright.config.ts",
+    ),
     "utf8",
   );
   const benchmarkPackage = JSON.parse(
@@ -51,7 +56,7 @@ test("CI runs benchmark browser measurements only after installing Chromium", ()
   expect(benchmarkConfig).toContain("test/browser-measurement.test.ts");
   expect(benchmarkBrowserConfig).toContain("test/browser-measurement.test.ts");
   expect(benchmarkPackage.scripts["test:browser"]).toContain(
-    "vitest.browser.config.ts",
+    "vitest.playwright.config.ts",
   );
   expect(install).toBeGreaterThan(-1);
   expect(benchmarkTest).toBeGreaterThan(install);

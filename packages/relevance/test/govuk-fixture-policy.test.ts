@@ -27,7 +27,7 @@ describe("committed GOV.UK driving relevance fixture", () => {
   it("is an exact, reviewable draft of the approved journey", async () => {
     const suite = await loadDomainSuite(
       domainFixtureDirectory,
-      "govuk-learn-to-drive" as never,
+      "govuk-learn-to-drive",
     );
     expect(suite.id).toBe("govuk-learn-to-drive");
     expect(suite.version).toBe("1.1.0");
