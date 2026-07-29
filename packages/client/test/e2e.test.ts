@@ -1,10 +1,9 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
+import type { PythonSourceDocument as SourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveStatic } from "./static-server.js";
 
 const sources: SourceDocument[] = [
@@ -39,11 +38,10 @@ describe("indexer -> client end to end (over real HTTP)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-"));
-    const built = buildIndex(sources);
-    await writeIndex(built, outDir);
+    ({ outDir, cleanup } = await writePythonIndex(sources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -51,7 +49,7 @@ describe("indexer -> client end to end (over real HTTP)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("fetches the manifest and returns ranked, relevant hits", async () => {
@@ -100,10 +98,10 @@ describe("observability hooks (client.on)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-observability-"));
-    await writeIndex(buildIndex(sources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(sources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -111,7 +109,7 @@ describe("observability hooks (client.on)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("fires 'query' before 'result', each with the right payload", async () => {
@@ -185,10 +183,10 @@ describe("cancellation (options.signal)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-cancellation-"));
-    await writeIndex(buildIndex(sources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(sources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -196,7 +194,7 @@ describe("cancellation (options.signal)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("rejects immediately with an AbortError when the signal is already aborted", async () => {
@@ -282,10 +280,10 @@ describe("SearchClient.dispose() in main-thread mode", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-dispose-"));
-    await writeIndex(buildIndex(sources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(sources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -293,7 +291,7 @@ describe("SearchClient.dispose() in main-thread mode", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("is idempotent -- calling it more than once does not throw", async () => {
@@ -315,10 +313,10 @@ describe("manifest validation (real HTTP)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-validate-"));
-    await writeIndex(buildIndex(sources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(sources));
     const manifest = JSON.parse(
       await readFile(join(outDir, "manifest.json"), "utf8"),
     );
@@ -369,7 +367,7 @@ describe("manifest validation (real HTTP)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("rejects a structurally invalid manifest instead of failing deep in search()", async () => {
@@ -404,6 +402,7 @@ describe("document-level boost (searchable-boost)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const boostSources: SourceDocument[] = [
     {
@@ -422,8 +421,7 @@ describe("document-level boost (searchable-boost)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-boost-"));
-    await writeIndex(buildIndex(boostSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(boostSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -431,7 +429,7 @@ describe("document-level boost (searchable-boost)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("lets a heavily boosted, otherwise-lower-relevance doc outrank a title match", async () => {
@@ -445,6 +443,7 @@ describe("per-query field boost override", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const fieldBoostSources: SourceDocument[] = [
     {
@@ -462,8 +461,7 @@ describe("per-query field boost override", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-fieldboost-"));
-    await writeIndex(buildIndex(fieldBoostSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(fieldBoostSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -471,7 +469,7 @@ describe("per-query field boost override", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("ranks the 5x body match first under default field boosts", async () => {
@@ -496,6 +494,7 @@ describe("per-query term boost", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   // Symmetric fixture: doc 1 has more "apple", doc 2 has more "banana" -
   // both match both terms, so under default (no term boost) weighting
@@ -516,8 +515,7 @@ describe("per-query term boost", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-termboost-"));
-    await writeIndex(buildIndex(termBoostSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(termBoostSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -525,7 +523,7 @@ describe("per-query term boost", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("scores symmetric documents equally with no term boost", async () => {
@@ -547,6 +545,7 @@ describe("prefix matching (term*)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const prefixSources: SourceDocument[] = [
     {
@@ -576,8 +575,7 @@ describe("prefix matching (term*)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-prefix-"));
-    await writeIndex(buildIndex(prefixSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(prefixSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -585,7 +583,7 @@ describe("prefix matching (term*)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("matches every real term sharing the prefix, not just an exact term", async () => {
@@ -655,13 +653,13 @@ describe("prefix-sharded term shard fetching (docs/concepts/index-format.md#term
   let closeServer: () => Promise<void>;
   let requestedPaths: string[];
   let outDir: string;
+  let cleanup: () => Promise<void>;
   let manifest: {
     shards: { terms: { lang: string; prefix: string; file: string }[] };
   };
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-prefix-shard-"));
-    await writeIndex(buildIndex(shardedSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(shardedSources));
     manifest = JSON.parse(
       await readFile(join(outDir, "manifest.json"), "utf8"),
     );
@@ -673,7 +671,7 @@ describe("prefix-sharded term shard fetching (docs/concepts/index-format.md#term
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   function shardFileFor(prefix: string): string {
@@ -725,6 +723,7 @@ describe("shardByPrefix:false (docs/guides/indexing.md's small-corpus mode)", ()
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const unshardedSources: SourceDocument[] = [
     {
@@ -742,10 +741,11 @@ describe("shardByPrefix:false (docs/guides/indexing.md's small-corpus mode)", ()
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-unsharded-"));
-    await writeIndex(buildIndex(unshardedSources), outDir, {
-      shardByPrefix: false,
-    });
+    ({ outDir, cleanup } = await writePythonIndex(
+      unshardedSources,
+      {},
+      { shardByPrefix: false },
+    ));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -753,7 +753,7 @@ describe("shardByPrefix:false (docs/guides/indexing.md's small-corpus mode)", ()
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("still resolves an exact-term query against a single unsharded term shard", async () => {
@@ -773,6 +773,7 @@ describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const phraseSources: SourceDocument[] = [
     {
@@ -802,8 +803,7 @@ describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-phrase-"));
-    await writeIndex(buildIndex(phraseSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(phraseSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -811,7 +811,7 @@ describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("matches a document where the phrase words appear adjacent, in order, in the same field", async () => {
@@ -880,6 +880,7 @@ describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/gu
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const cityGuideSources: SourceDocument[] = [
     {
@@ -909,11 +910,10 @@ describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/gu
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-multiword-synonym-"));
-    const built = buildIndex(cityGuideSources, "en", {
+    ({ outDir, cleanup } = await writePythonIndex(cityGuideSources, {
+      defaultLanguage: "en",
       synonyms: { en: { multiWord: [["new york", "nyc", "big apple"]] } },
-    });
-    await writeIndex(built, outDir);
+    }));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -921,7 +921,7 @@ describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/gu
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("does not cross-match multiWord synonym phrases by default (synonyms option off)", async () => {
@@ -979,6 +979,7 @@ describe("multiWord phrase-level synonyms: literal phrase absent from the corpus
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   // Only "nyc" appears anywhere in this corpus -- "new" and "york" are
   // not real terms in any document, verifying the literal phrase's own
@@ -993,13 +994,10 @@ describe("multiWord phrase-level synonyms: literal phrase absent from the corpus
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(
-      join(tmpdir(), "searchable-e2e-multiword-synonym-absent-"),
-    );
-    const built = buildIndex(nycOnlySources, "en", {
+    ({ outDir, cleanup } = await writePythonIndex(nycOnlySources, {
+      defaultLanguage: "en",
       synonyms: { en: { multiWord: [["new york", "nyc"]] } },
-    });
-    await writeIndex(built, outDir);
+    }));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1007,7 +1005,7 @@ describe("multiWord phrase-level synonyms: literal phrase absent from the corpus
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("still matches via a synonym variant even though the literal phrase's words don't exist in the corpus", async () => {
@@ -1027,6 +1025,7 @@ describe("facet filtering and contextual counts", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   // All three organically match "durable widget"; category/brand facets
   // split them so filtering/counting behavior is unambiguous.
@@ -1057,8 +1056,7 @@ describe("facet filtering and contextual counts", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-facets-"));
-    await writeIndex(buildIndex(facetSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(facetSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1066,7 +1064,7 @@ describe("facet filtering and contextual counts", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("intersects results with a single-value filter", async () => {
@@ -1152,6 +1150,7 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   // All four organically match "device"; category is a hierarchical
   // facet (docs/guides/facets.md#facet-types) three levels deep for
@@ -1189,13 +1188,10 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-hierarchy-"));
-    await writeIndex(
-      buildIndex(hierarchySources, "en", {
-        hierarchicalFacets: { category: {} },
-      }),
-      outDir,
-    );
+    ({ outDir, cleanup } = await writePythonIndex(hierarchySources, {
+      defaultLanguage: "en",
+      hierarchicalFacets: { category: {} },
+    }));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1203,7 +1199,7 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("filtering by a top-level ancestor path matches every descendant leaf", async () => {
@@ -1285,23 +1281,18 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   it("does not surface a separator for an ordinary (non-hierarchical) facet field", async () => {
     // Reuses the plain "facet filtering and contextual counts" corpus's
     // shape via a fresh small index, confirming the new field is opt-in
-    // per buildIndex() call, not a global default.
-    const plainOutDir = await mkdtemp(
-      join(tmpdir(), "searchable-e2e-plain-facet-"),
-    );
-    try {
-      await writeIndex(
-        buildIndex([
-          {
-            id: 1,
-            url: "/a",
-            html: `<html lang="en"><head><title>A</title>
+    // per writePythonIndex() call, not a global default.
+    const { outDir: plainOutDir, cleanup: plainCleanup } =
+      await writePythonIndex([
+        {
+          id: 1,
+          url: "/a",
+          html: `<html lang="en"><head><title>A</title>
               <meta name="searchable-facet-category" content="electronics>audio>headphones"></head>
               <body><main><p>device</p></main></body></html>`,
-          },
-        ]),
-        plainOutDir,
-      );
+        },
+      ]);
+    try {
       const server = await serveStatic(plainOutDir);
       try {
         const client = new SearchClient({
@@ -1318,7 +1309,7 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
         await server.close();
       }
     } finally {
-      await rm(plainOutDir, { recursive: true, force: true });
+      await plainCleanup();
     }
   });
 });
@@ -1327,6 +1318,7 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   // Same shape as the "facet filtering and contextual counts" fixture above,
   // duplicated (not shared) so this describe block stays self-contained --
@@ -1361,8 +1353,7 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-facet-values-"));
-    await writeIndex(buildIndex(facetSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(facetSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1370,7 +1361,7 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("reports global counts over the whole corpus with no filters at all", async () => {
@@ -1426,6 +1417,7 @@ describe("range facet filtering", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   // All four organically match "widget"; price is a range facet
   // (searchable-facet-range-price) so min/max filtering is unambiguous.
@@ -1460,8 +1452,7 @@ describe("range facet filtering", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-range-facets-"));
-    await writeIndex(buildIndex(rangeSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(rangeSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1469,7 +1460,7 @@ describe("range facet filtering", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("filters to an inclusive [min, max] range", async () => {
@@ -1537,6 +1528,7 @@ describe("term-to-page pinning (searchable-pin)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const pinSources: SourceDocument[] = [
     {
@@ -1563,8 +1555,7 @@ describe("term-to-page pinning (searchable-pin)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-pins-"));
-    await writeIndex(buildIndex(pinSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(pinSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1572,7 +1563,7 @@ describe("term-to-page pinning (searchable-pin)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("places an exact-mode pin first, marked pinned:true, above organic matches", async () => {
@@ -1603,6 +1594,7 @@ describe("term-to-page pinning: conflicts and exclusivity", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const conflictSources: SourceDocument[] = [
     {
@@ -1631,8 +1623,7 @@ describe("term-to-page pinning: conflicts and exclusivity", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-pin-conflict-"));
-    await writeIndex(buildIndex(conflictSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(conflictSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1640,7 +1631,7 @@ describe("term-to-page pinning: conflicts and exclusivity", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("orders conflicting pins by priority and suppresses organic results once any is exclusive", async () => {
@@ -1658,6 +1649,7 @@ describe("term-to-page pinning: facet-filter interaction", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const pinFilterSources: SourceDocument[] = [
     {
@@ -1678,8 +1670,7 @@ describe("term-to-page pinning: facet-filter interaction", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-pin-filter-"));
-    await writeIndex(buildIndex(pinFilterSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(pinFilterSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1687,7 +1678,7 @@ describe("term-to-page pinning: facet-filter interaction", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("shows a pin with no active filters", async () => {
@@ -1709,6 +1700,7 @@ describe("multi-language corpora", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const multiLangSources: SourceDocument[] = [
     {
@@ -1726,8 +1718,7 @@ describe("multi-language corpora", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-i18n-"));
-    await writeIndex(buildIndex(multiLangSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(multiLangSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1735,7 +1726,7 @@ describe("multi-language corpora", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("searches the default language's partition when no language is given", async () => {
@@ -1775,6 +1766,7 @@ describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const cjkSources: SourceDocument[] = [
     {
@@ -1792,8 +1784,9 @@ describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-cjk-"));
-    await writeIndex(buildIndex(cjkSources, "zh"), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(cjkSources, {
+      defaultLanguage: "zh",
+    }));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1801,7 +1794,7 @@ describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("finds a document via a single 2-character bigram query", async () => {
@@ -1834,6 +1827,7 @@ describe("synonym expansion (searchable synonyms)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const synonymSources: SourceDocument[] = [
     {
@@ -1863,16 +1857,15 @@ describe("synonym expansion (searchable synonyms)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-synonyms-"));
-    const built = buildIndex(synonymSources, "en", {
+    ({ outDir, cleanup } = await writePythonIndex(synonymSources, {
+      defaultLanguage: "en",
       synonyms: {
         en: {
           equivalences: [["sofa", "couch"]],
           directional: { laptop: ["notebook"] },
         },
       },
-    });
-    await writeIndex(built, outDir);
+    }));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1880,7 +1873,7 @@ describe("synonym expansion (searchable synonyms)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("does not expand synonyms by default", async () => {
@@ -1927,6 +1920,7 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const fuzzySources: SourceDocument[] = [
     {
@@ -1950,9 +1944,10 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-fuzzy-"));
-    const built = buildIndex(fuzzySources, "en", { fuzzy: true });
-    await writeIndex(built, outDir);
+    ({ outDir, cleanup } = await writePythonIndex(fuzzySources, {
+      defaultLanguage: "en",
+      fuzzy: true,
+    }));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -1960,7 +1955,7 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("does not fuzzy-match a typo by default", async () => {
@@ -2023,6 +2018,7 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const distance2Sources: SourceDocument[] = [
     {
@@ -2040,12 +2036,11 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-fuzzy2-"));
-    const built = buildIndex(distance2Sources, "en", {
+    ({ outDir, cleanup } = await writePythonIndex(distance2Sources, {
+      defaultLanguage: "en",
       fuzzy: true,
       fuzzyMaxEdits: 2,
-    });
-    await writeIndex(built, outDir);
+    }));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -2053,7 +2048,7 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("finds a genuine distance-2 substitution typo of a long word when the index was built with fuzzyMaxEdits: 2", async () => {
@@ -2091,6 +2086,7 @@ describe("searchStream() (streaming/incremental results)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const streamSources: SourceDocument[] = [
     {
@@ -2108,9 +2104,10 @@ describe("searchStream() (streaming/incremental results)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-searchstream-"));
-    const built = buildIndex(streamSources, "en", { fuzzy: true });
-    await writeIndex(built, outDir);
+    ({ outDir, cleanup } = await writePythonIndex(streamSources, {
+      defaultLanguage: "en",
+      fuzzy: true,
+    }));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -2118,7 +2115,7 @@ describe("searchStream() (streaming/incremental results)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("delivers the literal-only pass via onPartial before resolving to the fuzzy-expanded final result", async () => {
@@ -2200,6 +2197,7 @@ describe("result highlighting (options.highlight)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   const highlightSources: SourceDocument[] = [
     {
@@ -2218,8 +2216,7 @@ describe("result highlighting (options.highlight)", () => {
   ];
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-e2e-highlight-"));
-    await writeIndex(buildIndex(highlightSources), outDir);
+    ({ outDir, cleanup } = await writePythonIndex(highlightSources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -2227,7 +2224,7 @@ describe("result highlighting (options.highlight)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("omits highlights by default", async () => {
