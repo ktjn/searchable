@@ -6,6 +6,16 @@ Accepted (index-format check implemented since Phase 1,
 `packages/client/src/validate-manifest.ts`; the API-semver half takes
 effect at the 1.0 tag itself, see [reference/compatibility.md](../reference/compatibility.md)).
 
+**Amendment:** the TypeScript indexer (formerly `@ktjn/searchable-indexer`,
+`packages/indexer/`) referenced below as one half of the API-compatibility
+surface has since been removed; the Python `searchable-indexer`
+(`python/searchable-indexer`) is now the sole index generator and is
+versioned independently of the npm packages, per
+[reference/compatibility.md](../reference/compatibility.md). The
+index-format-vs-API-compatibility split this ADR decides on is unaffected —
+it still governs `@ktjn/searchable-client`'s API and the manifest format the
+Python generator now produces.
+
 ## Context
 
 Two different things can break compatibility independently: the

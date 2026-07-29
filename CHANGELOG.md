@@ -1,7 +1,7 @@
 # Changelog
 
-All notable changes to `@ktjn/searchable-client`, `@ktjn/searchable-indexer`, `@ktjn/searchable-format`, and
-`@ktjn/searchable-analysis` are documented here. These four packages are versioned
+All notable changes to `@ktjn/searchable-client`, `@ktjn/searchable-format`, and
+`@ktjn/searchable-analysis` are documented here. These three packages are versioned
 in lockstep (see [Compatibility](docs/reference/compatibility.md)) — one
 version number covers all of them.
 `@ktjn/searchable-fixtures` is internal test tooling and is never published, so it
@@ -61,7 +61,8 @@ below was built and tested across prior unreleased commits.
   structurally invalid, cross-origin-shard, or unsupported-`version`
   manifest with a named `InvalidManifestError` before any query runs
   ([Compatibility](docs/reference/compatibility.md#index-format-compatibility)).
-- **Reference indexer CLI** (`searchable-indexer`): parses rendered HTML via
+- **Index generator** (`searchable-indexer`, Python, `python/searchable-indexer`):
+  parses rendered HTML via
   the [`searchable-*` meta-tag control surface](docs/reference/cms-meta-tags.md) and emits a
   content-hashed manifest + shards.
 - Five retroactive ADRs (`docs/adr/`) recording the transport, index

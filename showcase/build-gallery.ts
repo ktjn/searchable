@@ -1,11 +1,11 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import type { Product } from "./gallery-data.js";
 import { generateProducts } from "./gallery-data.js";
 import { escapeHtml, pageShell } from "./gallery-shared.js";
+import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
+import { writePythonIndex } from "./python-index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -85,7 +85,7 @@ function renderGalleryIndexPage(products: Product[]): string {
         <h1>Product catalog demo</h1>
         <p>${products.length} synthetic products across ${categories.join(
           ", ",
-        )}, indexed with <code>@ktjn/searchable-indexer</code> and searched with
+        )}, indexed with the Python <code>searchable-indexer</code> and searched with
         <code>@ktjn/searchable-client</code> -- real facets, boosts, a pinned best-bet
         ("returns policy"), and typo-tolerant fuzzy matching, not a mock.
         See <a href="../../docs/guides/facets.html">faceted search</a>,
@@ -128,8 +128,12 @@ async function main() {
   };
   const sources = [...productSources, returnsPolicySource];
 
-  const built = buildIndex(sources, "en", { fuzzy: true });
-  await writeIndex(built, searchIndexDir);
+  const { outDir, cleanup } = await writePythonIndex(sources, {
+    defaultLanguage: "en",
+    fuzzy: true,
+  });
+  await cp(outDir, searchIndexDir, { recursive: true });
+  await cleanup();
 
   await mkdir(join(galleryDir, "p"), { recursive: true });
   for (const source of productSources) {

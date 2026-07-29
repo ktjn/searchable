@@ -2,9 +2,9 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { expect, test } from "@playwright/test";
+import type { PythonSourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveDir } from "./serve-dir.js";
 
 declare global {
@@ -31,7 +31,7 @@ declare global {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const clientDist = join(__dirname, "..", "dist");
 
-const offlineSources: SourceDocument[] = [
+const offlineSources: PythonSourceDocument[] = [
   {
     id: 1,
     url: "/en/widgets",
@@ -59,7 +59,10 @@ test.describe("offline Service Worker caching (real browser)", () => {
       join(__dirname, "fixtures", "harness.html"),
       join(rootDir, "harness.html"),
     );
-    await writeIndex(buildIndex(offlineSources), rootDir);
+    const { outDir: pythonOutDir, cleanup: cleanupIndex } =
+      await writePythonIndex(offlineSources);
+    await cp(pythonOutDir, rootDir, { recursive: true });
+    await cleanupIndex();
 
     // A second, real static server on a different port (a genuinely
     // different origin, same host) serving the identical content -- so

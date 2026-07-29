@@ -53,7 +53,7 @@ export function getLanguageProfile(code: string): LanguageProfile {
   return profile;
 }
 
-/** Every language code with a registered `LanguageProfile` -- the candidate set `detectLanguage()` chooses among when a document declares none of its own (`packages/indexer/src/extract.ts`). */
+/** Every language code with a registered `LanguageProfile` -- the candidate set `detectLanguage()` chooses among when a document declares none of its own (`python/searchable-indexer/src/searchable_indexer/extract.py`). */
 export function getRegisteredLanguageCodes(): string[] {
   return Object.keys(PROFILES);
 }

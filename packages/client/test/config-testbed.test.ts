@@ -1,12 +1,9 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
-import type { BuildIndexOptions } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import type { SearchOptions } from "../src/search.js";
+import type { PythonBuildOptions } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveStatic } from "./static-server.js";
 
 /**
@@ -32,7 +29,7 @@ import { serveStatic } from "./static-server.js";
 
 interface ConfigVariant {
   name: string;
-  build: BuildIndexOptions;
+  build: PythonBuildOptions;
   search: SearchOptions;
 }
 
@@ -86,25 +83,28 @@ describe("configuration testbed (matrix of build/query configs, snapshotted per 
     string,
     { baseUrl: string; close: () => Promise<void> }
   >();
-  const outDirs: string[] = [];
+  const cleanups: Array<() => Promise<void>> = [];
 
   beforeAll(async () => {
     const sources = generateCms2kCorpus({ count: 300, languages: ["en"] });
     for (const variant of VARIANTS) {
-      const outDir = await mkdtemp(join(tmpdir(), "searchable-testbed-"));
-      outDirs.push(outDir);
-      const built = buildIndex(sources, "en", variant.build);
-      await writeIndex(built, outDir);
+      const { outDir, cleanup } = await writePythonIndex(sources, {
+        defaultLanguage: "en",
+        ...variant.build,
+      });
+      cleanups.push(cleanup);
       const server = await serveStatic(outDir);
       servers.set(variant.name, server);
     }
-  });
+    // Each variant now shells out to a real `uv run python` build (Python
+    // interpreter + uv resolution overhead per invocation, not an in-process
+    // TS call), so this loop can exceed vitest's default 10s hook timeout on
+    // a colder/slower CI runner even though it's comfortably fast locally.
+  }, 60_000);
 
   afterAll(async () => {
     await Promise.all([...servers.values()].map((s) => s.close()));
-    await Promise.all(
-      outDirs.map((dir) => rm(dir, { recursive: true, force: true })),
-    );
+    await Promise.all(cleanups.map((cleanup) => cleanup()));
   });
 
   for (const variant of VARIANTS) {

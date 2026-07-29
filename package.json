@@ -7,7 +7,7 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@11.11.0",
+  "packageManager": "pnpm@11.18.0",
   "scripts": {
     "build": "pnpm -r --filter=./packages/* build",
     "docs:build": "pnpm build && pnpm --filter showcase build",
@@ -22,14 +22,6 @@
     "size": "pnpm --filter @ktjn/searchable-client run check:bundle-size",
     "relevance": "pnpm build && pnpm --filter @ktjn/searchable-relevance evaluate",
     "relevance:refresh": "pnpm build && pnpm --filter @ktjn/searchable-relevance refresh",
-    "prebench": "pnpm build",
-    "bench": "pnpm --filter @ktjn/searchable-indexer run bench",
-    "prebenchmark:baseline": "pnpm build",
-    "benchmark:baseline": "pnpm --filter @ktjn/searchable-benchmark baseline",
-    "prebenchmark:smoke": "pnpm build",
-    "benchmark:smoke": "pnpm --filter @ktjn/searchable-benchmark smoke",
-    "prebenchmark:render": "pnpm build",
-    "benchmark:render": "pnpm --filter @ktjn/searchable-benchmark render",
     "lint": "biome check .",
     "format": "biome format --write ."
   },

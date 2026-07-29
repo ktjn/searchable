@@ -21,7 +21,7 @@ and interoperability surface rather than a supported production installation
 method. `@ktjn/searchable-client` targets modern browsers with `fetch`, `URL`,
 and optional Web Worker and Service Worker support.
 
-The repository also contains Python reference implementations. They are development and interoperability tools checked out with this project, not a `searchable-indexer` package published to PyPI. Use the explicit project path when running them; see [Indexing content](../guides/indexing.md).
+The repository also contains the Python `searchable-indexer`, which generates the index (`python/searchable-indexer`), and its shared analysis library (`python/searchable-analysis`). Both are checked out with this project, not published to PyPI. Use the explicit project path when running them; see [Indexing content](../guides/indexing.md).
 
 If vector embeddings use the built-in Transformers adapter, install its optional peer dependency in the consuming project. Lexical, facet, synonym, fuzzy, and pin searches do not require it.
 

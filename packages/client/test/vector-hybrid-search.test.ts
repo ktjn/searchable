@@ -1,18 +1,12 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import {
-  buildIndex,
-  buildVectorShards,
-  writeIndex,
-} from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
 import {
   VectorProviderMismatchError,
   VectorSearchNotConfiguredError,
 } from "../src/vector-search.js";
+import type { PythonSourceDocument as SourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
+import { writeVectorFixture } from "../test-support/vector-fixture.js";
 import { serveStatic } from "./static-server.js";
 
 /**
@@ -75,14 +69,17 @@ describe("vector/hybrid search mechanics (real HTTP, deterministic synthetic emb
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-vector-hybrid-"));
-    const built = buildIndex(sources, "en");
-    const vectors = await buildVectorShards(sources, "en", {
-      embed: embedBatch,
-    });
-    await writeIndex(built, outDir, { vectors });
+    const built = await writePythonIndex(sources, { defaultLanguage: "en" });
+    outDir = built.outDir;
+    cleanup = built.cleanup;
+    await writeVectorFixture(
+      outDir,
+      sources.map((s) => ({ id: s.id, language: "en", text: s.html })),
+      embedBatch,
+    );
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -90,7 +87,7 @@ describe("vector/hybrid search mechanics (real HTTP, deterministic synthetic emb
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   function clientWithEmbed(): SearchClient {
@@ -178,14 +175,17 @@ describe("vector embedding-provider mismatch validation (real HTTP)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-vector-provider-"));
-    const built = buildIndex(sources, "en");
-    const vectors = await buildVectorShards(sources, "en", {
-      embed: embedBatch,
-    });
-    await writeIndex(built, outDir, { vectors });
+    const built = await writePythonIndex(sources, { defaultLanguage: "en" });
+    outDir = built.outDir;
+    cleanup = built.cleanup;
+    await writeVectorFixture(
+      outDir,
+      sources.map((s) => ({ id: s.id, language: "en", text: s.html })),
+      embedBatch,
+    );
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -193,7 +193,7 @@ describe("vector embedding-provider mismatch validation (real HTTP)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("a matching provider does not throw", async () => {

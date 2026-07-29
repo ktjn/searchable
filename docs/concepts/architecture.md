@@ -4,7 +4,7 @@ This page describes the shipped build-time and browser-runtime components, their
 
 ## Build time
 
-`@ktjn/searchable-indexer` discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis, and builds postings, facets, pins, synonyms, fuzzy dictionaries, stored documents, and optional vectors. `writeIndex` serializes an immutable manifest and content-hashed shards. The Python projects are independent reference producers for conformance, not runtime dependencies of the TypeScript packages.
+The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis (`python/searchable-analysis`), and builds postings, facets, pins, synonyms, fuzzy dictionaries, stored documents, and optional vectors. It writes an immutable manifest and content-hashed shards. It is a build-time tool, not a runtime dependency of the TypeScript packages, which only read its output.
 
 ## Query time
 
