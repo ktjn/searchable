@@ -1,3 +1,5 @@
+// Keep in sync with packages/client/test-support/python-index.ts and
+// packages/relevance/src/python-index.ts (identical apart from repoRoot depth).
 import { execFileSync } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -76,11 +78,24 @@ export async function writePythonIndex(
     "utf8",
   );
 
-  execFileSync(
-    "uv",
-    ["run", "python", scriptPath, sourcesPath, configPath, outDir],
-    { cwd: pythonIndexerDir, stdio: "pipe" },
-  );
+  try {
+    execFileSync(
+      "uv",
+      ["run", "python", scriptPath, sourcesPath, configPath, outDir],
+      {
+        cwd: pythonIndexerDir,
+        stdio: "pipe",
+        maxBuffer: 32 * 1024 * 1024,
+      },
+    );
+  } catch (err) {
+    const stderr =
+      err && typeof err === "object" && "stderr" in err
+        ? String((err as { stderr?: Buffer | string }).stderr ?? "")
+        : "";
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`${message}\n${stderr}`);
+  }
 
   return {
     outDir,

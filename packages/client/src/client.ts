@@ -137,8 +137,8 @@ export interface SearchClientOptions {
    * vector (a bundled local model, a call to a remote embedding API, or
    * anything else) is a deployment choice this project stays agnostic
    * to — the resulting `number[]` must have the same dimensionality as
-   * the manifest's vector shards (built with the same `embed()` given
-   * to `@ktjn/searchable-indexer`'s `buildVectorShards()`). Omitting this while
+   * the manifest's vector shards, and must come from the same embedding
+   * model/process that produced them. Omitting this while
    * requesting `mode: "vector"`/`"hybrid"` throws
    * `VectorSearchNotConfiguredError` rather than silently searching
    * lexical-only.

@@ -33,8 +33,9 @@ async function findHtmlFiles(dir: string, root = dir): Promise<string[]> {
 
 /**
  * Deliberately keeps the .html extension in each doc's url (unlike
- * @ktjn/searchable-indexer's own discoverHtmlDocuments helper, which strips it
- * assuming a host that serves extensionless paths) — every internal
+ * python/searchable-indexer's own discover_html_documents helper
+ * (`python/searchable-indexer/src/searchable_indexer/discover.py`), which
+ * strips it assuming a host that serves extensionless paths) — every internal
  * link build-docs.ts generates already includes .html explicitly, and
  * a plain static host (GitHub Pages without Jekyll pretty-permalink
  * config) won't resolve the extensionless form, so search results

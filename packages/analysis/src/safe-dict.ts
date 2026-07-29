@@ -13,10 +13,13 @@
  * "constructor" in prose, a `searchable-facet-constructor` meta tag, or a
  * search for the literal word "constructor" is all it takes — not a
  * hypothetical, this exact bug crashed a real `buildIndex()` run and
- * corrupted query-time scores (`docs/reference/compatibility.md`). Shared here,
- * not duplicated separately in `@ktjn/searchable-indexer` and `@ktjn/searchable-client`, since
- * both already depend on this package and the bug class is identical on
- * both the build-time and query-time side.
+ * corrupted query-time scores (`docs/reference/compatibility.md`, from
+ * back when the now-removed TypeScript indexer built the index too).
+ * The build-time side is now `python/searchable-indexer`, whose plain
+ * `dict`s aren't fooled by a prototype chain the way JS objects are, so
+ * this bug class -- and this helper -- is specific to the query-time,
+ * TypeScript side (`@ktjn/searchable-client`, which depends on this
+ * package).
  */
 
 /** Own-property-safe "get or create": creates and stores `create()`'s result the first time `key` is seen, otherwise returns the existing entry — never fooled into treating an inherited prototype member as an existing entry. */

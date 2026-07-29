@@ -626,11 +626,11 @@ async function loadFuzzyLookup(
  * meaning "this shard holds the entire vocabulary for its language,"
  * not a literal character prefix -- unlike every other prefix value,
  * which *is* a real leading substring of every term inside it. Emitted
- * by `writeIndex(built, outDir, { shardByPrefix: false })`
+ * by `write_index(built, outDir, shard_by_prefix=False)`
  * (docs/guides/indexing.md's small-corpus mode) and by
- * both independent reference generators
- * (spec/examples/{python,typescript}/), so any conformant producer's
- * output can use it, not just this project's own indexer.
+ * the independent reference generator (spec/examples/python/), so any
+ * conformant producer's output can use it, not just this project's own
+ * indexer.
  */
 const UNSHARDED_TERM_SHARD_PREFIX = "all";
 

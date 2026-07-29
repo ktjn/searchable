@@ -60,6 +60,7 @@ export async function writeVectorFixture(
 
   const shardFiles: Record<string, string> = {};
   let dims = 0;
+  let dimsLanguage: string | undefined;
 
   for (const [language, languageSources] of byLanguage) {
     const rawVectors = await embed(languageSources.map((s) => s.text));
@@ -68,7 +69,14 @@ export async function writeVectorFixture(
         `writeVectorFixture: embed() returned ${rawVectors.length} vectors for ${languageSources.length} input texts`,
       );
     }
-    dims = rawVectors[0]?.length ?? 0;
+    const languageDims = rawVectors[0]?.length ?? 0;
+    if (dimsLanguage !== undefined && languageDims !== dims) {
+      throw new Error(
+        `writeVectorFixture: embed() returned ${languageDims}-dimensional vectors for language "${language}", but ${dims}-dimensional vectors for language "${dimsLanguage}" -- all languages must share the same embedding dimensionality`,
+      );
+    }
+    dims = languageDims;
+    dimsLanguage = language;
 
     let entries: { passageId: string; docId: number; vector: number[] }[];
     let quantRange: { min: number; max: number } | undefined;
