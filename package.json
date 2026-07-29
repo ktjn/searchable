@@ -22,8 +22,6 @@
     "size": "pnpm --filter @ktjn/searchable-client run check:bundle-size",
     "relevance": "pnpm build && pnpm --filter @ktjn/searchable-relevance evaluate",
     "relevance:refresh": "pnpm build && pnpm --filter @ktjn/searchable-relevance refresh",
-    "prebench": "pnpm build",
-    "bench": "pnpm --filter @ktjn/searchable-indexer run bench",
     "prebenchmark:baseline": "pnpm build",
     "benchmark:baseline": "pnpm --filter @ktjn/searchable-benchmark baseline",
     "prebenchmark:smoke": "pnpm build",
