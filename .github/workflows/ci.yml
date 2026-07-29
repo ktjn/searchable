@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-python
-      - name: Set up searchable-indexer (Python, needed by the cross-implementation conformance test)
+      - name: Set up searchable-indexer (Python, needed to build test fixtures)
         working-directory: python/searchable-indexer
         run: uv sync
       - run: pnpm typecheck
@@ -74,4 +74,3 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
       - run: pnpm test:browser
-      - run: pnpm --filter @ktjn/searchable-benchmark test:browser

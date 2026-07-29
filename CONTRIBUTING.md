@@ -16,8 +16,9 @@ pnpm build
 pnpm test
 ```
 
-The Python reference implementations use `uv`. Run their suites from the
-corresponding project directories:
+The index generator (`python/searchable-indexer`) and its shared analysis
+library (`python/searchable-analysis`) are Python projects that use `uv`.
+Run their suites from the corresponding project directories:
 
 ```bash
 cd python/searchable-analysis
@@ -52,8 +53,9 @@ pull request.
 ## Compatibility and documentation
 
 - Preserve deterministic output across repeated builds.
-- Keep TypeScript and Python producers conformant when changing the index
-  format or analysis behavior.
+- Keep the index format and analysis behavior consistent between
+  `searchable-indexer` and the TypeScript client that reads its output when
+  changing either.
 - Add focused behavior coverage for every change.
 - Update public documentation with public API, configuration, or workflow
   changes.

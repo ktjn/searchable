@@ -7,7 +7,7 @@ Searchable builds a static search index ahead of time and searches it in the bro
 - Deploy the index beside any static site or CMS export.
 - Keep user queries in the browser.
 - Fetch immutable, content-hashed shards only when a query needs them.
-- Use an open JSON-first index format with independent TypeScript and Python producers.
+- Use an open JSON-first index format built by the Python `searchable-indexer` and read by the TypeScript client.
 - Add richer search without adopting an application framework.
 
 ## What it supports
@@ -84,7 +84,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-Python reference implementations live in `python/searchable-analysis` and `python/searchable-indexer` and use `uv` for development. Contributions should preserve deterministic output and cross-implementation conformance; see [Project governance](docs/project/governance.md).
+The index generator (`python/searchable-indexer`, which discovers and analyzes source documents and writes the manifest and shards) and its shared analysis library (`python/searchable-analysis`) are Python projects that use `uv` for development. Contributions should preserve deterministic output; see [Project governance](docs/project/governance.md).
 
 See [Contributing](CONTRIBUTING.md) before opening a pull request and report
 security issues through the private process in [Security](SECURITY.md).

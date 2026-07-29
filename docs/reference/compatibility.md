@@ -4,7 +4,9 @@ This reference distinguishes the planned package-version promises from index-for
 
 ## Package semver
 
-`@ktjn/searchable-client`, `@ktjn/searchable-indexer`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis` are not yet published. Their manifests are prepared in lockstep at `1.0.0`, and the semver guarantees below begin with their coordinated first npm release. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
+`@ktjn/searchable-client`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis` are not yet published. Their manifests are prepared in lockstep at `1.0.0`, and the semver guarantees below begin with their coordinated first npm release. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
+
+The index generator, `searchable-indexer` (`python/searchable-indexer`), is a Python project versioned and released independently of the npm packages above; see its own project for its compatibility posture.
 
 The planned public package API is the export surface in each package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered. Binary storage and vector/hybrid functionality are implemented but identified as experimental in the prepared `1.0.0` changelog, so they may evolve in a minor release with explicit notes after publication.
 
@@ -16,7 +18,7 @@ The over-HTTP index has an independent integer `Manifest.version`, currently `1`
 |---|---|
 | `1.0.x` | `1` |
 
-Content hashes and `buildId` identify a build, not a compatibility level. Producers should validate output against `spec/schema/` and the cross-implementation examples. See ADR-0004 through [Architecture decisions](../project/architecture-decisions.md).
+Content hashes and `buildId` identify a build, not a compatibility level. The producer should validate output against `spec/schema/` and the reference examples in `spec/examples/`. See ADR-0004 through [Architecture decisions](../project/architecture-decisions.md).
 
 ## Language codes
 

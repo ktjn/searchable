@@ -14,7 +14,6 @@ test("public community and package documentation exists", () => {
     ".github/ISSUE_TEMPLATE/config.yml",
     ".github/pull_request_template.md",
     "packages/client/README.md",
-    "packages/indexer/README.md",
     "packages/analysis/README.md",
     "packages/format/README.md",
     "docs/project/public-launch-checklist.md",
@@ -41,7 +40,7 @@ test("public docs describe an unpublished preview", () => {
 });
 
 test("public npm manifests are prepared for the planned first release", () => {
-  for (const directory of ["client", "indexer", "analysis", "format"]) {
+  for (const directory of ["client", "analysis", "format"]) {
     const pkg = JSON.parse(read(`packages/${directory}/package.json`)) as {
       version?: string;
       engines?: { node?: string };
