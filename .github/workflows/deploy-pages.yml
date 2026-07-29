@@ -25,6 +25,10 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: ./.github/actions/setup-node
+      - uses: ./.github/actions/setup-python
+      - name: Set up searchable-indexer (Python, needed to build the showcase's search index)
+        working-directory: python/searchable-indexer
+        run: uv sync
       - run: pnpm docs:build
       - run: pnpm --filter showcase validate
       - uses: actions/configure-pages@v6

@@ -85,7 +85,7 @@ function renderGalleryIndexPage(products: Product[]): string {
         <h1>Product catalog demo</h1>
         <p>${products.length} synthetic products across ${categories.join(
           ", ",
-        )}, indexed with <code>@ktjn/searchable-indexer</code> and searched with
+        )}, indexed with the Python <code>searchable-indexer</code> and searched with
         <code>@ktjn/searchable-client</code> -- real facets, boosts, a pinned best-bet
         ("returns policy"), and typo-tolerant fuzzy matching, not a mock.
         See <a href="../../docs/guides/facets.html">faceted search</a>,

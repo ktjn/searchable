@@ -14,10 +14,9 @@ body:
       label: Affected surface
       options:
         - Browser client
-        - TypeScript indexer or CLI
+        - Index generator (Python searchable-indexer)
         - Analysis
         - Index format or schemas
-        - Python reference implementation
         - Documentation or showcase
         - CI or repository tooling
         - Other

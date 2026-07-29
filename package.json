@@ -22,12 +22,6 @@
     "size": "pnpm --filter @ktjn/searchable-client run check:bundle-size",
     "relevance": "pnpm build && pnpm --filter @ktjn/searchable-relevance evaluate",
     "relevance:refresh": "pnpm build && pnpm --filter @ktjn/searchable-relevance refresh",
-    "prebenchmark:baseline": "pnpm build",
-    "benchmark:baseline": "pnpm --filter @ktjn/searchable-benchmark baseline",
-    "prebenchmark:smoke": "pnpm build",
-    "benchmark:smoke": "pnpm --filter @ktjn/searchable-benchmark smoke",
-    "prebenchmark:render": "pnpm build",
-    "benchmark:render": "pnpm --filter @ktjn/searchable-benchmark render",
     "lint": "biome check .",
     "format": "biome format --write ."
   },
