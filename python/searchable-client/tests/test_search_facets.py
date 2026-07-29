@@ -3,11 +3,16 @@ from pathlib import Path
 from searchable_client.fetch import ShardCache
 from searchable_client.search import FacetValuesOptions, SearchOptions, facet_values, search
 from searchable_client.validate_manifest import validate_manifest
-from tests.fixtures.build_index import write_index_with_category_facet
+from tests.fixtures.build_index import (
+    write_index_with_category_facet,
+    write_index_with_hierarchy_facet,
+    write_index_with_range_facet,
+    write_index_with_two_facets,
+)
 
 
-def _setup(tmp_path: Path):
-    manifest_url = write_index_with_category_facet(tmp_path / "idx")
+def _setup(tmp_path: Path, builder=write_index_with_category_facet):
+    manifest_url = builder(tmp_path / "idx")
     cache = ShardCache()
     manifest = validate_manifest(cache.fetch_json(manifest_url), manifest_url)
     return manifest, cache, manifest_url
@@ -47,3 +52,49 @@ def test_facet_values_reports_selected(tmp_path: Path):
     result = facet_values("category", manifest, cache, url, options)
     selected = {v.value: v.selected for v in result.values}
     assert selected == {"red": True, "blue": False}
+
+
+def test_two_simultaneous_filters_and_contextual_counts_exclude_own_field(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_two_facets)
+    options = SearchOptions(
+        filters={"category": "red", "stock": "in-stock"},
+        facets=["category", "stock"],
+    )
+    result = search("widget", manifest, cache, url, options)
+
+    # Both filters are ANDed: only doc 1 (red, in-stock) matches.
+    assert result.total_hits == 1
+    assert [h.id for h in result.hits] == [1]
+
+    assert result.facets is not None
+    # category's contextual counts must be computed against the candidate set
+    # filtered by *stock only* (excluding category's own filter). Since both docs
+    # pass the organic query and only doc 1 passes the stock=in-stock filter, the
+    # "blue" category value (doc 2) must count 0 -- it would be 1 if the code
+    # incorrectly intersected with category's own filter (which would drop doc 2
+    # from the base set for an unrelated reason but still, wrongly, use category's
+    # own selected values to filter rather than leaving category unfiltered).
+    category_counts = {v.value: v.count for v in result.facets["category"].values}
+    assert category_counts == {"red": 1, "blue": 0}
+
+    # stock's contextual counts must be computed against the candidate set filtered
+    # by *category only* (excluding stock's own filter). Doc 1 is red (category
+    # filter passes), doc 2 is blue (category filter fails), so "out-of-stock"
+    # (doc 2) must count 0.
+    stock_counts = {v.value: v.count for v in result.facets["stock"].values}
+    assert stock_counts == {"in-stock": 1, "out-of-stock": 0}
+
+
+def test_range_facet_filter_returns_docs_within_bounds(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_range_facet)
+    options = SearchOptions(filters={"price": {"min": 20.0, "max": 60.0}})
+    result = search("widget", manifest, cache, url, options)
+    assert [h.id for h in result.hits] == [2]
+    assert result.total_hits == 1
+
+
+def test_hierarchy_facet_reports_separator(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_hierarchy_facet)
+    result = search("widget", manifest, cache, url, SearchOptions(facets=["category"]))
+    assert result.facets is not None
+    assert result.facets["category"].separator == ">"
