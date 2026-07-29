@@ -20,10 +20,17 @@ def score_term_for_doc(
     avg_field_length = manifest.avg_field_length.get(language, {})
     weighted_tf = 0.0
     for field_name, field_posting in posting.fields.items():
-        boost = (field_boost_overrides or {}).get(field_name) or (
-            manifest.fields[field_name].boost if field_name in manifest.fields else 1.0
-        )
-        avg_len = avg_field_length.get(field_name) or field_posting.len
+        # Use is not None to respect zero values like TS ?? (nullish coalescing)
+        override = (field_boost_overrides or {}).get(field_name)
+        if override is not None:
+            boost = override
+        elif field_name in manifest.fields:
+            boost = manifest.fields[field_name].boost
+        else:
+            boost = 1.0
+
+        avg_len_value = avg_field_length.get(field_name)
+        avg_len = avg_len_value if avg_len_value is not None else field_posting.len
         length_norm = 1 - B + B * (field_posting.len / (avg_len or 1))
         weighted_tf += (boost * field_posting.tf) / (length_norm or 1)
 
