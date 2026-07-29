@@ -11,6 +11,10 @@
     {
       "matchManagers": ["npm"],
       "groupName": "npm dependencies"
+    },
+    {
+      "matchPackageNames": ["pnpm"],
+      "minimumReleaseAge": "0 days"
     }
   ]
 }
