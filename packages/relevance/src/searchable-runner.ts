@@ -1,13 +1,9 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { SearchClient } from "@ktjn/searchable-client";
-import {
-  buildIndex,
-  type SourceDocument,
-  writeIndex,
-} from "@ktjn/searchable-indexer";
 import { evaluateSuite, type SuiteReport } from "./evaluate.js";
+import {
+  type PythonSourceDocument as SourceDocument,
+  writePythonIndex,
+} from "./python-index.js";
 import type { RelevanceDocument, RelevanceSuite } from "./schema.js";
 import { type StaticServer, serveDirectory } from "./static-server.js";
 
@@ -37,7 +33,8 @@ export async function runSearchableSuite(
   suite: RelevanceSuite,
   k = 5,
 ): Promise<SuiteReport> {
-  const outDirectory = await mkdtemp(join(tmpdir(), "searchable-relevance-"));
+  let outDirectory: string | undefined;
+  let cleanup: (() => Promise<void>) | undefined;
   let server: StaticServer | undefined;
   let client: SearchClient | undefined;
   try {
@@ -54,7 +51,11 @@ export async function runSearchableSuite(
         html: `<!doctype html><html lang="${suite.language}"><head><title>${escapeHtml(document.title)}</title>${facetMetaTags(document)}</head><body><main>${escapeHtml(document.body)}</main></body></html>`,
       };
     });
-    await writeIndex(buildIndex(sources, suite.language), outDirectory);
+    const built = await writePythonIndex(sources, {
+      defaultLanguage: suite.language,
+    });
+    outDirectory = built.outDir;
+    cleanup = built.cleanup;
     server = await serveDirectory(outDirectory);
     client = new SearchClient({
       indexUrl: `${server.baseUrl}manifest.json`,
@@ -78,6 +79,6 @@ export async function runSearchableSuite(
   } finally {
     client?.dispose();
     await server?.close();
-    await rm(outDirectory, { recursive: true, force: true });
+    await cleanup?.();
   }
 }

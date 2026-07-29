@@ -1,10 +1,7 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
+import type { PythonSourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveStatic } from "./static-server.js";
 
 /**
@@ -20,7 +17,7 @@ import { serveStatic } from "./static-server.js";
  * read-time halves of this fix can't drift apart) and
  * `docs/reference/compatibility.md` for the full bug class this guards against.
  */
-const sources: SourceDocument[] = [
+const sources: PythonSourceDocument[] = [
   {
     id: 1,
     url: "/constructor",
@@ -38,27 +35,27 @@ const sources: SourceDocument[] = [
 describe("query-time prototype-collision safety (real HTTP)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
-  let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-proto-safe-"));
     // A directional synonym entry that has nothing to do with
     // "constructor" -- `synonymShard.directional` ends up a real,
     // non-empty object with no own "constructor" key, exactly the
     // shape that used to trip the bug on a lookup for that term.
-    const built = buildIndex(sources, "en", {
+    const built = await writePythonIndex(sources, {
+      defaultLanguage: "en",
       fuzzy: true,
       synonyms: { en: { directional: { widget: ["gadget"] } } },
     });
-    await writeIndex(built, outDir);
-    const server = await serveStatic(outDir);
+    cleanup = built.cleanup;
+    const server = await serveStatic(built.outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
   });
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   it("searching the literal word 'constructor' with synonyms+fuzzy enabled does not throw, and finds the real hit", async () => {

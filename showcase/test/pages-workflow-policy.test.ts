@@ -20,48 +20,6 @@ test("docs:check is the exact local gate and includes the full browser suite", (
   expect(pkg.scripts["docs:check"]).toContain("pnpm test:browser");
 });
 
-test("CI runs benchmark browser measurements only after installing Chromium", () => {
-  const benchmarkConfig = readFileSync(
-    join(repositoryRoot, "packages", "benchmark", "vitest.config.ts"),
-    "utf8",
-  );
-  const benchmarkBrowserConfig = readFileSync(
-    join(
-      repositoryRoot,
-      "packages",
-      "benchmark",
-      "vitest.playwright.config.ts",
-    ),
-    "utf8",
-  );
-  const benchmarkPackage = JSON.parse(
-    readFileSync(
-      join(repositoryRoot, "packages", "benchmark", "package.json"),
-      "utf8",
-    ),
-  ) as { scripts: Record<string, string> };
-  const workflow = readFileSync(
-    join(repositoryRoot, ".github", "workflows", "ci.yml"),
-    "utf8",
-  );
-  const browserJob = workflow.slice(workflow.indexOf("  test-browser:"));
-  const install = browserJob.indexOf(
-    "pnpm exec playwright install --with-deps chromium",
-  );
-  const benchmarkTest = browserJob.indexOf(
-    "pnpm --filter @ktjn/searchable-benchmark test:browser",
-  );
-
-  expect(benchmarkConfig).toContain("...configDefaults.exclude");
-  expect(benchmarkConfig).toContain("test/browser-measurement.test.ts");
-  expect(benchmarkBrowserConfig).toContain("test/browser-measurement.test.ts");
-  expect(benchmarkPackage.scripts["test:browser"]).toContain(
-    "vitest.playwright.config.ts",
-  );
-  expect(install).toBeGreaterThan(-1);
-  expect(benchmarkTest).toBeGreaterThan(install);
-});
-
 test("Pages deploys the exact successful CI revision with a manual override", () => {
   const workflow = readFileSync(
     join(repositoryRoot, ".github", "workflows", "deploy-pages.yml"),

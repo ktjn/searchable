@@ -1,8 +1,8 @@
 import { cp, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
+import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
+import { writePythonIndex } from "./python-index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -33,8 +33,9 @@ async function findHtmlFiles(dir: string, root = dir): Promise<string[]> {
 
 /**
  * Deliberately keeps the .html extension in each doc's url (unlike
- * @ktjn/searchable-indexer's own discoverHtmlDocuments helper, which strips it
- * assuming a host that serves extensionless paths) — every internal
+ * python/searchable-indexer's own discover_html_documents helper
+ * (`python/searchable-indexer/src/searchable_indexer/discover.py`), which
+ * strips it assuming a host that serves extensionless paths) — every internal
  * link build-docs.ts generates already includes .html explicitly, and
  * a plain static host (GitHub Pages without Jekyll pretty-permalink
  * config) won't resolve the extensionless form, so search results
@@ -55,12 +56,15 @@ async function discoverRenderedPages(
 
 async function main() {
   const sources = await discoverRenderedPages(distDir);
-  const built = buildIndex(sources);
-  await writeIndex(built, searchIndexDir);
-  const totalDocs = Object.values(built.manifest.docCount).reduce(
-    (sum, n) => sum + n,
-    0,
+  const { outDir, cleanup } = await writePythonIndex(sources);
+  await cp(outDir, searchIndexDir, { recursive: true });
+  await cleanup();
+  const manifest = JSON.parse(
+    await readFile(join(searchIndexDir, "manifest.json"), "utf8"),
   );
+  const totalDocs = Object.values(
+    manifest.docCount as Record<string, number>,
+  ).reduce((sum: number, n: number) => sum + n, 0);
   console.log(`indexed ${totalDocs} page(s) -> ${searchIndexDir}`);
 
   await cp(clientDist, assetsDir, { recursive: true });

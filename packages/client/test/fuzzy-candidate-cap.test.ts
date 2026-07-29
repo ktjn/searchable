@@ -1,8 +1,3 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import {
   afterAll,
   afterEach,
@@ -14,6 +9,8 @@ import {
   vi,
 } from "vitest";
 import { SearchClient } from "../src/client.js";
+import type { PythonSourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveStatic } from "./static-server.js";
 
 /**
@@ -50,7 +47,7 @@ function makeDenseVocabulary(base: string, minCount: number): string[] {
 
 const denseTerms = makeDenseVocabulary(BASE, 210);
 
-function makeDenseSources(): SourceDocument[] {
+function makeDenseSources(): PythonSourceDocument[] {
   // One term per document, each document's body just that one term --
   // keeps the corpus trivial to reason about (id N <-> denseTerms[N-1]).
   return denseTerms.map((term, i) => ({
@@ -64,22 +61,24 @@ function makeDenseSources(): SourceDocument[] {
 describe("fuzzy candidate cap (real HTTP)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
-  let outDir: string;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
     expect(denseTerms.length).toBeGreaterThan(200);
 
-    outDir = await mkdtemp(join(tmpdir(), "searchable-fuzzy-cap-"));
-    const built = buildIndex(makeDenseSources(), "en", { fuzzy: true });
-    await writeIndex(built, outDir);
-    const server = await serveStatic(outDir);
+    const built = await writePythonIndex(makeDenseSources(), {
+      defaultLanguage: "en",
+      fuzzy: true,
+    });
+    cleanup = built.cleanup;
+    const server = await serveStatic(built.outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
   });
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanup();
   });
 
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -111,10 +110,7 @@ describe("fuzzy candidate cap (real HTTP)", () => {
   });
 
   it("does not warn for an ordinary, small fuzzy vocabulary (every other fuzzy test in this repo)", async () => {
-    const smallOutDir = await mkdtemp(
-      join(tmpdir(), "searchable-fuzzy-cap-small-"),
-    );
-    const smallSources: SourceDocument[] = [
+    const smallSources: PythonSourceDocument[] = [
       {
         id: 1,
         url: "/widget",
@@ -122,11 +118,11 @@ describe("fuzzy candidate cap (real HTTP)", () => {
           <body><main><p>All about the widget.</p></main></body></html>`,
       },
     ];
-    await writeIndex(
-      buildIndex(smallSources, "en", { fuzzy: true }),
-      smallOutDir,
-    );
-    const smallServer = await serveStatic(smallOutDir);
+    const smallBuilt = await writePythonIndex(smallSources, {
+      defaultLanguage: "en",
+      fuzzy: true,
+    });
+    const smallServer = await serveStatic(smallBuilt.outDir);
 
     const client = new SearchClient({
       indexUrl: `${smallServer.baseUrl}manifest.json`,
@@ -139,6 +135,6 @@ describe("fuzzy candidate cap (real HTTP)", () => {
     expect(capWarnings).toHaveLength(0);
 
     await smallServer.close();
-    await rm(smallOutDir, { recursive: true, force: true });
+    await smallBuilt.cleanup();
   });
 });

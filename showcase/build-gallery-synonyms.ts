@@ -1,11 +1,11 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { escapeHtml, pageShell } from "./gallery-shared.js";
 import type { SynonymDoc } from "./gallery-synonyms-data.js";
 import { SYNONYM_CONFIG, SYNONYM_DOCS } from "./gallery-synonyms-data.js";
+import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
+import { writePythonIndex } from "./python-index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -70,8 +70,12 @@ function docToSource(doc: SynonymDoc, id: number): SourceDocument {
 async function main() {
   const sources = SYNONYM_DOCS.map((doc, i) => docToSource(doc, i + 1));
 
-  const built = buildIndex(sources, "en", { synonyms: SYNONYM_CONFIG });
-  await writeIndex(built, searchIndexDir);
+  const { outDir, cleanup } = await writePythonIndex(sources, {
+    defaultLanguage: "en",
+    synonyms: SYNONYM_CONFIG,
+  });
+  await cp(outDir, searchIndexDir, { recursive: true });
+  await cleanup();
 
   await mkdir(join(galleryDir, "p"), { recursive: true });
   for (const source of sources) {

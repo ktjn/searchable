@@ -1,10 +1,7 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
+import type { PythonSourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveStatic } from "./static-server.js";
 
 /**
@@ -14,7 +11,7 @@ import { serveStatic } from "./static-server.js";
  * hit ids for a typo query and identical "did you mean" suggestions --
  * not just that both return non-empty results.
  */
-const sources: SourceDocument[] = [
+const sources: PythonSourceDocument[] = [
   {
     id: 1,
     url: "/widgets",
@@ -32,36 +29,34 @@ const sources: SourceDocument[] = [
 describe("binary fuzzy shards return identical results to JSON (real HTTP)", () => {
   let jsonBaseUrl: string;
   let closeJsonServer: () => Promise<void>;
-  let jsonOutDir: string;
+  let jsonBuilt: { outDir: string; cleanup: () => Promise<void> };
 
   let binaryBaseUrl: string;
   let closeBinaryServer: () => Promise<void>;
-  let binaryOutDir: string;
+  let binaryBuilt: { outDir: string; cleanup: () => Promise<void> };
 
   beforeAll(async () => {
-    jsonOutDir = await mkdtemp(join(tmpdir(), "searchable-binary-fuzzy-json-"));
-    await writeIndex(buildIndex(sources, "en", { fuzzy: true }), jsonOutDir);
-    const jsonServer = await serveStatic(jsonOutDir);
+    jsonBuilt = await writePythonIndex(sources, {
+      defaultLanguage: "en",
+      fuzzy: true,
+    });
+    const jsonServer = await serveStatic(jsonBuilt.outDir);
     jsonBaseUrl = jsonServer.baseUrl;
     closeJsonServer = jsonServer.close;
 
-    binaryOutDir = await mkdtemp(
-      join(tmpdir(), "searchable-binary-fuzzy-bin-"),
+    binaryBuilt = await writePythonIndex(
+      sources,
+      { defaultLanguage: "en", fuzzy: true },
+      { fuzzyShardFormat: "binary" },
     );
-    await writeIndex(buildIndex(sources, "en", { fuzzy: true }), binaryOutDir, {
-      fuzzyShardFormat: "binary",
-    });
-    const binaryServer = await serveStatic(binaryOutDir);
+    const binaryServer = await serveStatic(binaryBuilt.outDir);
     binaryBaseUrl = binaryServer.baseUrl;
     closeBinaryServer = binaryServer.close;
   });
 
   afterAll(async () => {
     await Promise.all([closeJsonServer(), closeBinaryServer()]);
-    await Promise.all([
-      rm(jsonOutDir, { recursive: true, force: true }),
-      rm(binaryOutDir, { recursive: true, force: true }),
-    ]);
+    await Promise.all([jsonBuilt.cleanup(), binaryBuilt.cleanup()]);
   });
 
   function clients() {

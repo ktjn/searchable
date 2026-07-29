@@ -95,23 +95,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.2099,
+      "score": 1.2101,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.2099,
+      "score": 1.2101,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.2099,
+      "score": 1.2101,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.2099,
+      "score": 1.2101,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.2099,
+      "score": 1.2101,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -123,23 +123,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.7329,
+      "score": 1.7333,
       "url": "/en/product/product-how-typo-tolerance-9.html",
     },
     {
-      "score": 1.7329,
+      "score": 1.7333,
       "url": "/en/product/product-how-typo-tolerance-17.html",
     },
     {
-      "score": 1.7329,
+      "score": 1.7333,
       "url": "/en/product/product-how-typo-tolerance-25.html",
     },
     {
-      "score": 1.7329,
+      "score": 1.7333,
       "url": "/en/product/product-how-typo-tolerance-33.html",
     },
     {
-      "score": 1.7329,
+      "score": 1.7333,
       "url": "/en/product/product-how-typo-tolerance-41.html",
     },
   ],
@@ -207,23 +207,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 0.3862,
+      "score": 0.3863,
       "url": "/en/product/product-how-typo-tolerance-9.html",
     },
     {
-      "score": 0.3862,
+      "score": 0.3863,
       "url": "/en/product/product-how-typo-tolerance-17.html",
     },
     {
-      "score": 0.3862,
+      "score": 0.3863,
       "url": "/en/product/product-how-typo-tolerance-25.html",
     },
     {
-      "score": 0.3862,
+      "score": 0.3863,
       "url": "/en/product/product-how-typo-tolerance-33.html",
     },
     {
-      "score": 0.3862,
+      "score": 0.3863,
       "url": "/en/product/product-how-typo-tolerance-41.html",
     },
   ],
