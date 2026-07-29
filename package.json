@@ -34,7 +34,7 @@
     "format": "biome format --write ."
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.5",
+    "@biomejs/biome": "^2.5.6",
     "@playwright/test": "catalog:",
     "@types/node": "^26.1.2",
     "typescript": "catalog:",

@@ -38,7 +38,7 @@
     "@ktjn/searchable-fixtures": "workspace:*",
     "@ktjn/searchable-indexer": "workspace:*",
     "@huggingface/transformers": "^4.2.0",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "typescript": "catalog:",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
