@@ -96,7 +96,11 @@ describe("configuration testbed (matrix of build/query configs, snapshotted per 
       const server = await serveStatic(outDir);
       servers.set(variant.name, server);
     }
-  });
+    // Each variant now shells out to a real `uv run python` build (Python
+    // interpreter + uv resolution overhead per invocation, not an in-process
+    // TS call), so this loop can exceed vitest's default 10s hook timeout on
+    // a colder/slower CI runner even though it's comfortably fast locally.
+  }, 60_000);
 
   afterAll(async () => {
     await Promise.all([...servers.values()].map((s) => s.close()));
