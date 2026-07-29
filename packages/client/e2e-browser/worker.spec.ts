@@ -2,9 +2,9 @@ import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { expect, test } from "@playwright/test";
+import type { PythonSourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveDir } from "./serve-dir.js";
 
 declare global {
@@ -48,7 +48,7 @@ declare global {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const clientDist = join(__dirname, "..", "dist");
 
-const sources: SourceDocument[] = [
+const sources: PythonSourceDocument[] = [
   {
     id: 1,
     url: "/widgets",
@@ -84,7 +84,10 @@ test.describe("Web Worker execution (real browser)", () => {
       join(__dirname, "fixtures", "harness.html"),
       join(rootDir, "harness.html"),
     );
-    await writeIndex(buildIndex(sources), rootDir);
+    const { outDir: pythonOutDir, cleanup: cleanupIndex } =
+      await writePythonIndex(sources);
+    await cp(pythonOutDir, rootDir, { recursive: true });
+    await cleanupIndex();
 
     const server = await serveDir(rootDir);
     baseUrl = server.baseUrl;
@@ -229,7 +232,10 @@ test.describe("SearchClient lifecycle (real browser)", () => {
       join(__dirname, "fixtures", "harness.html"),
       join(rootDir, "harness.html"),
     );
-    await writeIndex(buildIndex(sources), rootDir);
+    const { outDir: pythonOutDir, cleanup: cleanupIndex } =
+      await writePythonIndex(sources);
+    await cp(pythonOutDir, rootDir, { recursive: true });
+    await cleanupIndex();
     await writeFile(
       join(rootDir, "bad-manifest.json"),
       JSON.stringify({ version: 2, format: "json" }),
@@ -301,7 +307,7 @@ test.describe("searchStream() (real browser)", () => {
   let closeServer: () => Promise<void>;
   let rootDir: string;
 
-  const streamSources: SourceDocument[] = [
+  const streamSources: PythonSourceDocument[] = [
     {
       id: 1,
       url: "/widget",
@@ -325,7 +331,13 @@ test.describe("searchStream() (real browser)", () => {
       join(__dirname, "fixtures", "harness.html"),
       join(rootDir, "harness.html"),
     );
-    await writeIndex(buildIndex(streamSources, "en", { fuzzy: true }), rootDir);
+    const { outDir: pythonOutDir, cleanup: cleanupIndex } =
+      await writePythonIndex(streamSources, {
+        defaultLanguage: "en",
+        fuzzy: true,
+      });
+    await cp(pythonOutDir, rootDir, { recursive: true });
+    await cleanupIndex();
 
     const server = await serveDir(rootDir);
     baseUrl = server.baseUrl;
