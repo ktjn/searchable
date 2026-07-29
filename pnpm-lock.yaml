@@ -158,9 +158,6 @@ importers:
       '@ktjn/searchable-client':
         specifier: workspace:*
         version: link:../client
-      '@ktjn/searchable-indexer':
-        specifier: workspace:*
-        version: link:../indexer
     devDependencies:
       '@types/node':
         specifier: ^26.1.1
@@ -184,9 +181,6 @@ importers:
       '@ktjn/searchable-fixtures':
         specifier: workspace:*
         version: link:../packages/fixtures
-      '@ktjn/searchable-indexer':
-        specifier: workspace:*
-        version: link:../packages/indexer
       '@types/node':
         specifier: ^26.1.1
         version: 26.1.1
