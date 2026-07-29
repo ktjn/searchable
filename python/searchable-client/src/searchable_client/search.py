@@ -8,10 +8,12 @@ from searchable_client.parse_query import parse_query
 from searchable_client.score import score_term_for_doc
 from searchable_client.types import (
     DocStoreEntry,
+    FacetShard,
     Manifest,
     TermEntry,
     TermShardEntry,
     doc_store_shard_from_dict,
+    facet_shard_from_dict,
     term_shard_from_dict,
 )
 
@@ -36,7 +38,7 @@ class SearchResult:
     hits: list[Hit]
     total_hits: int
     language: str
-    facets: dict[str, Any] | None = None
+    facets: "dict[str, FacetResult] | None" = None
     did_you_mean: list[str] | None = None
 
 
@@ -52,6 +54,125 @@ class SearchOptions:
     fuzzy: bool = False
     fuzzy_weight: float = DEFAULT_FUZZY_WEIGHT
     highlight: bool = False
+
+
+@dataclass
+class FacetResultValue:
+    value: str
+    count: int
+    selected: bool
+
+
+@dataclass
+class FacetResult:
+    values: list[FacetResultValue]
+    separator: str | None = None
+
+
+@dataclass
+class FacetValuesOptions:
+    filters: dict[str, Any] | None = None
+
+
+def _is_range_filter(value: Any) -> bool:
+    return isinstance(value, dict) and ("min" in value or "max" in value)
+
+
+def _values_for(filters: dict[str, Any] | None, field_name: str) -> list[str]:
+    raw = (filters or {}).get(field_name)
+    if raw is None or _is_range_filter(raw):
+        return []
+    return raw if isinstance(raw, list) else [raw]
+
+
+def _range_filter_for(filters: dict[str, Any] | None, field_name: str) -> dict[str, Any] | None:
+    raw = (filters or {}).get(field_name)
+    return raw if _is_range_filter(raw) else None
+
+
+def _fetch_facet_shards(
+    manifest: Manifest, cache: ShardCache, base_url: str, fields: list[str]
+) -> dict[str, FacetShard]:
+    result = {}
+    for entry in manifest.shards_facets:
+        if entry.field in fields:
+            raw = cache.fetch_json(resolve_url(base_url, entry.file))
+            result[entry.field] = facet_shard_from_dict(raw)
+    return result
+
+
+def _union_docs_for_field(
+    facet_shards_by_field: dict[str, FacetShard], filters: dict[str, Any] | None, field_name: str
+) -> set[int]:
+    shard = facet_shards_by_field.get(field_name)
+    if shard is None:
+        return set()
+    ids: set[int] = set()
+    if shard.type == "range":
+        range_filter = _range_filter_for(filters, field_name)
+        if not range_filter:
+            return ids
+        for range_entry in shard.sorted or []:
+            if (
+                "min" in range_filter
+                and range_filter["min"] is not None
+                and range_entry.value < range_filter["min"]
+            ):
+                continue
+            if (
+                "max" in range_filter
+                and range_filter["max"] is not None
+                and range_entry.value > range_filter["max"]
+            ):
+                continue
+            ids.add(range_entry.doc)
+        return ids
+    for value in _values_for(filters, field_name):
+        value_entry = shard.values.get(value)
+        if value_entry:
+            ids.update(value_entry.docs)
+    return ids
+
+
+def facet_values(
+    field: str,
+    manifest: Manifest,
+    cache: ShardCache,
+    base_url: str,
+    options: FacetValuesOptions | None = None,
+) -> FacetResult:
+    options = options or FacetValuesOptions()
+    other_filter_fields = [f for f in (options.filters or {}) if f != field]
+    needed_fields = list({field, *other_filter_fields})
+    facet_shards_by_field = _fetch_facet_shards(manifest, cache, base_url, needed_fields)
+
+    shard = facet_shards_by_field.get(field)
+    if shard is None:
+        return FacetResult(values=[])
+
+    base_set: set[int] | None = None
+    for f in other_filter_fields:
+        if f not in facet_shards_by_field:
+            continue
+        union_set = _union_docs_for_field(facet_shards_by_field, options.filters, f)
+        base_set = union_set if base_set is None else (base_set & union_set)
+
+    selected_values = set(_values_for(options.filters, field))
+    return FacetResult(
+        values=[
+            FacetResultValue(
+                value=value,
+                count=(
+                    len([i for i in entry.docs if i in base_set])
+                    if base_set is not None
+                    else entry.count
+                ),
+                selected=value in selected_values,
+            )
+            for value, entry in shard.values.items()
+        ],
+        separator=(shard.separator or ">") if shard.type == "hierarchy" else None,
+    )
 
 
 def _shard_entries_for_query(
@@ -181,7 +302,21 @@ def search(
     if not any_clause_failed and term_slot_doc_sets:
         organic_candidate_ids = list(set.intersection(*term_slot_doc_sets))
 
+    filter_fields = list(options.filters or {})
+    requested_facet_fields = options.facets or []
+    needed_fields = list({*filter_fields, *requested_facet_fields})
+    facet_shards_by_field = _fetch_facet_shards(manifest, cache, base_url, needed_fields)
+
+    active_filter_fields = [f for f in filter_fields if f in facet_shards_by_field]
+    filter_union_sets = {
+        f: _union_docs_for_field(facet_shards_by_field, options.filters, f)
+        for f in active_filter_fields
+    }
+
     candidate_ids = organic_candidate_ids
+    for union_set in filter_union_sets.values():
+        candidate_ids = [i for i in candidate_ids if i in union_set]
+
     limit = options.limit
     field_boosts = (options.boosts or {}).get("fields")
     term_boosts = (options.boosts or {}).get("terms", {})
@@ -215,4 +350,31 @@ def search(
         for doc_id, doc_score in ranked
     ]
 
-    return SearchResult(hits=hits, total_hits=len(candidate_ids), language=language)
+    facets: dict[str, FacetResult] | None = None
+    if requested_facet_fields:
+        facets = {}
+        for f in requested_facet_fields:
+            facet_shard = facet_shards_by_field.get(f)
+            if facet_shard is None:
+                continue
+            base_set = set(organic_candidate_ids)
+            for other_field, union_set in filter_union_sets.items():
+                if other_field == f:
+                    continue
+                base_set &= union_set
+            selected_values = set(_values_for(options.filters, f))
+            facets[f] = FacetResult(
+                values=[
+                    FacetResultValue(
+                        value=value,
+                        count=len([i for i in facet_value_entry.docs if i in base_set]),
+                        selected=value in selected_values,
+                    )
+                    for value, facet_value_entry in facet_shard.values.items()
+                ],
+                separator=(
+                    (facet_shard.separator or ">") if facet_shard.type == "hierarchy" else None
+                ),
+            )
+
+    return SearchResult(hits=hits, total_hits=len(candidate_ids), language=language, facets=facets)

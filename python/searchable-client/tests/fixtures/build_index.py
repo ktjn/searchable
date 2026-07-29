@@ -52,3 +52,23 @@ def write_basic_index(out_dir: Path) -> str:
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest))
     return manifest_path.resolve().as_uri()
+
+
+def write_index_with_category_facet(out_dir: Path) -> str:
+    """Same two docs as write_basic_index, plus a 'category' terms facet: doc 1=red, doc 2=blue."""
+    manifest_url = write_basic_index(out_dir)
+    (out_dir / "facets").mkdir(exist_ok=True)
+    facet_shard = {
+        "type": "terms",
+        "values": {
+            "red": {"count": 1, "docs": [1]},
+            "blue": {"count": 1, "docs": [2]},
+        },
+    }
+    (out_dir / "facets" / "category.json").write_text(json.dumps(facet_shard))
+
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["shards"]["facets"] = [{"field": "category", "file": "facets/category.json"}]
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_url
