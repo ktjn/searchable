@@ -3,6 +3,8 @@
   "extends": ["config:recommended"],
   "timezone": "UTC",
   "schedule": ["every weekend"],
+  "minimumReleaseAge": "1 day",
+  "constraintsFiltering": "strict",
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
@@ -11,6 +13,10 @@
     {
       "matchManagers": ["npm"],
       "groupName": "npm dependencies"
+    },
+    {
+      "matchPackageNames": ["pnpm", "adm-zip", "sharp"],
+      "minimumReleaseAge": "0 days"
     }
   ]
 }
