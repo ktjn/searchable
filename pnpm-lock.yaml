@@ -63,9 +63,6 @@ importers:
       '@ktjn/searchable-fixtures':
         specifier: workspace:*
         version: link:../fixtures
-      '@ktjn/searchable-indexer':
-        specifier: workspace:*
-        version: link:../indexer
       '@types/node':
         specifier: ^26.1.1
         version: 26.1.1

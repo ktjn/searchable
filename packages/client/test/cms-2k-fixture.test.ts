@@ -1,10 +1,7 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { generateCms2kCorpus } from "@ktjn/searchable-fixtures";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveStatic } from "./static-server.js";
 
 /**
@@ -20,12 +17,11 @@ describe("CMS-2k reference fixture (real HTTP, realistic scale)", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
+  let cleanupIndex: () => Promise<void>;
 
   beforeAll(async () => {
-    outDir = await mkdtemp(join(tmpdir(), "searchable-cms-2k-"));
     const sources = generateCms2kCorpus({ count: 400 });
-    const built = buildIndex(sources);
-    await writeIndex(built, outDir);
+    ({ outDir, cleanup: cleanupIndex } = await writePythonIndex(sources));
     const server = await serveStatic(outDir);
     baseUrl = server.baseUrl;
     closeServer = server.close;
@@ -33,7 +29,7 @@ describe("CMS-2k reference fixture (real HTTP, realistic scale)", () => {
 
   afterAll(async () => {
     await closeServer();
-    await rm(outDir, { recursive: true, force: true });
+    await cleanupIndex();
   });
 
   it("finds real documents for a real term drawn from the fixture's own prose", async () => {
