@@ -1,8 +1,3 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import { buildIndex, writeIndex } from "@ktjn/searchable-indexer";
 import {
   afterAll,
   afterEach,
@@ -14,6 +9,8 @@ import {
   vi,
 } from "vitest";
 import { SearchClient } from "../src/client.js";
+import type { PythonSourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
 import { serveStatic } from "./static-server.js";
 
 /**
@@ -32,8 +29,8 @@ import { serveStatic } from "./static-server.js";
 const DOC_COUNT = 25;
 const SHARD_SIZE = 10; // -> shards covering ids [1-10], [11-20], [21-25]
 
-function makeSources(): SourceDocument[] {
-  const sources: SourceDocument[] = [];
+function makeSources(): PythonSourceDocument[] {
+  const sources: PythonSourceDocument[] = [];
   for (let id = 1; id <= DOC_COUNT; id++) {
     sources.push({
       id,
@@ -48,40 +45,33 @@ function makeSources(): SourceDocument[] {
 describe("doc store sharding by idRange (real HTTP)", () => {
   let shardedBaseUrl: string;
   let closeShardedServer: () => Promise<void>;
-  let shardedOutDir: string;
+  let shardedBuilt: { outDir: string; cleanup: () => Promise<void> };
 
   let unshardedBaseUrl: string;
   let closeUnshardedServer: () => Promise<void>;
-  let unshardedOutDir: string;
+  let unshardedBuilt: { outDir: string; cleanup: () => Promise<void> };
 
   beforeAll(async () => {
     const sources = makeSources();
 
-    shardedOutDir = await mkdtemp(
-      join(tmpdir(), "searchable-docstore-sharded-"),
+    shardedBuilt = await writePythonIndex(
+      sources,
+      { defaultLanguage: "en" },
+      { docStoreShardSize: SHARD_SIZE },
     );
-    await writeIndex(buildIndex(sources, "en"), shardedOutDir, {
-      docStoreShardSize: SHARD_SIZE,
-    });
-    const shardedServer = await serveStatic(shardedOutDir);
+    const shardedServer = await serveStatic(shardedBuilt.outDir);
     shardedBaseUrl = shardedServer.baseUrl;
     closeShardedServer = shardedServer.close;
 
-    unshardedOutDir = await mkdtemp(
-      join(tmpdir(), "searchable-docstore-unsharded-"),
-    );
-    await writeIndex(buildIndex(sources, "en"), unshardedOutDir);
-    const unshardedServer = await serveStatic(unshardedOutDir);
+    unshardedBuilt = await writePythonIndex(sources, { defaultLanguage: "en" });
+    const unshardedServer = await serveStatic(unshardedBuilt.outDir);
     unshardedBaseUrl = unshardedServer.baseUrl;
     closeUnshardedServer = unshardedServer.close;
   });
 
   afterAll(async () => {
     await Promise.all([closeShardedServer(), closeUnshardedServer()]);
-    await Promise.all([
-      rm(shardedOutDir, { recursive: true, force: true }),
-      rm(unshardedOutDir, { recursive: true, force: true }),
-    ]);
+    await Promise.all([shardedBuilt.cleanup(), unshardedBuilt.cleanup()]);
   });
 
   it("splits the manifest into 3 doc-store shards with the expected idRanges", async () => {
