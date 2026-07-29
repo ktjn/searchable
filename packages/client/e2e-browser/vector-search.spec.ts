@@ -2,13 +2,10 @@ import { cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SourceDocument } from "@ktjn/searchable-indexer";
-import {
-  buildIndex,
-  buildVectorShards,
-  writeIndex,
-} from "@ktjn/searchable-indexer";
 import { expect, test } from "@playwright/test";
+import type { PythonSourceDocument as SourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
+import { writeVectorFixture } from "../test-support/vector-fixture.js";
 import { serveDir } from "./serve-dir.js";
 
 declare global {
@@ -86,11 +83,15 @@ test.describe("vector/hybrid search (real browser, real Worker)", () => {
       join(__dirname, "fixtures", "harness.html"),
       join(rootDir, "harness.html"),
     );
-    const built = buildIndex(sources, "en");
-    const vectors = await buildVectorShards(sources, "en", {
-      embed: (texts) => texts.map(embedText),
-    });
-    await writeIndex(built, rootDir, { vectors });
+    const { outDir: pythonOutDir, cleanup: cleanupIndex } =
+      await writePythonIndex(sources, { defaultLanguage: "en" });
+    await cp(pythonOutDir, rootDir, { recursive: true });
+    await cleanupIndex();
+    await writeVectorFixture(
+      rootDir,
+      sources.map((s) => ({ id: s.id, language: "en", text: s.html })),
+      (texts) => texts.map(embedText),
+    );
 
     const server = await serveDir(rootDir);
     baseUrl = server.baseUrl;
