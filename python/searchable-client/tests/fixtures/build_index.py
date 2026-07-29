@@ -75,17 +75,64 @@ def write_index_with_category_facet(out_dir: Path) -> str:
 
 
 def write_index_with_two_facets(out_dir: Path) -> str:
-    """Same two docs as write_basic_index, plus TWO terms facets:
-    'category' (doc1=red, doc2=blue) and 'stock' (doc1=in-stock, doc2=out-of-stock).
+    """Three docs, one field 'title', language 'en', plus TWO terms facets whose
+    matching doc sets are deliberately NOT identical to each other:
+    - doc 1: category=red,  stock=in-stock
+    - doc 2: category=red,  stock=out-of-stock
+    - doc 3: category=blue, stock=in-stock
+
+    All three docs share the term "widget" so all are candidates for that query
+    regardless of filters; this lets tests distinguish "exclude the facet's own
+    filter from the contextual base set" from "don't exclude it", since
+    category=red and stock=in-stock resolve to different doc sets ({1,2} vs {1,3}).
     """
-    manifest_url = write_basic_index(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
     (out_dir / "facets").mkdir(exist_ok=True)
+
+    term_shard = {
+        "widget": {
+            "df": 3,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 2}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [1], "len": 2}}},
+                {"doc": 3, "fields": {"title": {"tf": 1, "pos": [1], "len": 2}}},
+            ],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Red Widget"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "Red Widget"}},
+        "3": {"url": "https://example.com/3", "fields": {"title": "Blue Widget"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+
+    manifest = {
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 3},
+        "avgFieldLength": {"en": {"title": 2.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 1}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 3]}],
+        },
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    manifest_url = manifest_path.resolve().as_uri()
 
     category_shard = {
         "type": "terms",
         "values": {
-            "red": {"count": 1, "docs": [1]},
-            "blue": {"count": 1, "docs": [2]},
+            "red": {"count": 2, "docs": [1, 2]},
+            "blue": {"count": 1, "docs": [3]},
         },
     }
     (out_dir / "facets" / "category.json").write_text(json.dumps(category_shard))
@@ -93,14 +140,12 @@ def write_index_with_two_facets(out_dir: Path) -> str:
     stock_shard = {
         "type": "terms",
         "values": {
-            "in-stock": {"count": 1, "docs": [1]},
+            "in-stock": {"count": 2, "docs": [1, 3]},
             "out-of-stock": {"count": 1, "docs": [2]},
         },
     }
     (out_dir / "facets" / "stock.json").write_text(json.dumps(stock_shard))
 
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
     manifest["shards"]["facets"] = [
         {"field": "category", "file": "facets/category.json"},
         {"field": "stock", "file": "facets/stock.json"},
@@ -136,17 +181,19 @@ def write_index_with_range_facet(out_dir: Path) -> str:
 
 def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'category' hierarchy facet with
-    separator '>': doc1='electronics>audio', doc2='electronics>video'.
+    separator '/' (deliberately NOT '>', which is search.py's hardcoded fallback
+    default, so tests can tell real separator propagation apart from the fallback
+    firing regardless): doc1='electronics/audio', doc2='electronics/video'.
     """
     manifest_url = write_basic_index(out_dir)
     (out_dir / "facets").mkdir(exist_ok=True)
 
     category_shard = {
         "type": "hierarchy",
-        "separator": ">",
+        "separator": "/",
         "values": {
-            "electronics>audio": {"count": 1, "docs": [1]},
-            "electronics>video": {"count": 1, "docs": [2]},
+            "electronics/audio": {"count": 1, "docs": [1]},
+            "electronics/video": {"count": 1, "docs": [2]},
         },
     }
     (out_dir / "facets" / "category.json").write_text(json.dumps(category_shard))
