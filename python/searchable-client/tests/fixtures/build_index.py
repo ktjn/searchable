@@ -589,6 +589,178 @@ def write_index_with_synonym_double_match(out_dir: Path) -> str:
     return manifest_path.resolve().as_uri()
 
 
+def write_index_with_fuzzy(out_dir: Path) -> str:
+    """Same two docs as write_basic_index (doc 1 = 'Red Widget', doc 2 = 'Blue Widget',
+    both indexed under the term 'widget'), plus a fuzzy dictionary mapping several
+    1-delete-away variants of 'widget' back to it. Used to verify typo-tolerant
+    matching: querying 'wdget' (missing the 'i') is itself a valid deletion-dictionary
+    key (SymSpell deletes generated from the misspelled query term at query time
+    include the query term itself with 0 deletes applied), so it resolves to 'widget'
+    at distance 1.
+    """
+    manifest_url = write_basic_index(out_dir)
+    # SymSpell deletion dictionary: deleting one char from "widget" yields "idget",
+    # "wdget", "wiget", "widet", "widgt", "widge".
+    fuzzy_shard = {
+        "maxEdits": 1,
+        "deletions": {
+            "wdget": ["widget"],
+            "idget": ["widget"],
+            "wiget": ["widget"],
+            "widet": ["widget"],
+            "widgt": ["widget"],
+            "widge": ["widget"],
+        },
+    }
+    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["fuzzy"] = {"en": {"file": "fuzzy.json", "format": "json"}}
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_url
+
+
+def write_index_with_fuzzy_literal_and_typo(out_dir: Path) -> str:
+    """Doc 1 is indexed under the literal term 'wdget' (so querying 'wdget' matches it via
+    an ordinary literal clause, weight 1.0). Doc 2 is indexed under the term 'widget', which
+    is reachable ONLY via fuzzy expansion of the query 'wdget' (fuzzy dict: 'wdget' ->
+    ['widget'], edit distance 1). Both docs have identical posting shapes (tf=1, pos=[0],
+    len=1) and the language has doc_count=2, so the two docs' *undecayed* BM25F scores are
+    identical -- any difference between their final scores is attributable purely to the
+    fuzzy weight decay, letting tests assert an exact score ratio. Used to verify (a) a
+    literal-term hit outranks a fuzzy-match hit for the same query, and (b) the fuzzy
+    weight decay is applied as fuzzy_weight**distance, not a flat weight.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "wdget": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+        "widget": {
+            "df": 1,
+            "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Wdget"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "Widget"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    fuzzy_shard = {"maxEdits": 1, "deletions": {"wdget": ["widget"]}}
+    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
+    manifest = {
+        "version": 1, "buildId": "test", "format": "json",
+        "languages": ["en"], "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
+        },
+        "fuzzy": {"en": {"file": "fuzzy.json", "format": "json"}},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
+def write_index_with_fuzzy_distance_variants(out_dir: Path) -> str:
+    """Doc 1 is indexed under 'wdgxy' (edit distance 1 from the query 'wdgxyz' -- a single
+    trailing deletion), doc 2 is indexed under 'wdgx' (edit distance 2 from the same query --
+    two trailing deletions). Both docs have identical posting shapes (tf=1, pos=[0], len=1)
+    so their undecayed BM25F scores are identical; only the fuzzy edit-distance weight decay
+    should distinguish them. The fuzzy shard's maxEdits=2 permits both distances (the query
+    term 'wdgxyz' is 6 code points, well above the <=3 length cutoff that would otherwise
+    force effective maxEdits down to 1). Used to verify a distance-2 match scores lower than
+    a distance-1 match for the same query.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "wdgxy": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+        "wdgx": {
+            "df": 1,
+            "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Wdgxy"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "Wdgx"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    fuzzy_shard = {"maxEdits": 2, "deletions": {"wdgxyz": ["wdgxy", "wdgx"]}}
+    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
+    manifest = {
+        "version": 1, "buildId": "test", "format": "json",
+        "languages": ["en"], "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
+        },
+        "fuzzy": {"en": {"file": "fuzzy.json", "format": "json"}},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
+def write_index_with_fuzzy_length_cap(out_dir: Path) -> str:
+    """Doc 1 is indexed under 'cxy' (edit distance 1 from the 2-code-point query 'cx'), doc 2
+    is indexed under 'cxyz' (edit distance 2 from 'cx'). The fuzzy shard declares
+    maxEdits=2, but the query term 'cx' is only 2 code points -- at or below the <=3
+    length cutoff that caps the *effective* max edit distance to 1 regardless of the
+    shard's own maxEdits. Used to verify that cap: querying 'cx' with fuzzy on should
+    match doc 1 (distance 1, within the cap) but NOT doc 2 (distance 2, excluded by the
+    cap even though the shard would otherwise allow it).
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "cxy": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+        "cxyz": {
+            "df": 1,
+            "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Cxy"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "Cxyz"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    fuzzy_shard = {"maxEdits": 2, "deletions": {"cx": ["cxy", "cxyz"]}}
+    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
+    manifest = {
+        "version": 1, "buildId": "test", "format": "json",
+        "languages": ["en"], "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
+        },
+        "fuzzy": {"en": {"file": "fuzzy.json", "format": "json"}},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
 def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'category' hierarchy facet with
     separator '/' (deliberately NOT '>', which is search.py's hardcoded fallback

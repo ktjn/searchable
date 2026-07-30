@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from searchable_analysis import (  # type: ignore[import-untyped]
+    generate_deletes,
     get_language_profile,
     normalize_phrase,
 )
@@ -18,6 +19,7 @@ from searchable_client.types import (
     TermShardEntry,
     doc_store_shard_from_dict,
     facet_shard_from_dict,
+    fuzzy_shard_from_dict,
     pins_shard_from_dict,
     synonym_shard_from_dict,
     term_shard_from_dict,
@@ -192,6 +194,87 @@ def _synonym_variants_for(term: str, synonym_shard: SynonymShard | None) -> list
     return list(variants)
 
 
+def _levenshtein_distance(a: str, b: str) -> int:
+    s, t = list(a), list(b)
+    prev_row = list(range(len(t) + 1))
+    for i in range(1, len(s) + 1):
+        diag = prev_row[0]
+        prev_row[0] = i
+        for j in range(1, len(t) + 1):
+            temp = prev_row[j]
+            prev_row[j] = (
+                diag if s[i - 1] == t[j - 1] else 1 + min(diag, prev_row[j], prev_row[j - 1])
+            )
+            diag = temp
+    return prev_row[len(t)]
+
+
+MAX_FUZZY_CANDIDATES_PER_TERM = 200
+
+
+class _FuzzyLookup:
+    def __init__(self, max_edits: int, deletions: dict[str, list[str]]):
+        self.max_edits = max_edits
+        self._deletions = deletions
+
+    def get(self, variant: str) -> list[str]:
+        return self._deletions.get(variant, [])
+
+
+def _fuzzy_candidates_for(term: str, lookup: "_FuzzyLookup | None") -> list[tuple[str, int]]:
+    if lookup is None:
+        return []
+    candidates: set[str] = set(lookup.get(term))
+    for deletion in generate_deletes(term, lookup.max_edits):
+        candidates.update(lookup.get(deletion))
+    candidate_terms = list(candidates)[:MAX_FUZZY_CANDIDATES_PER_TERM]
+    return [(c, _levenshtein_distance(term, c)) for c in candidate_terms if c != term]
+
+
+def _effective_max_edits(term: str, shard_max_edits: int) -> int:
+    return min(1, shard_max_edits) if len(term) <= 3 else shard_max_edits
+
+
+def _fuzzy_matches_for(term: str, lookup: "_FuzzyLookup | None") -> list[tuple[str, int]]:
+    if lookup is None:
+        return []
+    cap = _effective_max_edits(term, lookup.max_edits)
+    return [m for m in _fuzzy_candidates_for(term, lookup) if m[1] <= cap]
+
+
+def _nearest_terms_for(term: str, lookup: "_FuzzyLookup | None", limit: int) -> list[str]:
+    matches = sorted(_fuzzy_candidates_for(term, lookup), key=lambda m: (m[1], m[0]))
+    return [m[0] for m in matches[:limit]]
+
+
+def _load_fuzzy_lookup(
+    manifest: Manifest, cache: ShardCache, base_url: str, language: str
+) -> "_FuzzyLookup | None":
+    entry = (manifest.fuzzy or {}).get(language)
+    if entry is None:
+        return None
+    if entry.format == "binary":
+        from searchable_client.binary_fuzzy_shard import (
+            decode_binary_fuzzy_entry,
+            decode_binary_fuzzy_shard_directory,
+        )
+
+        data = cache.fetch_bytes(resolve_url(base_url, entry.file))
+        max_edits, _, index, dir_len = decode_binary_fuzzy_shard_directory(data)
+
+        class _BinaryFuzzyLookup(_FuzzyLookup):
+            def __init__(self) -> None:
+                self.max_edits = max_edits
+
+            def get(self, variant: str) -> list[str]:
+                location = index.get(variant)
+                return decode_binary_fuzzy_entry(data, dir_len, location[0]) if location else []
+
+        return _BinaryFuzzyLookup()
+    shard = fuzzy_shard_from_dict(cache.fetch_json(resolve_url(base_url, entry.file)))
+    return _FuzzyLookup(shard.max_edits, shard.deletions)
+
+
 def _shard_entries_for_query(
     shard_entries: list[TermShardEntry], exact_terms_needed: set[str], prefixes_needed: list[str]
 ) -> list[TermShardEntry]:
@@ -292,6 +375,9 @@ def search(
         if synonyms_file
         else None
     )
+    fuzzy_lookup = (
+        _load_fuzzy_lookup(manifest, cache, base_url, language) if options.fuzzy else None
+    )
 
     exact_terms_needed: set[str] = set()
     prefixes_needed: list[str] = []
@@ -301,6 +387,7 @@ def search(
         else:
             exact_terms_needed.add(qt.term)
             exact_terms_needed.update(_synonym_variants_for(qt.term, synonym_shard))
+            exact_terms_needed.update(t for t, _ in _fuzzy_matches_for(qt.term, fuzzy_lookup))
     for phrase_term in parsed_query.phrases:
         exact_terms_needed.update(qt.term for qt in phrase_term.terms)
 
@@ -334,6 +421,7 @@ def search(
     # "any term starting with wid"), then intersect the per-slot sets.
     clauses: list[tuple[str, TermEntry, float]] = []  # (term, entry, weight)
     term_slot_doc_sets: list[set[int]] = []
+    failed_terms: list[str] = []
     for qt in query_terms:
         slot_ids: set[int] = set()
         if qt.prefix:
@@ -355,7 +443,14 @@ def search(
                 if variant_entry:
                     clauses.append((variant, variant_entry, options.synonym_weight))
                     slot_ids.update(p.doc for p in variant_entry.postings)
+            for match_term, distance in _fuzzy_matches_for(qt.term, fuzzy_lookup):
+                fuzzy_entry = term_lookup.get(match_term)
+                if fuzzy_entry:
+                    clauses.append((match_term, fuzzy_entry, options.fuzzy_weight**distance))
+                    slot_ids.update(p.doc for p in fuzzy_entry.postings)
         term_slot_doc_sets.append(slot_ids)
+        if not qt.prefix and not slot_ids:
+            failed_terms.append(qt.term)
 
     phrase_doc_sets: list[set[int]] = []
     for phrase_term in parsed_query.phrases:
@@ -515,4 +610,19 @@ def search(
                 ),
             )
 
-    return SearchResult(hits=hits, total_hits=total_hits, language=language, facets=facets)
+    did_you_mean: list[str] | None = None
+    if options.fuzzy and fuzzy_lookup and not hits and failed_terms:
+        suggestions: list[str] = []
+        for term in failed_terms:
+            for candidate in _nearest_terms_for(term, fuzzy_lookup, MAX_SUGGESTIONS_PER_TERM):
+                if candidate not in suggestions:
+                    suggestions.append(candidate)
+        did_you_mean = suggestions or None
+
+    return SearchResult(
+        hits=hits,
+        total_hits=total_hits,
+        language=language,
+        facets=facets,
+        did_you_mean=did_you_mean,
+    )
