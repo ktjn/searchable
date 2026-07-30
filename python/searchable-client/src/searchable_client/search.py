@@ -545,8 +545,14 @@ def search(
     pinned_for_display = matched_pins[:limit]
     pinned_id_set = {p[0] for p in pinned_for_display}
 
+    doc_boosts: dict[int, float] = {}
+    for _clause_term, clause_entry, _clause_weight in clauses:
+        for posting in clause_entry.postings:
+            if posting.boost is not None:
+                doc_boosts[posting.doc] = posting.boost
+
     def _score_of(doc_id: int) -> float:
-        return sum(
+        base_score = sum(
             score_term_for_doc(posting, entry.df, manifest, language, field_boosts)
             * term_boosts.get(term, 1.0)
             * weight
@@ -554,6 +560,7 @@ def search(
             for posting in entry.postings
             if posting.doc == doc_id
         )
+        return base_score * doc_boosts.get(doc_id, 1.0)
 
     ranked_organic = (
         []

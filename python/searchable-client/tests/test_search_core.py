@@ -3,7 +3,7 @@ from pathlib import Path
 from searchable_client.fetch import ShardCache
 from searchable_client.search import SearchOptions, search
 from searchable_client.validate_manifest import validate_manifest
-from tests.fixtures.build_index import write_basic_index
+from tests.fixtures.build_index import write_basic_index, write_index_with_doc_boost
 
 
 def _setup(tmp_path: Path):
@@ -53,3 +53,17 @@ def test_hit_has_url_and_fields_from_doc_store(tmp_path: Path):
     hit = result.hits[0]
     assert hit.url == "https://example.com/1"
     assert hit.fields["title"] == "Red Widget"
+
+
+def test_per_document_boost_is_applied_to_ranking(tmp_path: Path):
+    manifest_url = write_index_with_doc_boost(tmp_path / "idx")
+    cache = ShardCache()
+    manifest = validate_manifest(cache.fetch_json(manifest_url), manifest_url)
+    result = search("widget", manifest, cache, manifest_url)
+    assert result.total_hits == 2
+    scores_by_id = {h.id: h.score for h in result.hits}
+    # Identical postings/fields except doc 1's posting carries boost=10.0 -- without
+    # applying it, both scores would be exactly equal.
+    assert scores_by_id[1] == scores_by_id[2] * 10.0
+    assert scores_by_id[1] > scores_by_id[2]
+    assert result.hits[0].id == 1
