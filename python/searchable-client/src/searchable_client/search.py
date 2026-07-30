@@ -8,6 +8,7 @@ from searchable_analysis import (  # type: ignore[import-untyped]
 )
 
 from searchable_client.fetch import ShardCache, resolve_url
+from searchable_client.highlight import HighlightTerm, highlight_text
 from searchable_client.parse_query import parse_query
 from searchable_client.score import score_term_for_doc
 from searchable_client.types import (
@@ -367,6 +368,12 @@ def search(
     if not query_terms and not parsed_query.phrases:
         return SearchResult(hits=[], total_hits=0, language=language)
 
+    highlight_terms = [HighlightTerm(term=qt.literal, prefix=qt.prefix) for qt in query_terms] + [
+        HighlightTerm(term=qt.literal, prefix=False)
+        for phrase in parsed_query.phrases
+        for qt in phrase.terms
+    ]
+
     shard_entries = [s for s in manifest.shards_terms if s.lang == language]
 
     synonyms_file = (manifest.synonyms or {}).get(language) if options.synonyms else None
@@ -565,12 +572,19 @@ def search(
 
     def _to_hit(doc_id: int, score: float, pinned: bool) -> Hit:
         doc = doc_lookup.get(doc_id)
+        fields = doc.fields if doc else {}
+        highlights = (
+            {f: highlight_text(text, highlight_terms) for f, text in fields.items()}
+            if options.highlight
+            else None
+        )
         return Hit(
             id=doc_id,
             score=score,
             url=doc.url if doc else "",
-            fields=doc.fields if doc else {},
+            fields=fields,
             pinned=pinned,
+            highlights=highlights,
         )
 
     hits = [_to_hit(p[0], _score_of(p[0]), True) for p in pinned_for_display] + [
