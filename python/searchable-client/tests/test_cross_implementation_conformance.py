@@ -26,6 +26,7 @@ the Python client rather than reintroducing removed TS code.
 See `tests/fixtures/conformance_corpus.py` for why the query list below is
 restricted to words that stem to themselves.
 """
+
 import json
 import subprocess
 import sys

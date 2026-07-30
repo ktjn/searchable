@@ -9,7 +9,9 @@ from tests.fixtures.build_index import write_basic_index, write_index_with_categ
 def _run_cli(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "-m", "searchable_client.cli", *args],
-        capture_output=True, text=True, check=False,
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 

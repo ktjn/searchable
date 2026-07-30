@@ -35,6 +35,7 @@ generator does not. A query word that already equals its own stem is a fair,
 meaningful probe of both indexes; one that doesn't would only ever match the
 real indexer's stemmed postings.
 """
+
 from dataclasses import dataclass
 from pathlib import Path
 
