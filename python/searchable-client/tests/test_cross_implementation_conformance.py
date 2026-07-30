@@ -84,8 +84,32 @@ def test_python_client_matches_across_both_index_generators(tmp_path: Path, quer
     real_result = real_client.search(query)
     ref_result = ref_client.search(query)
 
+    # Hit ids are compared as a SET, not an ordered list: ranking order is
+    # deliberately NOT asserted here. `searchable-indexer` builds its index
+    # with non-uniform field boosts (`_DEFAULT_FIELD_BOOSTS = {"title": 3.0,
+    # "body": 1.0}` in build_index.py), while
+    # `spec/examples/python/generate_index.py` is a from-scratch, no-shared-code
+    # generator that uses uniform boosts (both fields weighted equally). That
+    # difference means the two backends' BM25F scores -- and therefore hit
+    # order -- can legitimately diverge even when both return the exact same
+    # set of matching documents. Asserting order equality here would be
+    # asserting a coincidence of these two particular scoring configurations,
+    # not a real conformance guarantee, so it's intentionally out of scope for
+    # this suite. (This mirrors why facet-count parity is also not asserted
+    # below: it isn't a meaningful comparison for what these two generators
+    # actually produce.)
     assert {h.id for h in real_result.hits} == {h.id for h in ref_result.hits}, (
         f"query {query!r}: searchable-indexer result {[h.id for h in real_result.hits]} != "
         f"independent-generator result {[h.id for h in ref_result.hits]}"
     )
     assert real_result.total_hits == ref_result.total_hits
+
+    # Bonus: for queries where at most one document matches, "ranking order"
+    # is trivially well-defined (a list of length <= 1 has only one possible
+    # order), so the boost-mismatch concern above doesn't apply and we CAN
+    # assert full ordered-hit-list equality without asserting anything
+    # coincidental. "gadget" only ever matches doc 0 (see
+    # tests/fixtures/conformance_corpus.py's DOCS) and "nonexistent" matches
+    # nothing, so both queries hit this case.
+    if len(real_result.hits) <= 1:
+        assert [h.id for h in real_result.hits] == [h.id for h in ref_result.hits]
