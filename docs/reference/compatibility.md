@@ -20,7 +20,7 @@ The over-HTTP index has an independent integer `Manifest.version`, currently `1`
 
 Content hashes and `buildId` identify a build, not a compatibility level. The producer should validate output against `spec/schema/` and the reference examples in `spec/examples/`. See ADR-0004 through [Architecture decisions](../project/architecture-decisions.md).
 
-`searchable-client` (Python) is a second conformance-tested consumer of this contract, alongside `@ktjn/searchable-client` (TypeScript) — see the cross-implementation conformance suite in `python/searchable-client/tests/test_cross_implementation_conformance.py`.
+`searchable-client` (Python) is a second consumer of this contract, alongside `@ktjn/searchable-client` (TypeScript). Its cross-implementation conformance suite, `python/searchable-client/tests/test_cross_implementation_conformance.py`, proves the Python client is generator-agnostic — it returns equivalent results whether the index it queries was built by the real `searchable-indexer` or by the independent `spec/examples/python/generate_index.py` reference generator, both Python. It does not invoke the TypeScript client and so cannot verify TS-vs-Python behavioral parity; a genuine cross-language parity harness is tracked as follow-up work, not yet implemented, since the original TS index generator this repo's client tests once used for that comparison was removed in an earlier, unrelated change (#61).
 
 ## Language codes
 
