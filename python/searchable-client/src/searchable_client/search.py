@@ -353,6 +353,8 @@ def search(
         for phrase_word, phrase_entry in zip(phrase_words, phrase_entries, strict=True):
             if phrase_entry is None:
                 continue
+            # Note: if a phrase word also appears as a bare query term, both the plain-term
+            # clause and this phrase clause contribute to its score -- intentional/acceptable.
             restricted = TermEntry(
                 df=phrase_entry.df,
                 postings=[p for p in phrase_entry.postings if p.doc in phrase_matched_ids],

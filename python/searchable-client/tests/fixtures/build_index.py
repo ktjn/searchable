@@ -326,6 +326,139 @@ def write_index_with_phrase_fixture(out_dir: Path) -> str:
     return manifest_path.resolve().as_uri()
 
 
+def write_index_with_non_adjacent_pin(out_dir: Path) -> str:
+    """Same phrase fixture as write_index_with_phrase_fixture (doc 1 = adjacent 'Noise
+    Cancelling Headphones', doc 2 = non-adjacent), plus a pin: doc 2 is pinned
+    (non-exclusive) for the exact query "noise cancelling" (stemmed pin key: "nois
+    cancel"). Doc 2 does NOT pass organic phrase matching (words present but not
+    adjacent), so pinning it exercises the pinned-doc scoring path, which bypasses the
+    organic candidate-set filtering and calls the scorer directly against every pinned
+    id -- meaning the phrase clause's restricted-postings-for-scoring is the *only*
+    thing that can prevent doc 2 from getting full phrase-match credit here."""
+    manifest_url = write_index_with_phrase_fixture(out_dir)
+    pins_shard = {
+        "nois cancel": {
+            "mode": "exact",
+            "docs": [{"id": 2, "priority": 10.0, "exclusive": False}],
+        },
+    }
+    return _add_pins(out_dir, manifest_url, pins_shard)
+
+
+def write_index_with_phrase_across_fields_fixture(out_dir: Path) -> str:
+    """One doc, two fields ('title' and 'body'). Phrase word 1 ("noise") appears only in
+    'title'; phrase word 2 ("cancelling") appears only in 'body'. Both words are present
+    somewhere in the doc, but never adjacent within a single shared field, so a quoted
+    phrase query for "noise cancelling" must NOT match this doc even though a bare AND of
+    the same two words would."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "nois": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 2}}}],
+        },
+        "cancel": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"body": {"tf": 1, "pos": [1], "len": 3}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {
+            "url": "https://example.com/1",
+            "fields": {"title": "Noise Headphones", "body": "Great Cancelling Technology"},
+        },
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    manifest = {
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}, "body": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 1},
+        "avgFieldLength": {"en": {"title": 2.0, "body": 3.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 1]}],
+        },
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
+def write_index_with_multi_doc_phrase_fixture(out_dir: Path) -> str:
+    """Three docs: doc 1 and doc 3 have "Noise Cancelling" adjacent, doc 2 does not
+    (same non-adjacent pattern as write_index_with_phrase_fixture). Used to verify
+    phrase matching correctly identifies adjacency across multiple documents, not just
+    the first one it happens to be tested against."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "nois": {
+            "df": 3,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [2], "len": 7}}},
+                {"doc": 3, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}},
+            ],
+        },
+        "cancel": {
+            "df": 3,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [1], "len": 3}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [6], "len": 7}}},
+                {"doc": 3, "fields": {"title": {"tf": 1, "pos": [1], "len": 3}}},
+            ],
+        },
+        "headphon": {
+            "df": 2,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 7}}},
+            ],
+        },
+        "earbud": {
+            "df": 1,
+            "postings": [
+                {"doc": 3, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}},
+            ],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Noise Cancelling Headphones"}},
+        "2": {
+            "url": "https://example.com/2",
+            "fields": {"title": "Headphones with Noise and also Cancelling elsewhere"},
+        },
+        "3": {"url": "https://example.com/3", "fields": {"title": "Noise Cancelling Earbuds"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    manifest = {
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 3},
+        "avgFieldLength": {"en": {"title": 5.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 4}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 3]}],
+        },
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
 def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'category' hierarchy facet with
     separator '/' (deliberately NOT '>', which is search.py's hardcoded fallback
