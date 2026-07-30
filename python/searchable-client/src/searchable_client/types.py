@@ -215,7 +215,7 @@ def facet_shard_from_dict(data: dict[str, Any]) -> FacetShard:
         separator=data.get("separator"),
         values={
             value: FacetValueEntry(count=e["count"], docs=list(e["docs"]))
-            for value, e in data["values"].items()
+            for value, e in data.get("values", {}).items()
         },
         sorted=(
             [RangeFacetValue(value=r["value"], doc=r["doc"]) for r in data["sorted"]]

@@ -9,7 +9,7 @@ from searchable_analysis import (  # type: ignore[import-untyped]
 )
 
 from searchable_client.fetch import ShardCache, resolve_url
-from searchable_client.highlight import HighlightTerm, highlight_text
+from searchable_client.highlight import HighlightSpan, HighlightTerm, highlight_text
 from searchable_client.parse_query import parse_query
 from searchable_client.score import score_term_for_doc
 from searchable_client.types import (
@@ -40,7 +40,7 @@ class Hit:
     url: str
     fields: dict[str, str]
     pinned: bool = False
-    highlights: dict[str, list[Any]] | None = None
+    highlights: dict[str, list[HighlightSpan]] | None = None
 
 
 @dataclass

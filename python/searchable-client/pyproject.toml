@@ -21,7 +21,7 @@ packages = ["src/searchable_client"]
 searchable-analysis = { path = "../searchable-analysis", editable = true }
 
 [dependency-groups]
-dev = ["pytest>=8.0.0", "jsonschema>=4.23.0", "ruff>=0.8.0", "mypy>=1.13.0"]
+dev = ["pytest>=8.0.0", "ruff>=0.8.0", "mypy>=1.13.0"]
 
 [tool.ruff]
 line-length = 100

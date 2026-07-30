@@ -1,4 +1,5 @@
 from searchable_client.client import SearchClient
+from searchable_client.highlight import HighlightSpan
 from searchable_client.search import (
     FacetResult,
     FacetResultValue,
@@ -14,6 +15,7 @@ __all__ = [
     "SearchOptions",
     "SearchResult",
     "Hit",
+    "HighlightSpan",
     "FacetResult",
     "FacetResultValue",
     "FacetValuesOptions",
