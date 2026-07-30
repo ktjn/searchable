@@ -6,7 +6,130 @@ job).
 """
 
 import json
+import struct
 from pathlib import Path
+
+# --- Hand-rolled binary encoders, mirroring the real indexer's byte layout (see
+# python/searchable-indexer/src/searchable_indexer/binary_term_shard.py,
+# binary_doc_store.py, binary_fuzzy_shard.py) so that write_binary_format_index below
+# can build genuine binary-format shards without taking a dependency on the
+# searchable-indexer package (not a dependency of searchable-client). These use the
+# same varint/string encoding already verified correct against the client's decoders
+# in test_binary_shards.py.
+
+
+def _varint(n: int) -> bytes:
+    out = bytearray()
+    while True:
+        byte = n & 0x7F
+        n >>= 7
+        if n:
+            out.append(byte | 0x80)
+        else:
+            out.append(byte)
+            return bytes(out)
+
+
+def _string(s: str) -> bytes:
+    encoded = s.encode("utf-8")
+    return _varint(len(encoded)) + encoded
+
+
+def _float64(value: float) -> bytes:
+    return struct.pack("<d", value)
+
+
+def _encode_term_postings(entry: dict) -> bytes:
+    out = bytearray()
+    out += _varint(entry["df"])
+    out += _varint(len(entry["postings"]))
+    prev_doc = 0
+    for posting in entry["postings"]:
+        out += _varint(posting["doc"] - prev_doc)
+        prev_doc = posting["doc"]
+        has_boost = "boost" in posting
+        out += _varint(1 if has_boost else 0)
+        if has_boost:
+            out += _float64(posting["boost"])
+        field_names = sorted(posting["fields"].keys())
+        out += _varint(len(field_names))
+        for field_name in field_names:
+            fld = posting["fields"][field_name]
+            out += _string(field_name)
+            out += _varint(fld["tf"])
+            out += _varint(fld["len"])
+            out += _varint(len(fld["pos"]))
+            prev_pos = 0
+            for pos in fld["pos"]:
+                out += _varint(pos - prev_pos)
+                prev_pos = pos
+    return bytes(out)
+
+
+def _encode_term_shard_binary(term_shard: dict) -> bytes:
+    terms = sorted(term_shard.keys())
+    blobs = [_encode_term_postings(term_shard[t]) for t in terms]
+    directory = bytearray()
+    directory += _varint(len(terms))
+    offset = 0
+    for term, blob in zip(terms, blobs, strict=True):
+        directory += _string(term)
+        directory += _varint(offset)
+        directory += _varint(len(blob))
+        offset += len(blob)
+    return bytes(directory) + b"".join(blobs)
+
+
+def _encode_doc_store_binary(doc_shard: dict) -> bytes:
+    ids = sorted(int(k) for k in doc_shard.keys())
+    blobs = []
+    for doc_id in ids:
+        doc_entry = doc_shard[str(doc_id)]
+        out = bytearray()
+        out += _string(doc_entry["url"])
+        has_boost = "boost" in doc_entry
+        out += _varint(1 if has_boost else 0)
+        if has_boost:
+            out += _float64(doc_entry["boost"])
+        field_names = sorted(doc_entry["fields"].keys())
+        out += _varint(len(field_names))
+        for field_name in field_names:
+            out += _string(field_name)
+            out += _string(doc_entry["fields"].get(field_name) or "")
+        blobs.append(bytes(out))
+    directory = bytearray()
+    directory += _varint(len(ids))
+    prev_id = 0
+    offset = 0
+    for doc_id, blob in zip(ids, blobs, strict=True):
+        directory += _varint(doc_id - prev_id)
+        prev_id = doc_id
+        directory += _varint(offset)
+        directory += _varint(len(blob))
+        offset += len(blob)
+    return bytes(directory) + b"".join(blobs)
+
+
+def _encode_fuzzy_shard_binary(fuzzy_shard: dict) -> bytes:
+    variants = sorted(fuzzy_shard["deletions"].keys())
+    blobs = []
+    for variant in variants:
+        terms = fuzzy_shard["deletions"].get(variant, [])
+        out = bytearray()
+        out += _varint(len(terms))
+        for term in terms:
+            out += _string(term)
+        blobs.append(bytes(out))
+    header = bytearray()
+    header += _varint(fuzzy_shard["maxEdits"])
+    header += _varint(len(variants))
+    offset = 0
+    for variant, blob in zip(variants, blobs, strict=True):
+        header += _string(variant)
+        header += _varint(offset)
+        header += _varint(len(blob))
+        offset += len(blob)
+    return bytes(header) + b"".join(blobs)
 
 
 def write_basic_index(out_dir: Path) -> str:
@@ -953,3 +1076,74 @@ def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     manifest["shards"]["facets"] = [{"field": "category", "file": "facets/category.json"}]
     manifest_path.write_text(json.dumps(manifest))
     return manifest_url
+
+
+def write_binary_format_index(out_dir: Path) -> str:
+    """Same three-way shape as write_basic_index/write_index_with_fuzzy, but every shard
+    (term shard, doc-store shard, fuzzy shard) is encoded in the *binary* format via the
+    hand-rolled encoders above, and the manifest's shards.terms[*].format /
+    shards.docs[*].format / fuzzy.<lang>.format are all set to "binary". This exercises
+    search.py's three `if entry.format == "binary"` branches end-to-end through
+    search()/SearchClient, not just the decoders in isolation against hand-built bytes
+    (test_binary_shards.py covers that, but never through search() itself).
+
+    Docs: doc 1 = 'Red Widget', doc 2 = 'Blue Widget'. Terms: 'widget' (both docs, so
+    exact-term and prefix ('wid*') queries both exercise the binary term-shard branch),
+    'red' (doc 1 only). Fuzzy: 'wdget' (missing the 'i') deletes to 'widget' at distance 1,
+    same as write_index_with_fuzzy, so a fuzzy query exercises the binary fuzzy-shard
+    branch too.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+
+    term_shard = {
+        "widget": {
+            "df": 2,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [1], "len": 2}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [1], "len": 2}}},
+            ],
+        },
+        "red": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 2}}}],
+        },
+    }
+    (out_dir / "terms" / "all.bin").write_bytes(_encode_term_shard_binary(term_shard))
+
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Red Widget"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "Blue Widget"}},
+    }
+    (out_dir / "docs" / "0.bin").write_bytes(_encode_doc_store_binary(doc_shard))
+
+    fuzzy_shard = {"maxEdits": 1, "deletions": {"wdget": ["widget"]}}
+    (out_dir / "fuzzy.bin").write_bytes(_encode_fuzzy_shard_binary(fuzzy_shard))
+
+    manifest = {
+        "version": 1,
+        "buildId": "test",
+        "format": "binary",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 2},
+        "avgFieldLength": {"en": {"title": 2.0}},
+        "shards": {
+            "terms": [
+                {
+                    "lang": "en",
+                    "prefix": "all",
+                    "file": "terms/all.bin",
+                    "termCount": 2,
+                    "format": "binary",
+                }
+            ],
+            "docs": [{"shard": 0, "file": "docs/0.bin", "idRange": [1, 2], "format": "binary"}],
+        },
+        "fuzzy": {"en": {"file": "fuzzy.bin", "format": "binary"}},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
