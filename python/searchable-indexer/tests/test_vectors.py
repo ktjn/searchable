@@ -167,3 +167,42 @@ def test_build_vector_shards_raises_when_dims_differ_across_languages():
 
     with pytest.raises(ValueError, match="dimension"):
         build_vector_shards(documents, embed=language_dependent)
+
+
+def test_build_vector_shards_rejects_invalid_quantization_directly():
+    documents = [(1, "en", "widgets are great")]
+
+    with pytest.raises(ValueError, match="quantization"):
+        build_vector_shards(documents, embed=_length_embed, quantization="wrong")
+
+
+def test_build_vector_shards_rejects_zero_window_directly():
+    documents = [(1, "en", "widgets are great")]
+
+    with pytest.raises(ValueError, match="window"):
+        build_vector_shards(documents, embed=_length_embed, window=0)
+
+
+def test_build_vector_shards_rejects_overlap_at_or_above_window_directly():
+    documents = [(1, "en", "widgets are great")]
+
+    with pytest.raises(ValueError, match="overlap"):
+        build_vector_shards(
+            documents, embed=_length_embed, window=10, overlap=10
+        )
+
+
+def test_build_vector_shards_rejects_boolean_window_directly():
+    documents = [(1, "en", "widgets are great")]
+
+    with pytest.raises(ValueError, match="window"):
+        build_vector_shards(documents, embed=_length_embed, window=True)
+
+
+def test_build_vector_shards_rejects_boolean_overlap_directly():
+    documents = [(1, "en", "widgets are great")]
+
+    with pytest.raises(ValueError, match="overlap"):
+        build_vector_shards(
+            documents, embed=_length_embed, window=10, overlap=False
+        )

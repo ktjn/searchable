@@ -106,6 +106,27 @@ def test_invalid_vector_overlap_raises(overlap: int):
         )
 
 
+def test_boolean_vector_window_raises():
+    with pytest.raises(ValueError, match="vector_window"):
+        build_index(
+            [_doc(1, "/a", "Widgets", "widgets are great")],
+            embed=_embed,
+            embedding_provider={"type": "custom"},
+            vector_window=True,
+        )
+
+
+def test_boolean_vector_overlap_raises():
+    with pytest.raises(ValueError, match="vector_overlap"):
+        build_index(
+            [_doc(1, "/a", "Widgets", "widgets are great")],
+            embed=_embed,
+            embedding_provider={"type": "custom"},
+            vector_window=10,
+            vector_overlap=False,
+        )
+
+
 def test_noindex_documents_are_skipped():
     html = '<html lang="en"><head><title>T</title><meta name="searchable-noindex" content="true"></head><body><main>Content</main></body></html>'
     sources = [SourceDocument(id=1, url="/hidden", html=html)]

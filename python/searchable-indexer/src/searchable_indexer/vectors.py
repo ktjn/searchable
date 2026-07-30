@@ -78,6 +78,27 @@ def build_vector_shards(
     # passageId ("<docId>-<chunkIndex>") is stable only while docId and the
     # window/overlap params don't change -- not yet a stable public citation
     # id (docs/guides/vector-search.md#storage-format).
+    if quantization not in ("int8", "float32"):
+        raise ValueError(
+            f"build_vector_shards: invalid quantization {quantization!r} "
+            '-- must be "int8" or "float32"'
+        )
+    if not isinstance(window, int) or isinstance(window, bool) or window <= 0:
+        raise ValueError(
+            f"build_vector_shards: invalid window {window!r} -- must be a "
+            "positive integer"
+        )
+    if (
+        not isinstance(overlap, int)
+        or isinstance(overlap, bool)
+        or overlap < 0
+        or overlap >= window
+    ):
+        raise ValueError(
+            f"build_vector_shards: invalid overlap {overlap!r} -- must be an "
+            f"integer >= 0 and < window ({window!r})"
+        )
+
     by_language: dict[str, list[tuple[int, str]]] = {}
     for doc_id, language, text in documents:
         for chunk in chunk_text(text, window, overlap):

@@ -128,12 +128,21 @@ def build_index(
             f"build_index: invalid vector_quantization {vector_quantization!r} "
             '-- must be "int8" or "float32"'
         )
-    if vector_window <= 0:
+    if (
+        not isinstance(vector_window, int)
+        or isinstance(vector_window, bool)
+        or vector_window <= 0
+    ):
         raise ValueError(
             f"build_index: invalid vector_window {vector_window!r} -- must be a "
             "positive integer"
         )
-    if vector_overlap < 0 or vector_overlap >= vector_window:
+    if (
+        not isinstance(vector_overlap, int)
+        or isinstance(vector_overlap, bool)
+        or vector_overlap < 0
+        or vector_overlap >= vector_window
+    ):
         raise ValueError(
             f"build_index: invalid vector_overlap {vector_overlap!r} -- must be "
             f">= 0 and < vector_window ({vector_window!r})"
