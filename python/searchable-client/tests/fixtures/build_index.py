@@ -665,6 +665,62 @@ def write_index_with_synonym_double_match(out_dir: Path) -> str:
     return manifest_path.resolve().as_uri()
 
 
+def write_index_with_synonym_fuzzy_overlap(out_dir: Path) -> str:
+    """Doc 1 = 'Widget' (matches the literal query term 'widget'), doc 2 = 'Gadget' -- 'gadget'
+    is reachable from the query term 'widget' via BOTH the synonym path (equivalence group
+    ["widget", "gadget"]) AND the fuzzy path (the fuzzy dictionary maps 'widget' directly to
+    'gadget' at edit distance 2, within the shard's maxEdits=2). Used to verify a single real
+    term reachable via two expansion paths is only added ONCE (as a single clause, at the
+    weight of whichever path is tried first -- synonym before fuzzy, per the TS reference's
+    `addedTerms` order), not summed twice. Both docs have identical posting shapes (tf=1,
+    pos=[0], len=1) and df=1 for both 'widget' and 'gadget' term entries, so the undecayed
+    BM25F contribution from a single clause is identical between them -- only the number of
+    clauses contributing to doc 2's score (one vs. two, if double-counted) can make its final
+    score diverge from `synonym_weight` times doc 1's literal-clause score.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "widget": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+        "gadget": {
+            "df": 1,
+            "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Widget"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "Gadget"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["widget", "gadget"]]}))
+    fuzzy_shard = {"maxEdits": 2, "deletions": {"widget": ["gadget"]}}
+    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
+    manifest = {
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 2},
+        "avgFieldLength": {"en": {"title": 1.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
+        },
+        "synonyms": {"en": "synonyms.json"},
+        "fuzzy": {"en": {"file": "fuzzy.json", "format": "json"}},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
 def write_index_with_fuzzy(out_dir: Path) -> str:
     """Same two docs as write_basic_index (doc 1 = 'Red Widget', doc 2 = 'Blue Widget',
     both indexed under the term 'widget'), plus a fuzzy dictionary mapping several

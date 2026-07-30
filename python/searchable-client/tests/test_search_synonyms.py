@@ -6,6 +6,7 @@ from searchable_client.validate_manifest import validate_manifest
 from tests.fixtures.build_index import (
     write_index_with_directional_synonym,
     write_index_with_synonym_double_match,
+    write_index_with_synonym_fuzzy_overlap,
     write_index_with_synonyms,
 )
 
@@ -63,3 +64,26 @@ def test_synonym_double_match_sums_literal_and_variant_clauses(tmp_path: Path):
     # greater than with synonyms disabled (extra credit from the synonym clause, not a
     # no-op or a clobber of the literal-term score).
     assert with_synonyms.hits[0].score > without_synonyms.hits[0].score
+
+
+def test_term_reachable_via_synonym_and_fuzzy_is_not_double_counted(tmp_path: Path):
+    manifest_url = write_index_with_synonym_fuzzy_overlap(tmp_path / "idx")
+    cache = ShardCache()
+    manifest = validate_manifest(cache.fetch_json(manifest_url), manifest_url)
+
+    result = search(
+        "widget",
+        manifest,
+        cache,
+        manifest_url,
+        SearchOptions(synonyms=True, fuzzy=True),
+    )
+    assert {h.id for h in result.hits} == {1, 2}
+    literal_hit = next(h for h in result.hits if h.id == 1)
+    variant_hit = next(h for h in result.hits if h.id == 2)
+    # "gadget" (doc 2) is reachable from the query term "widget" via BOTH the synonym
+    # path and the fuzzy path. It must be added as a single clause -- at the synonym
+    # weight, since synonym expansion is tried before fuzzy -- not summed across both
+    # paths. Doc 1 and doc 2 have identical posting shapes/df, so the literal (weight
+    # 1.0) and variant (weight synonym_weight) clauses produce proportional scores.
+    assert variant_hit.score == literal_hit.score * SearchOptions().synonym_weight

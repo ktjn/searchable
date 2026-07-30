@@ -442,20 +442,28 @@ def search(
                 slot_ids.update(p.doc for p in term_entry.postings)
             clauses.extend((term, term_entry, 1.0) for term, term_entry in matched)
         else:
+            added_terms: set[str] = set()
             exact_entry = term_lookup.get(qt.term)
             if exact_entry is not None:
                 slot_ids.update(p.doc for p in exact_entry.postings)
                 clauses.append((qt.term, exact_entry, 1.0))
+                added_terms.add(qt.term)
             for variant in _synonym_variants_for(qt.term, synonym_shard):
+                if variant in added_terms:
+                    continue
                 variant_entry = term_lookup.get(variant)
                 if variant_entry:
                     clauses.append((variant, variant_entry, options.synonym_weight))
                     slot_ids.update(p.doc for p in variant_entry.postings)
+                    added_terms.add(variant)
             for match_term, distance in _fuzzy_matches_for(qt.term, fuzzy_lookup):
+                if match_term in added_terms:
+                    continue
                 fuzzy_entry = term_lookup.get(match_term)
                 if fuzzy_entry:
                     clauses.append((match_term, fuzzy_entry, options.fuzzy_weight**distance))
                     slot_ids.update(p.doc for p in fuzzy_entry.postings)
+                    added_terms.add(match_term)
         term_slot_doc_sets.append(slot_ids)
         if not qt.prefix and not slot_ids:
             failed_terms.append(qt.term)
