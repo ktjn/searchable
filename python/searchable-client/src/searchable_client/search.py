@@ -1,4 +1,5 @@
-from dataclasses import dataclass, field
+from collections.abc import Iterator
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from searchable_analysis import (  # type: ignore[import-untyped]
@@ -640,3 +641,19 @@ def search(
         facets=facets,
         did_you_mean=did_you_mean,
     )
+
+
+def search_stream(
+    query: str,
+    manifest: Manifest,
+    cache: ShardCache,
+    base_url: str,
+    options: SearchOptions | None = None,
+) -> Iterator[SearchResult]:
+    options = options or SearchOptions()
+    if not options.synonyms and not options.fuzzy:
+        yield search(query, manifest, cache, base_url, options)
+        return
+    partial_options = replace(options, synonyms=False, fuzzy=False)
+    yield search(query, manifest, cache, base_url, partial_options)
+    yield search(query, manifest, cache, base_url, options)
