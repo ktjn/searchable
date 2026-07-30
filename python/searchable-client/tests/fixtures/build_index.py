@@ -281,6 +281,51 @@ def write_index_with_multi_pins(out_dir: Path) -> str:
     return _add_pins(out_dir, manifest_url, pins_shard)
 
 
+def write_index_with_phrase_fixture(out_dir: Path) -> str:
+    """Doc 1 = 'Noise Cancelling Headphones' (adjacent), doc 2 = 'Headphones with Noise and
+    also Cancelling elsewhere' (not adjacent). Used to verify quoted-phrase matching requires
+    consecutive positions within a field, not just co-occurrence of the words."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "nois": {"df": 2, "postings": [
+            {"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}},
+            {"doc": 2, "fields": {"title": {"tf": 1, "pos": [2], "len": 7}}},
+        ]},
+        "cancel": {"df": 2, "postings": [
+            {"doc": 1, "fields": {"title": {"tf": 1, "pos": [1], "len": 3}}},
+            {"doc": 2, "fields": {"title": {"tf": 1, "pos": [6], "len": 7}}},
+        ]},
+        "headphon": {"df": 2, "postings": [
+            {"doc": 1, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}},
+            {"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 7}}},
+        ]},
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Noise Cancelling Headphones"}},
+        "2": {
+            "url": "https://example.com/2",
+            "fields": {"title": "Headphones with Noise and also Cancelling elsewhere"},
+        },
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    manifest = {
+        "version": 1, "buildId": "test", "format": "json",
+        "languages": ["en"], "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 5.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 3}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
+        },
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
 def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'category' hierarchy facet with
     separator '/' (deliberately NOT '>', which is search.py's hardcoded fallback

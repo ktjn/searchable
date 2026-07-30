@@ -195,6 +195,29 @@ def _shard_entries_for_query(
     return result
 
 
+def _has_consecutive_positions(entries: list[TermEntry | None], doc_id: int) -> bool:
+    postings = [
+        next((p for p in e.postings if p.doc == doc_id), None) if e else None for e in entries
+    ]
+    if not postings or any(p is None for p in postings):
+        return False
+    first = postings[0]
+    assert first is not None
+    for field_name in first.fields:
+        position_sets = [
+            p.fields[field_name].pos if p is not None and field_name in p.fields else None
+            for p in postings
+        ]
+        if any(s is None for s in position_sets):
+            continue
+        start_positions = position_sets[0]
+        assert start_positions is not None
+        for start in start_positions:
+            if all(start + i in (position_sets[i] or []) for i in range(1, len(position_sets))):
+                return True
+    return False
+
+
 def _contains_phrase(query_tokens: list[str], phrase_tokens: list[str]) -> bool:
     if not phrase_tokens or len(phrase_tokens) > len(query_tokens):
         return False
@@ -257,6 +280,8 @@ def search(
             prefixes_needed.append(qt.term)
         else:
             exact_terms_needed.add(qt.term)
+    for phrase_term in parsed_query.phrases:
+        exact_terms_needed.update(qt.term for qt in phrase_term.terms)
 
     needed_shard_entries = _shard_entries_for_query(
         shard_entries, exact_terms_needed, prefixes_needed
@@ -288,7 +313,6 @@ def search(
     # "any term starting with wid"), then intersect the per-slot sets.
     clauses: list[tuple[str, TermEntry]] = []
     term_slot_doc_sets: list[set[int]] = []
-    any_clause_failed = False
     for qt in query_terms:
         slot_ids: set[int] = set()
         if qt.prefix:
@@ -297,23 +321,46 @@ def search(
                 for term, term_entry in term_lookup.items()
                 if term.startswith(qt.term)
             ]
-            if not matched:
-                any_clause_failed = True
             for _term, term_entry in matched:
                 slot_ids.update(p.doc for p in term_entry.postings)
             clauses.extend(matched)
         else:
             exact_entry = term_lookup.get(qt.term)
-            if exact_entry is None:
-                any_clause_failed = True
-            else:
+            if exact_entry is not None:
                 slot_ids.update(p.doc for p in exact_entry.postings)
                 clauses.append((qt.term, exact_entry))
         term_slot_doc_sets.append(slot_ids)
 
-    organic_candidate_ids: list[int] = []
-    if not any_clause_failed and term_slot_doc_sets:
-        organic_candidate_ids = list(set.intersection(*term_slot_doc_sets))
+    phrase_doc_sets: list[set[int]] = []
+    for phrase_term in parsed_query.phrases:
+        phrase_words = [qt.term for qt in phrase_term.terms]
+        phrase_entries = [term_lookup.get(w) for w in phrase_words]
+        if any(e is None for e in phrase_entries):
+            phrase_doc_sets.append(set())
+            continue
+        phrase_word_doc_sets = [
+            set(p.doc for p in e.postings) for e in phrase_entries if e is not None
+        ]
+        phrase_common_ids = (
+            set.intersection(*phrase_word_doc_sets) if phrase_word_doc_sets else set()
+        )
+        phrase_matched_ids = {
+            doc_id
+            for doc_id in phrase_common_ids
+            if _has_consecutive_positions(phrase_entries, doc_id)
+        }
+        phrase_doc_sets.append(phrase_matched_ids)
+        for phrase_word, phrase_entry in zip(phrase_words, phrase_entries, strict=True):
+            if phrase_entry is None:
+                continue
+            restricted = TermEntry(
+                df=phrase_entry.df,
+                postings=[p for p in phrase_entry.postings if p.doc in phrase_matched_ids],
+            )
+            clauses.append((phrase_word, restricted))
+
+    all_doc_sets = term_slot_doc_sets + phrase_doc_sets
+    organic_candidate_ids = list(set.intersection(*all_doc_sets)) if all_doc_sets else []
 
     filter_fields = list(options.filters or {})
     requested_facet_fields = options.facets or []
