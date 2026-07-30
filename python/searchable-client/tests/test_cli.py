@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from tests.fixtures.build_index import write_index_with_category_facet
+from tests.fixtures.build_index import write_basic_index, write_index_with_category_facet
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess:
@@ -34,6 +34,20 @@ def test_facet_command_json_output(tmp_path: Path):
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     assert {v["value"] for v in payload["values"]} == {"red", "blue"}
+
+
+def test_query_command_json_highlight_uses_camel_case_nested_keys(tmp_path: Path):
+    manifest_url = write_basic_index(tmp_path / "idx")
+    result = _run_cli("query", manifest_url, "widget", "--highlight", "--json")
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["totalHits"] >= 1
+    spans = payload["hits"][0]["highlights"]["title"]
+    assert spans, "expected at least one highlight span"
+    assert any(span.get("isMatch") for span in spans)
+    for span in spans:
+        assert "is_match" not in span
+        assert "isMatch" in span
 
 
 def test_query_command_with_filter(tmp_path: Path):
