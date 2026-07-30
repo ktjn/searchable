@@ -761,6 +761,30 @@ def write_index_with_fuzzy_length_cap(out_dir: Path) -> str:
     return manifest_path.resolve().as_uri()
 
 
+def write_index_with_fuzzy_did_you_mean(out_dir: Path) -> str:
+    """Same two docs as write_basic_index (doc 1/2 both indexed under 'widget'), plus a fuzzy
+    dictionary that maps the query term 'xyz' *directly* (no deletes needed -- lookup.get(term)
+    is checked before any deletion expansion) to 'widget'. The true edit distance between 'xyz'
+    and 'widget' is well above 1, and 'xyz' is only 3 code points, so the <=3-length cutoff caps
+    the *effective* max edit distance for it to 1 regardless of the shard's maxEdits -- meaning
+    `_fuzzy_matches_for` (which applies that cap) excludes 'widget' as an actual match, so no
+    clause is added for it and it can never contribute to a hit. `_nearest_terms_for` (used only
+    for did_you_mean suggestions) does NOT apply that cap, so it still surfaces 'widget' as the
+    nearest candidate. Since 'xyz' matches nothing in the term shard (exact or fuzzy), that
+    single-term query's slot is empty, the overall AND fails, and hits=[] -- while did_you_mean
+    is genuinely populated with ['widget'], not merely None-or-a-list.
+    """
+    manifest_url = write_index_with_fuzzy(out_dir)
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    fuzzy_path = out_dir / "fuzzy.json"
+    fuzzy_shard = json.loads(fuzzy_path.read_text())
+    fuzzy_shard["deletions"]["xyz"] = ["widget"]
+    fuzzy_path.write_text(json.dumps(fuzzy_shard))
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_url
+
+
 def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'category' hierarchy facet with
     separator '/' (deliberately NOT '>', which is search.py's hardcoded fallback

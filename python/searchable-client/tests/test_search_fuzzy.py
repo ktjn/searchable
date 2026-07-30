@@ -7,6 +7,7 @@ from searchable_client.search import SearchOptions, search
 from searchable_client.validate_manifest import validate_manifest
 from tests.fixtures.build_index import (
     write_index_with_fuzzy,
+    write_index_with_fuzzy_did_you_mean,
     write_index_with_fuzzy_distance_variants,
     write_index_with_fuzzy_length_cap,
     write_index_with_fuzzy_literal_and_typo,
@@ -40,6 +41,20 @@ def test_did_you_mean_populated_on_zero_hits(tmp_path: Path):
     # delete), so did_you_mean may legitimately be None here -- assert it's either None or a
     # list, not a crash.
     assert result.did_you_mean is None or isinstance(result.did_you_mean, list)
+
+
+def test_did_you_mean_genuinely_populated_with_suggestion(tmp_path: Path):
+    manifest_url = write_index_with_fuzzy_did_you_mean(tmp_path / "idx")
+    cache = ShardCache()
+    manifest = validate_manifest(cache.fetch_json(manifest_url), manifest_url)
+    result = search("xyz", manifest, cache, manifest_url, SearchOptions(fuzzy=True))
+    # "xyz" doesn't match anything organically or via fuzzy expansion (its only fuzzy
+    # candidate, "widget", is beyond the effective max-edit-distance cap for a 3-code-point
+    # term, so it never becomes an actual clause/hit) -- so the query returns zero hits.
+    assert result.hits == []
+    # But that same candidate IS discoverable by _nearest_terms_for (which doesn't apply the
+    # match cap), so did_you_mean must be genuinely populated with it, not just "a list".
+    assert result.did_you_mean == ["widget"]
 
 
 def test_did_you_mean_not_populated_when_hits_found(tmp_path: Path):
