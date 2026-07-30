@@ -7,7 +7,7 @@ Searchable builds a static search index ahead of time and searches it in the bro
 - Deploy the index beside any static site or CMS export.
 - Keep user queries in the browser.
 - Fetch immutable, content-hashed shards only when a query needs them.
-- Use an open JSON-first index format built by the Python `searchable-indexer` and read by the TypeScript client.
+- Use an open JSON-first index format built by the Python `searchable-indexer` and read by the TypeScript client, or by the Python `searchable-client` (`python/searchable-client/`) for CLI and backend-service use — see its [README](python/searchable-client/README.md) and the [Python client API reference](docs/reference/python-client-api.md).
 - Add richer search without adopting an application framework.
 
 ## What it supports
