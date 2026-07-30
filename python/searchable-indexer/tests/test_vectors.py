@@ -1,3 +1,7 @@
+import math
+
+import pytest
+
 from searchable_indexer.vectors import build_vector_shards, chunk_text, quantize_int8
 
 
@@ -97,3 +101,69 @@ def test_build_vector_shards_applies_int8_quantization_per_language():
     assert shard["quantization"] == "int8"
     assert shard["quantRange"] == {"min": 0.0, "max": 17.0}
     assert shard["entries"][0]["vector"] == [255, 0]
+
+
+def test_build_vector_shards_raises_when_embed_returns_wrong_vector_count():
+    documents = [(1, "en", "widgets are great")]
+
+    def too_few(texts: list[str]) -> list[list[float]]:
+        return []
+
+    with pytest.raises(ValueError, match="expected 1 vector.*got 0"):
+        build_vector_shards(documents, embed=too_few)
+
+
+def test_build_vector_shards_raises_when_dims_differ_within_a_language():
+    words = [f"w{i}" for i in range(25)]
+    documents = [(1, "en", " ".join(words))]  # chunks into 3 passages
+
+    calls = iter([[1.0, 2.0], [1.0], [1.0, 2.0]])
+
+    def uneven(texts: list[str]) -> list[list[float]]:
+        return [next(calls) for _ in texts]
+
+    with pytest.raises(ValueError, match="dimension"):
+        build_vector_shards(documents, embed=uneven, window=10, overlap=2)
+
+
+def test_build_vector_shards_raises_on_zero_dims():
+    documents = [(1, "en", "widgets are great")]
+
+    def zero_dim(texts: list[str]) -> list[list[float]]:
+        return [[] for _ in texts]
+
+    with pytest.raises(ValueError, match="dimension"):
+        build_vector_shards(documents, embed=zero_dim)
+
+
+def test_build_vector_shards_raises_on_non_finite_values():
+    documents = [(1, "en", "widgets are great")]
+
+    def with_nan(texts: list[str]) -> list[list[float]]:
+        return [[1.0, math.nan] for _ in texts]
+
+    with pytest.raises(ValueError, match="finite"):
+        build_vector_shards(documents, embed=with_nan)
+
+
+def test_build_vector_shards_raises_on_boolean_values():
+    documents = [(1, "en", "widgets are great")]
+
+    def with_bool(texts: list[str]) -> list[list[float]]:
+        return [[1.0, True] for _ in texts]
+
+    with pytest.raises(ValueError, match="numeric"):
+        build_vector_shards(documents, embed=with_bool)
+
+
+def test_build_vector_shards_raises_when_dims_differ_across_languages():
+    documents = [(1, "en", "widgets are great"), (2, "de", "sofas sind toll")]
+    call_count = {"n": 0}
+
+    def language_dependent(texts: list[str]) -> list[list[float]]:
+        call_count["n"] += 1
+        dims = 2 if call_count["n"] == 1 else 3
+        return [[1.0] * dims for _ in texts]
+
+    with pytest.raises(ValueError, match="dimension"):
+        build_vector_shards(documents, embed=language_dependent)

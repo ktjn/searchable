@@ -48,7 +48,7 @@ def test_embed_kwarg_populates_vector_shards():
         return [[float(len(t))] for t in texts]
 
     sources = [_doc(1, "/a", "Widgets", "widgets are great")]
-    built = build_index(sources, embed=embed)
+    built = build_index(sources, embed=embed, embedding_provider={"type": "custom"})
 
     assert set(built.vector_shards.keys()) == {"en"}
     entries = built.vector_shards["en"]["entries"]
@@ -59,6 +59,51 @@ def test_embed_kwarg_populates_vector_shards():
 def test_no_embed_kwarg_leaves_vector_shards_empty():
     built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
     assert built.vector_shards == {}
+
+
+def test_embed_without_embedding_provider_raises():
+    def embed(texts: list[str]) -> list[list[float]]:
+        return [[float(len(t))] for t in texts]
+
+    with pytest.raises(ValueError, match="embedding_provider"):
+        build_index([_doc(1, "/a", "Widgets", "widgets are great")], embed=embed)
+
+
+def _embed(texts: list[str]) -> list[list[float]]:
+    return [[float(len(t))] for t in texts]
+
+
+def test_invalid_vector_quantization_raises():
+    with pytest.raises(ValueError, match="vector_quantization"):
+        build_index(
+            [_doc(1, "/a", "Widgets", "widgets are great")],
+            embed=_embed,
+            embedding_provider={"type": "custom"},
+            vector_quantization="banana",
+        )
+
+
+@pytest.mark.parametrize("window", [0, -1])
+def test_invalid_vector_window_raises(window: int):
+    with pytest.raises(ValueError, match="vector_window"):
+        build_index(
+            [_doc(1, "/a", "Widgets", "widgets are great")],
+            embed=_embed,
+            embedding_provider={"type": "custom"},
+            vector_window=window,
+        )
+
+
+@pytest.mark.parametrize("overlap", [-5, 500])
+def test_invalid_vector_overlap_raises(overlap: int):
+    with pytest.raises(ValueError, match="vector_overlap"):
+        build_index(
+            [_doc(1, "/a", "Widgets", "widgets are great")],
+            embed=_embed,
+            embedding_provider={"type": "custom"},
+            vector_window=200,
+            vector_overlap=overlap,
+        )
 
 
 def test_noindex_documents_are_skipped():

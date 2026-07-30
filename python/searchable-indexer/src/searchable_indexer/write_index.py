@@ -245,12 +245,29 @@ def write_index(
     )
     vectors = None
     if vector_languages:
+        first_shard = built.vector_shards[vector_languages[0]]
+        for language in vector_languages[1:]:
+            shard = built.vector_shards[language]
+            if shard["dims"] != first_shard["dims"]:
+                raise ValueError(
+                    f"write_index: vector shard for language {language!r} has "
+                    f"{shard['dims']} dimensions, but language "
+                    f"{vector_languages[0]!r} has {first_shard['dims']} -- every "
+                    "language must share the same embedding dimensionality"
+                )
+            if shard["quantization"] != first_shard["quantization"]:
+                raise ValueError(
+                    f"write_index: vector shard for language {language!r} uses "
+                    f"{shard['quantization']!r} quantization, but language "
+                    f"{vector_languages[0]!r} uses {first_shard['quantization']!r} "
+                    "-- every language must share the same quantization"
+                )
+
         vector_shard_files = {}
         for language in vector_languages:
             vector_shard_files[language] = _write_json(
                 out_dir, f"vectors/{language}.json", built.vector_shards[language]
             )
-        first_shard = built.vector_shards[vector_languages[0]]
         vectors = {
             "dims": first_shard["dims"],
             "quantization": first_shard["quantization"],

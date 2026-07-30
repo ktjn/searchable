@@ -117,6 +117,27 @@ def build_index(
         raise ValueError(
             f"build_index: invalid fuzzy_max_edits {fuzzy_max_edits!r} -- must be 1 or 2"
         )
+    if embed is not None and embedding_provider is None:
+        raise ValueError(
+            "build_index: embedding_provider is required when embed is set -- "
+            "query-time provider compatibility (SearchClientOptions.embedQuery) "
+            "can't be established without it"
+        )
+    if vector_quantization not in ("int8", "float32"):
+        raise ValueError(
+            f"build_index: invalid vector_quantization {vector_quantization!r} "
+            '-- must be "int8" or "float32"'
+        )
+    if vector_window <= 0:
+        raise ValueError(
+            f"build_index: invalid vector_window {vector_window!r} -- must be a "
+            "positive integer"
+        )
+    if vector_overlap < 0 or vector_overlap >= vector_window:
+        raise ValueError(
+            f"build_index: invalid vector_overlap {vector_overlap!r} -- must be "
+            f">= 0 and < vector_window ({vector_window!r})"
+        )
 
     term_shards: dict[str, dict] = {}
     posting_index_by_language: dict[str, dict] = {}
