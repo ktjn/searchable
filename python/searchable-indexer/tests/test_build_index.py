@@ -43,6 +43,24 @@ def test_doc_store_holds_url_title_and_excerpt():
     assert "body" not in entry["fields"]
 
 
+def test_embed_kwarg_populates_vector_shards():
+    def embed(texts: list[str]) -> list[list[float]]:
+        return [[float(len(t))] for t in texts]
+
+    sources = [_doc(1, "/a", "Widgets", "widgets are great")]
+    built = build_index(sources, embed=embed)
+
+    assert set(built.vector_shards.keys()) == {"en"}
+    entries = built.vector_shards["en"]["entries"]
+    assert entries[0]["docId"] == 1
+    assert entries[0]["passageId"] == "1-0"
+
+
+def test_no_embed_kwarg_leaves_vector_shards_empty():
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
+    assert built.vector_shards == {}
+
+
 def test_noindex_documents_are_skipped():
     html = '<html lang="en"><head><title>T</title><meta name="searchable-noindex" content="true"></head><body><main>Content</main></body></html>'
     sources = [SourceDocument(id=1, url="/hidden", html=html)]

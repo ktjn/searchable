@@ -1,6 +1,7 @@
 import datetime
 import math
 import sys
+from typing import Callable
 
 from searchable_analysis import analyze, get_language_profile, normalize_phrase
 from searchable_indexer.extract import extract_document
@@ -15,6 +16,7 @@ from searchable_indexer.fuzzy import build_fuzzy_shard
 from searchable_indexer.pins import resolve_pins
 from searchable_indexer.synonyms import build_synonym_shards
 from searchable_indexer.types import BuiltIndex, SourceDocument
+from searchable_indexer.vectors import build_vector_shards
 
 _DEFAULT_FIELD_BOOSTS = {"title": 3.0, "body": 1.0}
 _EXCERPT_LENGTH = 200
@@ -100,6 +102,11 @@ def build_index(
     synonyms: dict[str, dict] | None = None,
     fuzzy: bool = False,
     fuzzy_max_edits: int = 1,
+    embed: Callable[[list[str]], list[list[float]]] | None = None,
+    embedding_provider: dict | None = None,
+    vector_quantization: str = "int8",
+    vector_window: int = 200,
+    vector_overlap: int = 20,
 ) -> BuiltIndex:
     _validate_source_ids(sources)
     boosts = {**_DEFAULT_FIELD_BOOSTS, **(field_boosts or {})}
@@ -117,6 +124,7 @@ def build_index(
     facet_shards: dict[str, dict] = {}
     pins_acc_by_language: dict[str, dict] = {}
     stats_by_language: dict[str, dict] = {}
+    vector_documents: list[tuple[int, str, str]] = []
     indexed_count = 0
     min_id: int | None = None
     max_id: int | None = None
@@ -184,6 +192,9 @@ def build_index(
             entry["boost"] = extracted.boost
         doc_store[str(source.id)] = entry
 
+        if embed is not None:
+            vector_documents.append((source.id, language, extracted.body))
+
         indexed_count += 1
         min_id = source.id if min_id is None else min(min_id, source.id)
         max_id = source.id if max_id is None else max(max_id, source.id)
@@ -246,6 +257,16 @@ def build_index(
 
     id_range = (min_id, max_id) if indexed_count else (0, 0)
 
+    vector_shards: dict[str, dict] = {}
+    if embed is not None and vector_documents:
+        vector_shards = build_vector_shards(
+            vector_documents,
+            embed,
+            quantization=vector_quantization,
+            window=vector_window,
+            overlap=vector_overlap,
+        )
+
     return BuiltIndex(
         manifest=manifest,
         term_shards=term_shards,
@@ -255,4 +276,6 @@ def build_index(
         pins_shards=pins_shards,
         synonym_shards=build_synonym_shards(synonyms),
         fuzzy_shards=fuzzy_shards,
+        vector_shards=vector_shards,
+        embedding_provider=embedding_provider if embed is not None else None,
     )

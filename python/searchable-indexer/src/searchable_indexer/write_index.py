@@ -240,6 +240,24 @@ def write_index(
                 )
                 fuzzy[language] = {"file": file}
 
+    vector_languages = sorted(
+        language for language, shard in built.vector_shards.items() if shard.get("entries")
+    )
+    vectors = None
+    if vector_languages:
+        vector_shard_files = {}
+        for language in vector_languages:
+            vector_shard_files[language] = _write_json(
+                out_dir, f"vectors/{language}.json", built.vector_shards[language]
+            )
+        first_shard = built.vector_shards[vector_languages[0]]
+        vectors = {
+            "dims": first_shard["dims"],
+            "quantization": first_shard["quantization"],
+            "embeddingProvider": built.embedding_provider,
+            "shards": vector_shard_files,
+        }
+
     manifest = {
         **built.manifest,
         "shards": {
@@ -250,6 +268,7 @@ def write_index(
         **({"pins": pins} if pins else {}),
         **({"synonyms": synonyms} if synonyms else {}),
         **({"fuzzy": fuzzy} if fuzzy else {}),
+        **({"vectors": vectors} if vectors else {}),
     }
 
     out_path = Path(out_dir)

@@ -53,6 +53,34 @@ def test_doc_store_file_is_written_and_readable(tmp_path: Path):
     assert doc_store["1"]["url"] == "/a"
 
 
+def test_vector_shards_are_written_and_manifest_records_them(tmp_path: Path):
+    def embed(texts: list[str]) -> list[list[float]]:
+        return [[float(len(t)), 0.0] for t in texts]
+
+    built = build_index(
+        [_doc(1, "/a", "Widgets", "widgets are great")],
+        embed=embed,
+        embedding_provider={"type": "custom"},
+        vector_quantization="float32",
+    )
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    assert manifest["vectors"]["dims"] == 2
+    assert manifest["vectors"]["quantization"] == "float32"
+    assert manifest["vectors"]["embeddingProvider"] == {"type": "custom"}
+    shard_file = manifest["vectors"]["shards"]["en"]
+    shard = json.loads((tmp_path / shard_file).read_text())
+    assert shard["entries"][0]["docId"] == 1
+
+
+def test_no_embed_means_no_vectors_key_in_manifest(tmp_path: Path):
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert "vectors" not in manifest
+
+
 def test_shard_by_prefix_false_writes_one_shard_named_all(tmp_path: Path):
     built = build_index([_doc(1, "/a", "Widgets", "widgets and gadgets")])
     write_index(built, str(tmp_path), shard_by_prefix=False)
