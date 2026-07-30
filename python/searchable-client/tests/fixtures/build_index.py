@@ -459,6 +459,136 @@ def write_index_with_multi_doc_phrase_fixture(out_dir: Path) -> str:
     return manifest_path.resolve().as_uri()
 
 
+def write_index_with_synonyms(out_dir: Path) -> str:
+    """Doc 1 = 'Sofa', doc 2 = 'Couch' -- 'sofa'/'couch' are equivalent synonyms."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "sofa": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+        "couch": {
+            "df": 1,
+            "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Sofa"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "Couch"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["sofa", "couch"]]}))
+    manifest = {
+        "version": 1, "buildId": "test", "format": "json",
+        "languages": ["en"], "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
+        },
+        "synonyms": {"en": "synonyms.json"},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
+def write_index_with_directional_synonym(out_dir: Path) -> str:
+    """Doc 1 = 'Television', doc 2 = 'TV' -- a directional synonym map from 'tv' -> 'televis'
+    (the stemmed form of 'television') (querying 'tv' expands to also match 'television', but
+    querying 'television' does NOT expand to match 'tv'). Used to verify directional synonyms
+    are one-way only. Term shard keys use the stemmed forms the analyzer actually produces
+    ('televis' for 'television'; 'tv' is short enough the stemmer leaves it unchanged) so that
+    query-time lookups (which are also stemmed) hit the same keys."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "televis": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+        "tv": {
+            "df": 1,
+            "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "Television"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "TV"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    (out_dir / "synonyms.json").write_text(json.dumps({"directional": {"tv": ["televis"]}}))
+    manifest = {
+        "version": 1, "buildId": "test", "format": "json",
+        "languages": ["en"], "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
+        },
+        "synonyms": {"en": "synonyms.json"},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
+def write_index_with_synonym_double_match(out_dir: Path) -> str:
+    """Doc 1 contains BOTH the literal term 'sofa' AND, in a different field, the synonym
+    term 'couch' -- so querying 'sofa' with synonyms on matches doc 1 via two separate
+    clauses (literal 'sofa' in 'title', synonym-expanded 'couch' in 'description'). Used to
+    verify a doc matching via both the literal term and a synonym variant gets credit from
+    both clauses (summed), rather than double-counted incorrectly or clobbered by whichever
+    clause is processed last."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "sofa": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+        "couch": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"description": {"tf": 1, "pos": [0], "len": 1}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {
+            "url": "https://example.com/1",
+            "fields": {"title": "Sofa", "description": "Also known as a couch"},
+        },
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["sofa", "couch"]]}))
+    manifest = {
+        "version": 1, "buildId": "test", "format": "json",
+        "languages": ["en"], "defaultLanguage": "en",
+        "fields": {
+            "title": {"boost": 1.0, "stored": True},
+            "description": {"boost": 1.0, "stored": True},
+        },
+        "docCount": {"en": 1},
+        "avgFieldLength": {"en": {"title": 1.0, "description": 4.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 1]}],
+        },
+        "synonyms": {"en": "synonyms.json"},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
 def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'category' hierarchy facet with
     separator '/' (deliberately NOT '>', which is search.py's hardcoded fallback

@@ -13,11 +13,13 @@ from searchable_client.types import (
     DocStoreEntry,
     FacetShard,
     Manifest,
+    SynonymShard,
     TermEntry,
     TermShardEntry,
     doc_store_shard_from_dict,
     facet_shard_from_dict,
     pins_shard_from_dict,
+    synonym_shard_from_dict,
     term_shard_from_dict,
 )
 
@@ -179,6 +181,17 @@ def facet_values(
     )
 
 
+def _synonym_variants_for(term: str, synonym_shard: SynonymShard | None) -> list[str]:
+    if synonym_shard is None:
+        return []
+    variants: set[str] = set()
+    for group in synonym_shard.equivalences:
+        if term in group:
+            variants.update(v for v in group if v != term)
+    variants.update(synonym_shard.directional.get(term, []))
+    return list(variants)
+
+
 def _shard_entries_for_query(
     shard_entries: list[TermShardEntry], exact_terms_needed: set[str], prefixes_needed: list[str]
 ) -> list[TermShardEntry]:
@@ -273,6 +286,13 @@ def search(
 
     shard_entries = [s for s in manifest.shards_terms if s.lang == language]
 
+    synonyms_file = (manifest.synonyms or {}).get(language) if options.synonyms else None
+    synonym_shard = (
+        synonym_shard_from_dict(cache.fetch_json(resolve_url(base_url, synonyms_file)))
+        if synonyms_file
+        else None
+    )
+
     exact_terms_needed: set[str] = set()
     prefixes_needed: list[str] = []
     for qt in query_terms:
@@ -280,6 +300,7 @@ def search(
             prefixes_needed.append(qt.term)
         else:
             exact_terms_needed.add(qt.term)
+            exact_terms_needed.update(_synonym_variants_for(qt.term, synonym_shard))
     for phrase_term in parsed_query.phrases:
         exact_terms_needed.update(qt.term for qt in phrase_term.terms)
 
@@ -311,7 +332,7 @@ def search(
     # AND is over *distinct query term slots*: build one doc-id set per query term,
     # merging all prefix-matched entries for that slot with OR (since "wid*" means
     # "any term starting with wid"), then intersect the per-slot sets.
-    clauses: list[tuple[str, TermEntry]] = []
+    clauses: list[tuple[str, TermEntry, float]] = []  # (term, entry, weight)
     term_slot_doc_sets: list[set[int]] = []
     for qt in query_terms:
         slot_ids: set[int] = set()
@@ -323,12 +344,17 @@ def search(
             ]
             for _term, term_entry in matched:
                 slot_ids.update(p.doc for p in term_entry.postings)
-            clauses.extend(matched)
+            clauses.extend((term, term_entry, 1.0) for term, term_entry in matched)
         else:
             exact_entry = term_lookup.get(qt.term)
             if exact_entry is not None:
                 slot_ids.update(p.doc for p in exact_entry.postings)
-                clauses.append((qt.term, exact_entry))
+                clauses.append((qt.term, exact_entry, 1.0))
+            for variant in _synonym_variants_for(qt.term, synonym_shard):
+                variant_entry = term_lookup.get(variant)
+                if variant_entry:
+                    clauses.append((variant, variant_entry, options.synonym_weight))
+                    slot_ids.update(p.doc for p in variant_entry.postings)
         term_slot_doc_sets.append(slot_ids)
 
     phrase_doc_sets: list[set[int]] = []
@@ -359,7 +385,7 @@ def search(
                 df=phrase_entry.df,
                 postings=[p for p in phrase_entry.postings if p.doc in phrase_matched_ids],
             )
-            clauses.append((phrase_word, restricted))
+            clauses.append((phrase_word, restricted, 1.0))
 
     all_doc_sets = term_slot_doc_sets + phrase_doc_sets
     organic_candidate_ids = list(set.intersection(*all_doc_sets)) if all_doc_sets else []
@@ -420,7 +446,8 @@ def search(
         return sum(
             score_term_for_doc(posting, entry.df, manifest, language, field_boosts)
             * term_boosts.get(term, 1.0)
-            for term, entry in clauses
+            * weight
+            for term, entry, weight in clauses
             for posting in entry.postings
             if posting.doc == doc_id
         )
