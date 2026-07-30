@@ -4,6 +4,7 @@ No indexer invocation, since these tests exercise the *client's* matching/scorin
 logic against a known-shape index, not indexer/client conformance (that's Task 19's
 job).
 """
+
 import json
 from pathlib import Path
 
@@ -289,18 +290,27 @@ def write_index_with_phrase_fixture(out_dir: Path) -> str:
     (out_dir / "terms").mkdir(exist_ok=True)
     (out_dir / "docs").mkdir(exist_ok=True)
     term_shard = {
-        "nois": {"df": 2, "postings": [
-            {"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}},
-            {"doc": 2, "fields": {"title": {"tf": 1, "pos": [2], "len": 7}}},
-        ]},
-        "cancel": {"df": 2, "postings": [
-            {"doc": 1, "fields": {"title": {"tf": 1, "pos": [1], "len": 3}}},
-            {"doc": 2, "fields": {"title": {"tf": 1, "pos": [6], "len": 7}}},
-        ]},
-        "headphon": {"df": 2, "postings": [
-            {"doc": 1, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}},
-            {"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 7}}},
-        ]},
+        "nois": {
+            "df": 2,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [2], "len": 7}}},
+            ],
+        },
+        "cancel": {
+            "df": 2,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [1], "len": 3}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [6], "len": 7}}},
+            ],
+        },
+        "headphon": {
+            "df": 2,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 7}}},
+            ],
+        },
     }
     (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
     doc_shard = {
@@ -312,10 +322,14 @@ def write_index_with_phrase_fixture(out_dir: Path) -> str:
     }
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     manifest = {
-        "version": 1, "buildId": "test", "format": "json",
-        "languages": ["en"], "defaultLanguage": "en",
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 5.0}},
+        "docCount": {"en": 2},
+        "avgFieldLength": {"en": {"title": 5.0}},
         "shards": {
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 3}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
@@ -482,10 +496,14 @@ def write_index_with_synonyms(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["sofa", "couch"]]}))
     manifest = {
-        "version": 1, "buildId": "test", "format": "json",
-        "languages": ["en"], "defaultLanguage": "en",
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "docCount": {"en": 2},
+        "avgFieldLength": {"en": {"title": 1.0}},
         "shards": {
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
@@ -525,10 +543,14 @@ def write_index_with_directional_synonym(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     (out_dir / "synonyms.json").write_text(json.dumps({"directional": {"tv": ["televis"]}}))
     manifest = {
-        "version": 1, "buildId": "test", "format": "json",
-        "languages": ["en"], "defaultLanguage": "en",
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "docCount": {"en": 2},
+        "avgFieldLength": {"en": {"title": 1.0}},
         "shards": {
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
@@ -570,8 +592,11 @@ def write_index_with_synonym_double_match(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["sofa", "couch"]]}))
     manifest = {
-        "version": 1, "buildId": "test", "format": "json",
-        "languages": ["en"], "defaultLanguage": "en",
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
         "fields": {
             "title": {"boost": 1.0, "stored": True},
             "description": {"boost": 1.0, "stored": True},
@@ -653,10 +678,14 @@ def write_index_with_fuzzy_literal_and_typo(out_dir: Path) -> str:
     fuzzy_shard = {"maxEdits": 1, "deletions": {"wdget": ["widget"]}}
     (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
     manifest = {
-        "version": 1, "buildId": "test", "format": "json",
-        "languages": ["en"], "defaultLanguage": "en",
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "docCount": {"en": 2},
+        "avgFieldLength": {"en": {"title": 1.0}},
         "shards": {
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
@@ -700,10 +729,14 @@ def write_index_with_fuzzy_distance_variants(out_dir: Path) -> str:
     fuzzy_shard = {"maxEdits": 2, "deletions": {"wdgxyz": ["wdgxy", "wdgx"]}}
     (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
     manifest = {
-        "version": 1, "buildId": "test", "format": "json",
-        "languages": ["en"], "defaultLanguage": "en",
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "docCount": {"en": 2},
+        "avgFieldLength": {"en": {"title": 1.0}},
         "shards": {
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
@@ -746,10 +779,14 @@ def write_index_with_fuzzy_length_cap(out_dir: Path) -> str:
     fuzzy_shard = {"maxEdits": 2, "deletions": {"cx": ["cxy", "cxyz"]}}
     (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
     manifest = {
-        "version": 1, "buildId": "test", "format": "json",
-        "languages": ["en"], "defaultLanguage": "en",
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2}, "avgFieldLength": {"en": {"title": 1.0}},
+        "docCount": {"en": 2},
+        "avgFieldLength": {"en": {"title": 1.0}},
         "shards": {
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],

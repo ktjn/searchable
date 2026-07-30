@@ -68,9 +68,7 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
             for name, cfg in data["fields"].items()
         },
         doc_count=dict(data["docCount"]),
-        avg_field_length={
-            lang: dict(lens) for lang, lens in data["avgFieldLength"].items()
-        },
+        avg_field_length={lang: dict(lens) for lang, lens in data["avgFieldLength"].items()},
         shards_terms=[
             TermShardEntry(
                 lang=t["lang"],
@@ -91,8 +89,7 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
             for d in shards.get("docs", [])
         ],
         shards_facets=[
-            FacetShardEntry(field=f["field"], file=f["file"])
-            for f in shards.get("facets", [])
+            FacetShardEntry(field=f["field"], file=f["file"]) for f in shards.get("facets", [])
         ],
         pins=dict(data["pins"]) if data.get("pins") is not None else None,
         synonyms=dict(data["synonyms"]) if data.get("synonyms") is not None else None,

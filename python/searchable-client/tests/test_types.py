@@ -32,9 +32,14 @@ def test_manifest_from_dict_maps_camel_case_to_snake_case():
 
 def test_manifest_from_dict_reads_optional_pins_synonyms_fuzzy():
     data = {
-        "version": 1, "buildId": "x", "format": "json",
-        "languages": ["en"], "defaultLanguage": "en",
-        "fields": {}, "docCount": {"en": 1}, "avgFieldLength": {"en": {}},
+        "version": 1,
+        "buildId": "x",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": {},
+        "docCount": {"en": 1},
+        "avgFieldLength": {"en": {}},
         "shards": {"terms": [], "docs": []},
         "pins": {"en": "pins/en.json"},
         "synonyms": {"en": "synonyms/en.json"},
