@@ -27,7 +27,7 @@ def test_query_command_human_output_lists_hits(tmp_path: Path):
     manifest_url = write_index_with_category_facet(tmp_path / "idx")
     result = _run_cli("query", manifest_url, "widget")
     assert result.returncode == 0
-    assert "example.com" in result.stdout
+    assert "-- https://example.com/1" in result.stdout
 
 
 def test_facet_command_json_output(tmp_path: Path):
