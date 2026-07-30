@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from searchable_analysis import get_language_profile  # type: ignore[import-untyped]
+from searchable_analysis import (  # type: ignore[import-untyped]
+    get_language_profile,
+    normalize_phrase,
+)
 
 from searchable_client.fetch import ShardCache, resolve_url
 from searchable_client.parse_query import parse_query
@@ -14,6 +17,7 @@ from searchable_client.types import (
     TermShardEntry,
     doc_store_shard_from_dict,
     facet_shard_from_dict,
+    pins_shard_from_dict,
     term_shard_from_dict,
 )
 
@@ -191,6 +195,15 @@ def _shard_entries_for_query(
     return result
 
 
+def _contains_phrase(query_tokens: list[str], phrase_tokens: list[str]) -> bool:
+    if not phrase_tokens or len(phrase_tokens) > len(query_tokens):
+        return False
+    for i in range(len(query_tokens) - len(phrase_tokens) + 1):
+        if all(query_tokens[i + j] == t for j, t in enumerate(phrase_tokens)):
+            return True
+    return False
+
+
 def _fetch_doc_store_entries_by_ids(
     manifest: Manifest, cache: ShardCache, base_url: str, ids: list[int]
 ) -> dict[int, DocStoreEntry]:
@@ -319,36 +332,85 @@ def search(
 
     limit = options.limit
     field_boosts = (options.boosts or {}).get("fields")
-    term_boosts = (options.boosts or {}).get("terms", {})
-    ranked = sorted(
-        (
-            (
-                doc_id,
-                sum(
-                    score_term_for_doc(posting, entry.df, manifest, language, field_boosts)
-                    * term_boosts.get(term, 1.0)
-                    for term, entry in clauses
-                    for posting in entry.postings
-                    if posting.doc == doc_id
-                ),
-            )
-            for doc_id in candidate_ids
-        ),
-        key=lambda pair: -pair[1],
-    )[:limit]
+    term_boosts: dict[str, float] = (options.boosts or {}).get("terms", {})
 
-    doc_lookup = _fetch_doc_store_entries_by_ids(
-        manifest, cache, base_url, [doc_id for doc_id, _ in ranked]
-    )
-    hits = [
-        Hit(
-            id=doc_id,
-            score=doc_score,
-            url=(doc_lookup[doc_id].url if doc_id in doc_lookup else ""),
-            fields=(doc_lookup[doc_id].fields if doc_id in doc_lookup else {}),
+    normalized_query = normalize_phrase(query, profile)
+    pins_file = (manifest.pins or {}).get(language)
+    matched_pins: list[tuple[int, float, bool]] = []  # (id, priority, exclusive)
+    if pins_file and normalized_query:
+        pins_shard = pins_shard_from_dict(cache.fetch_json(resolve_url(base_url, pins_file)))
+        query_tokens = normalized_query.split(" ")
+        for phrase, pin_entry_def in pins_shard.items():
+            matches = (
+                phrase == normalized_query
+                if pin_entry_def.mode == "exact"
+                else _contains_phrase(query_tokens, phrase.split(" "))
+            )
+            if matches:
+                matched_pins.extend((d.id, d.priority, d.exclusive) for d in pin_entry_def.docs)
+        matched_pins.sort(key=lambda d: -d[1])
+        seen_ids: set[int] = set()
+        deduped = []
+        for pin in matched_pins:
+            if pin[0] not in seen_ids:
+                seen_ids.add(pin[0])
+                deduped.append(pin)
+        matched_pins = deduped
+        if active_filter_fields:
+            matched_pins = [
+                p
+                for p in matched_pins
+                if all(p[0] in filter_union_sets[f] for f in active_filter_fields)
+            ]
+
+    is_exclusive = any(p[2] for p in matched_pins)
+    pinned_for_display = matched_pins[:limit]
+    pinned_id_set = {p[0] for p in pinned_for_display}
+
+    def _score_of(doc_id: int) -> float:
+        return sum(
+            score_term_for_doc(posting, entry.df, manifest, language, field_boosts)
+            * term_boosts.get(term, 1.0)
+            for term, entry in clauses
+            for posting in entry.postings
+            if posting.doc == doc_id
         )
-        for doc_id, doc_score in ranked
+
+    ranked_organic = (
+        []
+        if is_exclusive
+        else sorted(
+            (
+                (doc_id, _score_of(doc_id))
+                for doc_id in candidate_ids
+                if doc_id not in pinned_id_set
+            ),
+            key=lambda pair: -pair[1],
+        )[: max(0, limit - len(pinned_for_display))]
+    )
+
+    all_result_ids = [p[0] for p in pinned_for_display] + [r[0] for r in ranked_organic]
+    doc_lookup = _fetch_doc_store_entries_by_ids(manifest, cache, base_url, all_result_ids)
+
+    def _to_hit(doc_id: int, score: float, pinned: bool) -> Hit:
+        doc = doc_lookup.get(doc_id)
+        return Hit(
+            id=doc_id,
+            score=score,
+            url=doc.url if doc else "",
+            fields=doc.fields if doc else {},
+            pinned=pinned,
+        )
+
+    hits = [_to_hit(p[0], _score_of(p[0]), True) for p in pinned_for_display] + [
+        _to_hit(doc_id, s, False) for doc_id, s in ranked_organic
     ]
+
+    total_hits = (
+        len(pinned_for_display)
+        if is_exclusive
+        else len({*candidate_ids, *(p[0] for p in pinned_for_display)})
+    )
 
     facets: dict[str, FacetResult] | None = None
     if requested_facet_fields:
@@ -377,4 +439,4 @@ def search(
                 ),
             )
 
-    return SearchResult(hits=hits, total_hits=len(candidate_ids), language=language, facets=facets)
+    return SearchResult(hits=hits, total_hits=total_hits, language=language, facets=facets)

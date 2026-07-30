@@ -179,6 +179,21 @@ def write_index_with_range_facet(out_dir: Path) -> str:
     return manifest_url
 
 
+def write_index_with_pins(out_dir: Path) -> str:
+    """Same two docs as write_basic_index, plus a pin: querying 'widget' also pins doc 2 at
+    high priority."""
+    manifest_url = write_basic_index(out_dir)
+    pins_shard = {
+        "widget": {"mode": "exact", "docs": [{"id": 2, "priority": 10.0, "exclusive": False}]},
+    }
+    (out_dir / "pins.json").write_text(json.dumps(pins_shard))
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["pins"] = {"en": "pins.json"}
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_url
+
+
 def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'category' hierarchy facet with
     separator '/' (deliberately NOT '>', which is search.py's hardcoded fallback
