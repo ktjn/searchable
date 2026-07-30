@@ -20,6 +20,8 @@ The over-HTTP index has an independent integer `Manifest.version`, currently `1`
 
 Content hashes and `buildId` identify a build, not a compatibility level. The producer should validate output against `spec/schema/` and the reference examples in `spec/examples/`. See ADR-0004 through [Architecture decisions](../project/architecture-decisions.md).
 
+`searchable-client` (Python) is a second conformance-tested consumer of this contract, alongside `@ktjn/searchable-client` (TypeScript) — see the cross-implementation conformance suite in `python/searchable-client/tests/test_cross_implementation_conformance.py`.
+
 ## Language codes
 
 The analysis registry accepts the exact base codes `en`, `de`, `sv`, `nl`, `nb`, `nn`, `no`, `zh`, `ja`, `th`, `km`, and `lo`. Regional BCP 47 tags are not normalized yet. For Norwegian, prefer `nb` or `nn`; `no` is retained as an explicit compatibility tag and is never returned by automatic detection.

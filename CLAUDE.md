@@ -1,5 +1,13 @@
 # Instructions for Claude Code
 
+## Two client implementations
+
+Search-behavior feature work (ranking, filters, synonyms, fuzzy matching,
+pins, highlighting, etc.) should be implemented for both `packages/client`
+(TypeScript) and `python/searchable-client` (Python) — they share one index
+format and are expected to stay behaviorally equivalent, verified by
+`python/searchable-client/tests/test_cross_implementation_conformance.py`.
+
 ## Before pushing or opening a PR
 
 Always run `npx biome check .` (or at minimum `npx biome check <changed files>`)
