@@ -22,6 +22,21 @@ export interface PythonBuildOptions {
   synonyms?: Record<string, unknown>;
   fuzzy?: boolean;
   fuzzyMaxEdits?: number;
+  /**
+   * Name of a deterministic, test-only embedder registered in
+   * `python/searchable-indexer/scripts/build_from_config.py` (a Python
+   * callable can't cross the JSON config boundary, so this is a sentinel
+   * the driver script resolves to a real function) -- currently only
+   * `"deterministic"` is registered.
+   */
+  embed?: "deterministic";
+  embeddingProvider?:
+    | { type: "local-model"; model: string }
+    | { type: "remote-api" }
+    | { type: "custom" };
+  vectorQuantization?: "int8" | "float32";
+  vectorWindow?: number;
+  vectorOverlap?: number;
 }
 
 export interface PythonWriteOptions {

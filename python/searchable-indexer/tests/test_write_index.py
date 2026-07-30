@@ -1,8 +1,10 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from searchable_indexer.build_index import build_index
-from searchable_indexer.types import SourceDocument
+from searchable_indexer.types import BuiltIndex, SourceDocument
 from searchable_indexer.write_index import write_index
 
 
@@ -51,6 +53,72 @@ def test_doc_store_file_is_written_and_readable(tmp_path: Path):
     docs_file = tmp_path / docs_entry["file"]
     doc_store = json.loads(docs_file.read_text())
     assert doc_store["1"]["url"] == "/a"
+
+
+def test_write_index_rejects_vector_shards_with_mismatched_dims_across_languages(
+    tmp_path: Path,
+):
+    # Bypasses build_vector_shards' own dims check to prove write_index has
+    # an independent, defense-in-depth assertion of its own.
+    built = BuiltIndex(
+        manifest={
+            "version": 1,
+            "buildId": "test",
+            "format": "json",
+            "languages": ["en", "de"],
+            "defaultLanguage": "en",
+            "fields": {},
+            "docCount": {},
+            "avgFieldLength": {},
+            "shards": {"terms": [], "docs": []},
+        },
+        term_shards={},
+        doc_store={},
+        id_range=(1, 2),
+        vector_shards={
+            "en": {
+                "dims": 2,
+                "quantization": "float32",
+                "entries": [{"passageId": "1-0", "docId": 1, "vector": [1.0, 2.0]}],
+            },
+            "de": {
+                "dims": 3,
+                "quantization": "float32",
+                "entries": [{"passageId": "2-0", "docId": 2, "vector": [1.0, 2.0, 3.0]}],
+            },
+        },
+        embedding_provider={"type": "custom"},
+    )
+    with pytest.raises(ValueError, match="dimension"):
+        write_index(built, str(tmp_path))
+
+
+def test_vector_shards_are_written_and_manifest_records_them(tmp_path: Path):
+    def embed(texts: list[str]) -> list[list[float]]:
+        return [[float(len(t)), 0.0] for t in texts]
+
+    built = build_index(
+        [_doc(1, "/a", "Widgets", "widgets are great")],
+        embed=embed,
+        embedding_provider={"type": "custom"},
+        vector_quantization="float32",
+    )
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    assert manifest["vectors"]["dims"] == 2
+    assert manifest["vectors"]["quantization"] == "float32"
+    assert manifest["vectors"]["embeddingProvider"] == {"type": "custom"}
+    shard_file = manifest["vectors"]["shards"]["en"]
+    shard = json.loads((tmp_path / shard_file).read_text())
+    assert shard["entries"][0]["docId"] == 1
+
+
+def test_no_embed_means_no_vectors_key_in_manifest(tmp_path: Path):
+    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    assert "vectors" not in manifest
 
 
 def test_shard_by_prefix_false_writes_one_shard_named_all(tmp_path: Path):

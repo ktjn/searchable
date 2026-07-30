@@ -40,3 +40,5 @@ class BuiltIndex:
     pins_shards: dict[str, dict] = field(default_factory=dict)
     synonym_shards: dict[str, dict] = field(default_factory=dict)
     fuzzy_shards: dict[str, dict] = field(default_factory=dict)
+    vector_shards: dict[str, dict] = field(default_factory=dict)
+    embedding_provider: dict | None = None
