@@ -117,6 +117,14 @@ def write_index(
     doc_store_format: str = "json",
     fuzzy_shard_format: str = "json",
 ) -> None:
+    if built.structured and doc_store_format == "binary":
+        raise ValueError(
+            'write_index: doc_store_format="binary" is not supported for indexes built '
+            "via build_index_documents() -- binary document-store v1 cannot represent "
+            "arbitrary stored fields, externalId, metadata, or contentHash; use "
+            'doc_store_format="json" for structured indexes'
+        )
+
     languages = sorted(built.term_shards.keys())
     terms: list[dict] = []
     for language in languages:
