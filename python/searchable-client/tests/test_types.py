@@ -75,8 +75,6 @@ def test_old_manifest_shape_gets_indexed_true_default():
 
 
 def test_stored_only_field_without_boost_defaults_to_one():
-    manifest = manifest_from_dict(
-        _base_manifest({"excerpt": {"indexed": False, "stored": True}})
-    )
+    manifest = manifest_from_dict(_base_manifest({"excerpt": {"indexed": False, "stored": True}}))
     assert manifest.fields["excerpt"].boost == 1.0
     assert manifest.fields["excerpt"].indexed is False
