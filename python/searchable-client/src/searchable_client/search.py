@@ -431,9 +431,7 @@ def _vector_hit_result(
                 else None
             ),
             metadata=(
-                doc_lookup[vector_hit.doc_id].metadata
-                if vector_hit.doc_id in doc_lookup
-                else None
+                doc_lookup[vector_hit.doc_id].metadata if vector_hit.doc_id in doc_lookup else None
             ),
             content_hash=(
                 doc_lookup[vector_hit.doc_id].content_hash

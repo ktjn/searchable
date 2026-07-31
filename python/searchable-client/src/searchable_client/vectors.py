@@ -39,9 +39,9 @@ def brute_force_vector_search(
         existing = best_by_doc.get(entry.doc_id)
         if existing is None or score > existing.score:
             best_by_doc[entry.doc_id] = VectorHit(entry.doc_id, entry.passage_id, score)
-    return sorted(
-        best_by_doc.values(), key=lambda hit: (-hit.score, hit.doc_id, hit.passage_id)
-    )[:limit]
+    return sorted(best_by_doc.values(), key=lambda hit: (-hit.score, hit.doc_id, hit.passage_id))[
+        :limit
+    ]
 
 
 def reciprocal_rank_fusion(

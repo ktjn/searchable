@@ -99,7 +99,7 @@ class SearchClient:
             raise VectorUnavailableError(
                 f'SearchClient.search: mode "{options.mode}" requires vectors and a vector '
                 "shard for "
-                f'language {language!r}'
+                f"language {language!r}"
             )
         if self._validate_vector_provider and self._embed_provider is not None:
             if self._embed_provider != vectors.embedding_provider:
@@ -110,14 +110,12 @@ class SearchClient:
                 )
         raw_vector = self._embed_query(query)
         if not isinstance(raw_vector, list) or not all(
-            isinstance(value, (int, float)) and not isinstance(value, bool)
-            for value in raw_vector
+            isinstance(value, (int, float)) and not isinstance(value, bool) for value in raw_vector
         ):
             raise VectorDimensionMismatchError("embed_query must return a list of numbers")
         if len(raw_vector) != vectors.dims:
             raise VectorDimensionMismatchError(
-                f"embed_query returned {len(raw_vector)} dimensions; index requires "
-                f"{vectors.dims}"
+                f"embed_query returned {len(raw_vector)} dimensions; index requires {vectors.dims}"
             )
         return [float(value) for value in raw_vector]
 

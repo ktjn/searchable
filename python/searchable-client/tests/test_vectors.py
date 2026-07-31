@@ -16,9 +16,7 @@ def test_dequantize_int8_uses_shared_shard_range() -> None:
         quant_range=(10.0, 20.0),
         entries=[],
     )
-    assert dequantize_vector([0, 128, 255], shard) == pytest.approx(
-        [10.0, 15.0196078, 20.0]
-    )
+    assert dequantize_vector([0, 128, 255], shard) == pytest.approx([10.0, 15.0196078, 20.0])
 
 
 def test_cosine_similarity_returns_zero_for_zero_vector() -> None:
