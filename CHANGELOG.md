@@ -16,6 +16,15 @@ are explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
+### Python `searchable-client` 0.2.0
+
+- Added injected `embed_query` support for vector and hybrid search against
+  the shared Searchable vector-shard format, including int8 dequantization,
+  cosine ranking, one best passage per document, and Reciprocal Rank Fusion.
+- Added provider compatibility checks and explicit errors for missing vector
+  configuration, unavailable shards, malformed vectors, and dimension
+  mismatches. No embedding-model dependency was added.
+
 The npm packages are not yet published. Their manifests and implemented API
 surface are prepared for a coordinated first release at `1.0.0`.
 

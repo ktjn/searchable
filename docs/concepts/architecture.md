@@ -13,8 +13,9 @@ The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered
 A second, independent client implementation, `searchable-client` (Python,
 `python/searchable-client/`), reads the exact same manifest/shard contract
 for CLI and backend-service use — synchronous, no Worker/browser
-concepts, no vector/hybrid search (tracked as a future addition once the
-Python indexer gains embedding support). Feature work on search behavior
+concepts. It supports vector and hybrid queries when an application injects
+an `embed_query` callable; it intentionally does not bundle a model runtime.
+Feature work on search behavior
 (ranking, filtering, synonyms, fuzzy matching, etc.) should consider both
 clients, not just the TypeScript one — see
 [Python client API](../reference/python-client-api.md).
@@ -26,7 +27,7 @@ rendered HTML -> indexer -> manifest + content-hashed shards -> static host
                                                                |
                                                                +-- query -> SearchClient (TypeScript) -> analysis -> lazy shard fetch -> ranking -> hits
                                                                |
-                                                               +-- query -> SearchClient (Python) -> analysis -> lazy shard fetch -> ranking -> hits
+                                                               +-- query -> SearchClient (Python) -> analysis -> lazy shard fetch -> lexical/vector ranking -> hits
 ```
 
 ## Deployment topology
