@@ -108,7 +108,8 @@
                 "minItems": 2,
                 "maxItems": 2
               },
-              "format": { "enum": ["json", "binary"] }
+              "format": { "enum": ["json", "binary"] },
+              "binaryVersion": { "type": "integer", "minimum": 1 }
             }
           }
         }
