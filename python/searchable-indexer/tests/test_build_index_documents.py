@@ -275,9 +275,15 @@ def test_same_documents_in_different_order_produce_identical_output():
     assert built_a.manifest["avgFieldLength"] == built_b.manifest["avgFieldLength"]
 
 
-def test_zero_field_boost_rejected():
-    with pytest.raises(ValueError, match="boost"):
-        build_index_documents([_doc()], field_definitions=_fields(title=FieldDefinition(boost=0.0)))
+def test_zero_field_boost_is_preserved_without_falling_back_to_one():
+    built = build_index_documents(
+        [_doc()],
+        field_definitions=_fields(
+            title=FieldDefinition(indexed=True, stored=True, boost=0.0)
+        ),
+    )
+
+    assert built.manifest["fields"]["title"]["boost"] == 0.0
 
 
 def test_zero_document_boost_rejected():
@@ -315,10 +321,11 @@ def test_structured_vectors_use_deterministic_indexed_field_content():
         field_definitions=_fields(),
         embed=embed,
         embedding_provider={"type": "test"},
+        vector_field="title",
         vector_quantization="float32",
     )
 
-    assert embedded == ["Body Title"]
+    assert embedded == ["Title"]
     assert built.structured is True
     assert built.vector_shards["en"]["entries"] == [
         {"passageId": "1-0", "docId": 1, "vector": [1.0, 2.0]}
@@ -331,7 +338,54 @@ def test_structured_vectors_require_embedding_provider():
             [_doc()],
             field_definitions=_fields(),
             embed=lambda texts: [[1.0] for _ in texts],
+            vector_field="body",
         )
+
+
+def test_structured_vectors_require_a_declared_indexed_vector_field():
+    with pytest.raises(ValueError, match="vector_field"):
+        build_index_documents(
+            [_doc()],
+            field_definitions=_fields(),
+            embed=lambda texts: [[1.0] for _ in texts],
+            embedding_provider={"type": "test"},
+        )
+
+    with pytest.raises(ValueError, match='vector_field "excerpt"'):
+        build_index_documents(
+            [_doc()],
+            field_definitions=_fields(),
+            embed=lambda texts: [[1.0] for _ in texts],
+            embedding_provider={"type": "test"},
+            vector_field="excerpt",
+        )
+
+
+def test_structured_vectors_require_every_document_to_have_the_vector_field():
+    with pytest.raises(ValueError, match='document 1.*vector_field "body"'):
+        build_index_documents(
+            [_doc(indexed_fields={"title": "Title"})],
+            field_definitions=_fields(),
+            embed=lambda texts: [[1.0] for _ in texts],
+            embedding_provider={"type": "test"},
+            vector_field="body",
+        )
+
+
+def test_structured_vectors_do_not_apply_sliding_windows():
+    long_body = " ".join(f"word{i}" for i in range(25))
+    built = build_index_documents(
+        [_doc(indexed_fields={"body": long_body})],
+        field_definitions=_fields(),
+        embed=lambda texts: [[float(len(texts[0])), 0.0] for _ in texts],
+        embedding_provider={"type": "test"},
+        vector_field="body",
+        vector_quantization="float32",
+        vector_window=10,
+        vector_overlap=2,
+    )
+
+    assert [entry["docId"] for entry in built.vector_shards["en"]["entries"]] == [1]
 
 
 def test_structured_vectors_forward_vector_option_validation():
@@ -341,6 +395,7 @@ def test_structured_vectors_forward_vector_option_validation():
             field_definitions=_fields(),
             embed=lambda texts: [[1.0] for _ in texts],
             embedding_provider={"type": "test"},
+            vector_field="body",
             vector_window=2,
             vector_overlap=2,
         )
@@ -353,4 +408,5 @@ def test_structured_vectors_forward_embedder_cardinality_validation():
             field_definitions=_fields(),
             embed=lambda texts: [],
             embedding_provider={"type": "test"},
+            vector_field="body",
         )

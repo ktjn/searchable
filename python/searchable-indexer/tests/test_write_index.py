@@ -136,6 +136,7 @@ def test_structured_vectors_preserve_document_store_fields(tmp_path: Path):
         },
         embed=embed,
         embedding_provider={"type": "test"},
+        vector_field="body",
         vector_quantization="float32",
     )
     write_index(built, str(tmp_path))
@@ -156,6 +157,25 @@ def test_structured_vectors_preserve_document_store_fields(tmp_path: Path):
     assert entry["externalId"] == "chunk-7"
     assert entry["metadata"] == {"chunkIndex": 7}
     assert entry["contentHash"].startswith("sha256:")
+
+
+def test_legacy_html_vectors_still_use_sliding_windows():
+    words = " ".join(f"word{i}" for i in range(25))
+
+    built = build_index(
+        [_doc(1, "/long", "Long document", words)],
+        embed=lambda texts: [[float(len(texts[0])), 0.0] for _ in texts],
+        embedding_provider={"type": "test"},
+        vector_quantization="float32",
+        vector_window=10,
+        vector_overlap=2,
+    )
+
+    assert [entry["passageId"] for entry in built.vector_shards["en"]["entries"]] == [
+        "1-0",
+        "1-1",
+        "1-2",
+    ]
 
 
 def test_no_embed_means_no_vectors_key_in_manifest(tmp_path: Path):

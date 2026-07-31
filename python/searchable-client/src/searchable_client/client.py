@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Iterable, Iterator
 
 from searchable_client.fetch import ShardCache
@@ -51,5 +52,13 @@ class SearchClient:
     def facet_values(self, field: str, options: FacetValuesOptions | None = None) -> FacetResult:
         return facet_values(field, self._manifest, self._cache, self._index_url, options)
 
-    def retrieve(self, ids: Iterable[int]) -> list[Hit]:
+    def get_documents(self, ids: Iterable[int]) -> list[Hit]:
         return retrieve(ids, self._manifest, self._cache, self._index_url)
+
+    def retrieve(self, ids: Iterable[int]) -> list[Hit]:
+        warnings.warn(
+            "SearchClient.retrieve() is deprecated; use get_documents() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.get_documents(ids)
