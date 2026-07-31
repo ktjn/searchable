@@ -59,6 +59,8 @@ class SearchResult:
 class SearchOptions:
     language: str | None = None
     limit: int = 10
+    mode: str = "lexical"
+    vector_weight: float | None = None
     boosts: dict[str, Any] | None = None  # {"fields": {...}, "terms": {...}}
     filters: dict[str, Any] | None = None
     facets: list[str] = field(default_factory=list)
@@ -362,6 +364,7 @@ def search(
     cache: ShardCache,
     base_url: str,
     options: SearchOptions | None = None,
+    query_vector: list[float] | None = None,
 ) -> SearchResult:
     options = options or SearchOptions()
     language = options.language or manifest.default_language
