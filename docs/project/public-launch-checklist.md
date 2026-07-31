@@ -46,7 +46,7 @@ The maintainer owns the visibility and commit-history decisions.
   `https://ktjn.github.io/searchable/gallery/` return HTTP 200 with Searchable
   branding.
 - [x] Verify every README and community-file link as a signed-out visitor.
-- [ ] Confirm the GitHub Packages npm registry and PyPI trusted publisher are
+- [ ] Confirm the GitHub Packages npm registry and `PYPI_API_TOKEN` secret are
   configured for the first tagged release.
 
 The post-public checks were completed on 2026-07-13. The initial CodeQL scan

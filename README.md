@@ -28,9 +28,8 @@ PyPI from `v*` release tags. Configure the package registries before installing
 them, or evaluate the
 implemented search surfaces in the [live feature gallery](https://ktjn.github.io/searchable/gallery/):
 
-Before releasing, configure a PyPI trusted publisher for the `ktjn/searchable`
-repository, the `.github/workflows/publish.yml` workflow, and the `pypi`
-environment.
+Before releasing, add the PyPI API token as the `PYPI_API_TOKEN` secret for the
+`pypi` GitHub environment.
 
 ```bash
 git clone https://github.com/ktjn/searchable.git

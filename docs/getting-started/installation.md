@@ -27,8 +27,8 @@ The repository also contains the Python `searchable-indexer`, which generates
 the index (`python/searchable-indexer`), and its shared analysis library
 (`python/searchable-analysis`). Use the explicit project path for repository
 development; the release artifacts are available from GitHub Packages and PyPI.
-PyPI publication uses a trusted publisher for this repository's release
-workflow and the `pypi` environment. See
+PyPI publication uses the `PYPI_API_TOKEN` secret in this repository's `pypi`
+environment. See
 [Indexing content](../guides/indexing.md).
 
 If vector embeddings use the built-in Transformers adapter, install its optional peer dependency in the consuming project. Lexical, facet, synonym, fuzzy, and pin searches do not require it.
