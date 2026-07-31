@@ -11,15 +11,41 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci.yml
 
-  publish:
+  publish-npm:
     needs: checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      packages: write
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
-      - run: pnpm publish -r --access public --no-git-checks --provenance
+      - name: Publish npm packages to GitHub Packages
+        run: |
+          pnpm --filter @ktjn/searchable-analysis publish --access public --no-git-checks
+          pnpm --filter @ktjn/searchable-format publish --access public --no-git-checks
+          pnpm --filter @ktjn/searchable-client publish --access public --no-git-checks
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-python:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-python
+      - name: Build Python packages
+        shell: bash
+        run: |
+          for project in python/searchable-analysis python/searchable-indexer python/searchable-client; do
+            uv build --project "$project"
+          done
+      - name: Publish Python packages to GitHub Packages
+        shell: bash
+        run: uvx twine upload --repository-url "https://pypi.pkg.github.com/${GITHUB_REPOSITORY_OWNER}" python/*/dist/*
+        env:
+          TWINE_USERNAME: ${{ github.repository_owner }}
+          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}

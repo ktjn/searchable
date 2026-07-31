@@ -1,10 +1,10 @@
 # Compatibility
 
-This reference distinguishes the planned package-version promises from index-format compatibility and records the prepared `1.0.0` API boundary.
+This reference distinguishes package-version promises from index-format compatibility and records the `1.0.0` API boundary.
 
 ## Package semver
 
-`@ktjn/searchable-client`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis` are not yet published. Their manifests are prepared in lockstep at `1.0.0`, and the semver guarantees below begin with their coordinated first npm release. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
+`@ktjn/searchable-client`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis` are published to GitHub Packages in lockstep at `1.0.0` and later tag releases. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
 
 The index generator, `searchable-indexer` (`python/searchable-indexer`), is a Python project versioned and released independently of the npm packages above; see its own project for its compatibility posture.
 
