@@ -4,7 +4,16 @@ This guide describes the implemented vector storage, brute-force similarity, rec
 
 ## Chunking
 
-The Python `searchable-indexer` (`searchable_indexer.vectors.chunk_text`) is today's default chunker: word-based sliding windows, 200 words per chunk with 20-word overlap by default, configurable per build via `build_index`'s `vector_window`/`vector_overlap` options. It runs at index-build time, not in the TS client. It's a simple, general-purpose splitter, not a structure-aware chunker — a future RAG-oriented use case may need something smarter (heading/section boundaries, sentence-aware splitting), which would likely be a different, opt-in strategy rather than a change to this one.
+The legacy HTML `build_index` path uses the Python `searchable-indexer`
+(`searchable_indexer.vectors.chunk_text`) default chunker: word-based sliding
+windows, 200 words per chunk with 20-word overlap by default, configurable via
+`vector_window`/`vector_overlap`. It runs at index-build time, not in the TS
+client.
+
+Structured `build_index_documents` input uses explicit `vector_field` content
+and produces exactly one vector entry per document. It does not apply
+`vector_window` or `vector_overlap`, so a pre-chunked document remains one
+lexical and vector unit. The caller controls chunking and embedding content.
 
 `build_vector_shards`/`build_index` validate the embedder's output: the returned vector count must match the input text count, every vector must share the same positive dimensionality, and every value must be a finite number (not a bool). `vector_quantization`, `vector_window`, and `vector_overlap` are validated too (`vector_window` must be positive, `vector_overlap` must be `0 <= overlap < window`).
 
@@ -14,7 +23,11 @@ A vector index records dimensions, `float32` or `int8` quantization, the embeddi
 
 Building a vector index requires the Python indexer's `build_index` to be called with an `embed` callable (`Callable[[list[str]], list[list[float]]]`) — no embedding model is bundled with `searchable-indexer` itself, so the caller supplies one (a local model, a remote API call, or anything else that returns vectors). `embedding_provider` (a passthrough metadata dict — `{"type": "local-model", "model": ...}`, `{"type": "remote-api"}`, or `{"type": "custom"}`) is **required** whenever `embed` is set — it records what was used, for `SearchClientOptions.embedQuery`'s own provider-mismatch validation at query time, and without it query-time provider compatibility can't be established. `write_index` then writes the resulting shards conditionally, same as every other optional shard type, and independently re-validates that every language shares the same dimensionality and quantization before writing the manifest.
 
-Each vector entry's `passageId` (`"<docId>-<chunkIndex>"`) is stable only as long as the document's internal id and the chunking parameters don't change — it is not yet a stable public citation identifier. A future RAG-oriented consumer that needs to cite a specific passage durably (across re-chunks, or outside this index's own id space) will likely need an external document id, a content hash, or another stable chunk identifier; that's not implemented yet.
+Each vector entry's `passageId` (`"<docId>-<chunkIndex>"`) is stable only as
+long as the document's internal id and, for legacy HTML input, the chunking
+parameters don't change. Structured documents use one `"<docId>-0"` entry per
+document; their external ID and content hash are available through the
+structured document store.
 
 ## The hard constraint: where does the query embedding come from?
 

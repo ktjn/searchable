@@ -48,16 +48,18 @@ def _derive_excerpt(body: str) -> str:
     return body[:_EXCERPT_LENGTH].rstrip() + "…"
 
 
-def _validate_boost(value, subject: str) -> None:
+def _validate_boost(value, subject: str, *, allow_zero: bool = False) -> None:
     if (
         isinstance(value, bool)
         or not isinstance(value, (int, float))
         or not math.isfinite(value)
-        or value <= 0
+        or value < 0
+        or (value == 0 and not allow_zero)
     ):
+        requirement = "non-negative" if allow_zero else "positive"
         raise ValueError(
             f"build_index_documents: invalid boost {value!r} for {subject} -- "
-            "must be a finite, positive number"
+            f"must be a finite, {requirement} number"
         )
 
 
@@ -82,7 +84,7 @@ def _validate_field_definitions(field_definitions: dict[str, FieldDefinition]) -
                 f'build_index_documents: field "{name}" is declared neither indexed nor '
                 "stored -- every field must be indexed, stored, or both"
             )
-        _validate_boost(definition.boost, f'field "{name}"')
+        _validate_boost(definition.boost, f'field "{name}"', allow_zero=True)
 
 
 def _validate_json_value(value, path: str) -> None:
@@ -309,6 +311,7 @@ def _build_prepared_documents(
     vector_quantization: str = "int8",
     vector_window: int = 200,
     vector_overlap: int = 20,
+    vector_chunking: bool = True,
 ) -> BuiltIndex:
     hierarchical_facets = hierarchical_facets or {}
     range_facet_buckets = range_facet_buckets or {}
@@ -499,6 +502,7 @@ def _build_prepared_documents(
             quantization=vector_quantization,
             window=vector_window,
             overlap=vector_overlap,
+            chunk=vector_chunking,
         )
 
     return BuiltIndex(
@@ -529,19 +533,32 @@ def build_index_documents(
     vector_quantization: str = "int8",
     vector_window: int = 200,
     vector_overlap: int = 20,
+    vector_field: str | None = None,
 ) -> BuiltIndex:
     _validate_field_definitions(field_definitions)
     copied_definitions = _copy_field_definitions(field_definitions)
+    vector_definition = None
+    if embed is not None:
+        if vector_field is None:
+            raise ValueError(
+                "build_index_documents: vector_field is required when embed is set"
+            )
+        if vector_field not in copied_definitions or not copied_definitions[vector_field].indexed:
+            raise ValueError(
+                f'build_index_documents: vector_field "{vector_field}" must reference '
+                "a declared indexed field"
+            )
     prepared = []
     for document in documents:
         copied_document = _copy_document(document)
         vector_text = None
         if embed is not None:
-            vector_text = "\n".join(
-                copied_document.indexed_fields[name]
-                for name in sorted(copied_definitions)
-                if copied_definitions[name].indexed and name in copied_document.indexed_fields
-            )
+            if vector_field not in copied_document.indexed_fields:
+                raise ValueError(
+                    f'build_index_documents: document {copied_document.id} is missing '
+                    f'vector_field "{vector_field}"'
+                )
+            vector_text = copied_document.indexed_fields[vector_field]
         prepared.append(_PreparedDocument(document=copied_document, vector_text=vector_text))
     return _build_prepared_documents(
         prepared,
@@ -557,6 +574,7 @@ def build_index_documents(
         vector_quantization=vector_quantization,
         vector_window=vector_window,
         vector_overlap=vector_overlap,
+        vector_chunking=False,
     )
 
 

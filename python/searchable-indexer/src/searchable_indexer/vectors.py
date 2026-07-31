@@ -74,6 +74,7 @@ def build_vector_shards(
     quantization: str = "int8",
     window: int = 200,
     overlap: int = 20,
+    chunk: bool = True,
 ) -> dict[str, dict]:
     # passageId ("<docId>-<chunkIndex>") is stable only while docId and the
     # window/overlap params don't change -- not yet a stable public citation
@@ -101,8 +102,11 @@ def build_vector_shards(
 
     by_language: dict[str, list[tuple[int, str]]] = {}
     for doc_id, language, text in documents:
-        for chunk in chunk_text(text, window, overlap):
-            by_language.setdefault(language, []).append((doc_id, chunk))
+        if chunk:
+            for passage in chunk_text(text, window, overlap):
+                by_language.setdefault(language, []).append((doc_id, passage))
+        else:
+            by_language.setdefault(language, []).append((doc_id, text))
 
     shards: dict[str, dict] = {}
     corpus_dims: int | None = None

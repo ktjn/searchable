@@ -92,6 +92,24 @@ def test_build_vector_shards_chunks_long_documents_into_multiple_passages():
     assert all(e["docId"] == 1 for e in shards["en"]["entries"])
 
 
+def test_build_vector_shards_can_preserve_one_passage_per_document():
+    words = [f"w{i}" for i in range(25)]
+    documents = [(1, "en", " ".join(words))]
+
+    shards = build_vector_shards(
+        documents,
+        embed=_length_embed,
+        quantization="float32",
+        window=10,
+        overlap=2,
+        chunk=False,
+    )
+
+    assert shards["en"]["entries"] == [
+        {"passageId": "1-0", "docId": 1, "vector": [89.0, 0.0]}
+    ]
+
+
 def test_build_vector_shards_applies_int8_quantization_per_language():
     documents = [(1, "en", "widgets are great")]
 

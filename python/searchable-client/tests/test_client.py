@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from searchable_client import SearchClient, SearchOptions
 from tests.fixtures.build_index import write_index_with_synonyms
 
@@ -72,18 +74,32 @@ def test_client_accepts_bare_filesystem_path_not_just_file_uri(tmp_path: Path):
     client = SearchClient(bare_path)
     result = client.search("widget")
     assert result.total_hits == 2
+    legacy_documents = client.get_documents([2, 1])
+    assert [hit.id for hit in legacy_documents] == [2, 1]
+    assert legacy_documents[0].external_id is None
+    assert legacy_documents[0].metadata is None
+    assert legacy_documents[0].content_hash is None
 
 
 def test_client_retrieve_returns_structured_documents_in_requested_order(tmp_path: Path):
     client = SearchClient(_write_structured_index(tmp_path / "idx"))
 
-    hits = client.retrieve([2, 999, 1])
+    hits = client.get_documents([2, 999, 1])
 
     assert [hit.id for hit in hits] == [2, 1]
     assert hits[0].external_id == "source-two"
     assert hits[0].metadata == {"chunkIndex": 2}
     assert hits[0].content_hash == "sha256:two"
     assert hits[0].score == 0.0
+
+
+def test_client_retrieve_alias_is_deprecated_but_compatible(tmp_path: Path):
+    client = SearchClient(_write_structured_index(tmp_path / "idx"))
+
+    with pytest.warns(DeprecationWarning, match="get_documents"):
+        hits = client.retrieve([1])
+
+    assert [hit.id for hit in hits] == [1]
 
 
 def test_client_search_exposes_structured_hit_fields(tmp_path: Path):
