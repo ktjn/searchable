@@ -51,3 +51,30 @@ def test_manifest_from_dict_reads_optional_pins_synonyms_fuzzy():
     assert manifest.fuzzy is not None
     assert manifest.fuzzy["en"].file == "fuzzy/en.json"
     assert manifest.fuzzy["en"].format == "json"
+
+
+def _base_manifest(fields: dict) -> dict:
+    return {
+        "version": 1,
+        "buildId": "2026-01-01T00:00:00Z",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": fields,
+        "docCount": {"en": 1},
+        "avgFieldLength": {"en": {}},
+        "shards": {"terms": [], "docs": []},
+    }
+
+
+def test_old_manifest_shape_gets_indexed_true_default():
+    manifest = manifest_from_dict(_base_manifest({"title": {"boost": 3.0, "stored": True}}))
+    assert manifest.fields["title"].indexed is True
+    assert manifest.fields["title"].boost == 3.0
+    assert manifest.fields["title"].stored is True
+
+
+def test_stored_only_field_without_boost_defaults_to_one():
+    manifest = manifest_from_dict(_base_manifest({"excerpt": {"indexed": False, "stored": True}}))
+    assert manifest.fields["excerpt"].boost == 1.0
+    assert manifest.fields["excerpt"].indexed is False

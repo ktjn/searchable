@@ -281,3 +281,28 @@ def test_binary_term_shard_content_hash_matches_file_bytes(tmp_path):
     term_entry = manifest["shards"]["terms"][0]
     file_bytes = (tmp_path / term_entry["file"]).read_bytes()
     assert content_hash(file_bytes) in term_entry["file"]
+
+
+def test_binary_doc_store_rejected_for_structured_index(tmp_path):
+    from searchable_indexer.build_index import build_index_documents
+    from searchable_indexer.document import FieldDefinition, IndexDocument
+
+    doc = IndexDocument(id=1, indexed_fields={"body": "widgets are great"})
+    built = build_index_documents(
+        [doc], field_definitions={"body": FieldDefinition(indexed=True, stored=False)}
+    )
+    with pytest.raises(ValueError, match="binary"):
+        write_index(built, str(tmp_path), doc_store_format="binary")
+
+
+def test_binary_doc_store_still_allowed_for_legacy_index(tmp_path):
+    sources = [
+        SourceDocument(
+            id=1, url="/a",
+            html="<html><head><title>Widgets</title></head>"
+                 "<body><main>widgets are great</main></body></html>",
+        )
+    ]
+    built = build_index(sources)
+    write_index(built, str(tmp_path), doc_store_format="binary")
+    assert (tmp_path / "manifest.json").exists()
