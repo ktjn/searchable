@@ -17,6 +17,7 @@ result = client.search(query, options)
 for partial in client.search_stream(query, options):
     ...
 facet = client.facet_values(field, facet_options)
+documents = client.retrieve([42, 43])
 ```
 
 `SearchClient(index_url, *, allow_cross_origin_shards=False, strict=False)`
@@ -41,7 +42,20 @@ implemented yet — and no `signal` — there is no cancellation support.
 
 `SearchResult` contains `hits`, `total_hits`, and `language`, plus requested
 `facets` and optional `did_you_mean`. Every `Hit` has `id`, `score`, `url`,
-and stored `fields`; it may include `pinned` and `highlights`.
+and stored `fields`; structured indexes may additionally provide
+`external_id`, `metadata`, and `content_hash`. A hit may also include `pinned`
+and `highlights`.
+
+## Structured document retrieval
+
+`SearchClient.retrieve(ids)` loads stored documents by their internal integer
+IDs and returns them in the requested order. IDs that are not present are
+omitted. Retrieval is useful for structured/pre-chunked indexes where the
+`external_id`, JSON `metadata`, and `content_hash` need to accompany the
+stored fields. Retrieved hits have a score of `0.0` and no highlights.
+
+Indexes produced before structured document support remain compatible; their
+structured fields are `None`.
 
 ## Streaming/incremental results
 

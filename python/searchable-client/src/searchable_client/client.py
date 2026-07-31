@@ -1,12 +1,14 @@
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 
 from searchable_client.fetch import ShardCache
 from searchable_client.search import (
     FacetResult,
     FacetValuesOptions,
+    Hit,
     SearchOptions,
     SearchResult,
     facet_values,
+    retrieve,
     search,
     search_stream,
 )
@@ -48,3 +50,6 @@ class SearchClient:
 
     def facet_values(self, field: str, options: FacetValuesOptions | None = None) -> FacetResult:
         return facet_values(field, self._manifest, self._cache, self._index_url, options)
+
+    def retrieve(self, ids: Iterable[int]) -> list[Hit]:
+        return retrieve(ids, self._manifest, self._cache, self._index_url)
