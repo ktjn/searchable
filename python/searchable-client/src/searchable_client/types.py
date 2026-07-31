@@ -39,6 +39,14 @@ class FuzzyManifestEntry:
 
 
 @dataclass(frozen=True)
+class VectorManifest:
+    dims: int
+    quantization: str
+    embedding_provider: dict[str, Any]
+    shards: dict[str, str]
+
+
+@dataclass(frozen=True)
 class Manifest:
     version: int
     build_id: str
@@ -54,6 +62,7 @@ class Manifest:
     pins: dict[str, str] | None = None
     synonyms: dict[str, str] | None = None
     fuzzy: dict[str, FuzzyManifestEntry] | None = None
+    vectors: VectorManifest | None = None
 
 
 def manifest_from_dict(data: dict[str, Any]) -> Manifest:
@@ -104,6 +113,16 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
                 for lang, v in data["fuzzy"].items()
             }
             if data.get("fuzzy") is not None
+            else None
+        ),
+        vectors=(
+            VectorManifest(
+                dims=data["vectors"]["dims"],
+                quantization=data["vectors"]["quantization"],
+                embedding_provider=dict(data["vectors"]["embeddingProvider"]),
+                shards=dict(data["vectors"]["shards"]),
+            )
+            if data.get("vectors") is not None
             else None
         ),
     )
@@ -188,6 +207,21 @@ class FuzzyShard:
     deletions: dict[str, list[str]]
 
 
+@dataclass(frozen=True)
+class VectorEntry:
+    passage_id: str
+    doc_id: int
+    vector: list[float]
+
+
+@dataclass(frozen=True)
+class VectorShard:
+    dims: int
+    quantization: str
+    quant_range: tuple[float, float] | None
+    entries: list[VectorEntry]
+
+
 def term_entry_from_dict(data: dict[str, Any]) -> TermEntry:
     return TermEntry(
         df=data["df"],
@@ -265,4 +299,23 @@ def fuzzy_shard_from_dict(data: dict[str, Any]) -> FuzzyShard:
     return FuzzyShard(
         max_edits=data["maxEdits"],
         deletions={k: list(v) for k, v in data["deletions"].items()},
+    )
+
+
+def vector_shard_from_dict(data: dict[str, Any]) -> VectorShard:
+    quant_range = data.get("quantRange")
+    return VectorShard(
+        dims=data["dims"],
+        quantization=data["quantization"],
+        quant_range=(float(quant_range["min"]), float(quant_range["max"]))
+        if quant_range is not None
+        else None,
+        entries=[
+            VectorEntry(
+                passage_id=entry["passageId"],
+                doc_id=entry["docId"],
+                vector=[float(value) for value in entry["vector"]],
+            )
+            for entry in data["entries"]
+        ],
     )
