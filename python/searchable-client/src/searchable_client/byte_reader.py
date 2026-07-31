@@ -24,6 +24,8 @@ class ByteReader:
             shift *= 128
 
     def read_bytes(self, length: int) -> bytes:
+        if length < 0 or self._pos + length > len(self._data):
+            raise ValueError("unexpected end of binary shard while reading bytes")
         out = self._data[self._pos : self._pos + length]
         self._pos += length
         return out
@@ -33,6 +35,5 @@ class ByteReader:
         return self.read_bytes(length).decode("utf-8")
 
     def read_float64(self) -> float:
-        value: float = struct.unpack_from("<d", self._data, self._pos)[0]
-        self._pos += 8
+        value: float = struct.unpack("<d", self.read_bytes(8))[0]
         return value
