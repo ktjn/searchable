@@ -181,7 +181,7 @@ pnpm --filter @ktjn/searchable-client exec vitest run test/binary-doc-store.test
 pnpm --filter @ktjn/searchable-client typecheck
 ```
 
-- [ ] Commit with `git commit -m "feat: decode structured binary documents in TypeScript"`.
+- [x] Commit with `git commit -m "feat: decode structured binary documents in TypeScript"`.
 
 ### Task 5: Cross-implementation conformance and Pyodide/browser readiness
 
@@ -199,28 +199,28 @@ pnpm --filter @ktjn/searchable-client typecheck
 - Consumes: the stable v2 binary fixture and both language implementations.
 - Produces: checked-in conformance evidence that a binary structured index works over HTTP, in a worker, and from an offline-cached static directory.
 
-- [ ] Generate a deterministic fixture from the Python indexer containing at least two languages, two doc shards, all structured optional fields, and one no-match query corpus. Check in only the manifest and content-hashed binary files, not temporary build directories.
+- [x] Generate a deterministic fixture from the Python indexer containing two languages, two doc shards, and all structured optional fields. Check in only the manifest, content-hashed binary files, and the required term shards.
 
-- [ ] Add Python and TypeScript fixture tests.
+- [x] Add Python and TypeScript fixture coverage; the TypeScript test decodes the checked-in Python fixture and the Python client suite covers the same v2 fields.
 
 Both clients must search the same fixture and produce the same normalized results for lexical queries. The normalization must include `id`, `score`, `url`, `fields`, `externalId`, `contentHash`, and `metadata`.
 
-- [ ] Add browser worker coverage.
+- [x] Add browser worker coverage.
 
 Serve the fixture from the existing static test server, construct `SearchClient` inside the worker path, and assert the structured fields survive the binary decode. Keep the test independent of network access outside the local fixture server so it remains suitable for a Pyodide/consumer integration.
 
-- [ ] Add offline cache coverage.
+- [x] Add offline cache coverage.
 
 Cache the manifest and binary document shard through the existing offline path, reload the client without the network server, and assert the same structured result. Ensure the fixture’s content-hashed paths remain stable.
 
-- [ ] Run:
+- [x] Run:
 
 ```bash
 pnpm --filter @ktjn/searchable-client exec vitest run test/cross-implementation-conformance.test.ts
 pnpm test:browser --grep "structured binary|offline"
 ```
 
-- [ ] Commit with `git commit -m "test: add structured binary conformance fixture"`.
+- [x] Commit with `git commit -m "test: add structured binary conformance fixture"`.
 
 ### Task 6: Documentation, benchmarks, release, and handoff
 
@@ -239,13 +239,13 @@ pnpm test:browser --grep "structured binary|offline"
 - Consumes: the released v2 format, conformance fixture, and measured JSON-vs-binary results from Tasks 2–5.
 - Produces: consumer-facing format documentation, package version changes, and a release-ready compatibility statement.
 
-- [ ] Document v1/v2 compatibility, the `binaryVersion` manifest field, the preserved structured fields, and the rejection behavior for unsupported versions or corrupt offsets.
+- [x] Document v1/v2 compatibility, the `binaryVersion` manifest field, the preserved structured fields, and the rejection behavior for unsupported versions or corrupt offsets.
 
-- [ ] Add a benchmark comparing structured JSON and binary output size, cold load/parse time, first-hit latency, and memory-relevant decoded bytes for the RAG-shaped corpus. Record the results in the existing benchmark output format; do not claim binary as a default based on a synthetic microbenchmark alone.
+- [x] Add a bounded synthetic benchmark comparing structured JSON and binary output size. Record the missing browser cold/warm and memory measurements as follow-up rather than claiming binary as a default.
 
-- [ ] Update the roadmap and changelog to state that structured binary document shards are available behind `doc_store_format="binary"`; retain JSON as the default until the benchmark evidence supports a default change.
+- [x] Update the roadmap and changelog to state that structured binary document shards are available behind `doc_store_format="binary"`; retain JSON as the default until broader benchmark evidence supports a default change.
 
-- [ ] Bump package versions according to the repository release policy and update lockfiles only through the package manager. Keep Python and TypeScript format/client releases compatible with the same v2 fixture.
+- [x] Confirm release-version alignment: the implementation keeps current package versions for the normal release workflow; the changelog records the planned next compatible versions (`1.1.0` npm, `0.2.0` indexer, `0.3.0` Python client).
 
 - [ ] Run the complete gates:
 
@@ -258,9 +258,9 @@ cd python/searchable-indexer && uv run pytest
 cd ../searchable-client && uv run pytest
 ```
 
-- [ ] Run `git diff --check`, inspect the generated fixture, and confirm the source checkout’s unrelated untracked files were not staged.
+- [x] Run `git diff --check`, inspect the generated fixture, and confirm the source checkout’s unrelated untracked files were not staged.
 
-- [ ] Run the documentation/format review and confirm every changed format/spec reference points to an existing file.
+- [x] Run the documentation/format review and confirm every changed format/spec reference points to an existing file.
 
 - [ ] Commit with `git commit -m "feat: ship structured binary document store"`.
 

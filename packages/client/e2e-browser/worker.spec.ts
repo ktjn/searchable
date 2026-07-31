@@ -252,9 +252,14 @@ test.describe("structured binary document store in a real Worker", () => {
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-e2e-structured-"));
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-structured-"),
+    );
     await cp(clientDist, rootDir, { recursive: true });
-    await cp(join(__dirname, "fixtures", "harness.html"), join(rootDir, "harness.html"));
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
     const { outDir, cleanup } = await writePythonStructuredIndex(
       structuredSources,
       {},
@@ -272,7 +277,9 @@ test.describe("structured binary document store in a real Worker", () => {
     await rm(rootDir, { recursive: true, force: true });
   });
 
-  test("preserves structured RAG document fields through the Worker", async ({ page }) => {
+  test("preserves structured RAG document fields through the Worker", async ({
+    page,
+  }) => {
     await page.goto(`${baseUrl}harness.html`);
     await page.waitForFunction(() => "__csfHarnessReady" in window);
     const result = await page.evaluate(

@@ -85,7 +85,9 @@ export function decodeBinaryDocStoreEntry(
     return entry;
   }
   if (binaryVersion !== 1) {
-    throw new Error(`unsupported binary document-store version: ${binaryVersion}`);
+    throw new Error(
+      `unsupported binary document-store version: ${binaryVersion}`,
+    );
   }
   const url = r.readString();
   const hasBoost = r.readVarint() === 1;
@@ -94,7 +96,10 @@ export function decodeBinaryDocStoreEntry(
   return boost !== undefined ? { url, boost, fields } : { url, fields };
 }
 
-function structuredHeaderLength(bytes: Uint8Array, binaryVersion?: number): number {
+function structuredHeaderLength(
+  bytes: Uint8Array,
+  binaryVersion?: number,
+): number {
   const inferred = hasMagic(bytes) ? STRUCTURED_VERSION : 1;
   const version = binaryVersion ?? inferred;
   if (version === 1) return 0;
@@ -105,7 +110,9 @@ function structuredHeaderLength(bytes: Uint8Array, binaryVersion?: number): numb
   assertMagic(r);
   const encodedVersion = r.readVarint();
   if (encodedVersion !== STRUCTURED_VERSION) {
-    throw new Error(`unsupported binary document-store version: ${encodedVersion}`);
+    throw new Error(
+      `unsupported binary document-store version: ${encodedVersion}`,
+    );
   }
   return r.position;
 }
@@ -145,7 +152,9 @@ function readStructuredJsonValue(reader: ByteReader): JsonValue {
   }
   if (tag === 4) return reader.readString();
   if (tag === 5) {
-    return Array.from({ length: reader.readVarint() }, () => readStructuredJsonValue(reader));
+    return Array.from({ length: reader.readVarint() }, () =>
+      readStructuredJsonValue(reader),
+    );
   }
   if (tag === 6) {
     const object: Record<string, JsonValue> = {};

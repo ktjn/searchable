@@ -240,9 +240,14 @@ test.describe("structured binary document store offline", () => {
   let rootDir: string;
 
   test.beforeAll(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-e2e-offline-structured-"));
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-offline-structured-"),
+    );
     await cp(clientDist, rootDir, { recursive: true });
-    await cp(join(__dirname, "fixtures", "harness.html"), join(rootDir, "harness.html"));
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
     const { outDir, cleanup } = await writePythonStructuredIndex(
       structuredOfflineSources,
       {},
@@ -260,7 +265,10 @@ test.describe("structured binary document store offline", () => {
     await rm(rootDir, { recursive: true, force: true });
   });
 
-  test("serves structured document fields after going offline", async ({ page, context }) => {
+  test("serves structured document fields after going offline", async ({
+    page,
+    context,
+  }) => {
     await page.goto(`${baseUrl}harness.html`);
     await page.waitForFunction(() => "__csfHarnessReady" in window);
     await page.evaluate(

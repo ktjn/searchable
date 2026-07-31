@@ -3,7 +3,11 @@
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!benchmark-results"]
+    "includes": [
+      "**",
+      "!benchmark-results",
+      "!spec/fixtures/structured-binary-doc-store"
+    ]
   },
   "formatter": {
     "enabled": true,

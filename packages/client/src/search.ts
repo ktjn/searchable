@@ -1225,7 +1225,10 @@ async function fetchDocStoreEntriesByIds(
         const bytes = await cache.fetchArrayBuffer(
           resolve(baseUrl, entry.file),
         );
-        const directory = decodeBinaryDocStoreDirectory(bytes, entry.binaryVersion);
+        const directory = decodeBinaryDocStoreDirectory(
+          bytes,
+          entry.binaryVersion,
+        );
         for (const id of idSet) {
           const location = directory.index.get(id);
           if (!location) continue;

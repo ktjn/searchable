@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   decodeBinaryDocStoreDirectory,
@@ -63,7 +66,9 @@ function string(value: string): Uint8Array {
 }
 
 function concat(...parts: Uint8Array[]): Uint8Array {
-  const result = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+  const result = new Uint8Array(
+    parts.reduce((total, part) => total + part.length, 0),
+  );
   let offset = 0;
   for (const part of parts) {
     result.set(part, offset);
@@ -138,9 +143,34 @@ it("decodes structured binary v2 document fields", () => {
 });
 
 it("rejects malformed structured binary v2 document stores", () => {
-  expect(() => decodeBinaryDocStoreDirectory(new TextEncoder().encode("NOPE\u0002"), 2)).toThrow(
-    /magic/,
+  expect(() =>
+    decodeBinaryDocStoreDirectory(new TextEncoder().encode("NOPE\u0002"), 2),
+  ).toThrow(/magic/);
+});
+
+it("decodes the checked-in Python structured binary fixture", async () => {
+  const fixtureRoot = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../spec/fixtures/structured-binary-doc-store",
   );
+  const manifest = JSON.parse(
+    await readFile(join(fixtureRoot, "manifest.json"), "utf8"),
+  ) as { shards: { docs: Array<{ file: string; binaryVersion: number }> } };
+  const shard = manifest.shards.docs[0];
+  const bytes = new Uint8Array(await readFile(join(fixtureRoot, shard.file)));
+  const directory = decodeBinaryDocStoreDirectory(bytes, shard.binaryVersion);
+  const entry = decodeBinaryDocStoreEntry(
+    bytes,
+    directory.directoryByteLength,
+    directory.index.get(101)?.offset ?? -1,
+    shard.binaryVersion,
+  );
+  expect(entry).toMatchObject({
+    url: "/en/rag",
+    externalId: "docs/rag.md#answer",
+    contentHash: expect.stringMatching(/^sha256:/),
+    metadata: { chunkIndex: 0, headingPath: ["RAG", "Answer"] },
+  });
 });
 
 describe("binary doc store returns identical results to JSON (real HTTP)", () => {

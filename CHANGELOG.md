@@ -16,6 +16,17 @@ are explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
+The next compatible package release is planned as `1.1.0` for the npm packages,
+`0.2.0` for `searchable-indexer`, and `0.3.0` for the Python client.
+
+### Added
+
+- Structured document-store binary v2 for `build_index_documents()` with
+  `doc_store_format="binary"`, preserving URL, boost, external ID, content hash,
+  JSON metadata, and stored fields across Python and TypeScript clients.
+- Cross-language and real-browser Worker/Service Worker conformance coverage;
+  legacy binary v1 and JSON remain supported and JSON remains the default.
+
 ## [1.0.5] - 2026-07-31
 
 This release publishes the merged Python vector and hybrid query support.

@@ -11,7 +11,7 @@ This page is the single current list of shipped capability and remaining work; d
 | Facets, synonyms, fuzzy search, and pins | Stable; a reviewed domain corpus (`gutenberg-fiction-facets`) now exercises terms and range facet filtering under judged relevance | No required 1.0 work; facet counts (`facetValues()`) remain outside judged relevance coverage |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
 | Offline and worker execution | Stable | Resource-aware loading refinements |
-| Binary storage | Term, fuzzy, and document-store codecs | Evaluate remaining shard formats from measured evidence |
+| Binary storage | Term, fuzzy, legacy v1 document-store, and structured v2 document-store codecs; JSON remains the default | Evaluate remaining shard formats from measured evidence |
 | Vector and hybrid search | Optional storage, similarity, and local embeddings implemented | Public semantic showcase and documented scale limits |
 | Performance and scale | One reviewed CMS-2k Chromium main-thread lexical vertical baseline with raw JSON evidence | Broader sizes, browsers, execution modes, query classes, operating guidance, and CI comparison |
 | Extensibility and diagnostics | Draft designs archived | Implement only with a concrete consumer |

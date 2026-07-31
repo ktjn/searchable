@@ -51,10 +51,10 @@ export interface Manifest {
       format?: "json" | "binary";
     }>;
     facets?: Array<{ field: string; file: string }>;
-      docs: Array<{
-        shard: number;
-        file: string;
-        idRange: [number, number];
+    docs: Array<{
+      shard: number;
+      file: string;
+      idRange: [number, number];
       /**
        * Per-shard physical encoding, same allowance and same meaning as
        * the term shard entry's `format` field above
@@ -62,14 +62,14 @@ export interface Manifest {
        * directory-based `docId -> (byte offset, byte length)` encoding
        * (`python/searchable-indexer/src/searchable_indexer/binary_doc_store.py`,
        * `packages/client/src/binary-doc-store.ts`) in place of the plain
-         * JSON `Record<docId, DocStoreEntry>` shape, so a query only ever
+       * JSON `Record<docId, DocStoreEntry>` shape, so a query only ever
        * decodes the specific hit ids it needs instead of the whole doc
        * store.
-         */
-        format?: "json" | "binary";
-        /** Structured binary document-store wire version; absent for JSON and v1 shards. */
-        binaryVersion?: number;
-      }>;
+       */
+      format?: "json" | "binary";
+      /** Structured binary document-store wire version; absent for JSON and v1 shards. */
+      binaryVersion?: number;
+    }>;
   };
   /** lang -> pins shard file, only present for languages with at least one searchable-pin. */
   pins?: Record<string, string>;

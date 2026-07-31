@@ -1,0 +1,1 @@
+{"answer":{"df":1,"postings":[{"boost":1.25,"doc":101,"fields":{"title":{"len":2,"pos":[1],"tf":1}}}]}}

@@ -1,6 +1,6 @@
 # Binary Index Format Specification
 
-Status: Structured binary document-store v2 implementation in progress; term/fuzzy/doc-store v1 shards are implemented — see
+Status: Implemented for Python and TypeScript clients; term/fuzzy/doc-store v1 remains compatible and structured doc-store v2 is opt-in — see
 [09-roadmap.md](../roadmaps/implementation-history.md) and
 [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md) for the shipped
 term-shard encoding (`writeIndex(built, outDir, { termShardFormat: "binary" })`,

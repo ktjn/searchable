@@ -42,11 +42,17 @@ export class ByteReader {
 
   readString(): string {
     const length = this.readVarint();
-    return new TextDecoder("utf-8", { fatal: true }).decode(this.readBytes(length));
+    return new TextDecoder("utf-8", { fatal: true }).decode(
+      this.readBytes(length),
+    );
   }
 
   readFloat64(): number {
     const bytes = this.readBytes(8);
-    return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getFloat64(0, true);
+    return new DataView(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength,
+    ).getFloat64(0, true);
   }
 }
