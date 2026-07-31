@@ -143,3 +143,35 @@ def test_fuzzy_shard_validates_against_fuzzy_shard_schema(tmp_path):
     for language, entry in manifest.get("fuzzy", {}).items():
         fuzzy_shard = json.loads((tmp_path / entry["file"]).read_text())
         jsonschema.validate(instance=fuzzy_shard, schema=schema)
+
+
+def test_structured_index_manifest_and_doc_store_validate_against_schema(tmp_path):
+    from searchable_indexer.build_index import build_index_documents
+    from searchable_indexer.document import FieldDefinition, IndexDocument
+
+    docs = [
+        IndexDocument(
+            id=1,
+            external_id="docs/widgets.md#overview",
+            url="/widgets",
+            language="en",
+            indexed_fields={"title": "Widgets", "body": "widgets are great"},
+            stored_fields={"title": "Widgets", "heading": "Overview"},
+            metadata={"chunkIndex": 0, "tags": ["a", "b"]},
+        )
+    ]
+    fields = {
+        "title": FieldDefinition(indexed=True, stored=True, boost=3.0),
+        "body": FieldDefinition(indexed=True, stored=False),
+        "heading": FieldDefinition(indexed=False, stored=True),
+    }
+    built = build_index_documents(docs, field_definitions=fields)
+    write_index(built, str(tmp_path))
+
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    jsonschema.validate(instance=manifest, schema=_load_schema("manifest.schema.json"))
+
+    doc_store_schema = _load_schema("doc-store-shard.schema.json")
+    for docs_entry in manifest["shards"]["docs"]:
+        doc_store_shard = json.loads((tmp_path / docs_entry["file"]).read_text())
+        jsonschema.validate(instance=doc_store_shard, schema=doc_store_schema)

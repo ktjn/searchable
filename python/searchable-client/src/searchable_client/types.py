@@ -4,8 +4,9 @@ from typing import Any
 
 @dataclass(frozen=True)
 class FieldConfig:
-    boost: float
-    stored: bool
+    boost: float = 1.0
+    stored: bool = False
+    indexed: bool = True
 
 
 @dataclass(frozen=True)
@@ -64,7 +65,11 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
         languages=list(data["languages"]),
         default_language=data["defaultLanguage"],
         fields={
-            name: FieldConfig(boost=cfg["boost"], stored=cfg["stored"])
+            name: FieldConfig(
+                boost=cfg.get("boost", 1.0),
+                stored=cfg.get("stored", False),
+                indexed=cfg.get("indexed", True),
+            )
             for name, cfg in data["fields"].items()
         },
         doc_count=dict(data["docCount"]),
