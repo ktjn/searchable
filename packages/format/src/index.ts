@@ -9,8 +9,9 @@
  */
 
 export interface FieldConfig {
-  boost: number;
+  boost?: number;
   stored: boolean;
+  indexed?: boolean;
 }
 
 export interface Manifest {

@@ -117,6 +117,14 @@ def write_index(
     doc_store_format: str = "json",
     fuzzy_shard_format: str = "json",
 ) -> None:
+    if built.structured and doc_store_format == "binary":
+        raise ValueError(
+            'write_index: doc_store_format="binary" is not supported for indexes built '
+            "via build_index_documents() -- binary document-store v1 cannot represent "
+            "arbitrary stored fields, externalId, metadata, or contentHash; use "
+            'doc_store_format="json" for structured indexes'
+        )
+
     languages = sorted(built.term_shards.keys())
     terms: list[dict] = []
     for language in languages:
@@ -240,6 +248,41 @@ def write_index(
                 )
                 fuzzy[language] = {"file": file}
 
+    vector_languages = sorted(
+        language for language, shard in built.vector_shards.items() if shard.get("entries")
+    )
+    vectors = None
+    if vector_languages:
+        first_shard = built.vector_shards[vector_languages[0]]
+        for language in vector_languages[1:]:
+            shard = built.vector_shards[language]
+            if shard["dims"] != first_shard["dims"]:
+                raise ValueError(
+                    f"write_index: vector shard for language {language!r} has "
+                    f"{shard['dims']} dimensions, but language "
+                    f"{vector_languages[0]!r} has {first_shard['dims']} -- every "
+                    "language must share the same embedding dimensionality"
+                )
+            if shard["quantization"] != first_shard["quantization"]:
+                raise ValueError(
+                    f"write_index: vector shard for language {language!r} uses "
+                    f"{shard['quantization']!r} quantization, but language "
+                    f"{vector_languages[0]!r} uses {first_shard['quantization']!r} "
+                    "-- every language must share the same quantization"
+                )
+
+        vector_shard_files = {}
+        for language in vector_languages:
+            vector_shard_files[language] = _write_json(
+                out_dir, f"vectors/{language}.json", built.vector_shards[language]
+            )
+        vectors = {
+            "dims": first_shard["dims"],
+            "quantization": first_shard["quantization"],
+            "embeddingProvider": built.embedding_provider,
+            "shards": vector_shard_files,
+        }
+
     manifest = {
         **built.manifest,
         "shards": {
@@ -250,6 +293,7 @@ def write_index(
         **({"pins": pins} if pins else {}),
         **({"synonyms": synonyms} if synonyms else {}),
         **({"fuzzy": fuzzy} if fuzzy else {}),
+        **({"vectors": vectors} if vectors else {}),
     }
 
     out_path = Path(out_dir)

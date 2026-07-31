@@ -1,6 +1,6 @@
 {
   "name": "@ktjn/searchable-format",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TypeScript types for the manifest/shard JSON format (docs/concepts/index-format.md, spec/schema/*.schema.json), shared by the indexer and the client so both sides can't silently drift on the format's shape.",
   "license": "MIT",
   "repository": {
@@ -22,6 +22,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"

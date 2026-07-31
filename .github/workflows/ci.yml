@@ -36,6 +36,14 @@ jobs:
         run: |
           uv sync
           uv run pytest -v
+      - name: Install, lint, typecheck, and test searchable-client (Python)
+        working-directory: python/searchable-client
+        run: |
+          uv sync
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy src
+          uv run pytest -v
 
   test:
     runs-on: ubuntu-latest

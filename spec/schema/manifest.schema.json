@@ -32,10 +32,11 @@
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["boost", "stored"],
+        "required": ["stored"],
         "properties": {
           "boost": { "type": "number", "exclusiveMinimum": 0 },
           "stored": { "type": "boolean" },
+          "indexed": { "type": "boolean" },
           "facet": { "type": "boolean" }
         }
       }

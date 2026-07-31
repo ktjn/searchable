@@ -1,5 +1,6 @@
 from searchable_analysis.analyze import Token, analyze, normalize_phrase
 from searchable_analysis.detect_language import detect_language
+from searchable_analysis.generate_deletes import generate_deletes
 from searchable_analysis.is_rtl import is_rtl_language
 from searchable_analysis.language_profile import (
     LanguageProfile,
@@ -32,6 +33,7 @@ __all__ = [
     "analyze",
     "normalize_phrase",
     "detect_language",
+    "generate_deletes",
     "is_rtl_language",
     "LanguageProfile",
     "TokenSpan",

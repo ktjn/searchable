@@ -5,8 +5,8 @@ content-addressed shards over HTTP, evaluates queries locally, and returns
 ranked hits. The package also provides dedicated Web Worker and Service Worker
 entry points.
 
-> Public preview: this package is not yet published to npm. The repository is
-> preparing a coordinated first release at `1.0.0`.
+> Published to GitHub Packages from `v*` release tags. Configure
+> `@ktjn:registry=https://npm.pkg.github.com` before installing.
 
 See the [Searchable repository](https://github.com/ktjn/searchable),
 [documentation](https://ktjn.github.io/searchable/), and

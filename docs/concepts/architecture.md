@@ -10,12 +10,24 @@ The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered
 
 `@ktjn/searchable-client` validates the manifest, resolves all shard files relative to it, analyzes the query, fetches only the required data, evaluates filters and ranking, and loads stored fields for the final hits. The same search code runs directly or behind `@ktjn/searchable-client/worker`. Optional Service Worker support caches the manifest and shards.
 
+A second, independent client implementation, `searchable-client` (Python,
+`python/searchable-client/`), reads the exact same manifest/shard contract
+for CLI and backend-service use — synchronous, no Worker/browser
+concepts. It supports vector and hybrid queries when an application injects
+an `embed_query` callable; it intentionally does not bundle a model runtime.
+Feature work on search behavior
+(ranking, filtering, synonyms, fuzzy matching, etc.) should consider both
+clients, not just the TypeScript one — see
+[Python client API](../reference/python-client-api.md).
+
 ## Data flow for a query
 
 ```text
 rendered HTML -> indexer -> manifest + content-hashed shards -> static host
                                                                |
-query -> SearchClient -> analysis -> lazy shard fetch -> ranking -> hits
+                                                               +-- query -> SearchClient (TypeScript) -> analysis -> lazy shard fetch -> ranking -> hits
+                                                               |
+                                                               +-- query -> SearchClient (Python) -> analysis -> lazy shard fetch -> lexical/vector ranking -> hits
 ```
 
 ## Deployment topology

@@ -1,6 +1,6 @@
 [project]
 name = "searchable-indexer"
-version = "0.1.0"
+version = "0.1.1"
 description = "Reference index builder for Searchable (Python port of the lexical-core subset of @ktjn/searchable-indexer)."
 requires-python = ">=3.10"
 dependencies = [

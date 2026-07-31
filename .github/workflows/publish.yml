@@ -11,15 +11,52 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci.yml
 
-  publish:
+  publish-npm:
     needs: checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      packages: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
-      - run: pnpm publish -r --access public --no-git-checks --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Configure GitHub Packages publishing
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: '@ktjn'
+      - name: Publish npm packages to GitHub Packages
+        run: |
+          pnpm --filter @ktjn/searchable-analysis publish --access public --no-git-checks
+          pnpm --filter @ktjn/searchable-format publish --access public --no-git-checks
+          pnpm --filter @ktjn/searchable-client publish --access public --no-git-checks
+
+  publish-python:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-python
+      - name: Build Python packages
+        shell: bash
+        run: |
+          for project in python/searchable-analysis python/searchable-indexer python/searchable-client; do
+            uv build --project "$project"
+          done
+      - name: Collect Python distributions
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp python/*/dist/* dist/
+      - name: Publish Python packages to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

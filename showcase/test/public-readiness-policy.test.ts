@@ -22,7 +22,7 @@ test("public community and package documentation exists", () => {
   }
 });
 
-test("public docs describe an unpublished preview", () => {
+test("public docs describe the published package surface", () => {
   const docs = [
     read("README.md"),
     read("docs/getting-started/installation.md"),
@@ -30,23 +30,22 @@ test("public docs describe an unpublished preview", () => {
     read("CHANGELOG.md"),
   ].join("\n");
 
-  expect(docs).toContain("not yet published");
-  expect(docs).not.toContain("The published package API is `1.0.0`");
-  expect(docs).not.toContain("are published in lockstep at `1.0.0`");
-  expect(read("README.md")).not.toContain("pnpm add @ktjn/searchable-client");
-  expect(read("docs/getting-started/installation.md")).not.toContain(
-    "pnpm add @ktjn/searchable-client",
+  expect(docs).toContain("published to GitHub Packages");
+  expect(docs).toContain("published to PyPI");
+  expect(docs).not.toContain("not yet published");
+  expect(read("README.md")).toContain(
+    "uv add searchable-indexer searchable-analysis searchable-client",
   );
 });
 
-test("public npm manifests are prepared for the planned first release", () => {
+test("public npm manifests use the current patch release", () => {
   for (const directory of ["client", "analysis", "format"]) {
     const pkg = JSON.parse(read(`packages/${directory}/package.json`)) as {
       version?: string;
       engines?: { node?: string };
       repository?: { url?: string };
     };
-    expect(pkg.version, directory).toBe("1.0.0");
+    expect(pkg.version, directory).toBe("1.0.1");
     expect(pkg.engines?.node, directory).toBe(">=24");
     expect(pkg.repository?.url, directory).toBe(
       "git+https://github.com/ktjn/searchable.git",

@@ -16,13 +16,33 @@ are explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
-The npm packages are not yet published. Their manifests and implemented API
-surface are prepared for a coordinated first release at `1.0.0`.
+## [1.0.5] - 2026-07-31
 
-### Prepared for 1.0.0
+This release publishes the merged Python vector and hybrid query support.
 
-This is the feature summary for the planned first stable release. Everything
-below was built and tested across prior unreleased commits.
+- `searchable-client` `0.2.0`: injected query embeddings, vector shard
+  loading, cosine search, best-passage collapse, hybrid RRF, and explicit
+  provider/configuration errors.
+- Patch releases for the compatible npm packages (`1.0.1`) and Python
+  analysis/indexer packages (`0.1.1`) allow the tag-triggered publish workflow
+  to publish each artifact exactly once.
+
+### Python `searchable-client` 0.2.0
+
+- Added injected `embed_query` support for vector and hybrid search against
+  the shared Searchable vector-shard format, including int8 dequantization,
+  cosine ranking, one best passage per document, and Reciprocal Rank Fusion.
+- Added provider compatibility checks and explicit errors for missing vector
+  configuration, unavailable shards, malformed vectors, and dimension
+  mismatches. No embedding-model dependency was added.
+
+The npm packages are published to GitHub Packages and the Python packages are
+published to PyPI from tagged releases. The entries below preserve the
+historical `1.0.0` feature summary.
+
+### Historical 1.0.0 feature summary
+
+This is the feature summary for the first stable release.
 
 ### Added
 

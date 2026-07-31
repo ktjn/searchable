@@ -8,7 +8,8 @@ The Python `searchable-indexer` (`python/searchable-indexer`) is the index gener
 uv run --project python/searchable-indexer searchable-indexer ./dist/site ./dist/site/search-index
 ```
 
-That command refers to this repository project; it does not imply that `searchable-indexer` is published to PyPI.
+That command refers to this repository project. Release artifacts for
+`searchable-indexer` are published to PyPI.
 
 For build/write options beyond the CLI's defaults (field boosts, facets, synonyms, fuzzy matching, shard formats, and so on), drive `build_index`/`write_index` directly — either from your own Python script or via the repository's `scripts/build_from_config.py`, which reads a source list and a JSON config of `build`/`write` keyword arguments:
 

@@ -1,8 +1,10 @@
 # Installation
 
-The npm and Python packages are not yet published. This page identifies the
-environment each package expects and explains how to evaluate the current
-implementation from the repository.
+The npm packages are published to GitHub Packages and the Python packages to
+PyPI from `v*` release tags. This page identifies the environment each package
+expects and explains
+how to install them or evaluate the current implementation from the
+repository.
 
 Clone and build the TypeScript workspace with Node.js 24 and pnpm 11:
 
@@ -15,16 +17,22 @@ pnpm build
 pnpm test
 ```
 
-The package manifests are prepared for a coordinated first npm release at
-`1.0.0`. Until that release exists, the repository workspace is a development
-and interoperability surface rather than a supported production installation
-method. `@ktjn/searchable-client` targets modern browsers with `fetch`, `URL`,
-and optional Web Worker and Service Worker support.
+For npm, configure `@ktjn:registry=https://npm.pkg.github.com` and authenticate
+with a GitHub token that has `read:packages`. Python packages install from the
+standard PyPI index. `@ktjn/searchable-client` targets
+modern browsers with `fetch`, `URL`, and optional Web Worker and Service Worker
+support.
 
-The repository also contains the Python `searchable-indexer`, which generates the index (`python/searchable-indexer`), and its shared analysis library (`python/searchable-analysis`). Both are checked out with this project, not published to PyPI. Use the explicit project path when running them; see [Indexing content](../guides/indexing.md).
+The repository also contains the Python `searchable-indexer`, which generates
+the index (`python/searchable-indexer`), and its shared analysis library
+(`python/searchable-analysis`). Use the explicit project path for repository
+development; the release artifacts are available from GitHub Packages and PyPI.
+PyPI publication uses the `PYPI_API_TOKEN` secret in this repository's `pypi`
+environment. See
+[Indexing content](../guides/indexing.md).
 
 If vector embeddings use the built-in Transformers adapter, install its optional peer dependency in the consuming project. Lexical, facet, synonym, fuzzy, and pin searches do not require it.
 
 See the [live feature gallery](https://ktjn.github.io/searchable/gallery/) to
 evaluate generated indexes without a local build. The [First search](first-search.md)
-page documents the planned package API.
+page documents the package API.
