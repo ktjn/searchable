@@ -1,6 +1,6 @@
 # Client API
 
-This reference lists the implemented `@ktjn/searchable-client` surface and the exact option names prepared for the planned `1.0.0` package. The package is not yet published to npm.
+This reference lists the implemented `@ktjn/searchable-client` surface and the exact option names for the `1.0.0` package published to GitHub Packages.
 
 ## SearchClient
 

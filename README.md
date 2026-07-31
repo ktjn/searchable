@@ -23,9 +23,9 @@ Searchable builds a static search index ahead of time and searches it in the bro
 
 ## Public preview
 
-The npm and Python packages are not yet published. Evaluate the implemented
-search surfaces in the [live feature gallery](https://ktjn.github.io/searchable/gallery/)
-or work with the repository directly:
+The npm and Python packages are published to GitHub Packages from `v*` release
+tags. Configure the package registries before installing them, or evaluate the
+implemented search surfaces in the [live feature gallery](https://ktjn.github.io/searchable/gallery/):
 
 ```bash
 git clone https://github.com/ktjn/searchable.git
@@ -36,13 +36,14 @@ pnpm build
 pnpm test
 ```
 
-The package manifests are prepared for a coordinated first npm release at
-`1.0.0`. Until that release exists, do not use the package names in production
-installation commands.
+For npm, add `@ktjn:registry=https://npm.pkg.github.com` to `.npmrc` and provide
+a GitHub token with `read:packages`. For Python, configure
+`https://pypi.pkg.github.com/ktjn/simple/` as an additional package index and
+provide a token with `read:packages`.
 
 ### API shape
 
-The planned package API builds and publishes an index, then creates a client
+The package API builds and publishes an index, then creates a client
 that points at its manifest:
 
 ```ts
@@ -91,8 +92,8 @@ security issues through the private process in [Security](SECURITY.md).
 
 ## Status
 
-The implemented package surface is prepared for a planned first npm release at
-`1.0.0`, but it is not yet published. The lexical, facet, synonym, fuzzy,
+The implemented package surface is released from `v*` tags to GitHub Packages.
+The lexical, facet, synonym, fuzzy,
 pinning, worker, offline, binary-storage, and vector/hybrid surfaces described
 in these docs are implemented. Planned work is collected only in the
 [roadmap](docs/project/roadmap.md); historical investigations and superseded

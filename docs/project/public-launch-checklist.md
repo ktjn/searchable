@@ -17,8 +17,8 @@ The maintainer owns the visibility and commit-history decisions.
 - [ ] Decide whether the non-noreply commit metadata, including a Gmail address,
   may become public. A history rewrite is a separate, explicitly authorized
   operation.
-- [x] README and package documentation state that npm and Python packages are
-  not yet published.
+- [x] README and package documentation describe the GitHub Packages release
+  path for npm and Python packages.
 - [x] No release tag or GitHub release exists for the prepared `1.0.0` package
   manifests.
 
@@ -46,17 +46,17 @@ The maintainer owns the visibility and commit-history decisions.
   `https://ktjn.github.io/searchable/gallery/` return HTTP 200 with Searchable
   branding.
 - [x] Verify every README and community-file link as a signed-out visitor.
-- [x] Confirm `npm view @ktjn/searchable-client version` still returns `E404`;
-  registry publication is a later coordinated release.
+- [ ] Confirm the GitHub Packages npm and Python registries are configured for
+  the first tagged release.
 
 The post-public checks were completed on 2026-07-13. The initial CodeQL scan
 covered Actions, TypeScript/JavaScript, and Python; its findings were triaged
 into least-privilege CI permissions and traversal containment for test-only
 static servers. Secret scanning and Dependabot reported no open alerts.
 
-## First npm release
+## First package release
 
 Package publication is outside the visibility cutover. Before tagging
 `v1.0.0`, complete the release checklist in [Project governance](governance.md),
-inspect all four npm tarballs, confirm npm authentication or trusted publishing,
-and update preview wording only after the registry confirms publication.
+inspect all three npm and three Python artifacts, and confirm GitHub Packages
+authentication with a read-only install from each registry.
