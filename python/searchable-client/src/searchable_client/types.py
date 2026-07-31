@@ -134,6 +134,9 @@ class DocStoreEntry:
     url: str
     fields: dict[str, str]
     boost: float | None = None
+    external_id: str | None = None
+    metadata: dict[str, Any] | None = None
+    content_hash: str | None = None
 
 
 @dataclass(frozen=True)
@@ -207,7 +210,14 @@ def term_shard_from_dict(data: dict[str, Any]) -> dict[str, TermEntry]:
 
 
 def doc_store_entry_from_dict(data: dict[str, Any]) -> DocStoreEntry:
-    return DocStoreEntry(url=data["url"], boost=data.get("boost"), fields=dict(data["fields"]))
+    return DocStoreEntry(
+        url=data["url"],
+        boost=data.get("boost"),
+        fields=dict(data["fields"]),
+        external_id=data.get("externalId"),
+        metadata=dict(data["metadata"]) if data.get("metadata") is not None else None,
+        content_hash=data.get("contentHash"),
+    )
 
 
 def doc_store_shard_from_dict(data: dict[str, Any]) -> dict[int, DocStoreEntry]:

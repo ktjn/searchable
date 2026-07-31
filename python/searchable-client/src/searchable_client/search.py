@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -41,6 +41,9 @@ class Hit:
     fields: dict[str, str]
     pinned: bool = False
     highlights: dict[str, list[HighlightSpan]] | None = None
+    external_id: str | None = None
+    metadata: dict[str, Any] | None = None
+    content_hash: str | None = None
 
 
 @dataclass
@@ -599,6 +602,9 @@ def search(
             score=score,
             url=doc.url if doc else "",
             fields=fields,
+            external_id=doc.external_id if doc else None,
+            metadata=doc.metadata if doc else None,
+            content_hash=doc.content_hash if doc else None,
             pinned=pinned,
             highlights=highlights,
         )
@@ -656,6 +662,29 @@ def search(
         facets=facets,
         did_you_mean=did_you_mean,
     )
+
+
+def retrieve(
+    ids: Iterable[int],
+    manifest: Manifest,
+    cache: ShardCache,
+    base_url: str,
+) -> list[Hit]:
+    requested_ids = list(ids)
+    doc_lookup = _fetch_doc_store_entries_by_ids(manifest, cache, base_url, requested_ids)
+    return [
+        Hit(
+            id=doc_id,
+            score=0.0,
+            url=doc_lookup[doc_id].url,
+            fields=doc_lookup[doc_id].fields,
+            external_id=doc_lookup[doc_id].external_id,
+            metadata=doc_lookup[doc_id].metadata,
+            content_hash=doc_lookup[doc_id].content_hash,
+        )
+        for doc_id in requested_ids
+        if doc_id in doc_lookup
+    ]
 
 
 def search_stream(
