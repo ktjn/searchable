@@ -524,10 +524,25 @@ def build_index_documents(
     synonyms: dict[str, dict] | None = None,
     fuzzy: bool = False,
     fuzzy_max_edits: int = 1,
+    embed: Callable[[list[str]], list[list[float]]] | None = None,
+    embedding_provider: dict | None = None,
+    vector_quantization: str = "int8",
+    vector_window: int = 200,
+    vector_overlap: int = 20,
 ) -> BuiltIndex:
     _validate_field_definitions(field_definitions)
     copied_definitions = _copy_field_definitions(field_definitions)
-    prepared = [_PreparedDocument(document=_copy_document(d)) for d in documents]
+    prepared = []
+    for document in documents:
+        copied_document = _copy_document(document)
+        vector_text = None
+        if embed is not None:
+            vector_text = "\n".join(
+                copied_document.indexed_fields[name]
+                for name in sorted(copied_definitions)
+                if copied_definitions[name].indexed and name in copied_document.indexed_fields
+            )
+        prepared.append(_PreparedDocument(document=copied_document, vector_text=vector_text))
     return _build_prepared_documents(
         prepared,
         field_definitions=copied_definitions,
@@ -537,6 +552,11 @@ def build_index_documents(
         fuzzy_max_edits=fuzzy_max_edits,
         content_hash=True,
         structured=True,
+        embed=embed,
+        embedding_provider=embedding_provider,
+        vector_quantization=vector_quantization,
+        vector_window=vector_window,
+        vector_overlap=vector_overlap,
     )
 
 

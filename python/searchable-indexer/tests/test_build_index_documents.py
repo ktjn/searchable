@@ -300,3 +300,57 @@ def test_list_of_pairs_indexed_fields_rejected_not_silently_coerced():
         build_index_documents(
             [_doc(indexed_fields=[("body", "x")])], field_definitions=_fields()
         )
+
+
+def test_structured_vectors_use_deterministic_indexed_field_content():
+    embedded: list[str] = []
+
+    def embed(texts: list[str]) -> list[list[float]]:
+        embedded.extend(texts)
+        return [[1.0, 2.0] for _ in texts]
+
+    doc = _doc(indexed_fields={"body": "Body", "title": "Title"})
+    built = build_index_documents(
+        [doc],
+        field_definitions=_fields(),
+        embed=embed,
+        embedding_provider={"type": "test"},
+        vector_quantization="float32",
+    )
+
+    assert embedded == ["Body Title"]
+    assert built.structured is True
+    assert built.vector_shards["en"]["entries"] == [
+        {"passageId": "1-0", "docId": 1, "vector": [1.0, 2.0]}
+    ]
+
+
+def test_structured_vectors_require_embedding_provider():
+    with pytest.raises(ValueError, match="embedding_provider is required"):
+        build_index_documents(
+            [_doc()],
+            field_definitions=_fields(),
+            embed=lambda texts: [[1.0] for _ in texts],
+        )
+
+
+def test_structured_vectors_forward_vector_option_validation():
+    with pytest.raises(ValueError, match="vector_overlap"):
+        build_index_documents(
+            [_doc()],
+            field_definitions=_fields(),
+            embed=lambda texts: [[1.0] for _ in texts],
+            embedding_provider={"type": "test"},
+            vector_window=2,
+            vector_overlap=2,
+        )
+
+
+def test_structured_vectors_forward_embedder_cardinality_validation():
+    with pytest.raises(ValueError, match="wrong number of vectors"):
+        build_index_documents(
+            [_doc()],
+            field_definitions=_fields(),
+            embed=lambda texts: [],
+            embedding_provider={"type": "test"},
+        )
