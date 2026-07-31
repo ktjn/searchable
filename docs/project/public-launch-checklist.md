@@ -46,8 +46,8 @@ The maintainer owns the visibility and commit-history decisions.
   `https://ktjn.github.io/searchable/gallery/` return HTTP 200 with Searchable
   branding.
 - [x] Verify every README and community-file link as a signed-out visitor.
-- [ ] Confirm the GitHub Packages npm and Python registries are configured for
-  the first tagged release.
+- [ ] Confirm the GitHub Packages npm registry and PyPI trusted publisher are
+  configured for the first tagged release.
 
 The post-public checks were completed on 2026-07-13. The initial CodeQL scan
 covered Actions, TypeScript/JavaScript, and Python; its findings were triaged
@@ -59,4 +59,4 @@ static servers. Secret scanning and Dependabot reported no open alerts.
 Package publication is outside the visibility cutover. Before tagging
 `v1.0.0`, complete the release checklist in [Project governance](governance.md),
 inspect all three npm and three Python artifacts, and confirm GitHub Packages
-authentication with a read-only install from each registry.
+authentication and a read-only install from GitHub Packages and PyPI.
