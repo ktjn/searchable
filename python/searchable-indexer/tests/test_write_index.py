@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from searchable_indexer.build_index import build_index
+from searchable_indexer.build_index import build_index, build_index_documents
+from searchable_indexer.document import FieldDefinition, IndexDocument
 from searchable_indexer.types import BuiltIndex, SourceDocument
 from searchable_indexer.write_index import write_index
 
@@ -112,6 +113,49 @@ def test_vector_shards_are_written_and_manifest_records_them(tmp_path: Path):
     shard_file = manifest["vectors"]["shards"]["en"]
     shard = json.loads((tmp_path / shard_file).read_text())
     assert shard["entries"][0]["docId"] == 1
+
+
+def test_structured_vectors_preserve_document_store_fields(tmp_path: Path):
+    def embed(texts: list[str]) -> list[list[float]]:
+        return [[float(len(texts[0])), 0.0]]
+
+    built = build_index_documents(
+        [
+            IndexDocument(
+                id=7,
+                external_id="chunk-7",
+                url="/chunks/7",
+                indexed_fields={"body": "structured chunk"},
+                stored_fields={"title": "Chunk 7"},
+                metadata={"chunkIndex": 7},
+            )
+        ],
+        field_definitions={
+            "body": FieldDefinition(indexed=True),
+            "title": FieldDefinition(indexed=False, stored=True),
+        },
+        embed=embed,
+        embedding_provider={"type": "test"},
+        vector_quantization="float32",
+    )
+    write_index(built, str(tmp_path))
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+
+    assert manifest["vectors"]["dims"] == 2
+    assert manifest["vectors"]["quantization"] == "float32"
+    assert manifest["vectors"]["embeddingProvider"] == {"type": "test"}
+    vector_shard = json.loads(
+        (tmp_path / manifest["vectors"]["shards"]["en"]).read_text()
+    )
+    assert vector_shard["entries"][0]["docId"] == 7
+
+    doc_shard = json.loads(
+        (tmp_path / manifest["shards"]["docs"][0]["file"]).read_text()
+    )
+    entry = doc_shard["7"]
+    assert entry["externalId"] == "chunk-7"
+    assert entry["metadata"] == {"chunkIndex": 7}
+    assert entry["contentHash"].startswith("sha256:")
 
 
 def test_no_embed_means_no_vectors_key_in_manifest(tmp_path: Path):
