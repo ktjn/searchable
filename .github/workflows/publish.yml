@@ -17,6 +17,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
@@ -25,15 +27,14 @@ jobs:
           pnpm --filter @ktjn/searchable-analysis publish --access public --no-git-checks
           pnpm --filter @ktjn/searchable-format publish --access public --no-git-checks
           pnpm --filter @ktjn/searchable-client publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-python:
     needs: checks
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       contents: read
-      packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
@@ -43,9 +44,12 @@ jobs:
           for project in python/searchable-analysis python/searchable-indexer python/searchable-client; do
             uv build --project "$project"
           done
-      - name: Publish Python packages to GitHub Packages
+      - name: Collect Python distributions
         shell: bash
-        run: uvx twine upload --repository-url "https://pypi.pkg.github.com/${GITHUB_REPOSITORY_OWNER}" python/*/dist/*
-        env:
-          TWINE_USERNAME: ${{ github.repository_owner }}
-          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p dist
+          cp python/*/dist/* dist/
+      - name: Publish Python packages to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

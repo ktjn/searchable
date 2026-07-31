@@ -3,8 +3,8 @@
 This reference lists the implemented `searchable-client` (Python) surface — a
 second, independent client implementation for CLI and backend-service use
 that reads the same manifest/shard contract as `@ktjn/searchable-client`. The
-package lives at `python/searchable-client/` and is published to the GitHub
-Packages Python registry from `v*` release tags.
+package lives at `python/searchable-client/` and is published to PyPI from
+`v*` release tags.
 
 ## SearchClient
 

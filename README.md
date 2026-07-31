@@ -23,9 +23,14 @@ Searchable builds a static search index ahead of time and searches it in the bro
 
 ## Public preview
 
-The npm and Python packages are published to GitHub Packages from `v*` release
-tags. Configure the package registries before installing them, or evaluate the
+The npm packages are published to GitHub Packages and the Python packages to
+PyPI from `v*` release tags. Configure the package registries before installing
+them, or evaluate the
 implemented search surfaces in the [live feature gallery](https://ktjn.github.io/searchable/gallery/):
+
+Before releasing, configure a PyPI trusted publisher for the `ktjn/searchable`
+repository, the `.github/workflows/publish.yml` workflow, and the `pypi`
+environment.
 
 ```bash
 git clone https://github.com/ktjn/searchable.git
@@ -37,9 +42,12 @@ pnpm test
 ```
 
 For npm, add `@ktjn:registry=https://npm.pkg.github.com` to `.npmrc` and provide
-a GitHub token with `read:packages`. For Python, configure
-`https://pypi.pkg.github.com/ktjn/simple/` as an additional package index and
-provide a token with `read:packages`.
+a GitHub token with `read:packages`. Python packages are installed from the
+standard PyPI index:
+
+```bash
+uv add searchable-indexer searchable-analysis searchable-client
+```
 
 ### API shape
 
