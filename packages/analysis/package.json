@@ -1,6 +1,6 @@
 {
   "name": "@ktjn/searchable-analysis",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Shared tokenization/analysis pipeline used identically by the indexer and the runtime, so index-time and query-time analysis can never drift apart.",
   "license": "MIT",
   "repository": {
