@@ -49,3 +49,25 @@ const result = await search.search("how do I deploy this?", {
 `mode: "vector"` ranks by cosine similarity. `mode: "hybrid"` combines lexical and vector rankings with reciprocal-rank fusion; editorial pins stay in front. Missing vector configuration throws `VectorSearchNotConfiguredError`, and mismatched provider metadata throws `VectorProviderMismatchError`.
 
 The current vector scan is local and brute force, appropriate for modest static corpora. A public semantic showcase is tracked in the [roadmap](../project/roadmap.md).
+
+## Python client
+
+The Python `searchable-client` uses the same vector shards and accepts an
+application-provided query embedder:
+
+```python
+client = SearchClient(
+    index_url,
+    embed_query={
+        "embed": embed_query,
+        "provider": {"type": "custom"},
+    },
+)
+result = client.search("how do I deploy this?", SearchOptions(mode="hybrid"))
+```
+
+The provider descriptor is optional for a bare callable and required only
+when the caller wants compatibility validation against the manifest. Python
+raises explicit errors for missing vectors, provider mismatches, malformed
+shards, and wrong-dimensional embeddings. It has no Transformers or other
+model dependency and remains synchronous and transport-agnostic.

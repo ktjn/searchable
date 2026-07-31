@@ -31,6 +31,10 @@ implemented search surfaces in the [live feature gallery](https://ktjn.github.io
 Before releasing, add the PyPI API token as the `PYPI_API_TOKEN` secret for the
 `pypi` GitHub environment.
 
+The Python `searchable-client` also supports injected vector and hybrid query
+embeddings without bundling a model runtime; see the [Python client API
+reference](docs/reference/python-client-api.md).
+
 ```bash
 git clone https://github.com/ktjn/searchable.git
 cd searchable
