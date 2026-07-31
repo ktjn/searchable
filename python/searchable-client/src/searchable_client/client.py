@@ -124,6 +124,10 @@ class SearchClient:
     def search_stream(
         self, query: str, options: SearchOptions | None = None
     ) -> Iterator[SearchResult]:
+        options = options or SearchOptions()
+        if options.mode != "lexical":
+            yield self.search(query, options)
+            return
         yield from search_stream(query, self._manifest, self._cache, self._index_url, options)
 
     def facet_values(self, field: str, options: FacetValuesOptions | None = None) -> FacetResult:

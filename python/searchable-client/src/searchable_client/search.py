@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
+from math import isfinite
 from typing import Any
 
 from searchable_analysis import (  # type: ignore[import-untyped]
@@ -8,6 +9,11 @@ from searchable_analysis import (  # type: ignore[import-untyped]
     normalize_phrase,
 )
 
+from searchable_client.errors import (
+    InvalidVectorShardError,
+    VectorSearchNotConfiguredError,
+    VectorUnavailableError,
+)
 from searchable_client.fetch import ShardCache, resolve_url
 from searchable_client.highlight import HighlightSpan, HighlightTerm, highlight_text
 from searchable_client.parse_query import parse_query
@@ -25,7 +31,9 @@ from searchable_client.types import (
     pins_shard_from_dict,
     synonym_shard_from_dict,
     term_shard_from_dict,
+    vector_shard_from_dict,
 )
+from searchable_client.vectors import VectorHit, brute_force_vector_search, reciprocal_rank_fusion
 
 UNSHARDED_TERM_SHARD_PREFIX = "all"
 DEFAULT_SYNONYM_WEIGHT = 0.5
@@ -358,6 +366,165 @@ def _fetch_doc_store_entries_by_ids(
     return doc_lookup
 
 
+def _load_vector_hits(
+    manifest: Manifest,
+    cache: ShardCache,
+    base_url: str,
+    language: str,
+    query_vector: list[float],
+    limit: int,
+) -> list["VectorHit"]:
+    vectors = manifest.vectors
+    if vectors is None or language not in vectors.shards:
+        raise VectorUnavailableError(f"no vector shard is configured for language {language!r}")
+    try:
+        shard = vector_shard_from_dict(
+            cache.fetch_json(resolve_url(base_url, vectors.shards[language]))
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise InvalidVectorShardError(
+            f"could not parse vector shard for {language!r}: {exc}"
+        ) from exc
+    if shard.dims != vectors.dims:
+        raise InvalidVectorShardError(
+            f"vector shard dims {shard.dims} do not match manifest dims {vectors.dims}"
+        )
+    if shard.quantization != vectors.quantization:
+        raise InvalidVectorShardError(
+            f"vector shard quantization {shard.quantization!r} does not match manifest "
+            f"quantization {vectors.quantization!r}"
+        )
+    if shard.quantization == "int8" and shard.quant_range is None:
+        raise InvalidVectorShardError("int8 vector shard requires quantRange")
+    for entry in shard.entries:
+        if len(entry.vector) != shard.dims:
+            raise InvalidVectorShardError(
+                f"vector entry {entry.passage_id!r} has {len(entry.vector)} dims; "
+                f"shard requires {shard.dims}"
+            )
+        if not all(isfinite(value) for value in entry.vector):
+            raise InvalidVectorShardError(
+                f"vector entry {entry.passage_id!r} contains non-finite values"
+            )
+    return brute_force_vector_search(query_vector, shard, limit)
+
+
+def _vector_hit_result(
+    vector_hits: list["VectorHit"],
+    manifest: Manifest,
+    cache: ShardCache,
+    base_url: str,
+    options: SearchOptions,
+    language: str,
+) -> SearchResult:
+    ids = [hit.doc_id for hit in vector_hits]
+    doc_lookup = _fetch_doc_store_entries_by_ids(manifest, cache, base_url, ids)
+    hits = [
+        Hit(
+            id=vector_hit.doc_id,
+            score=vector_hit.score,
+            url=doc_lookup[vector_hit.doc_id].url if vector_hit.doc_id in doc_lookup else "",
+            fields=doc_lookup[vector_hit.doc_id].fields if vector_hit.doc_id in doc_lookup else {},
+            external_id=(
+                doc_lookup[vector_hit.doc_id].external_id
+                if vector_hit.doc_id in doc_lookup
+                else None
+            ),
+            metadata=(
+                doc_lookup[vector_hit.doc_id].metadata
+                if vector_hit.doc_id in doc_lookup
+                else None
+            ),
+            content_hash=(
+                doc_lookup[vector_hit.doc_id].content_hash
+                if vector_hit.doc_id in doc_lookup
+                else None
+            ),
+        )
+        for vector_hit in vector_hits
+    ]
+    return SearchResult(hits=hits, total_hits=len(vector_hits), language=language)
+
+
+def _normalize_scores(scores: list[float]) -> dict[float, float]:
+    if not scores:
+        return {}
+    minimum, maximum = min(scores), max(scores)
+    if minimum == maximum:
+        return {score: 1.0 for score in scores}
+    return {score: (score - minimum) / (maximum - minimum) for score in scores}
+
+
+def _vector_or_hybrid_search(
+    query: str,
+    manifest: Manifest,
+    cache: ShardCache,
+    base_url: str,
+    options: SearchOptions,
+    query_vector: list[float] | None,
+    language: str,
+) -> SearchResult:
+    if query_vector is None:
+        raise VectorSearchNotConfiguredError(
+            f'Search mode "{options.mode}" requires a query vector'
+        )
+    limit = max(0, options.limit)
+    candidate_limit = max(limit * 3, limit)
+    vector_hits = _load_vector_hits(
+        manifest, cache, base_url, language, query_vector, candidate_limit
+    )
+    if options.mode == "vector":
+        return _vector_hit_result(vector_hits[:limit], manifest, cache, base_url, options, language)
+
+    lexical_options = replace(options, mode="lexical", vector_weight=None, limit=candidate_limit)
+    lexical_result = search(query, manifest, cache, base_url, lexical_options)
+    lexical_by_id = {hit.id: hit for hit in lexical_result.hits}
+    vector_by_id = {hit.doc_id: hit for hit in vector_hits}
+    lexical_ids = list(lexical_by_id)
+    vector_ids = list(vector_by_id)
+    if options.vector_weight is None:
+        fused_scores = reciprocal_rank_fusion([lexical_ids, vector_ids])
+    else:
+        if not 0.0 <= options.vector_weight <= 1.0:
+            raise ValueError("vector_weight must be between 0 and 1")
+        lexical_normalized = _normalize_scores([hit.score for hit in lexical_by_id.values()])
+        vector_normalized = _normalize_scores([hit.score for hit in vector_by_id.values()])
+        fused_scores = {
+            doc_id: (1.0 - options.vector_weight)
+            * lexical_normalized.get(lexical_by_id[doc_id].score, 0.0)
+            + options.vector_weight * vector_normalized.get(vector_by_id[doc_id].score, 0.0)
+            for doc_id in {*lexical_by_id, *vector_by_id}
+        }
+    ordered_ids = sorted(fused_scores, key=lambda doc_id: (-fused_scores[doc_id], doc_id))[:limit]
+    missing_ids = [doc_id for doc_id in ordered_ids if doc_id not in lexical_by_id]
+    doc_lookup = _fetch_doc_store_entries_by_ids(manifest, cache, base_url, missing_ids)
+    hits: list[Hit] = []
+    for doc_id in ordered_ids:
+        lexical_hit = lexical_by_id.get(doc_id)
+        if lexical_hit is not None:
+            hits.append(replace(lexical_hit, score=fused_scores[doc_id]))
+            continue
+        doc = doc_lookup.get(doc_id)
+        hits.append(
+            Hit(
+                id=doc_id,
+                score=fused_scores[doc_id],
+                url=doc.url if doc else "",
+                fields=doc.fields if doc else {},
+                external_id=doc.external_id if doc else None,
+                metadata=doc.metadata if doc else None,
+                content_hash=doc.content_hash if doc else None,
+            )
+        )
+    return SearchResult(
+        hits=hits,
+        total_hits=len(fused_scores),
+        language=language,
+        facets=lexical_result.facets,
+        did_you_mean=lexical_result.did_you_mean,
+    )
+
+
 def search(
     query: str,
     manifest: Manifest,
@@ -369,6 +536,13 @@ def search(
     options = options or SearchOptions()
     language = options.language or manifest.default_language
     profile = get_language_profile(language)
+
+    if options.mode not in ("lexical", "vector", "hybrid"):
+        raise ValueError(f"unsupported search mode {options.mode!r}")
+    if options.mode != "lexical":
+        return _vector_or_hybrid_search(
+            query, manifest, cache, base_url, options, query_vector, language
+        )
 
     parsed_query = parse_query(query, profile)
     query_terms = parsed_query.terms
