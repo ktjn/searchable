@@ -22,6 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
+      - name: Configure GitHub Packages authentication
+        shell: bash
+        run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> "$NPM_CONFIG_USERCONFIG"
       - name: Publish npm packages to GitHub Packages
         run: |
           pnpm --filter @ktjn/searchable-analysis publish --access public --no-git-checks
