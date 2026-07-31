@@ -159,6 +159,33 @@ def test_structured_vectors_preserve_document_store_fields(tmp_path: Path):
     assert entry["contentHash"].startswith("sha256:")
 
 
+def test_structured_doc_store_can_be_written_as_binary(tmp_path: Path):
+    built = build_index_documents(
+        [
+            IndexDocument(
+                id=7,
+                external_id="chunk-7",
+                url="/chunks/7",
+                indexed_fields={"body": "structured chunk"},
+                stored_fields={"title": "Chunk 7"},
+                metadata={"chunkIndex": 7},
+            )
+        ],
+        field_definitions={
+            "body": FieldDefinition(indexed=True),
+            "title": FieldDefinition(indexed=False, stored=True),
+        },
+    )
+
+    write_index(built, str(tmp_path), doc_store_format="binary")
+
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    docs_entry = manifest["shards"]["docs"][0]
+    assert docs_entry["format"] == "binary"
+    assert docs_entry["binaryVersion"] == 2
+    assert (tmp_path / docs_entry["file"]).read_bytes().startswith(b"SDOC\x02")
+
+
 def test_legacy_html_vectors_still_use_sliding_windows():
     words = " ".join(f"word{i}" for i in range(25))
 
@@ -347,7 +374,7 @@ def test_binary_term_shard_content_hash_matches_file_bytes(tmp_path):
     assert content_hash(file_bytes) in term_entry["file"]
 
 
-def test_binary_doc_store_rejected_for_structured_index(tmp_path):
+def test_binary_doc_store_is_supported_for_structured_index(tmp_path):
     from searchable_indexer.build_index import build_index_documents
     from searchable_indexer.document import FieldDefinition, IndexDocument
 
@@ -355,8 +382,11 @@ def test_binary_doc_store_rejected_for_structured_index(tmp_path):
     built = build_index_documents(
         [doc], field_definitions={"body": FieldDefinition(indexed=True, stored=False)}
     )
-    with pytest.raises(ValueError, match="binary"):
-        write_index(built, str(tmp_path), doc_store_format="binary")
+    write_index(built, str(tmp_path), doc_store_format="binary")
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    docs_entry = manifest["shards"]["docs"][0]
+    assert docs_entry["format"] == "binary"
+    assert docs_entry["binaryVersion"] == 2
 
 
 def test_binary_doc_store_still_allowed_for_legacy_index(tmp_path):
