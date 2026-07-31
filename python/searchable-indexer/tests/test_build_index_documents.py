@@ -273,3 +273,30 @@ def test_same_documents_in_different_order_produce_identical_output():
     assert built_a.term_shards == built_b.term_shards
     assert built_a.manifest["docCount"] == built_b.manifest["docCount"]
     assert built_a.manifest["avgFieldLength"] == built_b.manifest["avgFieldLength"]
+
+
+def test_zero_field_boost_rejected():
+    with pytest.raises(ValueError, match="boost"):
+        build_index_documents([_doc()], field_definitions=_fields(title=FieldDefinition(boost=0.0)))
+
+
+def test_zero_document_boost_rejected():
+    with pytest.raises(ValueError, match="boost"):
+        build_index_documents([_doc(boost=0.0)], field_definitions=_fields())
+
+
+def test_none_indexed_fields_rejected_with_value_error_not_type_error():
+    with pytest.raises(ValueError, match="indexed_fields must be a dict"):
+        build_index_documents([_doc(indexed_fields=None)], field_definitions=_fields())
+
+
+def test_none_stored_fields_rejected_with_value_error_not_type_error():
+    with pytest.raises(ValueError, match="stored_fields must be a dict"):
+        build_index_documents([_doc(stored_fields=None)], field_definitions=_fields())
+
+
+def test_list_of_pairs_indexed_fields_rejected_not_silently_coerced():
+    with pytest.raises(ValueError):
+        build_index_documents(
+            [_doc(indexed_fields=[("body", "x")])], field_definitions=_fields()
+        )

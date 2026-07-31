@@ -53,11 +53,11 @@ def _validate_boost(value, subject: str) -> None:
         isinstance(value, bool)
         or not isinstance(value, (int, float))
         or not math.isfinite(value)
-        or value < 0
+        or value <= 0
     ):
         raise ValueError(
             f"build_index_documents: invalid boost {value!r} for {subject} -- "
-            "must be a finite, non-negative number"
+            "must be a finite, positive number"
         )
 
 
@@ -261,6 +261,14 @@ class _PreparedDocument:
 
 
 def _copy_document(document: IndexDocument) -> IndexDocument:
+    if not isinstance(document.indexed_fields, dict):
+        raise ValueError(
+            f"build_index_documents: document {document.id} indexed_fields must be a dict"
+        )
+    if not isinstance(document.stored_fields, dict):
+        raise ValueError(
+            f"build_index_documents: document {document.id} stored_fields must be a dict"
+        )
     return IndexDocument(
         id=document.id,
         external_id=document.external_id,
