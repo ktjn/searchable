@@ -1,7 +1,7 @@
 [project]
 name = "searchable-client"
-version = "0.1.0"
-description = "Python search client for Searchable (CLI/services port of @ktjn/searchable-client, lexical search only — no vector/hybrid search)."
+version = "0.2.0"
+description = "Dependency-light Python search client for Searchable with lexical, vector and hybrid query support."
 requires-python = ">=3.10"
 dependencies = [
     "searchable-analysis",
