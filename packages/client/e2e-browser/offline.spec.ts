@@ -4,7 +4,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import type { PythonSourceDocument } from "../test-support/python-index.js";
-import { writePythonIndex } from "../test-support/python-index.js";
+import {
+  writePythonIndex,
+  writePythonStructuredIndex,
+} from "../test-support/python-index.js";
 import { serveDir } from "./serve-dir.js";
 
 declare global {
@@ -43,6 +46,18 @@ const offlineSources: PythonSourceDocument[] = [
     url: "/de/preise",
     html: `<html lang="de"><head><title>Preise</title></head>
       <body><main><p>Unsere Preise sind fair.</p></main></body></html>`,
+  },
+];
+
+const structuredOfflineSources = [
+  {
+    id: 21,
+    externalId: "docs/offline.md#answer",
+    url: "/en/offline-rag",
+    language: "en",
+    indexedFields: { title: "Offline RAG", body: "cached evidence" },
+    storedFields: { title: "Offline RAG", body: "cached evidence" },
+    metadata: { chunkIndex: 2, headingPath: ["Offline", "RAG"] },
   },
 ];
 
@@ -215,6 +230,63 @@ test.describe("offline Service Worker caching (real browser)", () => {
       `${baseUrl}manifest.json`,
     );
     expect(status).toBe(200);
+    await context.setOffline(false);
+  });
+});
+
+test.describe("structured binary document store offline", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let rootDir: string;
+
+  test.beforeAll(async () => {
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-offline-structured-"),
+    );
+    await cp(clientDist, rootDir, { recursive: true });
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
+    const { outDir, cleanup } = await writePythonStructuredIndex(
+      structuredOfflineSources,
+      {},
+      { docStoreFormat: "binary" },
+    );
+    await cp(outDir, rootDir, { recursive: true });
+    await cleanup();
+    const server = await serveDir(rootDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  test("serves structured document fields after going offline", async ({
+    page,
+    context,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+    await page.evaluate(
+      ([swPath, indexUrl]) => window.__csfRegisterOffline?.(swPath, indexUrl),
+      ["./sw.js", "./manifest.json"] as [string, string],
+    );
+    await context.setOffline(true);
+    const result = await page.evaluate(
+      ([query]) => window.__csfRunSearch?.(query, false, { language: "en" }),
+      ["evidence"] as [string],
+    );
+    expect(result?.hits).toEqual([
+      expect.objectContaining({
+        id: 21,
+        url: "/en/offline-rag",
+        fields: { title: "Offline RAG", body: "cached evidence" },
+      }),
+    ]);
     await context.setOffline(false);
   });
 });

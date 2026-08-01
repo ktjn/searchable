@@ -67,6 +67,8 @@ export interface Manifest {
        * store.
        */
       format?: "json" | "binary";
+      /** Structured binary document-store wire version; absent for JSON and v1 shards. */
+      binaryVersion?: number;
     }>;
   };
   /** lang -> pins shard file, only present for languages with at least one searchable-pin. */
@@ -192,7 +194,18 @@ export interface DocStoreEntry {
   /** Mirrors the posting-level boost, for display/audit purposes only — scoring reads it from postings, not here. */
   boost?: number;
   fields: Record<string, string>;
+  externalId?: string;
+  contentHash?: string;
+  metadata?: JsonValue;
 }
+
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
 export type DocStoreShard = Record<string, DocStoreEntry>;
 

@@ -12,6 +12,17 @@ export interface PythonSourceDocument {
   html: string;
 }
 
+export interface PythonStructuredDocument {
+  id: number;
+  externalId?: string;
+  url: string;
+  language?: string;
+  indexedFields: Record<string, string>;
+  storedFields?: Record<string, string>;
+  metadata?: Record<string, unknown>;
+  boost?: number;
+}
+
 export interface PythonBuildOptions {
   defaultLanguage?: string;
   fieldBoosts?: Record<string, number>;
@@ -37,6 +48,10 @@ export interface PythonBuildOptions {
   vectorQuantization?: "int8" | "float32";
   vectorWindow?: number;
   vectorOverlap?: number;
+  fieldDefinitions?: Record<
+    string,
+    { indexed?: boolean; stored?: boolean; boost?: number }
+  >;
 }
 
 export interface PythonWriteOptions {
@@ -79,7 +94,7 @@ function toSnakeCaseConfig(
  * `uv sync` at least once (CI's Python setup step does this).
  */
 export async function writePythonIndex(
-  sources: PythonSourceDocument[],
+  sources: Array<PythonSourceDocument | PythonStructuredDocument>,
   buildOptions: PythonBuildOptions = {},
   writeOptions: PythonWriteOptions = {},
 ): Promise<{ outDir: string; cleanup: () => Promise<void> }> {
@@ -121,4 +136,22 @@ export async function writePythonIndex(
     outDir,
     cleanup: () => rm(workDir, { recursive: true, force: true }),
   };
+}
+
+export function writePythonStructuredIndex(
+  sources: PythonStructuredDocument[],
+  buildOptions: Omit<PythonBuildOptions, "fieldDefinitions"> = {},
+  writeOptions: PythonWriteOptions = {},
+) {
+  return writePythonIndex(
+    sources,
+    {
+      ...buildOptions,
+      fieldDefinitions: {
+        title: { indexed: true, stored: true, boost: 1 },
+        body: { indexed: true, stored: true, boost: 1 },
+      },
+    },
+    writeOptions,
+  );
 }

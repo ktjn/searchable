@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 
 from searchable_indexer.build_index import build_index
+from searchable_indexer.build_index import build_index_documents
+from searchable_indexer.document import FieldDefinition, IndexDocument
 from searchable_indexer.types import SourceDocument
 from searchable_indexer.write_index import write_index
 
@@ -30,10 +32,6 @@ def main() -> None:
     raw_sources = json.loads(Path(sources_path).read_text(encoding="utf-8"))
     config = json.loads(Path(config_path).read_text(encoding="utf-8"))
 
-    sources = [
-        SourceDocument(id=s["id"], url=s["url"], html=s["html"]) for s in raw_sources
-    ]
-
     build_kwargs = dict(config.get("build", {}))
     write_kwargs = config.get("write", {})
 
@@ -41,7 +39,33 @@ def main() -> None:
     if embed_name is not None:
         build_kwargs["embed"] = _EMBEDDERS[embed_name]
 
-    built = build_index(sources, **build_kwargs)
+    if raw_sources and "indexedFields" in raw_sources[0]:
+        field_definitions = {
+            name: FieldDefinition(**definition)
+            for name, definition in build_kwargs.pop("field_definitions").items()
+        }
+        documents = [
+            IndexDocument(
+                id=document["id"],
+                external_id=document.get("externalId"),
+                url=document["url"],
+                language=document.get("language", "en"),
+                indexed_fields=document["indexedFields"],
+                stored_fields=document.get("storedFields", {}),
+                metadata=document.get("metadata", {}),
+                boost=document.get("boost", 1.0),
+            )
+            for document in raw_sources
+        ]
+        built = build_index_documents(
+            documents, field_definitions=field_definitions, **build_kwargs
+        )
+    else:
+        sources = [
+            SourceDocument(id=s["id"], url=s["url"], html=s["html"])
+            for s in raw_sources
+        ]
+        built = build_index(sources, **build_kwargs)
     write_index(built, out_dir, **write_kwargs)
 
 

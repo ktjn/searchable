@@ -32,6 +32,9 @@ export class ByteReader {
   }
 
   readBytes(length: number): Uint8Array {
+    if (length < 0 || this.#pos + length > this.#view.length) {
+      throw new Error("unexpected end of binary shard while reading bytes");
+    }
     const out = this.#view.subarray(this.#pos, this.#pos + length);
     this.#pos += length;
     return out;
@@ -39,16 +42,17 @@ export class ByteReader {
 
   readString(): string {
     const length = this.readVarint();
-    return new TextDecoder().decode(this.readBytes(length));
+    return new TextDecoder("utf-8", { fatal: true }).decode(
+      this.readBytes(length),
+    );
   }
 
   readFloat64(): number {
-    const value = new DataView(
-      this.#view.buffer,
-      this.#view.byteOffset + this.#pos,
-      8,
+    const bytes = this.readBytes(8);
+    return new DataView(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength,
     ).getFloat64(0, true);
-    this.#pos += 8;
-    return value;
   }
 }

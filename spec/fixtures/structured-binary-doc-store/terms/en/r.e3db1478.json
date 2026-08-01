@@ -1,0 +1,1 @@
+{"rag":{"df":1,"postings":[{"boost":1.25,"doc":101,"fields":{"title":{"len":2,"pos":[0],"tf":1}}}]},"retriev":{"df":1,"postings":[{"boost":1.25,"doc":101,"fields":{"body":{"len":2,"pos":[0],"tf":1}}}]}}

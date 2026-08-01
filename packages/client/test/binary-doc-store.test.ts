@@ -1,4 +1,11 @@
+import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  decodeBinaryDocStoreDirectory,
+  decodeBinaryDocStoreEntry,
+} from "../src/binary-doc-store.js";
 import { SearchClient } from "../src/client.js";
 import type { PythonSourceDocument } from "../test-support/python-index.js";
 import { writePythonIndex } from "../test-support/python-index.js";
@@ -38,6 +45,133 @@ const sources: PythonSourceDocument[] = [
       <body><main><p>Our sofa selection is huge.</p></main></body></html>`,
   },
 ];
+
+function varint(value: number): Uint8Array {
+  const out: number[] = [];
+  let current = value;
+  do {
+    const byte = current & 0x7f;
+    current >>>= 7;
+    out.push(current ? byte | 0x80 : byte);
+  } while (current);
+  return new Uint8Array(out);
+}
+
+function string(value: string): Uint8Array {
+  const encoded = new TextEncoder().encode(value);
+  const result = new Uint8Array(varint(encoded.length).length + encoded.length);
+  result.set(varint(encoded.length));
+  result.set(encoded, varint(encoded.length).length);
+  return result;
+}
+
+function concat(...parts: Uint8Array[]): Uint8Array {
+  const result = new Uint8Array(
+    parts.reduce((total, part) => total + part.length, 0),
+  );
+  let offset = 0;
+  for (const part of parts) {
+    result.set(part, offset);
+    offset += part.length;
+  }
+  return result;
+}
+
+function float64(value: number): Uint8Array {
+  const bytes = new Uint8Array(8);
+  new DataView(bytes.buffer).setFloat64(0, value, true);
+  return bytes;
+}
+
+function taggedMetadata(): Uint8Array {
+  return concat(
+    varint(6),
+    varint(2),
+    string("chunkIndex"),
+    varint(3),
+    float64(2),
+    string("headingPath"),
+    varint(5),
+    varint(2),
+    varint(4),
+    string("RAG"),
+    varint(4),
+    string("Answer"),
+  );
+}
+
+it("decodes structured binary v2 document fields", () => {
+  const record = concat(
+    new TextEncoder().encode("SDOC"),
+    varint(2),
+    string("https://example.com/rag"),
+    varint(15),
+    float64(1.5),
+    string("docs/rag.md#answer"),
+    string("sha256:abc"),
+    taggedMetadata(),
+    varint(1),
+    string("content"),
+    string("Evidence"),
+  );
+  const data = concat(
+    new TextEncoder().encode("SDOC"),
+    varint(2),
+    varint(1),
+    varint(7),
+    varint(0),
+    varint(record.length),
+    record,
+  );
+
+  const directory = decodeBinaryDocStoreDirectory(data);
+  const entry = decodeBinaryDocStoreEntry(
+    data,
+    directory.directoryByteLength,
+    directory.index.get(7)?.offset ?? -1,
+    2,
+  );
+
+  expect(entry).toEqual({
+    url: "https://example.com/rag",
+    boost: 1.5,
+    externalId: "docs/rag.md#answer",
+    contentHash: "sha256:abc",
+    metadata: { chunkIndex: 2, headingPath: ["RAG", "Answer"] },
+    fields: { content: "Evidence" },
+  });
+});
+
+it("rejects malformed structured binary v2 document stores", () => {
+  expect(() =>
+    decodeBinaryDocStoreDirectory(new TextEncoder().encode("NOPE\u0002"), 2),
+  ).toThrow(/magic/);
+});
+
+it("decodes the checked-in Python structured binary fixture", async () => {
+  const fixtureRoot = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../spec/fixtures/structured-binary-doc-store",
+  );
+  const manifest = JSON.parse(
+    await readFile(join(fixtureRoot, "manifest.json"), "utf8"),
+  ) as { shards: { docs: Array<{ file: string; binaryVersion: number }> } };
+  const shard = manifest.shards.docs[0];
+  const bytes = new Uint8Array(await readFile(join(fixtureRoot, shard.file)));
+  const directory = decodeBinaryDocStoreDirectory(bytes, shard.binaryVersion);
+  const entry = decodeBinaryDocStoreEntry(
+    bytes,
+    directory.directoryByteLength,
+    directory.index.get(101)?.offset ?? -1,
+    shard.binaryVersion,
+  );
+  expect(entry).toMatchObject({
+    url: "/en/rag",
+    externalId: "docs/rag.md#answer",
+    contentHash: expect.stringMatching(/^sha256:/),
+    metadata: { chunkIndex: 0, headingPath: ["RAG", "Answer"] },
+  });
+});
 
 describe("binary doc store returns identical results to JSON (real HTTP)", () => {
   let jsonBaseUrl: string;

@@ -3,8 +3,14 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import type { PythonSourceDocument } from "../test-support/python-index.js";
-import { writePythonIndex } from "../test-support/python-index.js";
+import type {
+  PythonSourceDocument,
+  PythonStructuredDocument,
+} from "../test-support/python-index.js";
+import {
+  writePythonIndex,
+  writePythonStructuredIndex,
+} from "../test-support/python-index.js";
 import { serveDir } from "./serve-dir.js";
 
 declare global {
@@ -69,6 +75,28 @@ const sources: PythonSourceDocument[] = [
     html: `<html lang="en"><head><title>About Us</title>
       <meta name="searchable-facet-category" content="company"></head>
       <body><main><p>We are a small company that makes things.</p></main></body></html>`,
+  },
+];
+
+const structuredSources: PythonStructuredDocument[] = [
+  {
+    id: 11,
+    externalId: "docs/rag.md#answer",
+    url: "/en/rag",
+    language: "en",
+    indexedFields: { title: "RAG answer", body: "retrieval evidence" },
+    storedFields: { title: "RAG answer", body: "retrieval evidence" },
+    metadata: { chunkIndex: 0, headingPath: ["RAG", "Answer"] },
+    boost: 1.25,
+  },
+  {
+    id: 12,
+    externalId: "docs/rag.md#other-language",
+    url: "/de/rag",
+    language: "de",
+    indexedFields: { title: "RAG Antwort", body: "abrufbare Belege" },
+    storedFields: { title: "RAG Antwort", body: "abrufbare Belege" },
+    metadata: { chunkIndex: 1, headingPath: ["RAG"] },
   },
 ];
 
@@ -215,6 +243,56 @@ test.describe("Web Worker execution (real browser)", () => {
 
     expect(withWorker).toBe("AbortError");
     expect(withoutWorker).toBe("AbortError");
+  });
+});
+
+test.describe("structured binary document store in a real Worker", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let rootDir: string;
+
+  test.beforeAll(async () => {
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-structured-"),
+    );
+    await cp(clientDist, rootDir, { recursive: true });
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
+    const { outDir, cleanup } = await writePythonStructuredIndex(
+      structuredSources,
+      {},
+      { docStoreFormat: "binary", docStoreShardSize: 1 },
+    );
+    await cp(outDir, rootDir, { recursive: true });
+    await cleanup();
+    const server = await serveDir(rootDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  test("preserves structured RAG document fields through the Worker", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+    const result = await page.evaluate(
+      ([query]) => window.__csfRunSearch?.(query, true, { language: "en" }),
+      ["evidence"] as [string],
+    );
+    expect(result?.hits).toEqual([
+      expect.objectContaining({
+        id: 11,
+        url: "/en/rag",
+        fields: { title: "RAG answer", body: "retrieval evidence" },
+      }),
+    ]);
   });
 });
 

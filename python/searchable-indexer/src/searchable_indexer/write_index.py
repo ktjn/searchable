@@ -3,7 +3,7 @@ import json
 import re
 from pathlib import Path
 
-from searchable_indexer.binary_doc_store import encode_doc_store_binary
+from searchable_indexer.binary_doc_store import encode_doc_store_binary, encode_structured_doc_store_binary
 from searchable_indexer.binary_fuzzy_shard import encode_fuzzy_shard_binary
 from searchable_indexer.binary_term_shard import encode_term_shard_binary
 from searchable_indexer.hash import content_hash
@@ -117,14 +117,6 @@ def write_index(
     doc_store_format: str = "json",
     fuzzy_shard_format: str = "json",
 ) -> None:
-    if built.structured and doc_store_format == "binary":
-        raise ValueError(
-            'write_index: doc_store_format="binary" is not supported for indexes built '
-            "via build_index_documents() -- binary document-store v1 cannot represent "
-            "arbitrary stored fields, externalId, metadata, or contentHash; use "
-            'doc_store_format="json" for structured indexes'
-        )
-
     languages = sorted(built.term_shards.keys())
     terms: list[dict] = []
     for language in languages:
@@ -168,19 +160,20 @@ def write_index(
     docs: list[dict] = []
     for shard_index, chunk in enumerate(doc_store_chunks):
         if doc_store_format == "binary":
+            encoded_doc_store = (
+                encode_structured_doc_store_binary(chunk["shard"])
+                if built.structured
+                else encode_doc_store_binary(chunk["shard"])
+            )
             file = _write_binary(
                 out_dir,
                 f"docs/{shard_index}.bin",
-                encode_doc_store_binary(chunk["shard"]),
+                encoded_doc_store,
             )
-            docs.append(
-                {
-                    "shard": shard_index,
-                    "file": file,
-                    "idRange": list(chunk["idRange"]),
-                    "format": "binary",
-                }
-            )
+            entry = {"shard": shard_index, "file": file, "idRange": list(chunk["idRange"]), "format": "binary"}
+            if built.structured:
+                entry["binaryVersion"] = 2
+            docs.append(entry)
         else:
             file = _write_json(out_dir, f"docs/{shard_index}.json", chunk["shard"])
             docs.append(

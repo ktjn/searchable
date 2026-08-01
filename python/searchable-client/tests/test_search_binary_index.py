@@ -13,7 +13,10 @@ from pathlib import Path
 from searchable_client.fetch import ShardCache
 from searchable_client.search import SearchOptions, search
 from searchable_client.validate_manifest import validate_manifest
-from tests.fixtures.build_index import write_binary_format_index
+from tests.fixtures.build_index import (
+    write_binary_format_index,
+    write_structured_binary_format_index,
+)
 
 
 def _setup(tmp_path: Path):
@@ -58,3 +61,17 @@ def test_binary_and_matching_narrows_to_docs_with_all_terms(tmp_path: Path):
     result = search("red widget", manifest, cache, url)
     assert result.total_hits == 1
     assert result.hits[0].id == 1
+
+
+def test_structured_binary_doc_store_preserves_rag_fields(tmp_path: Path):
+    manifest_url = write_structured_binary_format_index(tmp_path / "idx")
+    cache = ShardCache()
+    manifest = validate_manifest(cache.fetch_json(manifest_url), manifest_url)
+
+    result = search("red widget", manifest, cache, manifest_url)
+
+    assert result.total_hits == 1
+    hit = result.hits[0]
+    assert hit.external_id == "docs/widgets.md#red"
+    assert hit.content_hash == "sha256:red"
+    assert hit.metadata == {"headingPath": ["Widgets"], "chunkIndex": 0.0}

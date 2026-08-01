@@ -29,7 +29,7 @@ Document-store entries contain the result URL and stored fields. Physical shards
 
 ### Doc store shard
 
-Each manifest doc-store entry records its shard number, file, ID range, and optional binary format.
+Each manifest doc-store entry records its shard number, file, ID range, and optional binary format. Structured binary shards also declare `binaryVersion: 2`; JSON shards and legacy binary v1 shards omit that field.
 
 JSON is supported for every logical shard family. Term, fuzzy, and document-store entries may instead declare `format: "binary"` per manifest entry; a deployment can mix encodings. Facets, pins, synonyms, and vectors remain JSON.
 

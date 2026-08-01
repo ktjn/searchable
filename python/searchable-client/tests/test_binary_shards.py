@@ -1,5 +1,7 @@
 import struct
 
+import pytest
+
 from searchable_client.binary_doc_store import (
     decode_binary_doc_store_directory,
     decode_binary_doc_store_entry,
@@ -83,6 +85,65 @@ def test_doc_store_directory_and_entry_roundtrip():
     entry = decode_binary_doc_store_entry(data, dir_len, index[5][0])
     assert entry.url == "https://example.com/p"
     assert entry.fields["title"] == "Widget"
+
+
+def _tagged_string(value: str) -> bytes:
+    return _varint(4) + _string(value)
+
+
+def _tagged_metadata() -> bytes:
+    # object {"chunkIndex": 2, "headingPath": ["RAG", "Answer"]}
+    return (
+        _varint(6)
+        + _varint(2)
+        + _string("chunkIndex")
+        + _varint(3)
+        + struct.pack("<d", 2.0)
+        + _string("headingPath")
+        + _varint(5)
+        + _varint(2)
+        + _tagged_string("RAG")
+        + _tagged_string("Answer")
+    )
+
+
+def test_structured_doc_store_v2_directory_and_entry_roundtrip():
+    record = (
+        b"SDOC"
+        + _varint(2)
+        + _string("https://example.com/rag")
+        + _varint(15)
+        + struct.pack("<d", 1.5)
+        + _string("docs/rag.md#answer")
+        + _string("sha256:abc")
+        + _tagged_metadata()
+        + _varint(1)
+        + _string("content")
+        + _string("Evidence")
+    )
+    directory = _varint(1) + _varint(7) + _varint(0) + _varint(len(record))
+    data = b"SDOC" + _varint(2) + directory + record
+
+    sorted_ids, index, dir_len = decode_binary_doc_store_directory(data)
+    entry = decode_binary_doc_store_entry(data, dir_len, index[7][0], binary_version=2)
+
+    assert sorted_ids == [7]
+    assert entry.url == "https://example.com/rag"
+    assert entry.external_id == "docs/rag.md#answer"
+    assert entry.content_hash == "sha256:abc"
+    assert entry.metadata == {"chunkIndex": 2.0, "headingPath": ["RAG", "Answer"]}
+    assert entry.fields == {"content": "Evidence"}
+
+
+def test_structured_doc_store_v2_rejects_bad_magic():
+    with pytest.raises(ValueError, match="magic"):
+        decode_binary_doc_store_directory(b"NOPE\x02", binary_version=2)
+
+
+def test_structured_doc_store_v2_rejects_truncated_record():
+    data = b"SDOC" + _varint(2) + _varint(1) + _varint(1) + _varint(0) + _varint(10) + b"x"
+    with pytest.raises(ValueError, match="end|truncated|bounds"):
+        decode_binary_doc_store_directory(data)
 
 
 def test_fuzzy_directory_and_entry_roundtrip():

@@ -24,6 +24,7 @@ class DocsShardEntry:
     file: str
     id_range: tuple[int, int]
     format: str | None = None
+    binary_version: int | None = None
 
 
 @dataclass(frozen=True)
@@ -99,6 +100,7 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
                 file=d["file"],
                 id_range=(d["idRange"][0], d["idRange"][1]),
                 format=d.get("format"),
+                binary_version=d.get("binaryVersion"),
             )
             for d in shards.get("docs", [])
         ],

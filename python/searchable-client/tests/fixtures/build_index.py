@@ -110,6 +110,66 @@ def _encode_doc_store_binary(doc_shard: dict) -> bytes:
     return bytes(directory) + b"".join(blobs)
 
 
+def _encode_structured_doc_store_binary(doc_shard: dict) -> bytes:
+    def tagged(value) -> bytes:
+        if value is None:
+            return _varint(0)
+        if value is False:
+            return _varint(1)
+        if value is True:
+            return _varint(2)
+        if isinstance(value, (int, float)):
+            return _varint(3) + _float64(float(value))
+        if isinstance(value, str):
+            return _varint(4) + _string(value)
+        if isinstance(value, list):
+            return _varint(5) + _varint(len(value)) + b"".join(tagged(item) for item in value)
+        if isinstance(value, dict):
+            items = sorted(value.items())
+            return (
+                _varint(6)
+                + _varint(len(items))
+                + b"".join(_string(key) + tagged(item) for key, item in items)
+            )
+        raise TypeError(f"unsupported structured metadata value: {value!r}")
+
+    blobs = []
+    for doc_id in sorted(int(key) for key in doc_shard):
+        entry = doc_shard[str(doc_id)]
+        flags = 0
+        if "boost" in entry:
+            flags |= 1
+        if "externalId" in entry:
+            flags |= 2
+        if "contentHash" in entry:
+            flags |= 4
+        if "metadata" in entry:
+            flags |= 8
+        blob = bytearray(b"SDOC" + _varint(2) + _string(entry["url"]) + _varint(flags))
+        if flags & 1:
+            blob += _float64(entry["boost"])
+        if flags & 2:
+            blob += _string(entry["externalId"])
+        if flags & 4:
+            blob += _string(entry["contentHash"])
+        if flags & 8:
+            blob += tagged(entry["metadata"])
+        fields = entry["fields"]
+        blob += _varint(len(fields))
+        for field_name in sorted(fields):
+            blob += _string(field_name) + _string(fields[field_name])
+        blobs.append(bytes(blob))
+
+    directory = bytearray(b"SDOC" + _varint(2) + _varint(len(blobs)))
+    previous_id = 0
+    offset = 0
+    for doc_id, blob in zip(sorted(int(key) for key in doc_shard), blobs, strict=True):
+        directory += _varint(doc_id - previous_id) + _varint(offset) + _varint(len(blob))
+        previous_id = doc_id
+        offset += len(blob)
+    return bytes(directory) + b"".join(blobs)
+
+
 def _encode_fuzzy_shard_binary(fuzzy_shard: dict) -> bytes:
     variants = sorted(fuzzy_shard["deletions"].keys())
     blobs = []
@@ -1147,3 +1207,30 @@ def write_binary_format_index(out_dir: Path) -> str:
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest))
     return manifest_path.resolve().as_uri()
+
+
+def write_structured_binary_format_index(out_dir: Path) -> str:
+    """Binary-format search fixture whose doc store uses structured v2 records."""
+    manifest_url = write_binary_format_index(out_dir)
+    doc_shard = {
+        "1": {
+            "url": "https://example.com/1",
+            "externalId": "docs/widgets.md#red",
+            "contentHash": "sha256:red",
+            "metadata": {"headingPath": ["Widgets"], "chunkIndex": 0},
+            "fields": {"title": "Red Widget"},
+        },
+        "2": {
+            "url": "https://example.com/2",
+            "externalId": "docs/widgets.md#blue",
+            "contentHash": "sha256:blue",
+            "metadata": {"headingPath": ["Widgets"], "chunkIndex": 1},
+            "fields": {"title": "Blue Widget"},
+        },
+    }
+    out_dir.joinpath("docs", "0.bin").write_bytes(_encode_structured_doc_store_binary(doc_shard))
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["shards"]["docs"][0]["binaryVersion"] = 2
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_url

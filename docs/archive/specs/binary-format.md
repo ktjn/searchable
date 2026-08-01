@@ -1,6 +1,6 @@
 # Binary Index Format Specification
 
-Status: Draft, term/fuzzy/doc-store shards implemented — see
+Status: Implemented for Python and TypeScript clients; term/fuzzy/doc-store v1 remains compatible and structured doc-store v2 is opt-in — see
 [09-roadmap.md](../roadmaps/implementation-history.md) and
 [../investigations/binary-vs-json-index.md](../investigations/binary-vs-json-index.md) for the shipped
 term-shard encoding (`writeIndex(built, outDir, { termShardFormat: "binary" })`,
@@ -10,7 +10,9 @@ validated its directory-based, lazy-per-term-decode design before it was
 built, plus the same design applied to fuzzy shards
 (`fuzzyShardFormat: "binary"`, `binary-fuzzy-shard.ts`) and a
 differently-motivated doc-id-directory encoding for the doc store
-(`docStoreFormat: "binary"`, `binary-doc-store.ts`). Facet, synonym, and
+(`docStoreFormat: "binary"`, `binary-doc-store.ts`). The existing v1 document
+store preserves legacy URL/field records; structured indexes require the
+versioned v2 record described below. Facet, synonym, and
 pins shards remain JSON — facets deliberately so (see
 [02-index-format.md](../../concepts/index-format.md): they're usually
 decoded in full for aggregate results, the opposite of the access
@@ -104,6 +106,20 @@ The manifest must declare:
 - optional compression
 
 The client must reject unsupported binary versions with a clear compatibility error.
+
+### Structured document-store v2
+
+Structured document-store v2 preserves `url`, optional `boost`, optional
+`externalId`, optional `contentHash`, optional JSON-compatible `metadata`, and
+stored string fields. The existing delta-encoded document directory remains
+unchanged. Each record starts with ASCII magic `SDOC` followed by unsigned
+varint version `2`, then the URL, flags, optional fields, and sorted stored
+field key/value pairs.
+
+Metadata uses tagged values: `0=null`, `1=false`, `2=true`, `3=float64`,
+`4=UTF-8 string`, `5=array`, and `6=object` with sorted keys. Decoders reject
+unknown versions or tags, truncated records, invalid UTF-8, non-finite values,
+and offsets outside the fetched shard.
 
 ## Dictionary Encoding
 
