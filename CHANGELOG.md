@@ -16,8 +16,10 @@ are explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
-The next compatible package release is planned as `1.1.0` for the npm packages,
-`0.2.0` for `searchable-indexer`, and `0.3.0` for the Python client.
+## [1.1.0] - 2026-08-01
+
+This release is `1.1.0` for the npm packages, `0.2.0` for `searchable-indexer`
+and `searchable-analysis`, and `0.3.0` for the Python client.
 
 ### Added
 
