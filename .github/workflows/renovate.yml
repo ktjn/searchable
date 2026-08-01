@@ -1,8 +1,8 @@
 name: Renovate
 on:
-  # Run every hour to check for updates and schedule windows
+  # Run once a week, matching the schedule window in .github/renovate.json
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 4 * * 1'
   workflow_dispatch:
 
 jobs:
