@@ -100,14 +100,14 @@ def decode_binary_doc_store_entry(
         content_hash = r.read_string() if flags & 4 else None
         metadata = _read_structured_json_value(r) if flags & 8 else None
         field_count = r.read_varint()
-        fields: dict[str, str] = {}
+        structured_fields: dict[str, str] = {}
         for _ in range(field_count):
             field_name = r.read_string()
-            fields[field_name] = r.read_string()
+            structured_fields[field_name] = r.read_string()
         return DocStoreEntry(
             url=url,
             boost=boost,
-            fields=fields,
+            fields=structured_fields,
             external_id=external_id,
             metadata=metadata,
             content_hash=content_hash,

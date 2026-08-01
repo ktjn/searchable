@@ -126,8 +126,10 @@ def _encode_structured_doc_store_binary(doc_shard: dict) -> bytes:
             return _varint(5) + _varint(len(value)) + b"".join(tagged(item) for item in value)
         if isinstance(value, dict):
             items = sorted(value.items())
-            return _varint(6) + _varint(len(items)) + b"".join(
-                _string(key) + tagged(item) for key, item in items
+            return (
+                _varint(6)
+                + _varint(len(items))
+                + b"".join(_string(key) + tagged(item) for key, item in items)
             )
         raise TypeError(f"unsupported structured metadata value: {value!r}")
 
