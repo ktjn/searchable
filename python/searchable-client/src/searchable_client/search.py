@@ -68,6 +68,7 @@ class SearchOptions:
     language: str | None = None
     limit: int = 10
     mode: str = "lexical"
+    operator: str = "and"
     vector_weight: float | None = None
     boosts: dict[str, Any] | None = None  # {"fields": {...}, "terms": {...}}
     filters: dict[str, Any] | None = None
@@ -541,6 +542,8 @@ def search(
 
     if options.mode not in ("lexical", "vector", "hybrid"):
         raise ValueError(f"unsupported search mode {options.mode!r}")
+    if options.operator not in ("and", "or"):
+        raise ValueError(f"unsupported operator {options.operator!r}")
     if options.mode != "lexical":
         return _vector_or_hybrid_search(
             query, manifest, cache, base_url, options, query_vector, language
@@ -606,9 +609,13 @@ def search(
             shard = term_shard_from_dict(cache.fetch_json(resolve_url(base_url, entry.file)))
             term_lookup.update(shard)
 
-    # AND is over *distinct query term slots*: build one doc-id set per query term,
-    # merging all prefix-matched entries for that slot with OR (since "wid*" means
-    # "any term starting with wid"), then intersect the per-slot sets.
+    # Matching is over *distinct query term slots*: build one doc-id set per
+    # query term, merging all prefix-matched entries for that slot with OR
+    # (since "wid*" means "any term starting with wid"). options.operator
+    # then decides how the per-slot sets combine: "and" (default) intersects
+    # them, requiring every slot to match the same document; "or" unions
+    # them, so a document matching any query term is a candidate, with
+    # _score_of's per-clause summation still ranking fuller matches higher.
     clauses: list[tuple[str, TermEntry, float]] = []  # (term, entry, weight)
     term_slot_doc_sets: list[set[int]] = []
     failed_terms: list[str] = []
@@ -681,7 +688,12 @@ def search(
             clauses.append((phrase_word, restricted, 1.0))
 
     all_doc_sets = term_slot_doc_sets + phrase_doc_sets
-    organic_candidate_ids = list(set.intersection(*all_doc_sets)) if all_doc_sets else []
+    if not all_doc_sets:
+        organic_candidate_ids = []
+    elif options.operator == "or":
+        organic_candidate_ids = list(set.union(*all_doc_sets))
+    else:
+        organic_candidate_ids = list(set.intersection(*all_doc_sets))
 
     filter_fields = list(options.filters or {})
     requested_facet_fields = options.facets or []

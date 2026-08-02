@@ -42,7 +42,11 @@ describe("CMS-2k reference fixture (real HTTP, realistic scale)", () => {
 
   it("facet-filters by category and every returned hit actually belongs to it", async () => {
     const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
-    const { hits, facets } = await client.search("the", {
+    // A prefix wildcard rather than a specific word: high-recall and
+    // independent of the stopword list ("the" was filtered as an English
+    // stopword and no longer indexes to anything -- see
+    // searchable-analysis's language_profile.py).
+    const { hits, facets } = await client.search("e*", {
       filters: { category: "Engineering" },
       facets: ["category"],
       limit: 200, // comfortably above the fixture's ~50 English Engineering docs, so no display-limit truncation skews the count-vs-hits comparison below

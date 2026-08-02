@@ -31,11 +31,32 @@ def _identity(term: str) -> str:
     return term
 
 
+# Standard English function/interrogative words: they carry no topical
+# meaning on their own, but under BM25's corpus-relative IDF they can still
+# outscore genuinely rare content words in a small, specialized corpus where
+# they appear infrequently in formal prose (e.g. "what does X mean" against
+# a technical reference). Filtering them at analysis time -- for both
+# indexing and querying, since analyze() is shared -- keeps queries focused
+# on content words without needing per-corpus tuning. Based on the classic
+# Lucene/SMART English stopword list, extended with common
+# question/auxiliary words relevant to natural-language questions.
+_ENGLISH_STOPWORDS = frozenset(
+    {
+        "a", "an", "and", "are", "as", "at", "be", "but", "by", "can",
+        "could", "did", "do", "does", "for", "he", "how", "i", "if", "in",
+        "into", "is", "it", "mean", "meaning", "me", "no", "not", "of",
+        "on", "or", "please", "she", "should", "such", "tell", "that",
+        "the", "their", "then", "there", "these", "they", "this", "to",
+        "was", "we", "what", "when", "where", "which", "who", "whom",
+        "will", "with", "would", "you",
+    }
+)
+
 english = LanguageProfile(
     code="en",
     segment=segment_latin_words,
     fold_diacritics=False,
-    stopwords=frozenset(),
+    stopwords=_ENGLISH_STOPWORDS,
     stem=_stem_english,
 )
 
