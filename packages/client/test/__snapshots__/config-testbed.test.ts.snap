@@ -100,29 +100,8 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 
 exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-lenient :: "the" 1`] = `
 {
-  "hits": [
-    {
-      "score": 1.4522,
-      "url": "/en/guides/guides-setting-up-token-mismatches-11.html",
-    },
-    {
-      "score": 1.4522,
-      "url": "/en/guides/guides-setting-up-token-mismatches-19.html",
-    },
-    {
-      "score": 1.4522,
-      "url": "/en/guides/guides-setting-up-token-mismatches-27.html",
-    },
-    {
-      "score": 1.4522,
-      "url": "/en/guides/guides-setting-up-token-mismatches-35.html",
-    },
-    {
-      "score": 1.4522,
-      "url": "/en/guides/guides-setting-up-token-mismatches-43.html",
-    },
-  ],
-  "totalHits": 37,
+  "hits": [],
+  "totalHits": 0,
 }
 `;
 
@@ -184,29 +163,8 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 
 exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-strict :: "the" 1`] = `
 {
-  "hits": [
-    {
-      "score": 0.3227,
-      "url": "/en/guides/guides-setting-up-token-mismatches-11.html",
-    },
-    {
-      "score": 0.3227,
-      "url": "/en/guides/guides-setting-up-token-mismatches-19.html",
-    },
-    {
-      "score": 0.3227,
-      "url": "/en/guides/guides-setting-up-token-mismatches-27.html",
-    },
-    {
-      "score": 0.3227,
-      "url": "/en/guides/guides-setting-up-token-mismatches-35.html",
-    },
-    {
-      "score": 0.3227,
-      "url": "/en/guides/guides-setting-up-token-mismatches-43.html",
-    },
-  ],
-  "totalHits": 37,
+  "hits": [],
+  "totalHits": 0,
 }
 `;
 
