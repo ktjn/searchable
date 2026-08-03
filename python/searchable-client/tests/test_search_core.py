@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from searchable_client.fetch import ShardCache
 from searchable_client.search import SearchOptions, search
 from searchable_client.validate_manifest import validate_manifest
@@ -25,6 +27,32 @@ def test_and_matching_narrows_to_docs_with_all_terms(tmp_path: Path):
     result = search("red widget", manifest, cache, url)
     assert result.total_hits == 1
     assert result.hits[0].id == 1
+
+
+def test_or_matching_includes_docs_with_any_query_term(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path)
+    result = search("red widget", manifest, cache, url, SearchOptions(operator="or"))
+    assert result.total_hits == 2
+    assert {h.id for h in result.hits} == {1, 2}
+    # Doc 1 matches both "red" and "widget"; doc 2 matches only "widget". The
+    # coordination-style score (sum of matched-clause scores) should still
+    # rank the fuller match first.
+    assert result.hits[0].id == 1
+    scores_by_id = {h.id: h.score for h in result.hits}
+    assert scores_by_id[1] > scores_by_id[2]
+
+
+def test_or_matching_still_returns_nothing_when_no_term_matches(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path)
+    result = search("nonexistent", manifest, cache, url, SearchOptions(operator="or"))
+    assert result.hits == []
+    assert result.total_hits == 0
+
+
+def test_unsupported_operator_is_rejected(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path)
+    with pytest.raises(ValueError, match="unsupported operator"):
+        search("red widget", manifest, cache, url, SearchOptions(operator="xor"))  # type: ignore[arg-type]
 
 
 def test_prefix_query_matches_starting_terms(tmp_path: Path):

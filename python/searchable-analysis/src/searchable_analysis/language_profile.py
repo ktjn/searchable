@@ -31,11 +31,89 @@ def _identity(term: str) -> str:
     return term
 
 
+# Standard English function/interrogative words: they carry no topical
+# meaning on their own, but under BM25's corpus-relative IDF they can still
+# outscore genuinely rare content words in a small, specialized corpus where
+# they appear infrequently in formal prose (e.g. "what does X mean" against
+# a technical reference). Filtering them at analysis time -- for both
+# indexing and querying, since analyze() is shared -- keeps queries focused
+# on content words without needing per-corpus tuning. Based on the classic
+# Lucene/SMART English stopword list, extended with common
+# question/auxiliary words relevant to natural-language questions.
+_ENGLISH_STOPWORDS = frozenset(
+    {
+        "a", "an", "and", "are", "as", "at", "be", "but", "by", "can",
+        "could", "did", "do", "does", "for", "he", "how", "i", "if", "in",
+        "into", "is", "it", "mean", "meaning", "me", "no", "not", "of",
+        "on", "or", "please", "she", "should", "such", "tell", "that",
+        "the", "their", "then", "there", "these", "they", "this", "to",
+        "was", "we", "what", "when", "where", "which", "who", "whom",
+        "will", "with", "would", "you",
+    }
+)
+
+_GERMAN_STOPWORDS = frozenset(
+    {
+        "aber", "alle", "allem", "allen", "aller", "alles", "als", "also", "am", "an",
+        "ander", "andere", "anderem", "anderen", "anderer", "anderes", "anderm", "andern", "anderr", "anders",
+        "auch", "auf", "aus", "bei", "bin", "bis", "bist", "da", "damit", "dann",
+        "der", "den", "des", "dem", "die", "das", "daß", "derselbe", "derselben", "demselben",
+        "dieselben", "dieselbe", "dieses", "dieser", "diese", "diesem", "diesen", "doch", "dort", "durch",
+        "ein", "eine", "einem", "einen", "einer", "eines", "einig", "einige", "einigem", "einigen",
+        "einiger", "einiges", "einmal", "er", "ihn", "ihm", "es", "etwas", "euer", "eure",
+        "eurem", "euren", "eurer", "eures", "für", "gegen", "gewesen", "hab", "habe", "haben",
+        "hat", "hatte", "hatten", "hier", "hin", "hinter", "ich", "mich", "mir", "ihr",
+        "ihre", "ihrem", "ihren", "ihrer", "ihres", "euch", "im", "in", "indem", "ins",
+        "ist", "jede", "jedem", "jeden", "jeder", "jedes", "jene", "jenem", "jenen", "jener",
+        "jenes", "jetzt", "kann", "kein", "keine", "keinem", "keinen", "keiner", "keines", "können",
+        "könnte", "machen", "man", "manche", "manchem", "manchen", "mancher", "manches", "mein", "meine",
+        "meinem", "meinen", "meiner", "meines", "mit", "muss", "musste", "nach", "nicht", "nichts",
+        "noch", "nun", "nur", "ob", "oder", "ohne", "sehr", "sein", "seine", "seinem",
+        "seinen", "seiner", "seines", "selbst", "sich", "sie", "ihnen", "sind", "so", "solche",
+        "solchem", "solchen", "solcher", "solches", "soll", "sollte", "sondern", "sonst", "über", "um",
+        "und", "uns", "unsere", "unserem", "unseren", "unser", "unseres", "unter", "viel", "vom",
+        "von", "vor", "während", "war", "waren", "warst", "was", "weg", "weil", "weiter",
+        "welche", "welchem", "welchen", "welcher", "welches", "wenn", "werde", "werden", "wie", "wieder",
+        "will", "wir", "wird", "wirst", "wo", "wollen", "wollte", "würde", "würden", "zu",
+        "zum", "zur", "zwar", "zwischen",
+    }
+)
+
+_DUTCH_STOPWORDS = frozenset(
+    {
+        "de", "en", "van", "ik", "te", "dat", "die", "in", "een", "t", "niet", "met", "het", "is", "om", "als", "ook", "tot", "hier", "omdat", "over", "worden", "zijn", "voor", "maar", "aan", "hoe", "heb", "hoeveel", "we", "wij", "ik", "mij", "mijn", "geen", "niets",
+    }
+)
+
+_SWEDISH_STOPWORDS = frozenset(
+    {
+        "och", "det", "att", "i", "en", "jag", "hon", "som", "han", "på", "den", "med", "var", "sig", "för", "så", "till", "är", "men", "ett", "om", "hade", "de", "av", "icke", "mig", "du", "henne", "då", "sin", "nu", "har", "inte", "hans", "honom", "skulle", "hennes", "där", "min", "man", "ej", "vid", "kunde", "något", "från", "ut", "när", "efter", "upp", "vi", "dem", "vara", "vad", "över", "än", "dig", "kan", "sina", "här", "ha", "mot", "alla", "under", "någon", "eller", "allt", "mycket", "sedan", "ju", "denna", "själv", "detta", "åt", "utan", "varit", "hur", "ingen", "mitt", "ni", "bli", "blev", "oss", "din", "dessa", "några", "deras", "blir", "mina", "samma", "vilken", "er", "sådan", "vår", "blivit", "dess", "inom", "mellan", "sådant", "varför", "varje", "vilka", "ditt", "vem", "vilket", "sitta", "sådana", "vart", "dina", "vars", "vårt", "våra", "ert", "era", "vilkas",
+    }
+)
+
+_NORWEGIAN_STOPWORDS = frozenset(
+    {
+        "og", "i", "jeg", "det", "at", "en", "et", "den", "du", "som", "er", "til", "på", "han", "av", "ikke", "der", "så", "var", "meg", "seg", "men", "skulle", "hos", "skal", "hun", "nå", "over", "da", "ved", "fra", "ha", "hadde", "hvor", "hva", "denne", "for", "dere", "hvis", "sin", "sine", "mitt", "ditt", "deg", "når", "deres", "alle", "noen", "selv", "hvem", "hver", "hvilken", "hvilke", "hvilket", "hvorfor", "hvordan", "hvorvidt",
+    }
+)
+
+_CJK_STOPWORDS = frozenset(
+    {
+        "a", "and", "are", "as", "at", "be", "but", "by", "for", "if", "in", "into", "is", "it", "no", "not", "of", "on", "or", "such", "that", "the", "their", "then", "there", "these", "they", "this", "to", "was", "will", "with",
+    }
+)
+
+_THAI_STOPWORDS = frozenset(
+    {
+        "การ", "ที่", "และ", "ใน", "จะ", "ให้", "ได้", "ไป", "ของ", "เป็น", "มี", "ก็", "ด้วย", "กัน", "จาก", "ผู้", "มา", "ซึ่ง", "ความ",
+    }
+)
+
 english = LanguageProfile(
     code="en",
     segment=segment_latin_words,
     fold_diacritics=False,
-    stopwords=frozenset(),
+    stopwords=_ENGLISH_STOPWORDS,
     stem=_stem_english,
 )
 
@@ -43,21 +121,21 @@ german = LanguageProfile(
     code="de",
     segment=segment_latin_words,
     fold_diacritics=False,
-    stopwords=frozenset(),
+    stopwords=_GERMAN_STOPWORDS,
     stem=_stem_german,
 )
 
-swedish = LanguageProfile("sv", segment_latin_words, False, frozenset(), _stem_swedish)
-dutch = LanguageProfile("nl", segment_latin_words, False, frozenset(), _stem_dutch)
-norwegian_bokmal = LanguageProfile("nb", segment_latin_words, False, frozenset(), _stem_norwegian)
-norwegian_nynorsk = LanguageProfile("nn", segment_latin_words, False, frozenset(), _stem_norwegian)
-norwegian = LanguageProfile("no", segment_latin_words, False, frozenset(), _stem_norwegian)
+swedish = LanguageProfile("sv", segment_latin_words, False, _SWEDISH_STOPWORDS, _stem_swedish)
+dutch = LanguageProfile("nl", segment_latin_words, False, _DUTCH_STOPWORDS, _stem_dutch)
+norwegian_bokmal = LanguageProfile("nb", segment_latin_words, False, _NORWEGIAN_STOPWORDS, _stem_norwegian)
+norwegian_nynorsk = LanguageProfile("nn", segment_latin_words, False, _NORWEGIAN_STOPWORDS, _stem_norwegian)
+norwegian = LanguageProfile("no", segment_latin_words, False, _NORWEGIAN_STOPWORDS, _stem_norwegian)
 
 chinese = LanguageProfile(
     code="zh",
     segment=segment_cjk_bigram,
     fold_diacritics=False,
-    stopwords=frozenset(),
+    stopwords=_CJK_STOPWORDS,
     stem=_identity,
 )
 
@@ -65,7 +143,7 @@ japanese = LanguageProfile(
     code="ja",
     segment=segment_cjk_bigram,
     fold_diacritics=False,
-    stopwords=frozenset(),
+    stopwords=_CJK_STOPWORDS,
     stem=_identity,
 )
 
@@ -73,7 +151,7 @@ thai = LanguageProfile(
     code="th",
     segment=segment_sea_trigram,
     fold_diacritics=False,
-    stopwords=frozenset(),
+    stopwords=_THAI_STOPWORDS,
     stem=_identity,
 )
 
@@ -81,7 +159,7 @@ khmer = LanguageProfile(
     code="km",
     segment=segment_sea_trigram,
     fold_diacritics=False,
-    stopwords=frozenset(),
+    stopwords=_CJK_STOPWORDS,
     stem=_identity,
 )
 
@@ -89,6 +167,6 @@ lao = LanguageProfile(
     code="lo",
     segment=segment_sea_trigram,
     fold_diacritics=False,
-    stopwords=frozenset(),
+    stopwords=_CJK_STOPWORDS,
     stem=_identity,
 )

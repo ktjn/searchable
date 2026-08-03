@@ -4,23 +4,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -37,29 +37,8 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 
 exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > default :: "the" 1`] = `
 {
-  "hits": [
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-20.html",
-    },
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-60.html",
-    },
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-100.html",
-    },
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-140.html",
-    },
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-180.html",
-    },
-  ],
-  "totalHits": 303,
+  "hits": [],
+  "totalHits": 0,
 }
 `;
 
@@ -67,23 +46,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -95,23 +74,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.2101,
+      "score": 1.1988,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.2101,
+      "score": 1.1988,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.2101,
+      "score": 1.1988,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.2101,
+      "score": 1.1988,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.2101,
+      "score": 1.1988,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -121,29 +100,8 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 
 exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-lenient :: "the" 1`] = `
 {
-  "hits": [
-    {
-      "score": 1.7333,
-      "url": "/en/product/product-how-typo-tolerance-9.html",
-    },
-    {
-      "score": 1.7333,
-      "url": "/en/product/product-how-typo-tolerance-17.html",
-    },
-    {
-      "score": 1.7333,
-      "url": "/en/product/product-how-typo-tolerance-25.html",
-    },
-    {
-      "score": 1.7333,
-      "url": "/en/product/product-how-typo-tolerance-33.html",
-    },
-    {
-      "score": 1.7333,
-      "url": "/en/product/product-how-typo-tolerance-41.html",
-    },
-  ],
-  "totalHits": 303,
+  "hits": [],
+  "totalHits": 0,
 }
 `;
 
@@ -151,23 +109,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.0283,
+      "score": 1.0275,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -179,23 +137,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 0.2689,
+      "score": 0.2664,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 0.2689,
+      "score": 0.2664,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 0.2689,
+      "score": 0.2664,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 0.2689,
+      "score": 0.2664,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 0.2689,
+      "score": 0.2664,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -205,29 +163,8 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 
 exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > fuzzy-strict :: "the" 1`] = `
 {
-  "hits": [
-    {
-      "score": 0.3863,
-      "url": "/en/product/product-how-typo-tolerance-9.html",
-    },
-    {
-      "score": 0.3863,
-      "url": "/en/product/product-how-typo-tolerance-17.html",
-    },
-    {
-      "score": 0.3863,
-      "url": "/en/product/product-how-typo-tolerance-25.html",
-    },
-    {
-      "score": 0.3863,
-      "url": "/en/product/product-how-typo-tolerance-33.html",
-    },
-    {
-      "score": 0.3863,
-      "url": "/en/product/product-how-typo-tolerance-41.html",
-    },
-  ],
-  "totalHits": 303,
+  "hits": [],
+  "totalHits": 0,
 }
 `;
 
@@ -235,23 +172,23 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 {
   "hits": [
     {
-      "score": 1.1395,
+      "score": 1.14,
       "url": "/en/engineering/engineering-notes-on-field-boosts-40.html",
     },
     {
-      "score": 1.1395,
+      "score": 1.14,
       "url": "/en/engineering/engineering-notes-on-field-boosts-80.html",
     },
     {
-      "score": 1.1395,
+      "score": 1.14,
       "url": "/en/engineering/engineering-notes-on-field-boosts-120.html",
     },
     {
-      "score": 1.1395,
+      "score": 1.14,
       "url": "/en/engineering/engineering-notes-on-field-boosts-160.html",
     },
     {
-      "score": 1.1395,
+      "score": 1.14,
       "url": "/en/engineering/engineering-notes-on-field-boosts-200.html",
     },
   ],
@@ -268,28 +205,7 @@ exports[`configuration testbed (matrix of build/query configs, snapshotted per c
 
 exports[`configuration testbed (matrix of build/query configs, snapshotted per combination) > high-title-boost :: "the" 1`] = `
 {
-  "hits": [
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-20.html",
-    },
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-60.html",
-    },
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-100.html",
-    },
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-140.html",
-    },
-    {
-      "score": 0.0026,
-      "url": "/en/engineering/engineering-how-we-approach-benchmark-methodology-180.html",
-    },
-  ],
-  "totalHits": 303,
+  "hits": [],
+  "totalHits": 0,
 }
 `;

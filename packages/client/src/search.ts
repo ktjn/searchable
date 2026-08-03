@@ -184,6 +184,13 @@ export interface SearchOptions {
    */
   fuzzyWeight?: number;
   /**
+   * Logical operator to use when combining multiple query term slots:
+   * `"and"` (default) requires every term slot to match the same
+   * document; `"or"` returns documents matching any term slot, ranked
+   * by the total score across all matches.
+   */
+  operator?: "and" | "or";
+  /**
    * Compute `Hit.highlights` for every stored field of every hit
    * (docs/reference/client-api.md#search-options-and-results). Off by
    * default, matching every other opt-in query feature here — most
@@ -716,6 +723,7 @@ async function lexicalSearch(
     ? await loadFuzzyLookup(manifest, cache, baseUrl, language)
     : undefined;
   const fuzzyWeight = options.fuzzyWeight ?? DEFAULT_FUZZY_WEIGHT;
+  const operator = options.operator ?? "and";
 
   // Every exact term (and every synonym/fuzzy candidate variant of one)
   // and every prefix-query prefix this query could possibly need a
@@ -945,11 +953,13 @@ async function lexicalSearch(
       }
     }
 
-    if (totalMatchedDocs.size === 0) anyClauseFailed = true;
+    if (totalMatchedDocs.size === 0) {
+      if (operator === "and") anyClauseFailed = true;
+    }
     phraseMatchedDocSets.push(totalMatchedDocs);
   }
 
-  const organicMatched = !anyClauseFailed;
+  const organicMatched = operator === "or" || !anyClauseFailed;
 
   let organicCandidateIds: number[] = [];
   if (organicMatched) {
@@ -963,10 +973,20 @@ async function lexicalSearch(
         return ids;
       });
     const allDocSets = [...termClauseDocSets, ...phraseMatchedDocSets];
-    const [first, ...rest] = allDocSets;
-    organicCandidateIds = [...(first ?? [])].filter((id) =>
-      rest.every((set) => set.has(id)),
-    );
+    if (allDocSets.length > 0) {
+      if (operator === "or") {
+        const union = new Set<number>();
+        for (const set of allDocSets) {
+          for (const id of set) union.add(id);
+        }
+        organicCandidateIds = [...union];
+      } else {
+        const [first, ...rest] = allDocSets;
+        organicCandidateIds = [...(first ?? [])].filter((id) =>
+          rest.every((set) => set.has(id)),
+        );
+      }
+    }
   }
 
   // --- facet shards needed for filtering and/or requested facet display ---
