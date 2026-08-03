@@ -4,6 +4,7 @@ import {
   chinese,
   dutch,
   english,
+  german,
   japanese,
   khmer,
   lao,
@@ -13,12 +14,12 @@ import {
 } from "../src/index.js";
 
 describe("analyze (english)", () => {
-  it("splits on word boundaries and lowercases", () => {
+  it("splits on word boundaries, lowercases, and filters stopwords", () => {
     const tokens = analyze("The Quick, Brown Fox!", english);
-    expect(tokens.map((t) => t.term)).toEqual(["the", "quick", "brown", "fox"]);
+    expect(tokens.map((t) => t.term)).toEqual(["quick", "brown", "fox"]);
   });
 
-  it("assigns sequential positions to word tokens only", () => {
+  it("assigns sequential positions to non-stopword tokens only", () => {
     const tokens = analyze("one two three", english);
     expect(tokens.map((t) => t.position)).toEqual([0, 1, 2]);
   });
@@ -29,22 +30,26 @@ describe("analyze (english)", () => {
     expect(a).toEqual(b);
   });
 
-  it("stems English tokens via the classic Porter algorithm, but does not drop stopwords (empty list)", () => {
+  it("stems English tokens via the classic Porter algorithm and drops stopwords", () => {
     const tokens = analyze("the running dogs", english);
-    expect(tokens.map((t) => t.term)).toEqual(["the", "run", "dog"]);
+    expect(tokens.map((t) => t.term)).toEqual(["run", "dog"]);
   });
 
   it("also exposes each token's lowercased-but-unstemmed literal surface form", () => {
     const tokens = analyze("the running dogs", english);
-    expect(tokens.map((t) => t.literal)).toEqual(["the", "running", "dogs"]);
+    expect(tokens.map((t) => t.literal)).toEqual(["running", "dogs"]);
   });
 });
 
 describe("analyze (Swedish, Norwegian, and Dutch)", () => {
-  it("uses each language's Snowball stemmer", () => {
+  it("uses each language's Snowball stemmer and filters stopwords", () => {
     expect(analyze("husets", swedish)[0]?.term).toBe("hus");
     expect(analyze("husets", norwegianBokmal)[0]?.term).toBe("hus");
     expect(analyze("huizen", dutch)[0]?.term).toBe("huis");
+
+    // German stopwords "und", "ist"
+    const deTokens = analyze("Häuser und Autos ist gut", german);
+    expect(deTokens.map((t) => t.term)).toEqual(["haus", "autos", "gut"]);
   });
 });
 

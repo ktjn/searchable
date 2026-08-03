@@ -46,6 +46,12 @@ def test_analyze_drops_english_stopwords():
     assert [t.term for t in tokens] == ["addit"]
 
 
+def test_analyze_drops_german_stopwords():
+    # "und" and "ist" are German stopwords
+    tokens = analyze("Häuser und Autos ist gut", german)
+    assert [t.term for t in tokens] == ["haus", "autos", "gut"]
+
+
 def test_analyze_keeps_content_words_around_stopwords():
     tokens = analyze("how do I configure the registry", english)
     assert [t.term for t in tokens] == ["configur", "registri"]
