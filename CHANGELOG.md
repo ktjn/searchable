@@ -16,47 +16,43 @@ are explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
-## [1.1.1] - 2026-08-02
+## [1.1.1] - 2026-08-03
 
 This release is `1.1.1` for the npm packages, `0.2.1` for `searchable-indexer`
 and `searchable-analysis`, and `0.4.0` for the Python client.
 
 ### Added
 
-- Python `searchable-client` `0.4.0`: `SearchOptions.operator` (`"and"` |
-  `"or"`, default `"and"`, unchanged existing behavior) lets lexical search
-  match documents containing *any* query term rather than requiring every
-  term slot to match the same document. Ranking still favors documents
-  matching more terms via the existing per-clause score summation.
+- `SearchOptions.operator` (`"and"` | `"or"`, default `"and"`, unchanged
+  existing behavior) in both Python and TypeScript `searchable-client` lets
+  lexical search match documents containing *any* query term rather than
+  requiring every term slot to match the same document. Ranking still favors
+  documents matching more terms via the existing per-clause score summation.
+- Multilingual stopword lists for all 12 supported languages (English, German,
+  Swedish, Dutch, Norwegian, Chinese, Japanese, Thai, Khmer, Lao) in both
+  Python and TypeScript analysis modules.
 
 ### Fixed
 
-- Python `searchable-analysis` `0.2.1`: the English `LanguageProfile` now
-  populates `stopwords` with a standard function/interrogative word list
-  (`a`, `the`, `what`, `does`, `mean`, `how`, ...). `analyze()` already
-  filtered stopwords when present (`analyze.py`); every language profile
-  simply shipped an empty set. A query like "what does additive mean"
-  against a small, formal-prose corpus previously required every one of
-  those tokens ("what", "does", "additive", "mean") to co-occur in the same
-  document for a lexical `"and"`-mode match — and even where a document did
-  match, BM25's corpus-relative IDF could rank documents containing common
-  function words above documents actually about the query's real subject,
-  since those words are statistically rare in formal technical prose. Both
-  effects are now avoided by dropping them at analysis time, for indexing
-  and querying alike. Reported via a Modelable CLI/Playground chat RAG bug
-  where an unmatched natural-language question silently fell through to an
-  ungrounded answer instead of retrieving relevant documentation.
+- `searchable-analysis` `0.2.1` (Python) and `@ktjn/searchable-analysis` `1.1.1`
+  (TypeScript): `LanguageProfile` now populates `stopwords` with standard
+  function/interrogative word lists. `analyze()` already filtered stopwords when
+  present; previously every language profile simply shipped an empty set.
+  A query like "what does additive mean" against a small, formal-prose corpus
+  previously required every one of those tokens to co-occur in the same document
+  for a lexical `"and"`-mode match — and even where a document did match,
+  BM25's corpus-relative IDF could rank documents containing common function
+  words above documents actually about the query's real subject. Both effects
+  are now avoided by dropping them at analysis time, for indexing and querying
+  alike. Reported via a Modelable CLI/Playground chat RAG bug where an unmatched
+  natural-language question silently fell through to an ungrounded answer.
 
 ### Notes
 
 - `searchable-indexer` `0.2.1` and the npm packages `@ktjn/searchable-format`
-  and `@ktjn/searchable-analysis` have no functional change in this release;
-  the version bump lets the tag-triggered publish workflow publish each
-  artifact exactly once, per the `1.0.5` precedent above.
-- `@ktjn/searchable-client` (npm/TypeScript) does not yet implement
-  `operator: "or"` from the Python client this release; the underlying
-  index-format/analysis change (stopword filtering) benefits it identically
-  since both clients share `searchable-analysis`'s tokenization.
+  and `@ktjn/searchable-analysis` have functional changes in this release
+  (multilingual stopwords); the version bump lets the tag-triggered publish
+  workflow publish each artifact exactly once.
 
 ## [1.1.0] - 2026-08-01
 
