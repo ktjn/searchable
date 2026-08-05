@@ -1,4 +1,5 @@
 import type { DocStoreEntry, JsonValue } from "@ktjn/searchable-format";
+import { decodeDirectory } from "./binary-directory.js";
 import { ByteReader } from "./byte-reader.js";
 
 const STRUCTURED_MAGIC = new Uint8Array([0x53, 0x44, 0x4f, 0x43]);
@@ -33,17 +34,11 @@ export function decodeBinaryDocStoreDirectory(
   const headerLength = structuredHeaderLength(bytes, binaryVersion);
   const r = new ByteReader(bytes, headerLength);
   const docCount = r.readVarint();
-  const sortedIds: number[] = [];
-  const index = new Map<number, { offset: number; length: number }>();
   let prevId = 0;
-  for (let i = 0; i < docCount; i++) {
-    prevId += r.readVarint();
-    const id = prevId;
-    const offset = r.readVarint();
-    const length = r.readVarint();
-    sortedIds.push(id);
-    index.set(id, { offset, length });
-  }
+  const { keys: sortedIds, index } = decodeDirectory(r, docCount, (reader) => {
+    prevId += reader.readVarint();
+    return prevId;
+  });
   const recordsLength = bytes.length - r.position;
   for (const { offset, length } of index.values()) {
     if (offset + length > recordsLength) {

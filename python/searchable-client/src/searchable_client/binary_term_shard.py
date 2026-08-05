@@ -1,4 +1,4 @@
-from searchable_client.byte_reader import ByteReader
+from searchable_client.byte_reader import ByteReader, read_directory
 from searchable_client.types import FieldPosting, Posting, TermEntry
 
 
@@ -7,14 +7,7 @@ def decode_binary_term_shard_directory(
 ) -> tuple[list[str], dict[str, tuple[int, int]], int]:
     r = ByteReader(data, 0)
     term_count = r.read_varint()
-    sorted_terms: list[str] = []
-    index: dict[str, tuple[int, int]] = {}
-    for _ in range(term_count):
-        term = r.read_string()
-        offset = r.read_varint()
-        length = r.read_varint()
-        sorted_terms.append(term)
-        index[term] = (offset, length)
+    sorted_terms, index = read_directory(r, term_count, lambda reader: reader.read_string())
     return sorted_terms, index, r.position
 
 

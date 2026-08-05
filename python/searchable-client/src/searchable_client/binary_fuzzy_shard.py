@@ -1,4 +1,4 @@
-from searchable_client.byte_reader import ByteReader
+from searchable_client.byte_reader import ByteReader, read_directory
 
 
 def decode_binary_fuzzy_shard_directory(
@@ -7,14 +7,7 @@ def decode_binary_fuzzy_shard_directory(
     r = ByteReader(data, 0)
     max_edits = r.read_varint()
     variant_count = r.read_varint()
-    sorted_variants: list[str] = []
-    index: dict[str, tuple[int, int]] = {}
-    for _ in range(variant_count):
-        variant = r.read_string()
-        offset = r.read_varint()
-        length = r.read_varint()
-        sorted_variants.append(variant)
-        index[variant] = (offset, length)
+    sorted_variants, index = read_directory(r, variant_count, lambda reader: reader.read_string())
     return max_edits, sorted_variants, index, r.position
 
 

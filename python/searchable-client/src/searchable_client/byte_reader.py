@@ -1,4 +1,8 @@
 import struct
+from collections.abc import Callable
+from typing import TypeVar
+
+K = TypeVar("K")
 
 
 class ByteReader:
@@ -37,3 +41,21 @@ class ByteReader:
     def read_float64(self) -> float:
         value: float = struct.unpack("<d", self.read_bytes(8))[0]
         return value
+
+
+def read_directory(
+    r: ByteReader, count: int, read_key: Callable[[ByteReader], K]
+) -> tuple[list[K], dict[K, tuple[int, int]]]:
+    """Reads `count` `{key, offset, length}` directory entries from `r`.
+    Every directory-based binary shard (terminal, fuzzy, doc store) shares
+    this layout; only the key stream differs (raw string vs delta-encoded
+    id), supplied via `read_key`."""
+    keys: list[K] = []
+    index: dict[K, tuple[int, int]] = {}
+    for _ in range(count):
+        key = read_key(r)
+        offset = r.read_varint()
+        length = r.read_varint()
+        keys.append(key)
+        index[key] = (offset, length)
+    return keys, index

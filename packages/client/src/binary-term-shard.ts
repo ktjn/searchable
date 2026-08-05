@@ -1,4 +1,5 @@
 import type { TermEntry } from "@ktjn/searchable-format";
+import { decodeDirectory } from "./binary-directory.js";
 import { ByteReader } from "./byte-reader.js";
 
 /**
@@ -29,15 +30,9 @@ export function decodeBinaryTermShardDirectory(
 ): BinaryTermShardDirectory {
   const r = new ByteReader(bytes, 0);
   const termCount = r.readVarint();
-  const sortedTerms: string[] = [];
-  const index = new Map<string, { offset: number; length: number }>();
-  for (let i = 0; i < termCount; i++) {
-    const term = r.readString();
-    const offset = r.readVarint();
-    const length = r.readVarint();
-    sortedTerms.push(term);
-    index.set(term, { offset, length });
-  }
+  const { keys: sortedTerms, index } = decodeDirectory(r, termCount, (reader) =>
+    reader.readString(),
+  );
   return { sortedTerms, index, directoryByteLength: r.position };
 }
 
