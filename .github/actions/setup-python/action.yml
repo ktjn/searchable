@@ -1,5 +1,13 @@
 name: Set up Python workspace
-description: Install Python and uv with dependency caching
+description: Install Python and uv with dependency caching, plus optional `uv sync`
+
+inputs:
+  working-directory:
+    description: >-
+      If set, run `uv sync` in this directory (a package dir, e.g.
+      python/searchable-indexer, when a job needs Python-built fixtures).
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -10,3 +18,7 @@ runs:
     - uses: astral-sh/setup-uv@v9.0.0
       with:
         enable-cache: true
+    - name: Install Python dependencies (uv sync)
+      if: inputs.working-directory != ''
+      shell: bash
+      run: cd ${{ inputs.working-directory }} && uv sync
