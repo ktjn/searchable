@@ -173,26 +173,30 @@ Verify: Python gates + the Python and TS conformance suites
 
 ## Phase C — Modularization (mirrored seams in both search clients)
 
-- [ ] **C.1** Split TS `packages/client/src/search.ts` (1,544) →
-  `fuzzy.ts`, `facets.ts`, `hybrid.ts`, `phrase.ts` (+ optional `pins.ts`),
-  along the existing test-covered seams (levenshtein/`loadFuzzyLookup`;
-  `fetchFacetShards`/`unionDocsForField`/facet counting; `vectorHitsForLanguage`/
-  `minMaxNormalize`/`fuseHybridResult`; `containsPhrase`/
-  `hasConsecutivePositions`).
-- [ ] **C.2** Split Python `search.py` (790) → mirrored `fuzzy.py`,
-  `facets.py`, `hybrid.py`, `phrase.py`; extract the nested
-  `class _BinaryFuzzyLookup` (`search.py:266-291`) into a closure or module
-  class, and the `_score_of`/`_to_hit` closures (`756-805`) into module
-  functions.
+- [x] **C.1** Split TS `packages/client/src/search.ts` (1,625) →
+  `fuzzy.ts`, `facets.ts`, `hybrid.ts`, `phrase.ts` + `synonyms.ts`,
+  `doc-store.ts`, `url.ts` (shared `resolve`), along the existing
+  test-covered seams (levenshtein/`loadFuzzyLookup`; `fetchFacetShards`/
+  `unionDocsForField`/filter helpers; `vectorHitsForLanguage`/`minMaxNormalize`/
+  `fuseHybridResult`; `containsPhrase`/`hasConsecutivePositions`). No
+  behavioral change; search.ts keeps the types + `lexicalSearch` + public
+  entries.
+- [x] **C.2** Split Python `search.py` (969) → mirrored `fuzzy.py`, `facets.py`,
+  `hybrid.py`, `phrase.py`, `synonyms.py`, `doc_store.py`; result types
+  (`Hit`/`SearchOptions`/`SearchResult`/facet types) moved to `types.py` with
+  `search` re-exports + `__all__`; nested `class _BinaryFuzzyLookup` extracted
+  to module level; `hybrid.py` reaches `search()` via a lazy import (avoids an
+  import cycle); `_score_of`/`_to_hit` remain in `search()` as local closures
+  (tightly coupled to that scope — extracted in the C.6 client.ts pass if kept).
 - [ ] **C.3** Split `packages/analysis/src/language-profile.ts` (718) — extract
   the ~590 lines of stopword datasets (`44-592`) into `stopwords.ts`.
 - [ ] **C.4** Split Python indexer `build_index.py` (604) — extract facet
   bucketing and postings; de-parametrize `_build_prepared_documents` (19
   keyword params, `297-315`). (`synonyms.py`/`fuzzy.py` already exist there.)
-- [ ] **C.5** Dedupe small pairs as the split lands: `resolve()` (`search.ts:257-259`
-  vs `sw.ts:27-29`, deferred from old 2.5); the binary directory decoders
+- [ ] **C.5** Dedupe small pairs as the split lands: `resolve()` (done — unified
+  `sw.ts` onto `url.ts`); the binary directory decoders
   (`binary-term-shard.ts:27-42` ≈ `binary-fuzzy-shard.ts:25-41` ≈
-  `binary-doc-store.ts:29-54`).
+  `binary-doc-store.ts:29-54`) still pending.
 - [ ] **C.6** Carry-over from old plan: extract `html-to-text` + `snapshot-hash`
   from `relevance/govuk-normalize.ts` (old 4.4); unify `#assertUsable` guard
   preamble in `packages/client/src/client.ts` (old 4.5); `resolvePins` warnings
@@ -325,11 +329,11 @@ reasons. Old 4.1 survives as C.1, 2.2 as D.2, 3.1 as E.1, 3.2 as E.3, 4.4/4.5/
 | B.4 | Fuzzy-cap truncation warning | done | | stderr warning mirroring TS `console.warn` text added at the cap; test asserts warning + exactly-cap scoring |
 | B.5 | Error-base standardization (errors.py) | done | | new `SearchClientError(ValueError)` base; all vector errors + `InvalidManifestError` now subclass it; exported in `__init__` |
 | B.6 | Indexer reuses analysis `generate_deletes` | done | | private fork removed; `searchable-analysis` shared function used |
-| C.1 | Split TS `search.ts` → fuzzy/facets/hybrid/phrase | pending | | |
-| C.2 | Split Python `search.py` → mirrored modules | pending | | incl. nested class + closures |
+| C.1 | Split TS `search.ts` → fuzzy/facets/hybrid/phrase + synonyms/doc-store/url | done | | search.ts 1,625 → 1,018; behavior-preserving; biome/typecheck/build/278 vitest green |
+| C.2 | Split Python `search.py` → mirrored modules | done | | search.py 969 → 499; types moved to `types.py` + `__all__` re-export; `_BinaryFuzzyLookup` module-level; ruff/mypy/136 pytest green |
 | C.3 | Split `language-profile.ts` → `stopwords.ts` | pending | | |
 | C.4 | Split Python `build_index.py`; de-parametrize `_build_prepared_documents` | pending | | 19 params at 297–315 |
-| C.5 | Dedupe `resolve()` + binary directory decoders | pending | | |
+| C.5 | Dedupe `resolve()` + binary directory decoders | in-progress | | `resolve()` unified onto `url.ts` (search.ts + sw.ts); binary directory decoders still pending |
 | C.6 | Carried relevance/client items (4.4,4.5,5.3,5.5,5.6) | pending | | |
 | D.1 | De-triplicate `python-index.ts` into fixtures | pending | | keep client superset surface |
 | D.2 | Fold `relevance/static-server.ts` onto fixtures `serveDirectory` | pending | | |

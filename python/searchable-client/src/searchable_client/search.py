@@ -1,161 +1,43 @@
-import sys
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field, replace
-from math import isfinite
-from typing import Any
+from dataclasses import replace
 
-from searchable_analysis import (
-    generate_deletes,
-    get_language_profile,
-    normalize_phrase,
-)
+from searchable_analysis import get_language_profile, normalize_phrase
 
-from searchable_client.errors import (
-    InvalidVectorShardError,
-    VectorSearchNotConfiguredError,
+from searchable_client.doc_store import _fetch_doc_store_entries_by_ids
+from searchable_client.facets import (
+    _fetch_facet_shards,
+    _union_docs_for_field,
+    _values_for,
 )
 from searchable_client.fetch import ShardCache, resolve_url
-from searchable_client.highlight import HighlightSpan, HighlightTerm, highlight_text
+from searchable_client.fuzzy import (
+    _fuzzy_matches_for,
+    _load_fuzzy_lookup,
+    _nearest_terms_for,
+)
+from searchable_client.highlight import HighlightTerm, highlight_text
+from searchable_client.hybrid import _vector_or_hybrid_search
 from searchable_client.parse_query import parse_query
+from searchable_client.phrase import _contains_phrase, _has_consecutive_positions
 from searchable_client.score import score_term_for_doc
+from searchable_client.synonyms import _multi_word_variants_for, _synonym_variants_for
 from searchable_client.types import (
-    DocStoreEntry,
-    FacetShard,
+    FacetResult,
+    FacetResultValue,
+    FacetValuesOptions,
+    Hit,
     Manifest,
-    SynonymShard,
+    SearchOptions,
+    SearchResult,
     TermEntry,
     TermShardEntry,
-    doc_store_shard_from_dict,
-    facet_shard_from_dict,
-    fuzzy_shard_from_dict,
     pins_shard_from_dict,
     synonym_shard_from_dict,
     term_shard_from_dict,
-    vector_shard_from_dict,
 )
-from searchable_client.vectors import VectorHit, brute_force_vector_search, reciprocal_rank_fusion
 
 UNSHARDED_TERM_SHARD_PREFIX = "all"
-DEFAULT_SYNONYM_WEIGHT = 0.5
-DEFAULT_FUZZY_WEIGHT = 0.5
 MAX_SUGGESTIONS_PER_TERM = 3
-
-
-@dataclass
-class Hit:
-    id: int
-    score: float
-    url: str
-    fields: dict[str, str]
-    pinned: bool = False
-    highlights: dict[str, list[HighlightSpan]] | None = None
-    external_id: str | None = None
-    metadata: dict[str, Any] | None = None
-    content_hash: str | None = None
-
-
-@dataclass
-class SearchResult:
-    hits: list[Hit]
-    total_hits: int
-    language: str
-    facets: "dict[str, FacetResult] | None" = None
-    did_you_mean: list[str] | None = None
-
-
-@dataclass
-class SearchOptions:
-    language: str | None = None
-    limit: int = 10
-    mode: str = "lexical"
-    operator: str = "and"
-    vector_weight: float | None = None
-    boosts: dict[str, Any] | None = None  # {"fields": {...}, "terms": {...}}
-    filters: dict[str, Any] | None = None
-    facets: list[str] = field(default_factory=list)
-    synonyms: bool = False
-    synonym_weight: float = DEFAULT_SYNONYM_WEIGHT
-    fuzzy: bool = False
-    fuzzy_weight: float = DEFAULT_FUZZY_WEIGHT
-    highlight: bool = False
-
-
-@dataclass
-class FacetResultValue:
-    value: str
-    count: int
-    selected: bool
-
-
-@dataclass
-class FacetResult:
-    values: list[FacetResultValue]
-    separator: str | None = None
-
-
-@dataclass
-class FacetValuesOptions:
-    filters: dict[str, Any] | None = None
-
-
-def _is_range_filter(value: Any) -> bool:
-    return isinstance(value, dict) and ("min" in value or "max" in value)
-
-
-def _values_for(filters: dict[str, Any] | None, field_name: str) -> list[str]:
-    raw = (filters or {}).get(field_name)
-    if raw is None or _is_range_filter(raw):
-        return []
-    return raw if isinstance(raw, list) else [raw]
-
-
-def _range_filter_for(filters: dict[str, Any] | None, field_name: str) -> dict[str, Any] | None:
-    raw = (filters or {}).get(field_name)
-    return raw if _is_range_filter(raw) else None
-
-
-def _fetch_facet_shards(
-    manifest: Manifest, cache: ShardCache, base_url: str, fields: list[str]
-) -> dict[str, FacetShard]:
-    result = {}
-    for entry in manifest.shards_facets:
-        if entry.field in fields:
-            raw = cache.fetch_json(resolve_url(base_url, entry.file))
-            result[entry.field] = facet_shard_from_dict(raw)
-    return result
-
-
-def _union_docs_for_field(
-    facet_shards_by_field: dict[str, FacetShard], filters: dict[str, Any] | None, field_name: str
-) -> set[int]:
-    shard = facet_shards_by_field.get(field_name)
-    if shard is None:
-        return set()
-    ids: set[int] = set()
-    if shard.type == "range":
-        range_filter = _range_filter_for(filters, field_name)
-        if not range_filter:
-            return ids
-        for range_entry in shard.sorted or []:
-            if (
-                "min" in range_filter
-                and range_filter["min"] is not None
-                and range_entry.value < range_filter["min"]
-            ):
-                continue
-            if (
-                "max" in range_filter
-                and range_filter["max"] is not None
-                and range_entry.value > range_filter["max"]
-            ):
-                continue
-            ids.add(range_entry.doc)
-        return ids
-    for value in _values_for(filters, field_name):
-        value_entry = shard.values.get(value)
-        if value_entry:
-            ids.update(value_entry.docs)
-    return ids
 
 
 def facet_values(
@@ -199,128 +81,6 @@ def facet_values(
     )
 
 
-def _synonym_variants_for(term: str, synonym_shard: SynonymShard | None) -> list[str]:
-    if synonym_shard is None:
-        return []
-    variants: set[str] = set()
-    for group in synonym_shard.equivalences:
-        if term in group:
-            variants.update(v for v in group if v != term)
-    variants.update(synonym_shard.directional.get(term, []))
-    return list(variants)
-
-
-def _multi_word_variants_for(
-    normalized_phrase: str, synonym_shard: SynonymShard | None
-) -> list[str]:
-    """Every other normalized phrase `normalized_phrase` expands to via the
-    synonym shard's `multiWord` equivalence classes (docs/guides/synonyms.md).
-    Symmetric only, matching the TS `multiWordVariantsFor`."""
-    if synonym_shard is None:
-        return []
-    variants: set[str] = set()
-    for group in synonym_shard.multi_word:
-        if normalized_phrase in group:
-            variants.update(v for v in group if v != normalized_phrase)
-    return list(variants)
-
-
-def _levenshtein_distance(a: str, b: str) -> int:
-    s, t = list(a), list(b)
-    prev_row = list(range(len(t) + 1))
-    for i in range(1, len(s) + 1):
-        diag = prev_row[0]
-        prev_row[0] = i
-        for j in range(1, len(t) + 1):
-            temp = prev_row[j]
-            prev_row[j] = (
-                diag if s[i - 1] == t[j - 1] else 1 + min(diag, prev_row[j], prev_row[j - 1])
-            )
-            diag = temp
-    return prev_row[len(t)]
-
-
-MAX_FUZZY_CANDIDATES_PER_TERM = 200
-
-
-class _FuzzyLookup:
-    def __init__(self, max_edits: int, deletions: dict[str, list[str]]):
-        self.max_edits = max_edits
-        self._deletions = deletions
-
-    def get(self, variant: str) -> list[str]:
-        return self._deletions.get(variant, [])
-
-
-def _fuzzy_candidates_for(term: str, lookup: "_FuzzyLookup | None") -> list[tuple[str, int]]:
-    if lookup is None:
-        return []
-    candidates: set[str] = set(lookup.get(term))
-    for deletion in generate_deletes(term, lookup.max_edits):
-        candidates.update(lookup.get(deletion))
-    candidate_terms = list(candidates)
-    if len(candidate_terms) > MAX_FUZZY_CANDIDATES_PER_TERM:
-        # Mirror the TS client's console.warn: candidates beyond the cap are
-        # dropped before scoring (bounds worst-case per-term CPU), and which
-        # ones survive depends on set insertion order, not distance.
-        print(
-            f'[searchable-client] fuzzy lookup for "{term}" found '
-            f"{len(candidate_terms)} dictionary candidates, over the "
-            f"{MAX_FUZZY_CANDIDATES_PER_TERM}-candidate cap -- scoring only the first "
-            f"{MAX_FUZZY_CANDIDATES_PER_TERM} (not necessarily the closest). "
-            "A dense vocabulary this large may want a shorter query term, a smaller "
-            "fuzzyMaxEdits, or this project's benchmarking data to size the tradeoff "
-            "(docs/project/governance.md).",
-            file=sys.stderr,
-        )
-        candidate_terms = candidate_terms[:MAX_FUZZY_CANDIDATES_PER_TERM]
-    return [(c, _levenshtein_distance(term, c)) for c in candidate_terms if c != term]
-
-
-def _effective_max_edits(term: str, shard_max_edits: int) -> int:
-    return min(1, shard_max_edits) if len(term) <= 3 else shard_max_edits
-
-
-def _fuzzy_matches_for(term: str, lookup: "_FuzzyLookup | None") -> list[tuple[str, int]]:
-    if lookup is None:
-        return []
-    cap = _effective_max_edits(term, lookup.max_edits)
-    return [m for m in _fuzzy_candidates_for(term, lookup) if m[1] <= cap]
-
-
-def _nearest_terms_for(term: str, lookup: "_FuzzyLookup | None", limit: int) -> list[str]:
-    matches = sorted(_fuzzy_candidates_for(term, lookup), key=lambda m: (m[1], m[0]))
-    return [m[0] for m in matches[:limit]]
-
-
-def _load_fuzzy_lookup(
-    manifest: Manifest, cache: ShardCache, base_url: str, language: str
-) -> "_FuzzyLookup | None":
-    entry = (manifest.fuzzy or {}).get(language)
-    if entry is None:
-        return None
-    if entry.format == "binary":
-        from searchable_client.binary_fuzzy_shard import (
-            decode_binary_fuzzy_entry,
-            decode_binary_fuzzy_shard_directory,
-        )
-
-        data = cache.fetch_bytes(resolve_url(base_url, entry.file))
-        max_edits, _, index, dir_len = decode_binary_fuzzy_shard_directory(data)
-
-        class _BinaryFuzzyLookup(_FuzzyLookup):
-            def __init__(self) -> None:
-                self.max_edits = max_edits
-
-            def get(self, variant: str) -> list[str]:
-                location = index.get(variant)
-                return decode_binary_fuzzy_entry(data, dir_len, location[0]) if location else []
-
-        return _BinaryFuzzyLookup()
-    shard = fuzzy_shard_from_dict(cache.fetch_json(resolve_url(base_url, entry.file)))
-    return _FuzzyLookup(shard.max_edits, shard.deletions)
-
-
 def _shard_entries_for_query(
     shard_entries: list[TermShardEntry], exact_terms_needed: set[str], prefixes_needed: list[str]
 ) -> list[TermShardEntry]:
@@ -335,250 +95,6 @@ def _shard_entries_for_query(
         if any(entry.prefix.startswith(p) or p.startswith(entry.prefix) for p in prefixes_needed):
             result.append(entry)
     return result
-
-
-def _has_consecutive_positions(entries: list[TermEntry | None], doc_id: int) -> bool:
-    postings = [
-        next((p for p in e.postings if p.doc == doc_id), None) if e else None for e in entries
-    ]
-    if not postings or any(p is None for p in postings):
-        return False
-    first = postings[0]
-    assert first is not None
-    for field_name in first.fields:
-        position_sets = [
-            p.fields[field_name].pos if p is not None and field_name in p.fields else None
-            for p in postings
-        ]
-        if any(s is None for s in position_sets):
-            continue
-        start_positions = position_sets[0]
-        assert start_positions is not None
-        for start in start_positions:
-            if all(start + i in (position_sets[i] or []) for i in range(1, len(position_sets))):
-                return True
-    return False
-
-
-def _contains_phrase(query_tokens: list[str], phrase_tokens: list[str]) -> bool:
-    if not phrase_tokens or len(phrase_tokens) > len(query_tokens):
-        return False
-    for i in range(len(query_tokens) - len(phrase_tokens) + 1):
-        if all(query_tokens[i + j] == t for j, t in enumerate(phrase_tokens)):
-            return True
-    return False
-
-
-def _fetch_doc_store_entries_by_ids(
-    manifest: Manifest, cache: ShardCache, base_url: str, ids: list[int]
-) -> dict[int, DocStoreEntry]:
-    doc_lookup: dict[int, DocStoreEntry] = {}
-    id_set = set(ids)
-    for entry in manifest.shards_docs:
-        if not any(entry.id_range[0] <= i <= entry.id_range[1] for i in ids):
-            continue
-        if entry.format == "binary":
-            from searchable_client.binary_doc_store import (
-                decode_binary_doc_store_directory,
-                decode_binary_doc_store_entry,
-            )
-
-            data = cache.fetch_bytes(resolve_url(base_url, entry.file))
-            _, index, dir_len = decode_binary_doc_store_directory(
-                data, binary_version=entry.binary_version
-            )
-            for doc_id in id_set:
-                location = index.get(doc_id)
-                if location:
-                    doc_lookup[doc_id] = decode_binary_doc_store_entry(
-                        data, dir_len, location[0], binary_version=entry.binary_version or 1
-                    )
-        else:
-            shard = doc_store_shard_from_dict(cache.fetch_json(resolve_url(base_url, entry.file)))
-            for doc_id, doc_entry in shard.items():
-                if doc_id in id_set:
-                    doc_lookup[doc_id] = doc_entry
-    return doc_lookup
-
-
-def _load_vector_hits(
-    manifest: Manifest,
-    cache: ShardCache,
-    base_url: str,
-    language: str,
-    query_vector: list[float],
-    limit: int,
-) -> list["VectorHit"]:
-    # A language without a vector shard (empty partition, or a corpus built
-    # without a `vectors` option) simply has no vector matches, mirroring how a
-    # language with no term shard returns no lexical matches rather than raising
-    # -- same as the TS client (`vectorHitsForLanguage`). Callers that want a
-    # loud error (SearchClient.search) check `manifest.vectors` separately.
-    vectors = manifest.vectors
-    if vectors is None or language not in vectors.shards:
-        return []
-    try:
-        shard = vector_shard_from_dict(
-            cache.fetch_json(resolve_url(base_url, vectors.shards[language]))
-        )
-    except (KeyError, TypeError, ValueError) as exc:
-        raise InvalidVectorShardError(
-            f"could not parse vector shard for {language!r}: {exc}"
-        ) from exc
-    if shard.dims != vectors.dims:
-        raise InvalidVectorShardError(
-            f"vector shard dims {shard.dims} do not match manifest dims {vectors.dims}"
-        )
-    if shard.quantization != vectors.quantization:
-        raise InvalidVectorShardError(
-            f"vector shard quantization {shard.quantization!r} does not match manifest "
-            f"quantization {vectors.quantization!r}"
-        )
-    if shard.quantization == "int8" and shard.quant_range is None:
-        raise InvalidVectorShardError("int8 vector shard requires quantRange")
-    for entry in shard.entries:
-        if len(entry.vector) != shard.dims:
-            raise InvalidVectorShardError(
-                f"vector entry {entry.passage_id!r} has {len(entry.vector)} dims; "
-                f"shard requires {shard.dims}"
-            )
-        if not all(isfinite(value) for value in entry.vector):
-            raise InvalidVectorShardError(
-                f"vector entry {entry.passage_id!r} contains non-finite values"
-            )
-    return brute_force_vector_search(query_vector, shard, limit)
-
-
-def _vector_hit_result(
-    vector_hits: list["VectorHit"],
-    manifest: Manifest,
-    cache: ShardCache,
-    base_url: str,
-    options: SearchOptions,
-    language: str,
-) -> SearchResult:
-    ids = [hit.doc_id for hit in vector_hits]
-    doc_lookup = _fetch_doc_store_entries_by_ids(manifest, cache, base_url, ids)
-    hits = [
-        Hit(
-            id=vector_hit.doc_id,
-            score=vector_hit.score,
-            url=doc_lookup[vector_hit.doc_id].url if vector_hit.doc_id in doc_lookup else "",
-            fields=doc_lookup[vector_hit.doc_id].fields if vector_hit.doc_id in doc_lookup else {},
-            external_id=(
-                doc_lookup[vector_hit.doc_id].external_id
-                if vector_hit.doc_id in doc_lookup
-                else None
-            ),
-            metadata=(
-                doc_lookup[vector_hit.doc_id].metadata if vector_hit.doc_id in doc_lookup else None
-            ),
-            content_hash=(
-                doc_lookup[vector_hit.doc_id].content_hash
-                if vector_hit.doc_id in doc_lookup
-                else None
-            ),
-        )
-        for vector_hit in vector_hits
-    ]
-    return SearchResult(hits=hits, total_hits=len(vector_hits), language=language)
-
-
-def _normalize_scores(scores: list[float]) -> dict[float, float]:
-    if not scores:
-        return {}
-    minimum, maximum = min(scores), max(scores)
-    if minimum == maximum:
-        return {score: 1.0 for score in scores}
-    return {score: (score - minimum) / (maximum - minimum) for score in scores}
-
-
-def _vector_or_hybrid_search(
-    query: str,
-    manifest: Manifest,
-    cache: ShardCache,
-    base_url: str,
-    options: SearchOptions,
-    query_vector: list[float] | None,
-    language: str,
-) -> SearchResult:
-    if query_vector is None:
-        raise VectorSearchNotConfiguredError(
-            f'Search mode "{options.mode}" requires a query vector'
-        )
-    limit = max(0, options.limit)
-    # RRF/weighted fusion over just the final page size would starve out
-    # documents that rank, say, 4th on one side and 4th on the other from ever
-    # combining into a top-10 fused result -- same floor as the TS client
-    # (fusionCandidateLimit).
-    candidate_limit = max(limit * 3, 30)
-    vector_hits = _load_vector_hits(
-        manifest, cache, base_url, language, query_vector, candidate_limit
-    )
-    if options.mode == "vector":
-        return _vector_hit_result(vector_hits[:limit], manifest, cache, base_url, options, language)
-
-    lexical_options = replace(options, mode="lexical", vector_weight=None, limit=candidate_limit)
-    lexical_result = search(query, manifest, cache, base_url, lexical_options)
-
-    # Pinned hits are an editorial override, not candidates for a
-    # similarity-based reordering: carry them through unchanged, exclude them
-    # (and their vector hits) from fusion entirely, then re-merge in front,
-    # truncating to the caller's real limit after -- mirrors the TS client's
-    # fuseHybridResult.
-    pinned_hits = [hit for hit in lexical_result.hits if hit.pinned]
-    organic_lexical = [hit for hit in lexical_result.hits if not hit.pinned]
-    pinned_ids = {hit.id for hit in pinned_hits}
-    non_pinned_vector_hits = [v for v in vector_hits if v.doc_id not in pinned_ids]
-    organic_lexical_by_id = {hit.id: hit for hit in organic_lexical}
-    non_pinned_vector_by_id = {v.doc_id: v for v in non_pinned_vector_hits}
-
-    if options.vector_weight is None:
-        fused_scores = reciprocal_rank_fusion(
-            [[hit.id for hit in organic_lexical], [v.doc_id for v in non_pinned_vector_hits]]
-        )
-    else:
-        if not 0.0 <= options.vector_weight <= 1.0:
-            raise ValueError("vector_weight must be between 0 and 1")
-        lexical_normalized = _normalize_scores([hit.score for hit in organic_lexical])
-        vector_normalized = _normalize_scores([v.score for v in non_pinned_vector_hits])
-        fused_scores = {
-            doc_id: (1.0 - options.vector_weight)
-            * lexical_normalized.get(organic_lexical_by_id[doc_id].score, 0.0)
-            + options.vector_weight
-            * vector_normalized.get(non_pinned_vector_by_id[doc_id].score, 0.0)
-            for doc_id in {*organic_lexical_by_id, *non_pinned_vector_by_id}
-        }
-    ranked = sorted(fused_scores, key=lambda doc_id: (-fused_scores[doc_id], doc_id))
-    remaining_slots = max(0, limit - len(pinned_hits))
-    top_ranked = ranked[:remaining_slots]
-    missing_ids = [doc_id for doc_id in top_ranked if doc_id not in organic_lexical_by_id]
-    doc_lookup = _fetch_doc_store_entries_by_ids(manifest, cache, base_url, missing_ids)
-    hits: list[Hit] = list(pinned_hits)
-    for doc_id in top_ranked:
-        lexical_hit = organic_lexical_by_id.get(doc_id)
-        if lexical_hit is not None:
-            hits.append(replace(lexical_hit, score=fused_scores[doc_id]))
-            continue
-        doc = doc_lookup.get(doc_id)
-        hits.append(
-            Hit(
-                id=doc_id,
-                score=fused_scores[doc_id],
-                url=doc.url if doc else "",
-                fields=doc.fields if doc else {},
-                external_id=doc.external_id if doc else None,
-                metadata=doc.metadata if doc else None,
-                content_hash=doc.content_hash if doc else None,
-            )
-        )
-    return SearchResult(
-        hits=hits,
-        total_hits=len({*pinned_ids, *fused_scores}),
-        language=language,
-        facets=lexical_result.facets,
-        did_you_mean=lexical_result.did_you_mean,
-    )
 
 
 def search(
@@ -967,3 +483,17 @@ def search_stream(
     partial_options = replace(options, synonyms=False, fuzzy=False)
     yield search(query, manifest, cache, base_url, partial_options)
     yield search(query, manifest, cache, base_url, options)
+
+
+__all__ = [
+    "FacetResult",
+    "FacetResultValue",
+    "FacetValuesOptions",
+    "Hit",
+    "SearchOptions",
+    "SearchResult",
+    "facet_values",
+    "retrieve",
+    "search",
+    "search_stream",
+]

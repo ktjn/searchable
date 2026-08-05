@@ -1,6 +1,11 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from searchable_client.highlight import HighlightSpan
+
+DEFAULT_SYNONYM_WEIGHT = 0.5
+DEFAULT_FUZZY_WEIGHT = 0.5
+
 
 @dataclass(frozen=True)
 class FieldConfig:
@@ -321,3 +326,60 @@ def vector_shard_from_dict(data: dict[str, Any]) -> VectorShard:
             for entry in data["entries"]
         ],
     )
+
+
+@dataclass
+class Hit:
+    id: int
+    score: float
+    url: str
+    fields: dict[str, str]
+    pinned: bool = False
+    highlights: dict[str, list[HighlightSpan]] | None = None
+    external_id: str | None = None
+    metadata: dict[str, Any] | None = None
+    content_hash: str | None = None
+
+
+@dataclass
+class SearchResult:
+    hits: list[Hit]
+    total_hits: int
+    language: str
+    facets: "dict[str, FacetResult] | None" = None
+    did_you_mean: list[str] | None = None
+
+
+@dataclass
+class SearchOptions:
+    language: str | None = None
+    limit: int = 10
+    mode: str = "lexical"
+    operator: str = "and"
+    vector_weight: float | None = None
+    boosts: dict[str, Any] | None = None  # {"fields": {...}, "terms": {...}}
+    filters: dict[str, Any] | None = None
+    facets: list[str] = field(default_factory=list)
+    synonyms: bool = False
+    synonym_weight: float = DEFAULT_SYNONYM_WEIGHT
+    fuzzy: bool = False
+    fuzzy_weight: float = DEFAULT_FUZZY_WEIGHT
+    highlight: bool = False
+
+
+@dataclass
+class FacetResultValue:
+    value: str
+    count: int
+    selected: bool
+
+
+@dataclass
+class FacetResult:
+    values: list[FacetResultValue]
+    separator: str | None = None
+
+
+@dataclass
+class FacetValuesOptions:
+    filters: dict[str, Any] | None = None
