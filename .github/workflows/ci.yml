@@ -57,9 +57,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-python
-      - name: Set up searchable-indexer (Python, needed to build test fixtures)
-        working-directory: python/searchable-indexer
-        run: uv sync
+        with:
+          working-directory: python/searchable-indexer
+      - name: Build packages once (typecheck/size/test reuse the same build)
+        run: pnpm build
       - run: pnpm typecheck
       - run: pnpm size
       - run: pnpm test
@@ -70,9 +71,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-python
-      - name: Set up searchable-indexer (Python, needed to build the showcase's search index)
-        working-directory: python/searchable-indexer
-        run: uv sync
+        with:
+          working-directory: python/searchable-indexer
       - name: Resolve Playwright version
         id: playwright-version
         shell: bash
@@ -91,4 +91,6 @@ jobs:
       - name: Install Playwright OS dependencies only (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
+      - name: Build packages + showcase once
+        run: pnpm build && pnpm --filter showcase build
       - run: pnpm test:browser

@@ -231,18 +231,26 @@ Verify: Python gates + the Python and TS conformance suites
 
 ## Phase E — Config, CI, docs
 
-- [ ] **E.1** Kill the 4× CI rebuild sprawl (old 3.1): replace root `pre*`
-  scripts (`package.json:15,17,19,21`) with explicit composition so CI builds
-  packages once.
-- [ ] **E.2** Fold the triplicated `uv sync` step (`ci.yml:54-56,67-69`,
-  `deploy-pages.yml:29-31`) into `.github/actions/setup-python/action.yml` with
-  a `working-directory` input. Update `showcase/test/
-  pages-workflow-policy.test.ts` in the same commit (it pins workflow text).
-- [ ] **E.3** Revisit deleting no-op vitest configs (`analysis`, `relevance` —
-  old 3.2, deferred for vitest workspace-resolution reasons; re-check whether
-  the `--root ../.. --project` pattern now works, else mark dropped).
-- [ ] **E.4** Resolve `docs/project/language-support.md` orphan: link it into
-  `docs-nav.ts` Project section or consciously accept it.
+- [x] **E.1** Kill the 4× CI rebuild sprawl (old 3.1): `pre*` hooks removed;
+  `test`/`test:browser`/`typecheck`/`size` are pure check commands and each CI
+  job builds explicitly once (`test` job: one `pnpm build` before
+  typecheck/size/test; `test-browser`: one `pnpm build && showcase build`).
+- [x] **E.2** Fold the triplicated `uv sync` step (`ci.yml`, `deploy-pages.yml`)
+  into `.github/actions/setup-python/action.yml` via a `working-directory`
+  input (each job's setup-python call carries it). `pages-workflow-policy`
+  suite still passes (workflow text ordering preserved).
+- [x] **E.3** Revisit deleting no-op vitest configs (analysis, relevance) —
+  **dropped**: `--project <name>` does not match the root projects config's
+  auto-generated project names ("No projects matched the filter"), and giving
+  the projects explicit names is a restructuring larger than two 7-line
+  no-op configs (which also keep package-local `vitest run` from accidentally
+  running the whole workspace) are worth.
+- [x] **E.4** Resolve `docs/project/language-support.md` orphan: **consciously
+  accepted** as a standalone reference doc — linking it into `docs-nav.ts`
+  ripples into the *reviewed* `packages/relevance/fixtures/domains/
+  searchable-docs.json` fixture (its page list must mirror the generated
+  site exactly, `domain-fixture-policy.test.ts`) and the pinned nav count,
+  and regenerating a reviewed, hand-tagged fixture is beyond cleanup scope.
 
 ## Phase F — Structural, separate decisions
 
@@ -345,10 +353,10 @@ reasons. Old 4.1 survives as C.1, 2.2 as D.2, 3.1 as E.1, 3.2 as E.3, 4.4/4.5/
 | D.2 | Fold `relevance/static-server.ts` onto fixtures `serveDirectory` | done | | module deleted; both relevance runners import from fixtures; 165 relevance tests green |
 | D.3 | Showcase build pipeline + `pageShell` options + escapeHtml | done | | `buildGalleryDemo` + `pageShell` meta/lang; escapeHtml shared; full showcase build + 53 tests green |
 | D.4 | Merge showcase directory walkers | done | | `walk-files.ts` shared by build-search + site-validation |
-| E.1 | Kill pre-hook rebuild sprawl (CI 4×→1) | pending | | |
-| E.2 | Fold `uv sync` into setup-python action; update policy test | pending | | pages-workflow-policy coupling |
-| E.3 | No-op vitest configs (analysis/relevance) | pending | | re-check workspace resolution |
-| E.4 | `docs/project/language-support.md` reachability | pending | | |
+| E.1 | Kill pre-hook rebuild sprawl (CI 4×→1) | done | | `pre*` removed; checks pure; CI builds once per job (a separate `pnpm build` step in `test`/`test-browser`) |
+| E.2 | Fold `uv sync` into setup-python action; update policy test | done | | `working-directory` input added; `setup-python` call sites carry `python/searchable-indexer`; standalone steps deleted in `ci.yml` + `deploy-pages.yml`; policy test untouched (ordering preserved) |
+| E.3 | No-op vitest configs (analysis/relevance) | dropped | | auto-generated project names defeat `--project` filtering; explicit-name restructure not worth 2 no-op 7-line configs |
+| E.4 | `docs/project/language-support.md` reachability | done | | consciously accepted as a standalone reference; linking ripples into the reviewed relevance fixture (page-list pin) |
 | F.1 | Binary codec single home (re-examined) | pending | | separate decision |
 | F.2 | Relevance v1/v2 unification | pending | | fixture migration |
 
