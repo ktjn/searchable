@@ -1,3 +1,7 @@
+from dataclasses import FrozenInstanceError
+
+import pytest
+
 from searchable_indexer.document import FieldDefinition, IndexDocument, compute_content_hash
 
 
@@ -10,11 +14,8 @@ def test_field_definition_defaults():
 
 def test_field_definition_is_frozen():
     definition = FieldDefinition()
-    try:
+    with pytest.raises(FrozenInstanceError):
         definition.boost = 2.0
-        assert False, "expected FrozenInstanceError"
-    except Exception as exc:
-        assert type(exc).__name__ == "FrozenInstanceError"
 
 
 def test_index_document_defaults():
@@ -56,9 +57,7 @@ def test_content_hash_changes_with_content():
     assert compute_content_hash(_doc()) != compute_content_hash(
         _doc(indexed_fields={"body": "different"})
     )
-    assert compute_content_hash(_doc()) != compute_content_hash(
-        _doc(metadata={"chunkIndex": 4})
-    )
+    assert compute_content_hash(_doc()) != compute_content_hash(_doc(metadata={"chunkIndex": 4}))
 
 
 def test_content_hash_ignores_id_and_external_id_and_url():

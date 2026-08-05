@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -32,14 +33,14 @@ class ExtractedDocument:
 
 @dataclass
 class BuiltIndex:
-    manifest: dict
-    term_shards: dict[str, dict]
-    doc_store: dict
+    manifest: dict[str, Any]
+    term_shards: dict[str, dict[str, Any]]
+    doc_store: dict[str, Any]
     id_range: tuple[int, int]
-    facet_shards: dict[str, dict] = field(default_factory=dict)
-    pins_shards: dict[str, dict] = field(default_factory=dict)
-    synonym_shards: dict[str, dict] = field(default_factory=dict)
-    fuzzy_shards: dict[str, dict] = field(default_factory=dict)
-    vector_shards: dict[str, dict] = field(default_factory=dict)
-    embedding_provider: dict | None = None
+    facet_shards: dict[str, dict[str, Any]] = field(default_factory=dict)
+    pins_shards: dict[str, dict[str, Any]] = field(default_factory=dict)
+    synonym_shards: dict[str, dict[str, Any]] = field(default_factory=dict)
+    fuzzy_shards: dict[str, dict[str, Any]] = field(default_factory=dict)
+    vector_shards: dict[str, dict[str, Any]] = field(default_factory=dict)
+    embedding_provider: dict[str, Any] | None = None
     structured: bool = False

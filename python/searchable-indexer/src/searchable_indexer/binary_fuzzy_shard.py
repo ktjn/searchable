@@ -1,10 +1,12 @@
+from typing import Any
+
 from searchable_indexer.byte_writer import ByteWriter
 
 # Direct port of packages/indexer/src/binary-fuzzy-shard.ts's
 # encodeFuzzyShardBinary.
 
 
-def encode_fuzzy_shard_binary(shard: dict) -> bytes:
+def encode_fuzzy_shard_binary(shard: dict[str, Any]) -> bytes:
     variants = sorted(shard["deletions"].keys())
     blobs = []
     for variant in variants:
@@ -19,7 +21,7 @@ def encode_fuzzy_shard_binary(shard: dict) -> bytes:
     header.write_varint(shard["maxEdits"])
     header.write_varint(len(variants))
     offset = 0
-    for variant, blob in zip(variants, blobs):
+    for variant, blob in zip(variants, blobs, strict=True):
         header.write_string(variant)
         header.write_varint(offset)
         header.write_varint(len(blob))

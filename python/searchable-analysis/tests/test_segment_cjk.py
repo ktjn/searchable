@@ -11,9 +11,7 @@ def test_splits_a_run_of_cjk_characters_into_overlapping_bigrams():
 
 
 def test_indexes_a_lone_single_character_cjk_run_as_that_one_character():
-    assert segment_cjk_bigram("深") == [
-        TokenSpan(text="深", is_word_like=True)
-    ]
+    assert segment_cjk_bigram("深") == [TokenSpan(text="深", is_word_like=True)]
 
 
 def test_segments_a_non_cjk_run_normally():

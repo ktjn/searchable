@@ -1,5 +1,6 @@
 import math
-from typing import Callable
+from collections.abc import Callable
+from typing import Any
 
 
 def _validate_vectors(vectors: list[list[float]], expected_count: int) -> int:
@@ -39,7 +40,7 @@ def quantize_int8(
 ) -> tuple[list[list[int]], dict[str, float]]:
     values = [value for vector in vectors for value in vector]
     if not values:
-        return vectors, {"min": 0.0, "max": 0.0}
+        return [], {"min": 0.0, "max": 0.0}
     min_value = min(values)
     max_value = max(values)
     value_range = max_value - min_value
@@ -75,7 +76,7 @@ def build_vector_shards(
     window: int = 200,
     overlap: int = 20,
     chunk: bool = True,
-) -> dict[str, dict]:
+) -> dict[str, dict[str, Any]]:
     # passageId ("<docId>-<chunkIndex>") is stable only while docId and the
     # window/overlap params don't change -- not yet a stable public citation
     # id (docs/guides/vector-search.md#storage-format).
@@ -86,8 +87,7 @@ def build_vector_shards(
         )
     if not isinstance(window, int) or isinstance(window, bool) or window <= 0:
         raise ValueError(
-            f"build_vector_shards: invalid window {window!r} -- must be a "
-            "positive integer"
+            f"build_vector_shards: invalid window {window!r} -- must be a positive integer"
         )
     if (
         not isinstance(overlap, int)
@@ -108,7 +108,7 @@ def build_vector_shards(
         else:
             by_language.setdefault(language, []).append((doc_id, text))
 
-    shards: dict[str, dict] = {}
+    shards: dict[str, dict[str, Any]] = {}
     corpus_dims: int | None = None
     for language, passages in by_language.items():
         texts = [text for _, text in passages]
@@ -124,12 +124,15 @@ def build_vector_shards(
                 "the same embedding dimensionality"
             )
         quant_range: dict[str, float] | None = None
+        quantized_vectors: list[list[int]] | list[list[float]]
         if quantization == "int8":
-            vectors, quant_range = quantize_int8(vectors)
+            quantized_vectors, quant_range = quantize_int8(vectors)
+        else:
+            quantized_vectors = vectors
 
         chunk_index_by_doc: dict[int, int] = {}
-        entries = []
-        for (doc_id, _), vector in zip(passages, vectors):
+        entries: list[dict[str, Any]] = []
+        for (doc_id, _), vector in zip(passages, quantized_vectors, strict=True):
             chunk_index = chunk_index_by_doc.get(doc_id, 0)
             entries.append(
                 {
@@ -140,7 +143,11 @@ def build_vector_shards(
             )
             chunk_index_by_doc[doc_id] = chunk_index + 1
 
-        shard: dict = {"dims": dims, "quantization": quantization, "entries": entries}
+        shard: dict[str, Any] = {
+            "dims": dims,
+            "quantization": quantization,
+            "entries": entries,
+        }
         if quant_range is not None:
             shard["quantRange"] = quant_range
         shards[language] = shard

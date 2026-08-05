@@ -1,10 +1,74 @@
-from searchable_analysis.stemmer_scandinavian import longest_suffix_in_region, mark_scandinavian_region
+from searchable_analysis.stemmer_scandinavian import (
+    longest_suffix_in_region,
+    mark_scandinavian_region,
+)
 
 VOWELS = frozenset("aeiouyåäö")
 S_ENDING = frozenset("bcdfghjklmnoprtvy")
 OST_ENDING = frozenset("iklnprtuv")
-ET_EXCEPTIONS = ("h", "iet", "uit", "fab", "cit", "dit", "alit", "ilit", "mit", "nit", "pit", "rit", "sit", "tit", "ivit", "kvit", "xit", "kom", "rak", "pak", "stak")
-MAIN_SUFFIXES = ("a", "arna", "erna", "heterna", "orna", "ad", "e", "ade", "ande", "arne", "are", "aste", "en", "anden", "aren", "heten", "ern", "ar", "er", "heter", "or", "as", "arnas", "ernas", "ornas", "es", "ades", "andes", "ens", "arens", "hetens", "erns", "at", "andet", "het", "ast", "s", "et")
+ET_EXCEPTIONS = (
+    "h",
+    "iet",
+    "uit",
+    "fab",
+    "cit",
+    "dit",
+    "alit",
+    "ilit",
+    "mit",
+    "nit",
+    "pit",
+    "rit",
+    "sit",
+    "tit",
+    "ivit",
+    "kvit",
+    "xit",
+    "kom",
+    "rak",
+    "pak",
+    "stak",
+)
+MAIN_SUFFIXES = (
+    "a",
+    "arna",
+    "erna",
+    "heterna",
+    "orna",
+    "ad",
+    "e",
+    "ade",
+    "ande",
+    "arne",
+    "are",
+    "aste",
+    "en",
+    "anden",
+    "aren",
+    "heten",
+    "ern",
+    "ar",
+    "er",
+    "heter",
+    "or",
+    "as",
+    "arnas",
+    "ernas",
+    "ornas",
+    "es",
+    "ades",
+    "andes",
+    "ens",
+    "arens",
+    "hetens",
+    "erns",
+    "at",
+    "andet",
+    "het",
+    "ast",
+    "s",
+    "et",
+)
 
 
 def _valid_et_prefix(prefix: str) -> bool:
@@ -24,7 +88,7 @@ def _main_suffix(word: str, p1: int) -> str:
         return before if before[-1:] in S_ENDING else word
     if suffix == "et":
         return word[:-2] if _valid_et_prefix(word[:-2]) else word
-    return word[:-len(suffix)]
+    return word[: -len(suffix)]
 
 
 def _consonant_pair(word: str, p1: int) -> str:
@@ -36,7 +100,7 @@ def _other_suffix(word: str, p1: int) -> str:
     suffix = longest_suffix_in_region(word, p1, ("lig", "ig", "els", "öst", "fullt"))
     if suffix is None:
         return word
-    prefix = word[:-len(suffix)]
+    prefix = word[: -len(suffix)]
     if suffix == "fullt":
         return prefix + "full"
     if suffix == "öst":

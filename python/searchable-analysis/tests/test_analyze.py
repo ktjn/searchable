@@ -36,9 +36,7 @@ def test_normalize_phrase_joins_stemmed_terms_with_a_space():
 
 
 def test_normalize_phrase_is_stable_for_case_variation():
-    assert normalize_phrase("New York", english) == normalize_phrase(
-        "new york", english
-    )
+    assert normalize_phrase("New York", english) == normalize_phrase("new york", english)
 
 
 def test_analyze_drops_english_stopwords():

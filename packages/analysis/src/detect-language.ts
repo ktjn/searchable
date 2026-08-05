@@ -2,7 +2,10 @@
  * Deterministic, dependency-free language detection (docs/guides/internationalization.md,
  * docs/project/roadmap.md's "Auto language detection accuracy" open question) --
  * used as a fallback when a source document declares no `<html lang>`
- * (`python/searchable-indexer/src/searchable_indexer/extract.py`), not as a replacement for explicit
+ * (the Python port drives that at index time in
+ * `python/searchable-indexer/src/searchable_indexer/extract.py`; this
+ * TypeScript module exists for cross-language parity and direct query-time
+ * use), never as a replacement for explicit
  * language tagging, which is always preferred when present. Deliberately
  * not a bundled ML model: the roadmap's own open question is "how much
  * bundled model size is worth it... vs. just requiring explicit `language`

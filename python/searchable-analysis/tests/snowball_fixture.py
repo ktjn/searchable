@@ -2,7 +2,6 @@ import gzip
 from collections.abc import Callable
 from pathlib import Path
 
-
 FIXTURES = Path(__file__).parents[3] / "spec" / "fixtures" / "snowball"
 
 

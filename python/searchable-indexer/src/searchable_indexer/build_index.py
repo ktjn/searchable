@@ -2,10 +2,12 @@ import copy
 import datetime
 import math
 import sys
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Callable, Iterable
+from typing import Any
 
-from searchable_analysis import analyze, get_language_profile, normalize_phrase
+from searchable_analysis import Token, analyze, get_language_profile, normalize_phrase
+
 from searchable_indexer.document import FieldDefinition, IndexDocument, compute_content_hash
 from searchable_indexer.extract import extract_document
 from searchable_indexer.facets import (
@@ -18,7 +20,7 @@ from searchable_indexer.facets import (
 from searchable_indexer.fuzzy import build_fuzzy_shard
 from searchable_indexer.pins import resolve_pins
 from searchable_indexer.synonyms import build_synonym_shards
-from searchable_indexer.types import BuiltIndex, SourceDocument
+from searchable_indexer.types import BuiltIndex, PinDeclaration, SourceDocument
 from searchable_indexer.vectors import build_vector_shards
 
 _DEFAULT_FIELD_BOOSTS = {"title": 3.0, "body": 1.0}
@@ -30,12 +32,12 @@ def _validate_source_ids(sources: list[SourceDocument]) -> None:
     for source in sources:
         if not isinstance(source.id, int) or isinstance(source.id, bool) or source.id < 0:
             raise ValueError(
-                f"build_index: invalid document id {source.id!r} for "
+                f"invalid document id {source.id!r} for "
                 f'"{source.url}" -- ids must be non-negative integers'
             )
         if source.id in seen:
             raise ValueError(
-                f"build_index: duplicate document id {source.id} "
+                f"duplicate document id {source.id} "
                 f'(seen again at "{source.url}") -- every source document '
                 "must have a unique id"
             )
@@ -48,7 +50,7 @@ def _derive_excerpt(body: str) -> str:
     return body[:_EXCERPT_LENGTH].rstrip() + "…"
 
 
-def _validate_boost(value, subject: str, *, allow_zero: bool = False) -> None:
+def _validate_boost(value: object, subject: str, *, allow_zero: bool = False) -> None:
     if (
         isinstance(value, bool)
         or not isinstance(value, (int, float))
@@ -58,7 +60,7 @@ def _validate_boost(value, subject: str, *, allow_zero: bool = False) -> None:
     ):
         requirement = "non-negative" if allow_zero else "positive"
         raise ValueError(
-            f"build_index_documents: invalid boost {value!r} for {subject} -- "
+            f"invalid boost {value!r} for {subject} -- "
             f"must be a finite, {requirement} number"
         )
 
@@ -66,34 +68,34 @@ def _validate_boost(value, subject: str, *, allow_zero: bool = False) -> None:
 def _validate_field_definitions(field_definitions: dict[str, FieldDefinition]) -> None:
     if not isinstance(field_definitions, dict):
         raise ValueError(
-            "build_index_documents: field_definitions must be a dict[str, FieldDefinition]"
+            "field_definitions must be a dict[str, FieldDefinition]"
         )
     for name, definition in field_definitions.items():
         if not isinstance(name, str) or not name:
             raise ValueError(
-                f"build_index_documents: invalid field name {name!r} in field_definitions "
+                f"invalid field name {name!r} in field_definitions "
                 "-- field names must be non-empty strings"
             )
         if not isinstance(definition, FieldDefinition):
             raise ValueError(
-                f'build_index_documents: field_definitions["{name}"] must be a '
+                f'field_definitions["{name}"] must be a '
                 f"FieldDefinition, got {type(definition).__name__}"
             )
         if not definition.indexed and not definition.stored:
             raise ValueError(
-                f'build_index_documents: field "{name}" is declared neither indexed nor '
+                f'field "{name}" is declared neither indexed nor '
                 "stored -- every field must be indexed, stored, or both"
             )
         _validate_boost(definition.boost, f'field "{name}"', allow_zero=True)
 
 
-def _validate_json_value(value, path: str) -> None:
+def _validate_json_value(value: object, path: str) -> None:
     if value is None or isinstance(value, (bool, str, int)):
         return
     if isinstance(value, float):
         if not math.isfinite(value):
             raise ValueError(
-                f"build_index_documents: {path} is not finite ({value!r}) -- "
+                f"{path} is not finite ({value!r}) -- "
                 "metadata must be JSON-compatible"
             )
         return
@@ -105,12 +107,12 @@ def _validate_json_value(value, path: str) -> None:
         for key, item in value.items():
             if not isinstance(key, str):
                 raise ValueError(
-                    f"build_index_documents: {path} has a non-string metadata key {key!r}"
+                    f"{path} has a non-string metadata key {key!r}"
                 )
             _validate_json_value(item, f"{path}.{key}")
         return
     raise ValueError(
-        f"build_index_documents: {path} is not JSON-compatible "
+        f"{path} is not JSON-compatible "
         f"({type(value).__name__}) -- metadata must be JSON-compatible"
     )
 
@@ -123,12 +125,12 @@ def _validate_index_document(
 ) -> None:
     if not isinstance(document.id, int) or isinstance(document.id, bool) or document.id < 0:
         raise ValueError(
-            f"build_index_documents: invalid document id {document.id!r} -- "
+            f"invalid document id {document.id!r} -- "
             "ids must be non-negative integers"
         )
     if document.id in seen_ids:
         raise ValueError(
-            f"build_index_documents: duplicate document id {document.id} -- "
+            f"duplicate document id {document.id} -- "
             "every document must have a unique id"
         )
     seen_ids.add(document.id)
@@ -136,12 +138,12 @@ def _validate_index_document(
     if document.external_id is not None:
         if not isinstance(document.external_id, str) or document.external_id == "":
             raise ValueError(
-                f"build_index_documents: document {document.id} has invalid external_id "
+                f"document {document.id} has invalid external_id "
                 f"{document.external_id!r} -- must be a non-empty string when supplied"
             )
         if document.external_id in seen_external_ids:
             raise ValueError(
-                f"build_index_documents: duplicate external_id "
+                f"duplicate external_id "
                 f"{document.external_id!r} (document {document.id}) -- external ids must "
                 "be unique when supplied"
             )
@@ -149,33 +151,32 @@ def _validate_index_document(
 
     if not isinstance(document.url, str):
         raise ValueError(
-            f"build_index_documents: document {document.id} has non-string url "
-            f"{document.url!r}"
+            f"document {document.id} has non-string url {document.url!r}"
         )
     if not isinstance(document.language, str) or document.language == "":
         raise ValueError(
-            f"build_index_documents: document {document.id} has invalid language "
+            f"document {document.id} has invalid language "
             f"{document.language!r} -- must be a non-empty string"
         )
     if not isinstance(document.indexed_fields, dict):
         raise ValueError(
-            f"build_index_documents: document {document.id} indexed_fields must be a dict"
+            f"document {document.id} indexed_fields must be a dict"
         )
     if not isinstance(document.stored_fields, dict):
         raise ValueError(
-            f"build_index_documents: document {document.id} stored_fields must be a dict"
+            f"document {document.id} stored_fields must be a dict"
         )
 
     for name, value in document.indexed_fields.items():
         definition = field_definitions.get(name)
         if definition is None or not definition.indexed:
             raise ValueError(
-                f'build_index_documents: document {document.id} has indexed field "{name}" '
+                f'document {document.id} has indexed field "{name}" '
                 "not declared with indexed=True in field_definitions"
             )
         if not isinstance(value, str):
             raise ValueError(
-                f'build_index_documents: document {document.id} field "{name}" '
+                f'document {document.id} field "{name}" '
                 f"(indexed_fields) must be a string, got {type(value).__name__}"
             )
 
@@ -183,27 +184,25 @@ def _validate_index_document(
         definition = field_definitions.get(name)
         if definition is None or not definition.stored:
             raise ValueError(
-                f'build_index_documents: document {document.id} has stored field "{name}" '
+                f'document {document.id} has stored field "{name}" '
                 "not declared with stored=True in field_definitions"
             )
         if not isinstance(value, str):
             raise ValueError(
-                f'build_index_documents: document {document.id} field "{name}" '
+                f'document {document.id} field "{name}" '
                 f"(stored_fields) must be a string, got {type(value).__name__}"
             )
 
     if not document.indexed_fields:
         raise ValueError(
-            f"build_index_documents: document {document.id} has no indexed fields -- "
+            f"document {document.id} has no indexed fields -- "
             "at least one indexed field is required"
         )
 
     _validate_boost(document.boost, f"document {document.id}")
 
     if not isinstance(document.metadata, dict):
-        raise ValueError(
-            f"build_index_documents: document {document.id} metadata must be a dict"
-        )
+        raise ValueError(f"document {document.id} metadata must be a dict")
     _validate_json_value(document.metadata, f"document {document.id} metadata")
 
 
@@ -212,24 +211,31 @@ def _validate_range_facet_buckets(range_facet_buckets: dict[str, int | list[floa
         if isinstance(config, list):
             if len(config) < 1 or not all(math.isfinite(n) for n in config):
                 raise ValueError(
-                    f"build_index: invalid range_facet_buckets boundaries {config!r} "
+                    f"invalid range_facet_buckets boundaries {config!r} "
                     f'for field "{field_name}" -- must be a non-empty list of finite numbers'
                 )
             for i in range(1, len(config)):
                 if config[i] <= config[i - 1]:
                     raise ValueError(
-                        f"build_index: invalid range_facet_buckets boundaries {config!r} "
+                        f"invalid range_facet_buckets boundaries {config!r} "
                         f'for field "{field_name}" -- must be strictly ascending'
                     )
         else:
             if not isinstance(config, int) or isinstance(config, bool) or config < 1:
                 raise ValueError(
-                    f"build_index: invalid range_facet_buckets count {config!r} "
+                    f"invalid range_facet_buckets count {config!r} "
                     f'for field "{field_name}" -- must be a positive integer'
                 )
 
 
-def _add_postings(shard, posting_index, field_name, doc_id, doc_boost, tokens) -> None:
+def _add_postings(
+    shard: dict[str, Any],
+    posting_index: dict[str, dict[int, Any]],
+    field_name: str,
+    doc_id: int,
+    doc_boost: float,
+    tokens: list[Token],
+) -> None:
     field_length = len(tokens)
     positions_by_term: dict[str, list[int]] = {}
     for token in tokens:
@@ -258,18 +264,18 @@ class _PreparedDocument:
     document: IndexDocument
     facets: dict[str, list[str]] = field(default_factory=dict)
     range_facets: dict[str, float] = field(default_factory=dict)
-    pins: list = field(default_factory=list)
+    pins: list[PinDeclaration] = field(default_factory=list)
     vector_text: str | None = None
 
 
 def _copy_document(document: IndexDocument) -> IndexDocument:
     if not isinstance(document.indexed_fields, dict):
         raise ValueError(
-            f"build_index_documents: document {document.id} indexed_fields must be a dict"
+            f"document {document.id} indexed_fields must be a dict"
         )
     if not isinstance(document.stored_fields, dict):
         raise ValueError(
-            f"build_index_documents: document {document.id} stored_fields must be a dict"
+            f"document {document.id} stored_fields must be a dict"
         )
     return IndexDocument(
         id=document.id,
@@ -299,15 +305,15 @@ def _build_prepared_documents(
     *,
     field_definitions: dict[str, FieldDefinition],
     default_language: str,
-    hierarchical_facets: dict[str, dict] | None = None,
+    hierarchical_facets: dict[str, dict[str, Any]] | None = None,
     range_facet_buckets: dict[str, int | list[float]] | None = None,
-    synonyms: dict[str, dict] | None = None,
+    synonyms: dict[str, dict[str, Any]] | None = None,
     fuzzy: bool = False,
     fuzzy_max_edits: int = 1,
     content_hash: bool = False,
     structured: bool = False,
     embed: Callable[[list[str]], list[list[float]]] | None = None,
-    embedding_provider: dict | None = None,
+    embedding_provider: dict[str, Any] | None = None,
     vector_quantization: str = "int8",
     vector_window: int = 200,
     vector_overlap: int = 20,
@@ -318,27 +324,22 @@ def _build_prepared_documents(
     _validate_range_facet_buckets(range_facet_buckets)
     if fuzzy_max_edits not in (1, 2):
         raise ValueError(
-            f"build_index: invalid fuzzy_max_edits {fuzzy_max_edits!r} -- must be 1 or 2"
+            f"invalid fuzzy_max_edits {fuzzy_max_edits!r} -- must be 1 or 2"
         )
     if embed is not None and embedding_provider is None:
         raise ValueError(
-            "build_index: embedding_provider is required when embed is set -- "
+            "embedding_provider is required when embed is set -- "
             "query-time provider compatibility (SearchClientOptions.embedQuery) "
             "can't be established without it"
         )
     if vector_quantization not in ("int8", "float32"):
         raise ValueError(
-            f"build_index: invalid vector_quantization {vector_quantization!r} "
+            f"invalid vector_quantization {vector_quantization!r} "
             '-- must be "int8" or "float32"'
         )
-    if (
-        not isinstance(vector_window, int)
-        or isinstance(vector_window, bool)
-        or vector_window <= 0
-    ):
+    if not isinstance(vector_window, int) or isinstance(vector_window, bool) or vector_window <= 0:
         raise ValueError(
-            f"build_index: invalid vector_window {vector_window!r} -- must be a "
-            "positive integer"
+            f"invalid vector_window {vector_window!r} -- must be a positive integer"
         )
     if (
         not isinstance(vector_overlap, int)
@@ -347,7 +348,7 @@ def _build_prepared_documents(
         or vector_overlap >= vector_window
     ):
         raise ValueError(
-            f"build_index: invalid vector_overlap {vector_overlap!r} -- must be "
+            f"invalid vector_overlap {vector_overlap!r} -- must be "
             f">= 0 and < vector_window ({vector_window!r})"
         )
 
@@ -360,12 +361,12 @@ def _build_prepared_documents(
         name for name, definition in field_definitions.items() if definition.indexed
     )
 
-    term_shards: dict[str, dict] = {}
-    posting_index_by_language: dict[str, dict] = {}
-    doc_store: dict = {}
-    facet_shards: dict[str, dict] = {}
-    pins_acc_by_language: dict[str, dict] = {}
-    stats_by_language: dict[str, dict] = {}
+    term_shards: dict[str, dict[str, Any]] = {}
+    posting_index_by_language: dict[str, dict[str, dict[int, Any]]] = {}
+    doc_store: dict[str, Any] = {}
+    facet_shards: dict[str, dict[str, Any]] = {}
+    pins_acc_by_language: dict[str, dict[str, dict[str, Any]]] = {}
+    stats_by_language: dict[str, dict[str, int]] = {}
     vector_documents: list[tuple[int, str, str]] = []
     indexed_count = 0
     min_id: int | None = None
@@ -412,7 +413,7 @@ def _build_prepared_documents(
                     }
                 )
 
-        entry: dict = {"url": document.url, "fields": dict(document.stored_fields)}
+        entry: dict[str, Any] = {"url": document.url, "fields": dict(document.stored_fields)}
         if document.boost != 1.0:
             entry["boost"] = document.boost
         if document.external_id is not None:
@@ -457,15 +458,15 @@ def _build_prepared_documents(
     doc_count: dict[str, int] = {}
     avg_field_length: dict[str, dict[str, float]] = {}
     for language in languages:
-        stats = stats_by_language.get(language)
-        count = stats["count"] if stats else 0
+        lang_stats = stats_by_language.get(language)
+        count = lang_stats["count"] if lang_stats else 0
         doc_count[language] = count
         avg_field_length[language] = {
-            name: ((stats[name] / count) if stats and count else 0.0)
+            name: ((lang_stats[name] / count) if lang_stats and count else 0.0)
             for name in indexed_field_names
         }
 
-    fuzzy_shards: dict[str, dict] = {}
+    fuzzy_shards: dict[str, dict[str, Any]] = {}
     if fuzzy:
         for language, term_shard in term_shards.items():
             fuzzy_shards[language] = build_fuzzy_shard(term_shard, fuzzy_max_edits)
@@ -492,9 +493,13 @@ def _build_prepared_documents(
         "shards": {"terms": [], "docs": []},
     }
 
-    id_range = (min_id, max_id) if indexed_count else (0, 0)
+    id_range: tuple[int, int]
+    if indexed_count and min_id is not None and max_id is not None:
+        id_range = (min_id, max_id)
+    else:
+        id_range = (0, 0)
 
-    vector_shards: dict[str, dict] = {}
+    vector_shards: dict[str, dict[str, Any]] = {}
     if embed is not None and vector_documents:
         vector_shards = build_vector_shards(
             vector_documents,
@@ -525,11 +530,11 @@ def build_index_documents(
     *,
     field_definitions: dict[str, FieldDefinition],
     default_language: str = "en",
-    synonyms: dict[str, dict] | None = None,
+    synonyms: dict[str, dict[str, Any]] | None = None,
     fuzzy: bool = False,
     fuzzy_max_edits: int = 1,
     embed: Callable[[list[str]], list[list[float]]] | None = None,
-    embedding_provider: dict | None = None,
+    embedding_provider: dict[str, Any] | None = None,
     vector_quantization: str = "int8",
     vector_window: int = 200,
     vector_overlap: int = 20,
@@ -537,15 +542,12 @@ def build_index_documents(
 ) -> BuiltIndex:
     _validate_field_definitions(field_definitions)
     copied_definitions = _copy_field_definitions(field_definitions)
-    vector_definition = None
     if embed is not None:
         if vector_field is None:
-            raise ValueError(
-                "build_index_documents: vector_field is required when embed is set"
-            )
+            raise ValueError("vector_field is required when embed is set")
         if vector_field not in copied_definitions or not copied_definitions[vector_field].indexed:
             raise ValueError(
-                f'build_index_documents: vector_field "{vector_field}" must reference '
+                f'vector_field "{vector_field}" must reference '
                 "a declared indexed field"
             )
     prepared = []
@@ -555,7 +557,7 @@ def build_index_documents(
         if embed is not None:
             if vector_field not in copied_document.indexed_fields:
                 raise ValueError(
-                    f'build_index_documents: document {copied_document.id} is missing '
+                    f"document {copied_document.id} is missing "
                     f'vector_field "{vector_field}"'
                 )
             vector_text = copied_document.indexed_fields[vector_field]
@@ -630,13 +632,13 @@ def build_index(
     field_boosts: dict[str, float] | None = None,
     allowed_url_origins: list[str] | None = None,
     canonical_base_url: str | None = None,
-    hierarchical_facets: dict[str, dict] | None = None,
+    hierarchical_facets: dict[str, dict[str, Any]] | None = None,
     range_facet_buckets: dict[str, int | list[float]] | None = None,
-    synonyms: dict[str, dict] | None = None,
+    synonyms: dict[str, dict[str, Any]] | None = None,
     fuzzy: bool = False,
     fuzzy_max_edits: int = 1,
     embed: Callable[[list[str]], list[list[float]]] | None = None,
-    embedding_provider: dict | None = None,
+    embedding_provider: dict[str, Any] | None = None,
     vector_quantization: str = "int8",
     vector_window: int = 200,
     vector_overlap: int = 20,

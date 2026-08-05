@@ -1,6 +1,11 @@
 import pytest
 
-from searchable_analysis.language_profile import english, norwegian, norwegian_bokmal, norwegian_nynorsk
+from searchable_analysis.language_profile import (
+    english,
+    norwegian,
+    norwegian_bokmal,
+    norwegian_nynorsk,
+)
 from searchable_analysis.registry import get_language_profile, get_registered_language_codes
 
 

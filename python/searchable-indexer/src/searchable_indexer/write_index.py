@@ -2,8 +2,12 @@ import gzip
 import json
 import re
 from pathlib import Path
+from typing import Any
 
-from searchable_indexer.binary_doc_store import encode_doc_store_binary, encode_structured_doc_store_binary
+from searchable_indexer.binary_doc_store import (
+    encode_doc_store_binary,
+    encode_structured_doc_store_binary,
+)
 from searchable_indexer.binary_fuzzy_shard import encode_fuzzy_shard_binary
 from searchable_indexer.binary_term_shard import encode_term_shard_binary
 from searchable_indexer.hash import content_hash
@@ -13,7 +17,7 @@ DEFAULT_MAX_TERM_SHARD_GZIP_BYTES = 50 * 1024
 _MAX_PREFIX_LENGTH = 8
 
 
-def _canonicalize(value):
+def _canonicalize(value: object) -> object:
     if isinstance(value, list):
         return [_canonicalize(v) for v in value]
     if isinstance(value, tuple):
@@ -23,11 +27,11 @@ def _canonicalize(value):
     return value
 
 
-def _to_json(data) -> str:
+def _to_json(data: object) -> str:
     return json.dumps(_canonicalize(data), separators=(",", ":"), ensure_ascii=False)
 
 
-def _write_json(out_dir: str, rel_path: str, data) -> str:
+def _write_json(out_dir: str, rel_path: str, data: object) -> str:
     content = _to_json(data)
     digest = content_hash(content)
     hashed_rel_path = re.sub(r"\.json$", f".{digest}.json", rel_path)
@@ -46,12 +50,14 @@ def _write_binary(out_dir: str, rel_path: str, data: bytes) -> str:
     return hashed_rel_path
 
 
-def _gzip_byte_size(term_shard: dict) -> int:
+def _gzip_byte_size(term_shard: dict[str, Any]) -> int:
     return len(gzip.compress(_to_json(term_shard).encode("utf-8")))
 
 
-def _group_by_prefix_length(term_shard: dict, prefix_length: int) -> dict[str, dict]:
-    groups: dict[str, dict] = {}
+def _group_by_prefix_length(
+    term_shard: dict[str, Any], prefix_length: int
+) -> dict[str, dict[str, Any]]:
+    groups: dict[str, dict[str, Any]] = {}
     for term, entry in term_shard.items():
         prefix = term[:prefix_length]
         groups.setdefault(prefix, {})[term] = entry
@@ -60,11 +66,11 @@ def _group_by_prefix_length(term_shard: dict, prefix_length: int) -> dict[str, d
 
 def _split_oversized_bucket(
     prefix: str,
-    group: dict,
+    group: dict[str, Any],
     prefix_length: int,
     language: str,
     max_gzip_bytes: int,
-    result: dict[str, dict],
+    result: dict[str, dict[str, Any]],
 ) -> None:
     size = _gzip_byte_size(group)
     if size <= max_gzip_bytes:
@@ -85,17 +91,19 @@ def _split_oversized_bucket(
 
 
 def _shard_terms_by_prefix(
-    term_shard: dict, language: str, max_gzip_bytes: int
-) -> dict[str, dict]:
-    result: dict[str, dict] = {}
+    term_shard: dict[str, Any], language: str, max_gzip_bytes: int
+) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
     for prefix, group in _group_by_prefix_length(term_shard, 1).items():
         _split_oversized_bucket(prefix, group, 1, language, max_gzip_bytes, result)
     return result
 
 
-def _chunk_doc_store_by_id_range(doc_store: dict, shard_size: float) -> list[dict]:
+def _chunk_doc_store_by_id_range(
+    doc_store: dict[str, Any], shard_size: float
+) -> list[dict[str, Any]]:
     sorted_ids = sorted(int(k) for k in doc_store.keys())
-    chunks: list[dict] = []
+    chunks: list[dict[str, Any]] = []
     step = len(sorted_ids) if shard_size == float("inf") else int(shard_size)
     step = max(step, 1)
     i = 0
@@ -118,7 +126,7 @@ def write_index(
     fuzzy_shard_format: str = "json",
 ) -> None:
     languages = sorted(built.term_shards.keys())
-    terms: list[dict] = []
+    terms: list[dict[str, Any]] = []
     for language in languages:
         term_shard = built.term_shards.get(language, {})
         if shard_by_prefix:
@@ -157,7 +165,7 @@ def write_index(
     doc_store_chunks = _chunk_doc_store_by_id_range(built.doc_store, doc_store_shard_size)
     if not doc_store_chunks:
         doc_store_chunks = [{"idRange": built.id_range, "shard": {}}]
-    docs: list[dict] = []
+    docs: list[dict[str, Any]] = []
     for shard_index, chunk in enumerate(doc_store_chunks):
         if doc_store_format == "binary":
             encoded_doc_store = (
@@ -170,29 +178,28 @@ def write_index(
                 f"docs/{shard_index}.bin",
                 encoded_doc_store,
             )
-            entry = {"shard": shard_index, "file": file, "idRange": list(chunk["idRange"]), "format": "binary"}
+            entry = {
+                "shard": shard_index,
+                "file": file,
+                "idRange": list(chunk["idRange"]),
+                "format": "binary",
+            }
             if built.structured:
                 entry["binaryVersion"] = 2
             docs.append(entry)
         else:
             file = _write_json(out_dir, f"docs/{shard_index}.json", chunk["shard"])
-            docs.append(
-                {"shard": shard_index, "file": file, "idRange": list(chunk["idRange"])}
-            )
+            docs.append({"shard": shard_index, "file": file, "idRange": list(chunk["idRange"])})
 
     facet_fields = sorted(built.facet_shards.keys())
     facets = None
     if facet_fields:
         facets = []
         for field_name in facet_fields:
-            file = _write_json(
-                out_dir, f"facets/{field_name}.json", built.facet_shards[field_name]
-            )
+            file = _write_json(out_dir, f"facets/{field_name}.json", built.facet_shards[field_name])
             facets.append({"field": field_name, "file": file})
 
-    pin_languages = sorted(
-        language for language, shard in built.pins_shards.items() if shard
-    )
+    pin_languages = sorted(language for language, shard in built.pins_shards.items() if shard)
     pins = None
     if pin_languages:
         pins = {}
@@ -201,10 +208,8 @@ def write_index(
                 out_dir, f"pins/{language}.json", built.pins_shards[language]
             )
 
-    def _synonym_shard_nonempty(shard: dict) -> bool:
-        return bool(
-            shard.get("equivalences") or shard.get("directional") or shard.get("multiWord")
-        )
+    def _synonym_shard_nonempty(shard: dict[str, Any]) -> bool:
+        return bool(shard.get("equivalences") or shard.get("directional") or shard.get("multiWord"))
 
     synonym_languages = sorted(
         language
@@ -220,9 +225,7 @@ def write_index(
             )
 
     fuzzy_languages = sorted(
-        language
-        for language, shard in built.fuzzy_shards.items()
-        if shard.get("deletions")
+        language for language, shard in built.fuzzy_shards.items() if shard.get("deletions")
     )
     fuzzy = None
     if fuzzy_languages:
@@ -236,9 +239,7 @@ def write_index(
                 )
                 fuzzy[language] = {"file": file, "format": "binary"}
             else:
-                file = _write_json(
-                    out_dir, f"fuzzy/{language}.json", built.fuzzy_shards[language]
-                )
+                file = _write_json(out_dir, f"fuzzy/{language}.json", built.fuzzy_shards[language])
                 fuzzy[language] = {"file": file}
 
     vector_languages = sorted(

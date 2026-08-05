@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from searchable_analysis.segment_latin import segment_latin_words
 from searchable_analysis.token_span import TokenSpan

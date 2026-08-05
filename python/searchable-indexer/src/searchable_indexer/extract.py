@@ -3,9 +3,9 @@ import re
 import sys
 from urllib.parse import urljoin, urlparse
 
+from searchable_analysis import detect_language, get_registered_language_codes
 from selectolax.parser import HTMLParser
 
-from searchable_analysis import detect_language, get_registered_language_codes
 from searchable_indexer.types import ExtractedDocument, PinDeclaration
 
 _FACET_TAG_PREFIX = "searchable-facet-"
@@ -98,27 +98,17 @@ def extract_document(
     title = _collapse_whitespace(title_node.text(deep=True, separator=" ") if title_node else "")
 
     html_node = tree.css_first("html")
-    declared_language = (
-        (html_node.attributes.get("lang") or "").strip() if html_node else ""
-    )
+    declared_language = (html_node.attributes.get("lang") or "").strip() if html_node else ""
 
     canonical_node = tree.css_first('link[rel="canonical"]')
-    canonical = (
-        (canonical_node.attributes.get("href") or "").strip() if canonical_node else ""
-    )
-    url = _sanitize_canonical_url(
-        canonical, source_url, allowed_url_origins, canonical_base_url
-    )
+    canonical = (canonical_node.attributes.get("href") or "").strip() if canonical_node else ""
+    url = _sanitize_canonical_url(canonical, source_url, allowed_url_origins, canonical_base_url)
 
     desc_node = tree.css_first('meta[name="description"]')
-    excerpt = _collapse_whitespace(
-        (desc_node.attributes.get("content") or "") if desc_node else ""
-    )
+    excerpt = _collapse_whitespace((desc_node.attributes.get("content") or "") if desc_node else "")
 
     body_node = (
-        tree.css_first("[data-searchable-body]")
-        or tree.css_first("main")
-        or tree.css_first("body")
+        tree.css_first("[data-searchable-body]") or tree.css_first("main") or tree.css_first("body")
     )
     if body_node is not None:
         selector = ",".join([*_BOILERPLATE_SELECTORS, "[data-searchable-ignore]"])
@@ -133,9 +123,7 @@ def extract_document(
     )
 
     boost_node = tree.css_first('meta[name="searchable-boost"]')
-    parsed_boost = _parse_float_or_nan(
-        boost_node.attributes.get("content") if boost_node else None
-    )
+    parsed_boost = _parse_float_or_nan(boost_node.attributes.get("content") if boost_node else None)
     boost = parsed_boost if math.isfinite(parsed_boost) and parsed_boost > 0 else 1.0
 
     facets: dict[str, list[str]] = {}
@@ -166,9 +154,7 @@ def extract_document(
     pin_phrases = [p for p in pin_phrases if p]
 
     pin_mode_node = tree.css_first('meta[name="searchable-pin-mode"]')
-    pin_mode_attr = (
-        (pin_mode_node.attributes.get("content") or "").strip() if pin_mode_node else ""
-    )
+    pin_mode_attr = (pin_mode_node.attributes.get("content") or "").strip() if pin_mode_node else ""
     pin_mode = "contains" if pin_mode_attr == "contains" else "exact"
 
     pin_priority_node = tree.css_first('meta[name="searchable-pin-priority"]')
@@ -180,9 +166,7 @@ def extract_document(
     pin_exclusive = tree.css_first('meta[name="searchable-pin-exclusive"]') is not None
 
     pins = [
-        PinDeclaration(
-            phrase=phrase, mode=pin_mode, priority=pin_priority, exclusive=pin_exclusive
-        )
+        PinDeclaration(phrase=phrase, mode=pin_mode, priority=pin_priority, exclusive=pin_exclusive)
         for phrase in pin_phrases
     ]
 

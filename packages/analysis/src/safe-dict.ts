@@ -22,18 +22,6 @@
  * package).
  */
 
-/** Own-property-safe "get or create": creates and stores `create()`'s result the first time `key` is seen, otherwise returns the existing entry — never fooled into treating an inherited prototype member as an existing entry. */
-export function getOrCreate<T>(
-  obj: Record<string, T>,
-  key: string,
-  create: () => T,
-): T {
-  if (Object.hasOwn(obj, key)) return obj[key] as T;
-  const value = create();
-  obj[key] = value;
-  return value;
-}
-
 /** Own-property-safe read (no creation) — `undefined` when `key` isn't a real own entry, never an inherited `Object.prototype` member. */
 export function ownProp<T>(
   dict: Record<string, T>,

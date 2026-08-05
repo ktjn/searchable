@@ -22,7 +22,10 @@ def test_schema_ids_use_the_searchable_repository():
 
 
 def _doc(doc_id: int, url: str, title: str, body: str, lang: str = "en") -> SourceDocument:
-    html = f'<html lang="{lang}"><head><title>{title}</title></head><body><main>{body}</main></body></html>'
+    html = (
+        f'<html lang="{lang}"><head><title>{title}</title></head>'
+        f"<body><main>{body}</main></body></html>"
+    )
     return SourceDocument(id=doc_id, url=url, html=html)
 
 
@@ -64,11 +67,12 @@ def test_doc_store_shard_validates_against_doc_store_shard_schema(tmp_path):
 def test_facet_shard_validates_against_facet_shard_schema(tmp_path):
     docs = [
         SourceDocument(
-            id=1, url="/a",
+            id=1,
+            url="/a",
             html='<html lang="en"><head><title>T</title>'
-                 '<meta name="searchable-facet-category" content="a>b">'
-                 '<meta name="searchable-facet-range-price" content="19.99">'
-                 '</head><body><main>widgets are great</main></body></html>',
+            '<meta name="searchable-facet-category" content="a>b">'
+            '<meta name="searchable-facet-range-price" content="19.99">'
+            "</head><body><main>widgets are great</main></body></html>",
         ),
     ]
     built = build_index(docs, hierarchical_facets={"category": {}})
@@ -84,10 +88,11 @@ def test_facet_shard_validates_against_facet_shard_schema(tmp_path):
 def test_pins_shard_validates_against_pins_shard_schema(tmp_path):
     docs = [
         SourceDocument(
-            id=1, url="/a",
+            id=1,
+            url="/a",
             html='<html lang="en"><head><title>T</title>'
-                 '<meta name="searchable-pin" content="widgets"></head>'
-                 "<body><main>widgets are great</main></body></html>",
+            '<meta name="searchable-pin" content="widgets"></head>'
+            "<body><main>widgets are great</main></body></html>",
         ),
     ]
     built = build_index(docs)
@@ -95,7 +100,7 @@ def test_pins_shard_validates_against_pins_shard_schema(tmp_path):
     manifest = json.loads((tmp_path / "manifest.json").read_text())
 
     schema = _load_schema("pins-shard.schema.json")
-    for language, file in manifest.get("pins", {}).items():
+    for _language, file in manifest.get("pins", {}).items():
         pins_shard = json.loads((tmp_path / file).read_text())
         jsonschema.validate(instance=pins_shard, schema=schema)
 
@@ -107,7 +112,7 @@ def test_synonym_shard_validates_against_synonym_shard_schema(tmp_path):
     manifest = json.loads((tmp_path / "manifest.json").read_text())
 
     schema = _load_schema("synonym-shard.schema.json")
-    for language, file in manifest.get("synonyms", {}).items():
+    for _language, file in manifest.get("synonyms", {}).items():
         synonym_shard = json.loads((tmp_path / file).read_text())
         jsonschema.validate(instance=synonym_shard, schema=schema)
 
@@ -128,7 +133,7 @@ def test_vector_shard_validates_against_vector_shard_schema(tmp_path):
     jsonschema.validate(instance=manifest, schema=manifest_schema)
 
     vector_schema = _load_schema("vector-shard.schema.json")
-    for language, file in manifest["vectors"]["shards"].items():
+    for _language, file in manifest["vectors"]["shards"].items():
         vector_shard = json.loads((tmp_path / file).read_text())
         jsonschema.validate(instance=vector_shard, schema=vector_schema)
 
@@ -140,7 +145,7 @@ def test_fuzzy_shard_validates_against_fuzzy_shard_schema(tmp_path):
     manifest = json.loads((tmp_path / "manifest.json").read_text())
 
     schema = _load_schema("fuzzy-shard.schema.json")
-    for language, entry in manifest.get("fuzzy", {}).items():
+    for _language, entry in manifest.get("fuzzy", {}).items():
         fuzzy_shard = json.loads((tmp_path / entry["file"]).read_text())
         jsonschema.validate(instance=fuzzy_shard, schema=schema)
 

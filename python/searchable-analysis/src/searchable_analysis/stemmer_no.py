@@ -1,8 +1,41 @@
-from searchable_analysis.stemmer_scandinavian import longest_suffix_in_region, mark_scandinavian_region
+from searchable_analysis.stemmer_scandinavian import (
+    longest_suffix_in_region,
+    mark_scandinavian_region,
+)
 
 VOWELS = frozenset("aeêioòóôuyæåø")
 S_ENDING = frozenset("bcdfghjlmnoptvyz")
-MAIN_SUFFIXES = ("a", "e", "ede", "ande", "ende", "ane", "ene", "hetene", "en", "heten", "ar", "er", "heter", "as", "es", "edes", "endes", "enes", "hetenes", "ens", "hetens", "ets", "et", "het", "ast", "ers", "s", "erte", "ert")
+MAIN_SUFFIXES = (
+    "a",
+    "e",
+    "ede",
+    "ande",
+    "ende",
+    "ane",
+    "ene",
+    "hetene",
+    "en",
+    "heten",
+    "ar",
+    "er",
+    "heter",
+    "as",
+    "es",
+    "edes",
+    "endes",
+    "enes",
+    "hetenes",
+    "ens",
+    "hetens",
+    "ets",
+    "et",
+    "het",
+    "ast",
+    "ers",
+    "s",
+    "erte",
+    "ert",
+)
 ERS_KEEP = ("amm", "ast", "ind", "kap", "kk", "lt", "nk", "omm", "pp", "v", "øst")
 ERS_DELETE = ("giv", "hav", "skap")
 
@@ -27,7 +60,7 @@ def _main_suffix(word: str, p1: int) -> str:
     suffix = longest_suffix_in_region(word, p1, MAIN_SUFFIXES)
     if suffix is None:
         return word
-    prefix = word[:-len(suffix)]
+    prefix = word[: -len(suffix)]
     if suffix == "ers":
         if prefix.endswith(ERS_DELETE):
             return prefix
@@ -46,7 +79,11 @@ def stem_norwegian(word: str) -> str:
     result = _main_suffix(word, p1)
     if longest_suffix_in_region(result, p1, ("dt", "vt")) is not None:
         result = result[:-1]
-    suffix = longest_suffix_in_region(result, p1, ("leg", "eleg", "ig", "eig", "lig", "elig", "els", "lov", "elov", "slov", "hetslov"))
+    suffix = longest_suffix_in_region(
+        result,
+        p1,
+        ("leg", "eleg", "ig", "eig", "lig", "elig", "els", "lov", "elov", "slov", "hetslov"),
+    )
     if suffix is not None:
-        result = result[:-len(suffix)]
+        result = result[: -len(suffix)]
     return result[:-1] if result.endswith("'") else result

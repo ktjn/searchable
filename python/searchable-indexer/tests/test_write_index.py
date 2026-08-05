@@ -10,7 +10,10 @@ from searchable_indexer.write_index import write_index
 
 
 def _doc(doc_id: int, url: str, title: str, body: str) -> SourceDocument:
-    html = f'<html lang="en"><head><title>{title}</title></head><body><main>{body}</main></body></html>'
+    html = (
+        f'<html lang="en"><head><title>{title}</title></head>'
+        f"<body><main>{body}</main></body></html>"
+    )
     return SourceDocument(id=doc_id, url=url, html=html)
 
 
@@ -145,14 +148,10 @@ def test_structured_vectors_preserve_document_store_fields(tmp_path: Path):
     assert manifest["vectors"]["dims"] == 2
     assert manifest["vectors"]["quantization"] == "float32"
     assert manifest["vectors"]["embeddingProvider"] == {"type": "test"}
-    vector_shard = json.loads(
-        (tmp_path / manifest["vectors"]["shards"]["en"]).read_text()
-    )
+    vector_shard = json.loads((tmp_path / manifest["vectors"]["shards"]["en"]).read_text())
     assert vector_shard["entries"][0]["docId"] == 7
 
-    doc_shard = json.loads(
-        (tmp_path / manifest["shards"]["docs"][0]["file"]).read_text()
-    )
+    doc_shard = json.loads((tmp_path / manifest["shards"]["docs"][0]["file"]).read_text())
     entry = doc_shard["7"]
     assert entry["externalId"] == "chunk-7"
     assert entry["metadata"] == {"chunkIndex": 7}
@@ -392,9 +391,10 @@ def test_binary_doc_store_is_supported_for_structured_index(tmp_path):
 def test_binary_doc_store_still_allowed_for_legacy_index(tmp_path):
     sources = [
         SourceDocument(
-            id=1, url="/a",
+            id=1,
+            url="/a",
             html="<html><head><title>Widgets</title></head>"
-                 "<body><main>widgets are great</main></body></html>",
+            "<body><main>widgets are great</main></body></html>",
         )
     ]
     built = build_index(sources)

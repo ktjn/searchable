@@ -2,8 +2,7 @@ import json
 import sys
 from pathlib import Path
 
-from searchable_indexer.build_index import build_index
-from searchable_indexer.build_index import build_index_documents
+from searchable_indexer.build_index import build_index, build_index_documents
 from searchable_indexer.document import FieldDefinition, IndexDocument
 from searchable_indexer.types import SourceDocument
 from searchable_indexer.write_index import write_index
@@ -61,10 +60,7 @@ def main() -> None:
             documents, field_definitions=field_definitions, **build_kwargs
         )
     else:
-        sources = [
-            SourceDocument(id=s["id"], url=s["url"], html=s["html"])
-            for s in raw_sources
-        ]
+        sources = [SourceDocument(id=s["id"], url=s["url"], html=s["html"]) for s in raw_sources]
         built = build_index(sources, **build_kwargs)
     write_index(built, out_dir, **write_kwargs)
 

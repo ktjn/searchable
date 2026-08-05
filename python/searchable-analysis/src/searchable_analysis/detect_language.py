@@ -12,13 +12,48 @@ _SCRIPT_THRESHOLD = 0.3
 
 _LATIN_MARKER_WORDS: dict[str, set[str]] = {
     "en": {
-        "the", "and", "of", "to", "is", "in", "that", "for", "with", "as",
-        "was", "are", "this", "have", "from", "by", "an", "be", "or", "on",
+        "the",
+        "and",
+        "of",
+        "to",
+        "is",
+        "in",
+        "that",
+        "for",
+        "with",
+        "as",
+        "was",
+        "are",
+        "this",
+        "have",
+        "from",
+        "by",
+        "an",
+        "be",
+        "or",
+        "on",
     },
     "de": {
-        "der", "die", "das", "und", "ist", "nicht", "mit", "für", "auf",
-        "sich", "den", "dem", "eine", "einen", "ein", "zu", "von", "im",
-        "auch", "sind",
+        "der",
+        "die",
+        "das",
+        "und",
+        "ist",
+        "nicht",
+        "mit",
+        "für",
+        "auf",
+        "sich",
+        "den",
+        "dem",
+        "eine",
+        "einen",
+        "ein",
+        "zu",
+        "von",
+        "im",
+        "auch",
+        "sind",
     },
     "sv": {"och", "är", "att", "inte", "också", "detta"},
     "nl": {"het", "een", "van", "niet", "zijn", "wij"},
@@ -32,7 +67,7 @@ _LATIN_MARKER_WORDS: dict[str, set[str]] = {
 _WORD_TOKEN_RE = re.compile(r"[^\W\d_]+", re.UNICODE)
 
 
-def _count_script_chars(text: str) -> dict:
+def _count_script_chars(text: str) -> dict[str, int]:
     han = kana = thai = lao = khmer = letters = 0
     for ch in text:
         if not ch.isalpha():

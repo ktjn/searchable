@@ -26,15 +26,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
-      - name: Install and test searchable-analysis (Python)
+      - name: Install, lint, typecheck, and test searchable-analysis (Python)
         working-directory: python/searchable-analysis
         run: |
           uv sync
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy src
           uv run pytest -v
-      - name: Install and test searchable-indexer (Python)
+      - name: Install, lint, typecheck, and test searchable-indexer (Python)
         working-directory: python/searchable-indexer
         run: |
           uv sync
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy src
           uv run pytest -v
       - name: Install, lint, typecheck, and test searchable-client (Python)
         working-directory: python/searchable-client

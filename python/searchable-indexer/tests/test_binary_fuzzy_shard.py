@@ -9,8 +9,18 @@ def test_encodes_a_single_variant_shard():
     # Blob: termCount=1, string("cat") -> 0x01, 0x03,0x63,0x61,0x74
     expected = bytes(
         [
-            0x01, 0x01, 0x02, 0x63, 0x61, 0x00, 0x05,
-            0x01, 0x03, 0x63, 0x61, 0x74,
+            0x01,
+            0x01,
+            0x02,
+            0x63,
+            0x61,
+            0x00,
+            0x05,
+            0x01,
+            0x03,
+            0x63,
+            0x61,
+            0x74,
         ]
     )
     assert encoded == expected
@@ -36,7 +46,5 @@ def test_multiple_terms_for_one_variant_are_all_listed():
     shard = {"maxEdits": 1, "deletions": {"ca": ["car", "cat"]}}
     encoded = encode_fuzzy_shard_binary(shard)
     # The variant's blob: termCount=2(0x02), string("car"), string("cat").
-    blob_marker = bytes(
-        [0x02, 0x03, 0x63, 0x61, 0x72, 0x03, 0x63, 0x61, 0x74]
-    )
+    blob_marker = bytes([0x02, 0x03, 0x63, 0x61, 0x72, 0x03, 0x63, 0x61, 0x74])
     assert blob_marker in encoded

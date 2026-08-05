@@ -2,8 +2,10 @@ import math
 
 import pytest
 
-from searchable_indexer.binary_doc_store import encode_doc_store_binary
-from searchable_indexer.binary_doc_store import encode_structured_doc_store_binary
+from searchable_indexer.binary_doc_store import (
+    encode_doc_store_binary,
+    encode_structured_doc_store_binary,
+)
 
 
 def test_encodes_a_single_doc_shard():
@@ -16,8 +18,19 @@ def test_encodes_a_single_doc_shard():
     #   -> 0x02,0x2F,0x61, 0x00, 0x01, 0x01,0x74, 0x01,0x78
     expected = bytes(
         [
-            0x01, 0x00, 0x00, 0x09,
-            0x02, 0x2F, 0x61, 0x00, 0x01, 0x01, 0x74, 0x01, 0x78,
+            0x01,
+            0x00,
+            0x00,
+            0x09,
+            0x02,
+            0x2F,
+            0x61,
+            0x00,
+            0x01,
+            0x01,
+            0x74,
+            0x01,
+            0x78,
         ]
     )
     assert encoded == expected

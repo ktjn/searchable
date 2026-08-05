@@ -16,7 +16,20 @@ def test_exports_the_full_public_api():
     assert searchable_analysis.segment_cjk_bigram is not None
     assert searchable_analysis.segment_sea_trigram is not None
     assert searchable_analysis.strip_diacritics is not None
-    for name in ("english", "german", "swedish", "dutch", "norwegian_bokmal", "norwegian_nynorsk", "norwegian", "chinese", "japanese", "thai", "khmer", "lao"):
+    for name in (
+        "english",
+        "german",
+        "swedish",
+        "dutch",
+        "norwegian_bokmal",
+        "norwegian_nynorsk",
+        "norwegian",
+        "chinese",
+        "japanese",
+        "thai",
+        "khmer",
+        "lao",
+    ):
         assert getattr(searchable_analysis, name).code
 
 

@@ -1,4 +1,5 @@
 import math
+from typing import Any
 
 from searchable_indexer.byte_writer import ByteWriter
 
@@ -6,7 +7,7 @@ _STRUCTURED_MAGIC = b"SDOC"
 _STRUCTURED_VERSION = 2
 
 
-def _write_structured_json_value(writer: ByteWriter, value, path: str) -> None:
+def _write_structured_json_value(writer: ByteWriter, value: object, path: str) -> None:
     if value is None:
         writer.write_varint(0)
     elif value is False:
@@ -39,7 +40,9 @@ def _write_structured_json_value(writer: ByteWriter, value, path: str) -> None:
         raise ValueError(f"structured binary metadata value at {path} is not JSON-compatible")
 
 
-def _write_optional_string(writer: ByteWriter, flags: int, bit: int, entry: dict, name: str) -> None:
+def _write_optional_string(
+    writer: ByteWriter, flags: int, bit: int, entry: dict[str, Any], name: str
+) -> None:
     if flags & bit:
         value = entry[name]
         if not isinstance(value, str):
@@ -47,7 +50,7 @@ def _write_optional_string(writer: ByteWriter, flags: int, bit: int, entry: dict
         writer.write_string(value)
 
 
-def _encode_structured_doc_store_entry(entry: dict) -> bytes:
+def _encode_structured_doc_store_entry(entry: dict[str, Any]) -> bytes:
     writer = ByteWriter()
     writer.write_bytes(_STRUCTURED_MAGIC)
     writer.write_varint(_STRUCTURED_VERSION)
@@ -65,7 +68,11 @@ def _encode_structured_doc_store_entry(entry: dict) -> bytes:
     writer.write_varint(flags)
     if flags & 1:
         boost = entry["boost"]
-        if not isinstance(boost, (int, float)) or isinstance(boost, bool) or not math.isfinite(boost):
+        if (
+            not isinstance(boost, (int, float))
+            or isinstance(boost, bool)
+            or not math.isfinite(boost)
+        ):
             raise ValueError("structured binary document boost must be finite")
         writer.write_float64(float(boost))
     _write_optional_string(writer, flags, 2, entry, "externalId")
@@ -81,16 +88,19 @@ def _encode_structured_doc_store_entry(entry: dict) -> bytes:
     for field_name in field_names:
         field_value = fields[field_name]
         if not isinstance(field_name, str) or not isinstance(field_value, str):
-            raise ValueError("structured binary document fields must contain string keys and values")
+            raise ValueError(
+                "structured binary document fields must contain string keys and values"
+            )
         writer.write_string(field_name)
         writer.write_string(field_value)
     return writer.to_bytes()
+
 
 # Direct port of packages/indexer/src/binary-doc-store.ts's
 # encodeDocStoreBinary.
 
 
-def encode_doc_store_binary(shard: dict) -> bytes:
+def encode_doc_store_binary(shard: dict[str, Any]) -> bytes:
     ids = sorted(int(key) for key in shard.keys())
 
     blobs = []
@@ -113,7 +123,7 @@ def encode_doc_store_binary(shard: dict) -> bytes:
     directory.write_varint(len(ids))
     prev_id = 0
     offset = 0
-    for doc_id, blob in zip(ids, blobs):
+    for doc_id, blob in zip(ids, blobs, strict=True):
         directory.write_varint(doc_id - prev_id)
         prev_id = doc_id
         directory.write_varint(offset)
@@ -127,7 +137,7 @@ def encode_doc_store_binary(shard: dict) -> bytes:
     return directory.to_bytes() + blob_writer.to_bytes()
 
 
-def encode_structured_doc_store_binary(shard: dict[str, dict]) -> bytes:
+def encode_structured_doc_store_binary(shard: dict[str, dict[str, Any]]) -> bytes:
     """Encode structured documents with the versioned binary v2 format."""
     ids = sorted(int(key) for key in shard)
     blobs = [_encode_structured_doc_store_entry(shard[str(doc_id)]) for doc_id in ids]
@@ -136,7 +146,7 @@ def encode_structured_doc_store_binary(shard: dict[str, dict]) -> bytes:
     directory.write_varint(len(ids))
     previous_id = 0
     offset = 0
-    for doc_id, blob in zip(ids, blobs):
+    for doc_id, blob in zip(ids, blobs, strict=True):
         directory.write_varint(doc_id - previous_id)
         previous_id = doc_id
         directory.write_varint(offset)
@@ -147,4 +157,9 @@ def encode_structured_doc_store_binary(shard: dict[str, dict]) -> bytes:
     for blob in blobs:
         blob_writer.write_bytes(blob)
 
-    return _STRUCTURED_MAGIC + bytes([_STRUCTURED_VERSION]) + directory.to_bytes() + blob_writer.to_bytes()
+    return (
+        _STRUCTURED_MAGIC
+        + bytes([_STRUCTURED_VERSION])
+        + directory.to_bytes()
+        + blob_writer.to_bytes()
+    )

@@ -6,9 +6,7 @@ from searchable_indexer.vectors import build_vector_shards, chunk_text, quantize
 
 
 def test_short_text_returns_a_single_chunk():
-    assert chunk_text("widgets are great", window=200, overlap=20) == [
-        "widgets are great"
-    ]
+    assert chunk_text("widgets are great", window=200, overlap=20) == ["widgets are great"]
 
 
 def test_long_text_splits_into_overlapping_windows():
@@ -49,26 +47,20 @@ def _length_embed(texts: list[str]) -> list[list[float]]:
 def test_build_vector_shards_produces_one_passage_per_short_document():
     documents = [(1, "en", "widgets are great")]
 
-    shards = build_vector_shards(
-        documents, embed=_length_embed, quantization="float32"
-    )
+    shards = build_vector_shards(documents, embed=_length_embed, quantization="float32")
 
     assert set(shards.keys()) == {"en"}
     shard = shards["en"]
     assert shard["dims"] == 2
     assert shard["quantization"] == "float32"
     assert "quantRange" not in shard
-    assert shard["entries"] == [
-        {"passageId": "1-0", "docId": 1, "vector": [17.0, 0.0]}
-    ]
+    assert shard["entries"] == [{"passageId": "1-0", "docId": 1, "vector": [17.0, 0.0]}]
 
 
 def test_build_vector_shards_groups_entries_by_language():
     documents = [(1, "en", "widgets are great"), (2, "de", "sofas sind toll")]
 
-    shards = build_vector_shards(
-        documents, embed=_length_embed, quantization="float32"
-    )
+    shards = build_vector_shards(documents, embed=_length_embed, quantization="float32")
 
     assert set(shards.keys()) == {"en", "de"}
     assert [e["docId"] for e in shards["en"]["entries"]] == [1]
@@ -105,9 +97,7 @@ def test_build_vector_shards_can_preserve_one_passage_per_document():
         chunk=False,
     )
 
-    assert shards["en"]["entries"] == [
-        {"passageId": "1-0", "docId": 1, "vector": [89.0, 0.0]}
-    ]
+    assert shards["en"]["entries"] == [{"passageId": "1-0", "docId": 1, "vector": [89.0, 0.0]}]
 
 
 def test_build_vector_shards_applies_int8_quantization_per_language():
@@ -205,9 +195,7 @@ def test_build_vector_shards_rejects_overlap_at_or_above_window_directly():
     documents = [(1, "en", "widgets are great")]
 
     with pytest.raises(ValueError, match="overlap"):
-        build_vector_shards(
-            documents, embed=_length_embed, window=10, overlap=10
-        )
+        build_vector_shards(documents, embed=_length_embed, window=10, overlap=10)
 
 
 def test_build_vector_shards_rejects_boolean_window_directly():
@@ -221,6 +209,4 @@ def test_build_vector_shards_rejects_boolean_overlap_directly():
     documents = [(1, "en", "widgets are great")]
 
     with pytest.raises(ValueError, match="overlap"):
-        build_vector_shards(
-            documents, embed=_length_embed, window=10, overlap=False
-        )
+        build_vector_shards(documents, embed=_length_embed, window=10, overlap=False)
