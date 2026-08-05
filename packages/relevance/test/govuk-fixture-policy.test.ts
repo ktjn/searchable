@@ -1,9 +1,9 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { GOVUK_DOMAIN_QUERY_TOPICS } from "../src/domain-schema.js";
-import { hashSnapshotContent } from "../src/govuk-normalize.js";
 import { GOVUK_EXPECTED_ROUTES } from "../src/govuk-refresh.js";
 import { loadDomainSuite } from "../src/load-domain-suite.js";
+import { hashSnapshotContent } from "../src/snapshot-hash.js";
 
 const domainFixtureDirectory = fileURLToPath(
   new URL("../fixtures/domains/", import.meta.url),

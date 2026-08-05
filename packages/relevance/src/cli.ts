@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { runCliEntry } from "./cli-runner.js";
 import { runDomainSuite } from "./domain-runner.js";
 import type { DomainRelevanceSuite } from "./domain-schema.js";
 import type { SuiteReport } from "./evaluate.js";
@@ -112,12 +113,4 @@ export async function main(
   );
 }
 
-const entry = process.argv[1];
-if (entry && import.meta.url === pathToFileURL(entry).href) {
-  main().catch((error: unknown) => {
-    process.stderr.write(
-      `${error instanceof Error ? error.message : String(error)}\n`,
-    );
-    process.exitCode = 1;
-  });
-}
+runCliEntry(import.meta.url, main);

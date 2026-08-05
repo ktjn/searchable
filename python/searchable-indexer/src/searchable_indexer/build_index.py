@@ -484,6 +484,7 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
         vector_shards=vector_shards,
         embedding_provider=config.embedding_provider if config.embed is not None else None,
         structured=config.structured,
+        pin_warnings=pin_warnings,
     )
 
 

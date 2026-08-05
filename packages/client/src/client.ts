@@ -303,15 +303,25 @@ export class SearchClient {
     await this.#ready;
   }
 
+  /**
+   * Shared precondition for every public query method: a fatal init error
+   * always wins, the caller's `signal` aborts waiting, the manifest (or
+   * worker `init`) must be resolved, and a fatal error that only surfaces
+   * *during* that resolution (rather than before it) is still surfaced.
+   */
+  async #assertUsable(signal: AbortSignal | undefined): Promise<void> {
+    if (this.#fatalError) throw this.#fatalError;
+    throwIfAborted(signal);
+    await this.#ready;
+    if (this.#fatalError) throw this.#fatalError;
+    throwIfAborted(signal);
+  }
+
   async search(
     query: string,
     options: SearchOptions = {},
   ): Promise<SearchResult> {
-    if (this.#fatalError) throw this.#fatalError;
-    throwIfAborted(options.signal);
-    await this.#ready;
-    if (this.#fatalError) throw this.#fatalError;
-    throwIfAborted(options.signal);
+    await this.#assertUsable(options.signal);
     // Computed here, not inside search.ts, because `embedQuery` is
     // arbitrary caller JS that can't cross the Worker postMessage
     // boundary -- only its plain-array *result* can
@@ -437,11 +447,7 @@ export class SearchClient {
     query: string,
     options: SearchStreamOptions = {},
   ): Promise<SearchResult> {
-    if (this.#fatalError) throw this.#fatalError;
-    throwIfAborted(options.signal);
-    await this.#ready;
-    if (this.#fatalError) throw this.#fatalError;
-    throwIfAborted(options.signal);
+    await this.#assertUsable(options.signal);
     this.#emit("query", { query, options });
     const { signal, onPartial, ...rest } = options;
     const guardedOnPartial = onPartial
@@ -519,11 +525,7 @@ export class SearchClient {
     field: string,
     options: FacetValuesOptions = {},
   ): Promise<FacetResult> {
-    if (this.#fatalError) throw this.#fatalError;
-    throwIfAborted(options.signal);
-    await this.#ready;
-    if (this.#fatalError) throw this.#fatalError;
-    throwIfAborted(options.signal);
+    await this.#assertUsable(options.signal);
     const { signal, ...rest } = options;
     const work = this.#worker
       ? this.#sendToWorker<FacetResult>({

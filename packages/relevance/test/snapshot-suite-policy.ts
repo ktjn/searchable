@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import type { DomainRelevanceSuite } from "../src/domain-schema.js";
-import { hashSnapshotContent } from "../src/govuk-normalize.js";
+import { hashSnapshotContent } from "../src/snapshot-hash.js";
 
 /**
  * Shared policy assertions every committed *snapshot* domain relevance
