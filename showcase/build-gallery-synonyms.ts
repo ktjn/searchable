@@ -1,7 +1,6 @@
-import { cp, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { escapeHtml, pageShell } from "./gallery-shared.js";
+import { buildGalleryDemo, escapeHtml, pageShell } from "./gallery-shared.js";
 import type { SynonymDoc } from "./gallery-synonyms-data.js";
 import { SYNONYM_CONFIG, SYNONYM_DOCS } from "./gallery-synonyms-data.js";
 import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
@@ -10,7 +9,6 @@ import { writePythonIndex } from "./python-index.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
 const galleryDir = join(distDir, "gallery", "synonyms");
-const searchIndexDir = join(galleryDir, "search-index");
 
 function renderDocPage(doc: SynonymDoc): string {
   const bodyHtml = `
@@ -70,30 +68,18 @@ function docToSource(doc: SynonymDoc, id: number): SourceDocument {
 async function main() {
   const sources = SYNONYM_DOCS.map((doc, i) => docToSource(doc, i + 1));
 
-  const { outDir, cleanup } = await writePythonIndex(sources, {
-    defaultLanguage: "en",
-    synonyms: SYNONYM_CONFIG,
+  await buildGalleryDemo({
+    galleryDir,
+    distDir,
+    pages: sources,
+    indexHtml: renderPlaygroundIndexPage(),
+    buildIndex: () =>
+      writePythonIndex(sources, {
+        defaultLanguage: "en",
+        synonyms: SYNONYM_CONFIG,
+      }),
+    log: `built synonym playground demo: ${sources.length} pages -> ${galleryDir}`,
   });
-  await cp(outDir, searchIndexDir, { recursive: true });
-  await cleanup();
-
-  await mkdir(join(galleryDir, "p"), { recursive: true });
-  for (const source of sources) {
-    await writeFile(
-      join(distDir, source.url.replace(/^\//, "")),
-      source.html,
-      "utf8",
-    );
-  }
-  await writeFile(
-    join(galleryDir, "index.html"),
-    renderPlaygroundIndexPage(),
-    "utf8",
-  );
-
-  console.log(
-    `built synonym playground demo: ${sources.length} pages -> ${galleryDir}`,
-  );
 }
 
 main();

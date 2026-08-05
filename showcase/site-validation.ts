@@ -1,13 +1,13 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import {
   dirname,
   extname,
   isAbsolute,
-  join,
   relative,
   resolve,
   sep,
 } from "node:path";
+import { walkFiles } from "./walk-files.js";
 
 export interface ValidationIssue {
   source: string;
@@ -21,23 +21,8 @@ const ID_PATTERN = /(?<![\w:-])id\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
 const ROUTE_FIELDS = new Set(["href", "path", "source", "url"]);
 const FORBIDDEN_DOC_PATHS = ["docs/archive/", "docs/superpowers/"];
 
-async function listSiteFiles(rootDir: string): Promise<string[]> {
-  const files: string[] = [];
-
-  async function visit(directory: string): Promise<void> {
-    const entries = await readdir(directory, { withFileTypes: true });
-    for (const entry of entries) {
-      const path = join(directory, entry.name);
-      if (entry.isDirectory()) {
-        await visit(path);
-      } else if (entry.isFile()) {
-        files.push(path);
-      }
-    }
-  }
-
-  await visit(rootDir);
-  return files.sort();
+function listSiteFiles(rootDir: string): Promise<string[]> {
+  return walkFiles(rootDir).then((files) => files.sort());
 }
 
 function extractMatches(pattern: RegExp, html: string): string[] {

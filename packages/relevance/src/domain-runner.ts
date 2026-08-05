@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SearchClient } from "@ktjn/searchable-client";
+import { type StaticServer, serveDirectory } from "@ktjn/searchable-fixtures";
 import type {
   DomainPage,
   DomainRelevanceSuite,
@@ -9,7 +10,6 @@ import type {
 import { evaluateSuite, type SuiteReport } from "./evaluate.js";
 import type { RelevanceSuite } from "./schema.js";
 import { runSearchableSuite } from "./searchable-runner.js";
-import { type StaticServer, serveDirectory } from "./static-server.js";
 import { validateDomainSuite } from "./validate-domain-suite.js";
 import { expectRecord as record } from "./validation.js";
 

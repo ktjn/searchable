@@ -1,16 +1,14 @@
-import { cp, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { I18nDoc } from "./gallery-i18n-data.js";
 import { I18N_DOCS } from "./gallery-i18n-data.js";
-import { escapeHtml, pageShell } from "./gallery-shared.js";
+import { buildGalleryDemo, escapeHtml, pageShell } from "./gallery-shared.js";
 import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
 import { writePythonIndex } from "./python-index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
 const galleryDir = join(distDir, "gallery", "i18n");
-const searchIndexDir = join(galleryDir, "search-index");
 
 function renderDocPage(doc: I18nDoc): string {
   const bodyHtml = `
@@ -19,16 +17,16 @@ function renderDocPage(doc: I18nDoc): string {
         <h1>${escapeHtml(doc.title)}</h1>
         <p>${escapeHtml(doc.body)}</p>
       </main>`;
-  const html = pageShell({
+  return pageShell({
     title: doc.title,
     description: doc.body,
     root: "../../../",
     bodyHtml,
+    // Per-doc <html lang> so extractDocument's language detection
+    // (docs/guides/internationalization.md) partitions each page into its
+    // own language, not just en.
+    lang: doc.language,
   });
-  // pageShell always emits <html lang="en"> -- override per doc so
-  // extractDocument's language detection (docs/guides/internationalization.md)
-  // actually partitions each page into its own language, not just en.
-  return html.replace('<html lang="en">', `<html lang="${doc.language}">`);
 }
 
 function renderI18nIndexPage(): string {
@@ -75,29 +73,17 @@ function docToSource(doc: I18nDoc, id: number): SourceDocument {
 async function main() {
   const sources = I18N_DOCS.map((doc, i) => docToSource(doc, i + 1));
 
-  const { outDir, cleanup } = await writePythonIndex(sources, {
-    defaultLanguage: "en",
+  await buildGalleryDemo({
+    galleryDir,
+    distDir,
+    pages: sources,
+    indexHtml: renderI18nIndexPage(),
+    buildIndex: () =>
+      writePythonIndex(sources, {
+        defaultLanguage: "en",
+      }),
+    log: `built multi-language corpus demo: ${sources.length} pages -> ${galleryDir}`,
   });
-  await cp(outDir, searchIndexDir, { recursive: true });
-  await cleanup();
-
-  await mkdir(join(galleryDir, "p"), { recursive: true });
-  for (const source of sources) {
-    await writeFile(
-      join(distDir, source.url.replace(/^\//, "")),
-      source.html,
-      "utf8",
-    );
-  }
-  await writeFile(
-    join(galleryDir, "index.html"),
-    renderI18nIndexPage(),
-    "utf8",
-  );
-
-  console.log(
-    `built multi-language corpus demo: ${sources.length} pages -> ${galleryDir}`,
-  );
 }
 
 main();
