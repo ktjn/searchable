@@ -1,21 +1,26 @@
-from searchable_analysis import get_language_profile, normalize_phrase
+from collections.abc import Callable
+from typing import Any
+
+from searchable_analysis import LanguageProfile, get_language_profile, normalize_phrase
 
 # Direct port of packages/indexer/src/build-index.ts's buildSynonymShards.
 
 
-def _normalize_dedup(terms: list[str], normalize) -> list[str]:
+def _normalize_dedup(terms: list[str], normalize: Callable[[str], str]) -> list[str]:
     return list(dict.fromkeys(filter(None, (normalize(t) for t in terms))))
 
 
-def build_synonym_shards(raw_synonyms: dict[str, dict] | None) -> dict[str, dict]:
-    synonym_shards: dict[str, dict] = {}
+def build_synonym_shards(
+    raw_synonyms: dict[str, dict[str, Any]] | None,
+) -> dict[str, dict[str, Any]]:
+    synonym_shards: dict[str, dict[str, Any]] = {}
     if not raw_synonyms:
         return synonym_shards
 
     for language, source in raw_synonyms.items():
         profile = get_language_profile(language)
 
-        def normalize(term: str, _profile=profile) -> str:
+        def normalize(term: str, _profile: LanguageProfile = profile) -> str:
             return normalize_phrase(term, _profile)
 
         equivalences = []
@@ -40,7 +45,7 @@ def build_synonym_shards(raw_synonyms: dict[str, dict] | None) -> dict[str, dict
             if len(normalized_group) >= 2:
                 multi_word.append(normalized_group)
 
-        shard: dict = {}
+        shard: dict[str, Any] = {}
         if equivalences:
             shard["equivalences"] = equivalences
         if directional:

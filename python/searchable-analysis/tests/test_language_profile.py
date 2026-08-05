@@ -37,9 +37,7 @@ def test_sea_profiles_stem_is_identity():
 
 def test_strip_diacritics_removes_combining_marks():
     assert strip_diacritics("café") == "cafe"
-    assert strip_diacritics("straße") == "strasse" or strip_diacritics(
-        "straße"
-    ) == "straße"
+    assert strip_diacritics("straße") == "strasse" or strip_diacritics("straße") == "straße"
     # ^ NFKD does not decompose ß into s+s (it isn't a diacritic mark),
     # so stripping combining marks alone leaves it unchanged -- this
     # assertion documents that, rather than asserting a false claim.

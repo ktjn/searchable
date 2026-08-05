@@ -3,7 +3,7 @@ from dataclasses import dataclass, field, replace
 from math import isfinite
 from typing import Any
 
-from searchable_analysis import (  # type: ignore[import-untyped]
+from searchable_analysis import (
     generate_deletes,
     get_language_profile,
     normalize_phrase,

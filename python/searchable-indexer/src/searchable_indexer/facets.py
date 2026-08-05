@@ -1,4 +1,5 @@
 import math
+from typing import Any
 
 # Direct port of packages/indexer/src/build-index.ts's addFacetValues /
 # addRangeFacetValues / expandHierarchyPaths /
@@ -17,10 +18,10 @@ def expand_hierarchy_paths(full_path: str, separator: str) -> list[str]:
 
 
 def add_facet_values(
-    facet_shards: dict[str, dict],
+    facet_shards: dict[str, dict[str, Any]],
     facets: dict[str, list[str]],
     doc_id: int,
-    hierarchical_facets: dict[str, dict],
+    hierarchical_facets: dict[str, dict[str, Any]],
 ) -> None:
     for field_name, values in facets.items():
         hierarchy_config = hierarchical_facets.get(field_name)
@@ -29,9 +30,7 @@ def add_facet_values(
             if hierarchy_config is not None:
                 shard = {
                     "type": "hierarchy",
-                    "separator": hierarchy_config.get(
-                        "separator", DEFAULT_HIERARCHY_SEPARATOR
-                    ),
+                    "separator": hierarchy_config.get("separator", DEFAULT_HIERARCHY_SEPARATOR),
                     "values": {},
                 }
             else:
@@ -60,7 +59,7 @@ def add_facet_values(
 
 
 def add_range_facet_values(
-    facet_shards: dict[str, dict],
+    facet_shards: dict[str, dict[str, Any]],
     range_facets: dict[str, float],
     doc_id: int,
 ) -> None:
@@ -83,7 +82,7 @@ def _format_bucket_bound(n: float) -> str:
     return str(rounded)
 
 
-def _add_to_bucket(shard: dict, label: str, doc: int) -> None:
+def _add_to_bucket(shard: dict[str, Any], label: str, doc: int) -> None:
     entry = shard["values"].get(label)
     if entry is None:
         entry = {"count": 0, "docs": []}
@@ -92,7 +91,7 @@ def _add_to_bucket(shard: dict, label: str, doc: int) -> None:
     entry["count"] += 1
 
 
-def compute_range_facet_buckets_equal_width(shard: dict, bucket_count: int) -> None:
+def compute_range_facet_buckets_equal_width(shard: dict[str, Any], bucket_count: int) -> None:
     sorted_entries = shard.get("sorted", [])
     if not sorted_entries:
         return
@@ -117,13 +116,11 @@ def compute_range_facet_buckets_equal_width(shard: dict, bucket_count: int) -> N
             labels.append(f"{_format_bucket_bound(lo)}-{_format_bucket_bound(hi)}")
 
     for entry in sorted_entries:
-        index = min(
-            bucket_count - 1, math.floor((entry["value"] - min_value) / width)
-        )
+        index = min(bucket_count - 1, math.floor((entry["value"] - min_value) / width))
         _add_to_bucket(shard, labels[index], entry["doc"])
 
 
-def compute_range_facet_buckets_explicit(shard: dict, boundaries: list[float]) -> None:
+def compute_range_facet_buckets_explicit(shard: dict[str, Any], boundaries: list[float]) -> None:
     sorted_entries = shard.get("sorted", [])
     if not sorted_entries:
         return
@@ -133,9 +130,7 @@ def compute_range_facet_buckets_explicit(shard: dict, boundaries: list[float]) -
         if i == 0:
             labels.append(f"<{_format_bucket_bound(b)}")
         else:
-            labels.append(
-                f"{_format_bucket_bound(boundaries[i - 1])}-{_format_bucket_bound(b)}"
-            )
+            labels.append(f"{_format_bucket_bound(boundaries[i - 1])}-{_format_bucket_bound(b)}")
     labels.append(f"{_format_bucket_bound(boundaries[-1])}+")
 
     for entry in sorted_entries:

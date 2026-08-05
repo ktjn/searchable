@@ -1,10 +1,12 @@
+from typing import Any
+
 from searchable_indexer.byte_writer import ByteWriter
 
 # Direct port of packages/indexer/src/binary-term-shard.ts's
 # encodeTermShardBinary/encodePostings.
 
 
-def _encode_postings(entry: dict) -> bytes:
+def _encode_postings(entry: dict[str, Any]) -> bytes:
     w = ByteWriter()
     w.write_varint(entry["df"])
     w.write_varint(len(entry["postings"]))
@@ -31,14 +33,14 @@ def _encode_postings(entry: dict) -> bytes:
     return w.to_bytes()
 
 
-def encode_term_shard_binary(term_shard: dict) -> bytes:
+def encode_term_shard_binary(term_shard: dict[str, Any]) -> bytes:
     terms = sorted(term_shard.keys())
     postings_blobs = [_encode_postings(term_shard[term]) for term in terms]
 
     directory = ByteWriter()
     directory.write_varint(len(terms))
     offset = 0
-    for term, blob in zip(terms, postings_blobs):
+    for term, blob in zip(terms, postings_blobs, strict=True):
         directory.write_string(term)
         directory.write_varint(offset)
         directory.write_varint(len(blob))

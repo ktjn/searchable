@@ -13,9 +13,7 @@ def test_splits_a_run_of_thai_characters_into_overlapping_trigrams():
 
 
 def test_indexes_a_short_run_below_trigram_width_as_one_span():
-    assert segment_sea_trigram("กข") == [
-        TokenSpan(text="กข", is_word_like=True)
-    ]
+    assert segment_sea_trigram("กข") == [TokenSpan(text="กข", is_word_like=True)]
 
 
 def test_segments_a_non_sea_run_normally():

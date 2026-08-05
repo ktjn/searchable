@@ -1,5 +1,3 @@
-import math
-
 import pytest
 
 from searchable_indexer.build_index import build_index_documents
@@ -37,7 +35,9 @@ def test_neither_indexed_nor_stored_field_definition_rejected():
 
 def test_negative_field_boost_rejected():
     with pytest.raises(ValueError, match="boost"):
-        build_index_documents([_doc()], field_definitions=_fields(title=FieldDefinition(boost=-1.0)))
+        build_index_documents(
+            [_doc()], field_definitions=_fields(title=FieldDefinition(boost=-1.0))
+        )
 
 
 def test_non_finite_field_boost_rejected():
@@ -49,7 +49,9 @@ def test_non_finite_field_boost_rejected():
 
 def test_bool_field_boost_rejected():
     with pytest.raises(ValueError, match="boost"):
-        build_index_documents([_doc()], field_definitions=_fields(title=FieldDefinition(boost=True)))
+        build_index_documents(
+            [_doc()], field_definitions=_fields(title=FieldDefinition(boost=True))
+        )
 
 
 def test_negative_document_id_rejected():
@@ -176,8 +178,10 @@ def test_arbitrary_stored_fields():
     )
     doc = _doc(
         stored_fields={
-            "title": "Widgets", "excerpt": "e",
-            "heading": "Overview", "source_path": "docs/widgets.md",
+            "title": "Widgets",
+            "excerpt": "e",
+            "heading": "Overview",
+            "source_path": "docs/widgets.md",
         }
     )
     built = build_index_documents([doc], field_definitions=fields)
@@ -278,9 +282,7 @@ def test_same_documents_in_different_order_produce_identical_output():
 def test_zero_field_boost_is_preserved_without_falling_back_to_one():
     built = build_index_documents(
         [_doc()],
-        field_definitions=_fields(
-            title=FieldDefinition(indexed=True, stored=True, boost=0.0)
-        ),
+        field_definitions=_fields(title=FieldDefinition(indexed=True, stored=True, boost=0.0)),
     )
 
     assert built.manifest["fields"]["title"]["boost"] == 0.0
@@ -303,9 +305,7 @@ def test_none_stored_fields_rejected_with_value_error_not_type_error():
 
 def test_list_of_pairs_indexed_fields_rejected_not_silently_coerced():
     with pytest.raises(ValueError):
-        build_index_documents(
-            [_doc(indexed_fields=[("body", "x")])], field_definitions=_fields()
-        )
+        build_index_documents([_doc(indexed_fields=[("body", "x")])], field_definitions=_fields())
 
 
 def test_structured_vectors_use_deterministic_indexed_field_content():

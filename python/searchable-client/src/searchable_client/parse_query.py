@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass, field
 
-from searchable_analysis import LanguageProfile, analyze  # type: ignore[import-untyped]
+from searchable_analysis import LanguageProfile, analyze
 
 
 @dataclass(frozen=True)

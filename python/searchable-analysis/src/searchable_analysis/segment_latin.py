@@ -10,7 +10,4 @@ _WORD_RE = re.compile(r"[^\W_]+", re.UNICODE)
 
 
 def segment_latin_words(text: str) -> list[TokenSpan]:
-    return [
-        TokenSpan(text=match.group(0), is_word_like=True)
-        for match in _WORD_RE.finditer(text)
-    ]
+    return [TokenSpan(text=match.group(0), is_word_like=True) for match in _WORD_RE.finditer(text)]

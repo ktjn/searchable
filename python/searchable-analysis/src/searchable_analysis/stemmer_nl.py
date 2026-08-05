@@ -1,22 +1,22 @@
 import re
 
-A = frozenset("aàáâä")
-E = frozenset("eèéêë")
-I = frozenset("iìíîï")
-O = frozenset("oòóôö")
-U = frozenset("uùúûü")
-AEIOU = A | E | I | O | U
-AIOU = A | I | O | U
-VOWELS = AEIOU | {"y"}
+_A = frozenset("aàáâä")
+_E = frozenset("eèéêë")
+_I = frozenset("iìíîï")
+_O = frozenset("oòóôö")
+_U = frozenset("uùúûü")
+_AEIOU = _A | _E | _I | _O | _U
+_AIOU = _A | _I | _O | _U
+VOWELS = _AEIOU | {"y"}
 
 
 def _vowel_length_at(word: str, index: int) -> int:
-    if word[index:index + 2] == "ij":
+    if word[index : index + 2] == "ij":
         return 2
-    return 1 if word[index:index + 1] in VOWELS else 0
+    return 1 if word[index : index + 1] in VOWELS else 0
 
 
-def _measure(word: str) -> tuple[int, int]:
+def _measure(word: str) -> list[int]:
     regions: list[int] = []
     index = 0
     while len(regions) < 2 and index < len(word):
@@ -61,17 +61,17 @@ def _lengthen_v(word: str) -> str:
     if prefix.endswith("ië"):
         return prefix[:-2] + "iee" + last
     vowel, before = prefix[-1:], prefix[:-1]
-    if vowel in A | O | U:
-        if not before or before[-1] not in AEIOU:
+    if vowel in _A | _O | _U:
+        if not before or before[-1] not in _AEIOU:
             return prefix + vowel + last
-    elif vowel in E and vowel != "ë":
-        if before and before[-1] in AEIOU:
+    elif vowel in _E and vowel != "ë":
+        if before and before[-1] in _AEIOU:
             return word
         base = before if not before else before[:-1]
-        if base[-1:] in AIOU or (len(base) == 1 and base in E):
+        if base[-1:] in _AIOU or (len(base) == 1 and base in _E):
             return word
         skipped = base[:-1]
-        if len(skipped) >= 2 and skipped[-1] in AIOU and skipped[-2] not in AEIOU:
+        if len(skipped) >= 2 and skipped[-1] in _AIOU and skipped[-2] not in _AEIOU:
             return word
         return prefix + vowel + last
     return word
@@ -81,11 +81,15 @@ def _step1(word: str, p1: int) -> tuple[str, bool]:
     suffix = _longest_suffix(word, ("'s", "ies", "és", "aus", "nde", "en", "es", "s"))
     if suffix is None:
         return word, False
-    prefix = word[:-len(suffix)]
+    prefix = word[: -len(suffix)]
     if suffix == "'s":
         return prefix, True
     if suffix == "s":
-        if not _in_region(word, suffix, p1) or not _is_c(prefix) or (prefix.endswith("t") and len(prefix) - 1 >= p1):
+        if (
+            not _in_region(word, suffix, p1)
+            or not _is_c(prefix)
+            or (prefix.endswith("t") and len(prefix) - 1 >= p1)
+        ):
             return word, False
         return prefix, True
     if suffix == "ies":
@@ -95,11 +99,19 @@ def _step1(word: str, p1: int) -> tuple[str, bool]:
             return _lengthen_v(prefix), True
         if prefix.endswith("er") and len(prefix) - 2 >= p1 and _is_c(prefix[:-2]):
             return prefix, True
-        return (prefix + "e", True) if _in_region(word, suffix, p1) and _is_c(prefix) else (word, False)
+        return (
+            (prefix + "e", True)
+            if _in_region(word, suffix, p1) and _is_c(prefix)
+            else (word, False)
+        )
     if suffix == "és":
         return (prefix + "é", True) if _in_region(word, suffix, p1) else (word, False)
     if suffix == "aus":
-        return (prefix + "au", True) if _in_region(word, suffix, p1) and _is_v(prefix) else (word, False)
+        return (
+            (prefix + "au", True)
+            if _in_region(word, suffix, p1) and _is_v(prefix)
+            else (word, False)
+        )
     if suffix == "en":
         if prefix.endswith("hed") and len(prefix) - 3 >= p1:
             return prefix[:-3] + "heid", True
@@ -109,17 +121,23 @@ def _step1(word: str, p1: int) -> tuple[str, bool]:
             return prefix[:-1], True
         if prefix.endswith(("i", "j")) and _is_v(prefix[:-1]):
             return prefix, True
-        return (_lengthen_v(prefix), True) if _in_region(word, suffix, p1) and _is_c(prefix) else (word, False)
+        return (
+            (_lengthen_v(prefix), True)
+            if _in_region(word, suffix, p1) and _is_c(prefix)
+            else (word, False)
+        )
     if suffix == "nde":
         return prefix + "nd", True
     return word, False
 
 
 def _step2(word: str, p1: int) -> tuple[str, bool]:
-    suffix = _longest_suffix(word, ("lijke", "ische", "ieve", "ene", "je", "ge", "de", "te", "se", "re", "le"))
+    suffix = _longest_suffix(
+        word, ("lijke", "ische", "ieve", "ene", "je", "ge", "de", "te", "se", "re", "le")
+    )
     if suffix is None:
         return word, False
-    prefix = word[:-len(suffix)]
+    prefix = word[: -len(suffix)]
     if suffix == "je":
         if prefix.endswith("'t"):
             return prefix[:-2], True
@@ -153,10 +171,28 @@ def _step2(word: str, p1: int) -> tuple[str, bool]:
 
 
 def _step3(word: str, p1: int, p2: int) -> tuple[str, bool]:
-    suffix = _longest_suffix(word, ("iteit", "isme", "erij", "arij", "heid", "ster", "rder", "atie", "ing", "sel", "fie", "gie", "tst", "dst"))
+    suffix = _longest_suffix(
+        word,
+        (
+            "iteit",
+            "isme",
+            "erij",
+            "arij",
+            "heid",
+            "ster",
+            "rder",
+            "atie",
+            "ing",
+            "sel",
+            "fie",
+            "gie",
+            "tst",
+            "dst",
+        ),
+    )
     if suffix is None:
         return word, False
-    prefix = word[:-len(suffix)]
+    prefix = word[: -len(suffix)]
     if suffix == "atie":
         return (prefix + "eer", True) if _in_region(word, suffix, p1) else (word, False)
     if suffix == "iteit":
@@ -170,19 +206,57 @@ def _step3(word: str, p1: int, p2: int) -> tuple[str, bool]:
             return prefix + "er", True
         return (_lengthen_v(prefix), True) if _in_region(word, suffix, p1) else (word, False)
     if suffix == "arij":
-        return (prefix + "aar", True) if _in_region(word, suffix, p1) and _is_c(prefix) else (word, False)
+        return (
+            (prefix + "aar", True)
+            if _in_region(word, suffix, p1) and _is_c(prefix)
+            else (word, False)
+        )
     if suffix in ("fie", "gie"):
-        return (_lengthen_v(prefix + suffix[0]), True) if _in_region(word, suffix, p2) else (word, False)
+        return (
+            (_lengthen_v(prefix + suffix[0]), True)
+            if _in_region(word, suffix, p2)
+            else (word, False)
+        )
     if suffix in ("tst", "dst"):
-        return (prefix + suffix[0], True) if _in_region(word, suffix, p1) and _is_c(prefix) else (word, False)
+        return (
+            (prefix + suffix[0], True)
+            if _in_region(word, suffix, p1) and _is_c(prefix)
+            else (word, False)
+        )
     return word, False
 
 
 def _step4(word: str, p1: int) -> tuple[str, bool]:
-    first = _longest_suffix(word, ("achtiger", "achtigst", "eriger", "erigst", "ioneel", "lijker", "lijkst", "achtig", "atief", "baar", "naar", "laar", "raar", "tant", "erig", "end"))
+    first = _longest_suffix(
+        word,
+        (
+            "achtiger",
+            "achtigst",
+            "eriger",
+            "erigst",
+            "ioneel",
+            "lijker",
+            "lijkst",
+            "achtig",
+            "atief",
+            "baar",
+            "naar",
+            "laar",
+            "raar",
+            "tant",
+            "erig",
+            "end",
+        ),
+    )
     if first is not None and _in_region(word, first, p1):
-        prefix = word[:-len(first)]
-        replacements = {"ioneel": "ie", "atief": "eer", "tant": "teer", "lijker": "lijk", "lijkst": "lijk"}
+        prefix = word[: -len(first)]
+        replacements = {
+            "ioneel": "ie",
+            "atief": "eer",
+            "tant": "teer",
+            "lijker": "lijk",
+            "lijkst": "lijk",
+        }
         if first in replacements:
             return prefix + replacements[first], True
         if first == "baar" or first.startswith("achtig"):
@@ -194,14 +268,14 @@ def _step4(word: str, p1: int) -> tuple[str, bool]:
     second = _longest_suffix(word, ("iger", "igst", "ig"))
     if second is None or not _in_region(word, second, p1):
         return word, False
-    prefix = word[:-len(second)]
+    prefix = word[: -len(second)]
     if prefix == "inn" or not _is_c(prefix):
         return word, False
     return _lengthen_v(prefix), True
 
 
 def _valid_ge_at(word: str, index: int) -> bool:
-    rest = word[index + 2:]
+    rest = word[index + 2 :]
     if len(rest) < 3:
         return False
     cursor = 0
@@ -218,9 +292,9 @@ def _valid_ge_at(word: str, index: int) -> bool:
 
 
 def _remove_ge(word: str, index: int) -> str:
-    result = word[:index] + word[index + 2:]
-    if result[index:index + 1] in ("ë", "ï"):
-        result = result[:index] + ("e" if result[index] == "ë" else "i") + result[index + 1:]
+    result = word[:index] + word[index + 2 :]
+    if result[index : index + 1] in ("ë", "ï"):
+        result = result[:index] + ("e" if result[index] == "ë" else "i") + result[index + 1 :]
     return result
 
 
@@ -228,14 +302,22 @@ def _remove_prefix_ge(word: str) -> tuple[str, bool]:
     if not word.startswith("ge") or not _valid_ge_at(word, 0):
         return word, False
     rest = word[2:]
-    if rest.startswith("eft") or (rest.startswith("val") and not rest.startswith("vali")) or rest.startswith(("vaa", "vare")):
+    if (
+        rest.startswith("eft")
+        or (rest.startswith("val") and not rest.startswith("vali"))
+        or rest.startswith(("vaa", "vare"))
+    ):
         return word, False
     return _remove_ge(word, 0), True
 
 
 def _remove_infix_ge(word: str) -> tuple[str, bool]:
     index = word.find("ge", 1)
-    return (_remove_ge(word, index), True) if index >= 0 and _valid_ge_at(word, index) else (word, False)
+    return (
+        (_remove_ge(word, index), True)
+        if index >= 0 and _valid_ge_at(word, index)
+        else (word, False)
+    )
 
 
 def _step1c(word: str, p1: int) -> str:

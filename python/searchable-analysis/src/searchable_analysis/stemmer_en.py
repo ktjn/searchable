@@ -1,6 +1,6 @@
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 _VOWEL = re.compile(r"[aeiou]")
 
@@ -41,11 +41,7 @@ def _ends_double_consonant(word: str) -> bool:
     n = len(word)
     if n < 2:
         return False
-    return (
-        word[n - 1] == word[n - 2]
-        and _is_consonant(word, n - 1)
-        and _is_consonant(word, n - 2)
-    )
+    return word[n - 1] == word[n - 2] and _is_consonant(word, n - 1) and _is_consonant(word, n - 2)
 
 
 def _ends_cvc(word: str) -> bool:

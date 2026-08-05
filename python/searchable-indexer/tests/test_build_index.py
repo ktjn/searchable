@@ -5,7 +5,10 @@ from searchable_indexer.types import SourceDocument
 
 
 def _doc(doc_id: int, url: str, title: str, body: str, lang: str = "en") -> SourceDocument:
-    html = f'<html lang="{lang}"><head><title>{title}</title></head><body><main>{body}</main></body></html>'
+    html = (
+        f'<html lang="{lang}"><head><title>{title}</title></head>'
+        f"<body><main>{body}</main></body></html>"
+    )
     return SourceDocument(id=doc_id, url=url, html=html)
 
 
@@ -128,7 +131,11 @@ def test_boolean_vector_overlap_raises():
 
 
 def test_noindex_documents_are_skipped():
-    html = '<html lang="en"><head><title>T</title><meta name="searchable-noindex" content="true"></head><body><main>Content</main></body></html>'
+    html = (
+        '<html lang="en"><head><title>T</title>'
+        '<meta name="searchable-noindex" content="true"></head>'
+        "<body><main>Content</main></body></html>"
+    )
     sources = [SourceDocument(id=1, url="/hidden", html=html)]
     built = build_index(sources)
     assert built.doc_store == {}
@@ -186,7 +193,9 @@ def test_manifest_shape_matches_the_json_schema_expectations():
     assert manifest["shards"] == {"terms": [], "docs": []}
 
 
-def _doc_with_meta(doc_id: int, url: str, title: str, body: str, extra_head: str = "") -> SourceDocument:
+def _doc_with_meta(
+    doc_id: int, url: str, title: str, body: str, extra_head: str = ""
+) -> SourceDocument:
     html = (
         f'<html lang="en"><head><title>{title}</title>{extra_head}</head>'
         f"<body><main>{body}</main></body></html>"
@@ -196,7 +205,10 @@ def _doc_with_meta(doc_id: int, url: str, title: str, body: str, extra_head: str
 
 def test_terms_facets_are_indexed_from_searchable_facet_meta_tags():
     doc = _doc_with_meta(
-        1, "/a", "Widgets", "widgets",
+        1,
+        "/a",
+        "Widgets",
+        "widgets",
         extra_head='<meta name="searchable-facet-color" content="red">',
     )
     built = build_index([doc])
@@ -206,7 +218,10 @@ def test_terms_facets_are_indexed_from_searchable_facet_meta_tags():
 
 def test_hierarchical_facets_option_produces_hierarchy_shard():
     doc = _doc_with_meta(
-        1, "/a", "Widgets", "widgets",
+        1,
+        "/a",
+        "Widgets",
+        "widgets",
         extra_head='<meta name="searchable-facet-category" content="a>b">',
     )
     built = build_index([doc], hierarchical_facets={"category": {}})
@@ -218,7 +233,10 @@ def test_hierarchical_facets_option_produces_hierarchy_shard():
 def test_range_facets_get_default_5_equal_width_buckets():
     docs = [
         _doc_with_meta(
-            i, f"/d{i}", "T", "b",
+            i,
+            f"/d{i}",
+            "T",
+            "b",
             extra_head=f'<meta name="searchable-facet-range-price" content="{price}">',
         )
         for i, price in enumerate([10, 50, 90], start=1)
@@ -231,7 +249,10 @@ def test_range_facets_get_default_5_equal_width_buckets():
 def test_range_facet_buckets_option_overrides_default_count():
     docs = [
         _doc_with_meta(
-            i, f"/d{i}", "T", "b",
+            i,
+            f"/d{i}",
+            "T",
+            "b",
             extra_head=f'<meta name="searchable-facet-range-price" content="{price}">',
         )
         for i, price in enumerate([10, 50, 90], start=1)
@@ -258,7 +279,10 @@ def test_manifest_facet_fields_present_only_when_facets_exist():
     assert "facetFields" not in built.manifest
 
     doc2 = _doc_with_meta(
-        1, "/a", "T", "b",
+        1,
+        "/a",
+        "T",
+        "b",
         extra_head='<meta name="searchable-facet-color" content="red">',
     )
     built2 = build_index([doc2])
@@ -267,7 +291,10 @@ def test_manifest_facet_fields_present_only_when_facets_exist():
 
 def test_pins_are_accumulated_and_resolved():
     doc = _doc_with_meta(
-        1, "/a", "Widgets", "widgets are great",
+        1,
+        "/a",
+        "Widgets",
+        "widgets are great",
         extra_head='<meta name="searchable-pin" content="widgets">',
     )
     built = build_index([doc])

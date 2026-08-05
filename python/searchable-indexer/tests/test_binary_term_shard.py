@@ -5,9 +5,7 @@ def test_encodes_a_single_term_single_posting_single_field_shard():
     term_shard = {
         "a": {
             "df": 1,
-            "postings": [
-                {"doc": 0, "fields": {"t": {"tf": 1, "pos": [0], "len": 1}}}
-            ],
+            "postings": [{"doc": 0, "fields": {"t": {"tf": 1, "pos": [0], "len": 1}}}],
         }
     }
     encoded = encode_term_shard_binary(term_shard)
@@ -19,8 +17,22 @@ def test_encodes_a_single_term_single_posting_single_field_shard():
     #   -> 0x01,0x01,0x00,0x00,0x01, 0x01,0x74, 0x01,0x01,0x01,0x00
     expected = bytes(
         [
-            0x01, 0x01, 0x61, 0x00, 0x0B,
-            0x01, 0x01, 0x00, 0x00, 0x01, 0x01, 0x74, 0x01, 0x01, 0x01, 0x00,
+            0x01,
+            0x01,
+            0x61,
+            0x00,
+            0x0B,
+            0x01,
+            0x01,
+            0x00,
+            0x00,
+            0x01,
+            0x01,
+            0x74,
+            0x01,
+            0x01,
+            0x01,
+            0x00,
         ]
     )
     assert encoded == expected

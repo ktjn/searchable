@@ -58,7 +58,7 @@ def test_matches_every_word_stem_pair_in_the_23531_word_porter_reference_vocabul
     assert len(words) > 20000
 
     mismatches = []
-    for word, expected in zip(words, stems):
+    for word, expected in zip(words, stems, strict=True):
         actual = stem_english(word)
         if actual != expected:
             mismatches.append(f'{word}: expected "{expected}", got "{actual}"')

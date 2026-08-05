@@ -9,6 +9,10 @@ blob-report/
 playwright/.cache/
 .worktrees/
 docs/superpowers/
+.agents/
+.artifacts/
+.codex/
+.junie/
 /benchmark-results/*
 !/benchmark-results/cms-2k/
 /benchmark-results/cms-2k/*

@@ -60,7 +60,10 @@ def test_falls_back_to_detected_language_when_no_html_lang():
 
 
 def test_preserves_explicit_generic_norwegian_compatibility_code():
-    html = '<html lang="no"><head><title>Norsk</title></head><body><main>Ikke jeg hva også hvordan hvem.</main></body></html>'
+    html = (
+        '<html lang="no"><head><title>Norsk</title></head>'
+        "<body><main>Ikke jeg hva også hvordan hvem.</main></body></html>"
+    )
     assert extract_document(html, "/norsk").language == "no"
 
 

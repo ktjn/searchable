@@ -3,6 +3,8 @@
 # dictionary: every string reachable by deleting up to max_edits
 # Unicode code points from a term (plus the term itself, 0 deletions).
 
+from typing import Any
+
 
 def _generate_deletes(term: str, max_edits: int) -> set[str]:
     frontier = {term}
@@ -18,7 +20,7 @@ def _generate_deletes(term: str, max_edits: int) -> set[str]:
     return all_variants
 
 
-def build_fuzzy_shard(term_shard: dict, max_edits: int) -> dict:
+def build_fuzzy_shard(term_shard: dict[str, Any], max_edits: int) -> dict[str, Any]:
     deletion_sets: dict[str, set[str]] = {}
     for term in term_shard:
         for variant in _generate_deletes(term, max_edits):

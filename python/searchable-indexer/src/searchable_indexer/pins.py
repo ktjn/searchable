@@ -2,22 +2,22 @@
 # applies the priority -> doc-boost -> insertion-order tie-break from
 # docs/guides/pinning.md#conflicting-pins.
 
+from typing import Any
+
 
 def resolve_pins(
-    pins_acc_by_language: dict[str, dict[str, dict]],
-) -> tuple[dict[str, dict], list[str]]:
-    pins_shards: dict[str, dict] = {}
+    pins_acc_by_language: dict[str, dict[str, dict[str, Any]]],
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    pins_shards: dict[str, dict[str, Any]] = {}
     warnings: list[str] = []
 
     for language, pins_acc in pins_acc_by_language.items():
-        pins_shard: dict = {}
+        pins_shard: dict[str, dict[str, Any]] = {}
         for phrase, acc in pins_acc.items():
             # Python's sorted() is stable (Timsort), matching the TS
             # original's reliance on Array#sort's ES2019-guaranteed
             # stability for the insertion-order tie-break.
-            sorted_docs = sorted(
-                acc["docs"], key=lambda d: (-d["priority"], -d["boost"])
-            )
+            sorted_docs = sorted(acc["docs"], key=lambda d: (-d["priority"], -d["boost"]))
             # dict.fromkeys preserves first-occurrence order (matching
             # JS Set iteration order), not numeric order -- the warning
             # message lists doc ids in priority/boost/build order, same

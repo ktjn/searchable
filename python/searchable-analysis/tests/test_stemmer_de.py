@@ -31,7 +31,7 @@ def test_matches_every_word_stem_pair_in_the_35053_word_snowball_reference_vocab
     assert len(words) > 30000
 
     mismatches = []
-    for word, expected in zip(words, stems):
+    for word, expected in zip(words, stems, strict=True):
         actual = stem_german(word)
         if actual != expected:
             mismatches.append(f'{word}: expected "{expected}", got "{actual}"')

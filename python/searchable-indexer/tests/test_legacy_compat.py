@@ -8,18 +8,20 @@ from searchable_indexer.write_index import write_index
 def _sources() -> list[SourceDocument]:
     return [
         SourceDocument(
-            id=1, url="/widgets",
+            id=1,
+            url="/widgets",
             html='<html lang="en"><head><title>Widgets</title>'
-                 '<meta name="searchable-boost" content="2.0">'
-                 '<meta name="searchable-facet-category" content="tools">'
-                 '</head><body><main>Our widgets are wonderful and useful for '
-                 'everyone who needs them.</main></body></html>',
+            '<meta name="searchable-boost" content="2.0">'
+            '<meta name="searchable-facet-category" content="tools">'
+            "</head><body><main>Our widgets are wonderful and useful for "
+            "everyone who needs them.</main></body></html>",
         ),
         SourceDocument(
-            id=2, url="/sofas",
+            id=2,
+            url="/sofas",
             html='<html lang="de"><head><title>Sofas</title></head>'
-                 '<body><main>Unsere Sofas sind sehr bequem und günstig.</main>'
-                 "</body></html>",
+            "<body><main>Unsere Sofas sind sehr bequem und günstig.</main>"
+            "</body></html>",
         ),
     ]
 
@@ -56,14 +58,15 @@ def test_legacy_ranking_is_unaffected_by_dynamic_field_loop():
     # guard the postings-loop generalization specifically.
     sources = [
         SourceDocument(
-            id=1, url="/a",
+            id=1,
+            url="/a",
             html="<html><head><title>Widgets</title></head>"
-                 "<body><main>widgets widgets widgets</main></body></html>",
+            "<body><main>widgets widgets widgets</main></body></html>",
         ),
         SourceDocument(
-            id=2, url="/b",
-            html="<html><head><title>Other</title></head>"
-                 "<body><main>widgets</main></body></html>",
+            id=2,
+            url="/b",
+            html="<html><head><title>Other</title></head><body><main>widgets</main></body></html>",
         ),
     ]
     built = build_index(sources)
