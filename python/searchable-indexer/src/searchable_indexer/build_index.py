@@ -60,16 +60,13 @@ def _validate_boost(value: object, subject: str, *, allow_zero: bool = False) ->
     ):
         requirement = "non-negative" if allow_zero else "positive"
         raise ValueError(
-            f"invalid boost {value!r} for {subject} -- "
-            f"must be a finite, {requirement} number"
+            f"invalid boost {value!r} for {subject} -- must be a finite, {requirement} number"
         )
 
 
 def _validate_field_definitions(field_definitions: dict[str, FieldDefinition]) -> None:
     if not isinstance(field_definitions, dict):
-        raise ValueError(
-            "field_definitions must be a dict[str, FieldDefinition]"
-        )
+        raise ValueError("field_definitions must be a dict[str, FieldDefinition]")
     for name, definition in field_definitions.items():
         if not isinstance(name, str) or not name:
             raise ValueError(
@@ -95,8 +92,7 @@ def _validate_json_value(value: object, path: str) -> None:
     if isinstance(value, float):
         if not math.isfinite(value):
             raise ValueError(
-                f"{path} is not finite ({value!r}) -- "
-                "metadata must be JSON-compatible"
+                f"{path} is not finite ({value!r}) -- metadata must be JSON-compatible"
             )
         return
     if isinstance(value, list):
@@ -106,9 +102,7 @@ def _validate_json_value(value: object, path: str) -> None:
     if isinstance(value, dict):
         for key, item in value.items():
             if not isinstance(key, str):
-                raise ValueError(
-                    f"{path} has a non-string metadata key {key!r}"
-                )
+                raise ValueError(f"{path} has a non-string metadata key {key!r}")
             _validate_json_value(item, f"{path}.{key}")
         return
     raise ValueError(
@@ -125,13 +119,11 @@ def _validate_index_document(
 ) -> None:
     if not isinstance(document.id, int) or isinstance(document.id, bool) or document.id < 0:
         raise ValueError(
-            f"invalid document id {document.id!r} -- "
-            "ids must be non-negative integers"
+            f"invalid document id {document.id!r} -- ids must be non-negative integers"
         )
     if document.id in seen_ids:
         raise ValueError(
-            f"duplicate document id {document.id} -- "
-            "every document must have a unique id"
+            f"duplicate document id {document.id} -- every document must have a unique id"
         )
     seen_ids.add(document.id)
 
@@ -150,22 +142,16 @@ def _validate_index_document(
         seen_external_ids.add(document.external_id)
 
     if not isinstance(document.url, str):
-        raise ValueError(
-            f"document {document.id} has non-string url {document.url!r}"
-        )
+        raise ValueError(f"document {document.id} has non-string url {document.url!r}")
     if not isinstance(document.language, str) or document.language == "":
         raise ValueError(
             f"document {document.id} has invalid language "
             f"{document.language!r} -- must be a non-empty string"
         )
     if not isinstance(document.indexed_fields, dict):
-        raise ValueError(
-            f"document {document.id} indexed_fields must be a dict"
-        )
+        raise ValueError(f"document {document.id} indexed_fields must be a dict")
     if not isinstance(document.stored_fields, dict):
-        raise ValueError(
-            f"document {document.id} stored_fields must be a dict"
-        )
+        raise ValueError(f"document {document.id} stored_fields must be a dict")
 
     for name, value in document.indexed_fields.items():
         definition = field_definitions.get(name)
@@ -270,13 +256,9 @@ class _PreparedDocument:
 
 def _copy_document(document: IndexDocument) -> IndexDocument:
     if not isinstance(document.indexed_fields, dict):
-        raise ValueError(
-            f"document {document.id} indexed_fields must be a dict"
-        )
+        raise ValueError(f"document {document.id} indexed_fields must be a dict")
     if not isinstance(document.stored_fields, dict):
-        raise ValueError(
-            f"document {document.id} stored_fields must be a dict"
-        )
+        raise ValueError(f"document {document.id} stored_fields must be a dict")
     return IndexDocument(
         id=document.id,
         external_id=document.external_id,
@@ -323,9 +305,7 @@ def _build_prepared_documents(
     range_facet_buckets = range_facet_buckets or {}
     _validate_range_facet_buckets(range_facet_buckets)
     if fuzzy_max_edits not in (1, 2):
-        raise ValueError(
-            f"invalid fuzzy_max_edits {fuzzy_max_edits!r} -- must be 1 or 2"
-        )
+        raise ValueError(f"invalid fuzzy_max_edits {fuzzy_max_edits!r} -- must be 1 or 2")
     if embed is not None and embedding_provider is None:
         raise ValueError(
             "embedding_provider is required when embed is set -- "
@@ -334,13 +314,10 @@ def _build_prepared_documents(
         )
     if vector_quantization not in ("int8", "float32"):
         raise ValueError(
-            f"invalid vector_quantization {vector_quantization!r} "
-            '-- must be "int8" or "float32"'
+            f'invalid vector_quantization {vector_quantization!r} -- must be "int8" or "float32"'
         )
     if not isinstance(vector_window, int) or isinstance(vector_window, bool) or vector_window <= 0:
-        raise ValueError(
-            f"invalid vector_window {vector_window!r} -- must be a positive integer"
-        )
+        raise ValueError(f"invalid vector_window {vector_window!r} -- must be a positive integer")
     if (
         not isinstance(vector_overlap, int)
         or isinstance(vector_overlap, bool)
@@ -547,8 +524,7 @@ def build_index_documents(
             raise ValueError("vector_field is required when embed is set")
         if vector_field not in copied_definitions or not copied_definitions[vector_field].indexed:
             raise ValueError(
-                f'vector_field "{vector_field}" must reference '
-                "a declared indexed field"
+                f'vector_field "{vector_field}" must reference a declared indexed field'
             )
     prepared = []
     for document in documents:
@@ -557,8 +533,7 @@ def build_index_documents(
         if embed is not None:
             if vector_field not in copied_document.indexed_fields:
                 raise ValueError(
-                    f"document {copied_document.id} is missing "
-                    f'vector_field "{vector_field}"'
+                    f'document {copied_document.id} is missing vector_field "{vector_field}"'
                 )
             vector_text = copied_document.indexed_fields[vector_field]
         prepared.append(_PreparedDocument(document=copied_document, vector_text=vector_text))
