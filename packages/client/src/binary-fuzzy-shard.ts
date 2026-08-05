@@ -1,3 +1,4 @@
+import { decodeDirectory } from "./binary-directory.js";
 import { ByteReader } from "./byte-reader.js";
 
 /**
@@ -28,15 +29,11 @@ export function decodeBinaryFuzzyShardDirectory(
   const r = new ByteReader(bytes, 0);
   const maxEdits = r.readVarint() as 1 | 2;
   const variantCount = r.readVarint();
-  const sortedVariants: string[] = [];
-  const index = new Map<string, { offset: number; length: number }>();
-  for (let i = 0; i < variantCount; i++) {
-    const variant = r.readString();
-    const offset = r.readVarint();
-    const length = r.readVarint();
-    sortedVariants.push(variant);
-    index.set(variant, { offset, length });
-  }
+  const { keys: sortedVariants, index } = decodeDirectory(
+    r,
+    variantCount,
+    (reader) => reader.readString(),
+  );
   return { maxEdits, sortedVariants, index, directoryByteLength: r.position };
 }
 

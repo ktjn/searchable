@@ -188,15 +188,18 @@ Verify: Python gates + the Python and TS conformance suites
   to module level; `hybrid.py` reaches `search()` via a lazy import (avoids an
   import cycle); `_score_of`/`_to_hit` remain in `search()` as local closures
   (tightly coupled to that scope — extracted in the C.6 client.ts pass if kept).
-- [ ] **C.3** Split `packages/analysis/src/language-profile.ts` (718) — extract
-  the ~590 lines of stopword datasets (`44-592`) into `stopwords.ts`.
-- [ ] **C.4** Split Python indexer `build_index.py` (604) — extract facet
-  bucketing and postings; de-parametrize `_build_prepared_documents` (19
-  keyword params, `297-315`). (`synonyms.py`/`fuzzy.py` already exist there.)
-- [ ] **C.5** Dedupe small pairs as the split lands: `resolve()` (done — unified
-  `sw.ts` onto `url.ts`); the binary directory decoders
-  (`binary-term-shard.ts:27-42` ≈ `binary-fuzzy-shard.ts:25-41` ≈
-  `binary-doc-store.ts:29-54`) still pending.
+- [x] **C.3** Split `packages/analysis/src/language-profile.ts` (743) — extract
+  the ~550 lines of stopword datasets (`44-592`) into `stopwords.ts`;
+  `language-profile.ts` now 203 lines.
+- [x] **C.4** Split Python indexer `build_index.py` — extracted `_add_postings`
+  into `postings.py` (`build_index.py` no longer builds postings inline) and
+  de-parametrized `_build_prepared_documents`: the ~15 keyword knobs are now a
+  single frozen `BuildConfig` dataclass.
+- [x] **C.5** Dedupe small pairs as the split lands: `resolve()` (done — `sw.ts`
+  onto `url.ts`); the three binary directory decoders now share
+  `decodeDirectory` (TS `binary-directory.ts`) / `read_directory`
+  (`byte_reader.ts`), with per-shard key readers for strings vs delta-encoded
+  doc ids.
 - [ ] **C.6** Carry-over from old plan: extract `html-to-text` + `snapshot-hash`
   from `relevance/govuk-normalize.ts` (old 4.4); unify `#assertUsable` guard
   preamble in `packages/client/src/client.ts` (old 4.5); `resolvePins` warnings
@@ -331,9 +334,9 @@ reasons. Old 4.1 survives as C.1, 2.2 as D.2, 3.1 as E.1, 3.2 as E.3, 4.4/4.5/
 | B.6 | Indexer reuses analysis `generate_deletes` | done | | private fork removed; `searchable-analysis` shared function used |
 | C.1 | Split TS `search.ts` → fuzzy/facets/hybrid/phrase + synonyms/doc-store/url | done | | search.ts 1,625 → 1,018; behavior-preserving; biome/typecheck/build/278 vitest green |
 | C.2 | Split Python `search.py` → mirrored modules | done | | search.py 969 → 499; types moved to `types.py` + `__all__` re-export; `_BinaryFuzzyLookup` module-level; ruff/mypy/136 pytest green |
-| C.3 | Split `language-profile.ts` → `stopwords.ts` | pending | | |
-| C.4 | Split Python `build_index.py`; de-parametrize `_build_prepared_documents` | pending | | 19 params at 297–315 |
-| C.5 | Dedupe `resolve()` + binary directory decoders | in-progress | | `resolve()` unified onto `url.ts` (search.ts + sw.ts); binary directory decoders still pending |
+| C.3 | Split `language-profile.ts` → `stopwords.ts` | done | | stopwords moved; profiles + `stripDiacritics` remain; 77 analysis vitest + build/typecheck/biome green |
+| C.4 | Split Python `build_index.py`; de-parametrize `_build_prepared_documents` | done | | `postings.py` extracted; `BuildConfig` bundles the ~15 kwargs; ruff/mypy/235 indexer pytest green |
+| C.5 | Dedupe `resolve()` + binary directory decoders | done | | `decodeDirectory`/`read_directory` shared by the three shard directory decoders (both langs); client 278 vitest + 136 pytest green |
 | C.6 | Carried relevance/client items (4.4,4.5,5.3,5.5,5.6) | pending | | |
 | D.1 | De-triplicate `python-index.ts` into fixtures | pending | | keep client superset surface |
 | D.2 | Fold `relevance/static-server.ts` onto fixtures `serveDirectory` | pending | | |

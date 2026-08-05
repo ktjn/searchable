@@ -1,7 +1,7 @@
 import math
 from typing import Any
 
-from searchable_client.byte_reader import ByteReader
+from searchable_client.byte_reader import ByteReader, read_directory
 from searchable_client.types import DocStoreEntry
 
 _STRUCTURED_MAGIC = b"SDOC"
@@ -61,16 +61,14 @@ def decode_binary_doc_store_directory(
 ) -> tuple[list[int], dict[int, tuple[int, int]], int]:
     r = ByteReader(data, _structured_header_length(data, binary_version))
     doc_count = r.read_varint()
-    sorted_ids: list[int] = []
-    index: dict[int, tuple[int, int]] = {}
     prev_id = 0
-    for _ in range(doc_count):
-        prev_id += r.read_varint()
-        doc_id = prev_id
-        offset = r.read_varint()
-        length = r.read_varint()
-        sorted_ids.append(doc_id)
-        index[doc_id] = (offset, length)
+
+    def _delta_id(reader: ByteReader) -> int:
+        nonlocal prev_id
+        prev_id += reader.read_varint()
+        return prev_id
+
+    sorted_ids, index = read_directory(r, doc_count, _delta_id)
     records_length = len(data) - r.position
     if any(offset + length > records_length for offset, length in index.values()):
         raise ValueError("binary document-store record exceeds shard bounds")

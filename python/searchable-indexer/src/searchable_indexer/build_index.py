@@ -6,7 +6,11 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
-from searchable_analysis import Token, analyze, get_language_profile, normalize_phrase
+from searchable_analysis import (
+    analyze,
+    get_language_profile,
+    normalize_phrase,
+)
 
 from searchable_indexer.document import FieldDefinition, IndexDocument, compute_content_hash
 from searchable_indexer.extract import extract_document
@@ -19,6 +23,7 @@ from searchable_indexer.facets import (
 )
 from searchable_indexer.fuzzy import build_fuzzy_shard
 from searchable_indexer.pins import resolve_pins
+from searchable_indexer.postings import add_postings
 from searchable_indexer.synonyms import build_synonym_shards
 from searchable_indexer.types import BuiltIndex, PinDeclaration, SourceDocument
 from searchable_indexer.vectors import build_vector_shards
@@ -214,37 +219,6 @@ def _validate_range_facet_buckets(range_facet_buckets: dict[str, int | list[floa
                 )
 
 
-def _add_postings(
-    shard: dict[str, Any],
-    posting_index: dict[str, dict[int, Any]],
-    field_name: str,
-    doc_id: int,
-    doc_boost: float,
-    tokens: list[Token],
-) -> None:
-    field_length = len(tokens)
-    positions_by_term: dict[str, list[int]] = {}
-    for token in tokens:
-        positions_by_term.setdefault(token.term, []).append(token.position)
-
-    for term, positions in positions_by_term.items():
-        entry = shard.setdefault(term, {"df": 0, "postings": []})
-        doc_index = posting_index.setdefault(term, {})
-        posting = doc_index.get(doc_id)
-        if posting is None:
-            posting = {"doc": doc_id, "fields": {}}
-            if doc_boost != 1.0:
-                posting["boost"] = doc_boost
-            entry["postings"].append(posting)
-            entry["df"] += 1
-            doc_index[doc_id] = posting
-        posting["fields"][field_name] = {
-            "tf": len(positions),
-            "pos": positions,
-            "len": field_length,
-        }
-
-
 @dataclass
 class _PreparedDocument:
     document: IndexDocument
@@ -282,60 +256,73 @@ def _copy_field_definitions(
     }
 
 
-def _build_prepared_documents(
-    prepared: list[_PreparedDocument],
-    *,
-    field_definitions: dict[str, FieldDefinition],
-    default_language: str,
-    hierarchical_facets: dict[str, dict[str, Any]] | None = None,
-    range_facet_buckets: dict[str, int | list[float]] | None = None,
-    synonyms: dict[str, dict[str, Any]] | None = None,
-    fuzzy: bool = False,
-    fuzzy_max_edits: int = 1,
-    content_hash: bool = False,
-    structured: bool = False,
-    embed: Callable[[list[str]], list[list[float]]] | None = None,
-    embedding_provider: dict[str, Any] | None = None,
-    vector_quantization: str = "int8",
-    vector_window: int = 200,
-    vector_overlap: int = 20,
-    vector_chunking: bool = True,
-) -> BuiltIndex:
-    hierarchical_facets = hierarchical_facets or {}
-    range_facet_buckets = range_facet_buckets or {}
+@dataclass(frozen=True)
+class BuildConfig:
+    """Bundles every knob of an index build so `_build_prepared_documents`
+    takes a single configuration object instead of ~15 keyword parameters."""
+
+    field_definitions: dict[str, FieldDefinition]
+    default_language: str = "en"
+    hierarchical_facets: dict[str, dict[str, Any]] | None = None
+    range_facet_buckets: dict[str, int | list[float]] | None = None
+    synonyms: dict[str, dict[str, Any]] | None = None
+    fuzzy: bool = False
+    fuzzy_max_edits: int = 1
+    content_hash: bool = False
+    structured: bool = False
+    embed: Callable[[list[str]], list[list[float]]] | None = None
+    embedding_provider: dict[str, Any] | None = None
+    vector_quantization: str = "int8"
+    vector_window: int = 200
+    vector_overlap: int = 20
+    vector_chunking: bool = True
+
+
+def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildConfig) -> BuiltIndex:
+    hierarchical_facets = config.hierarchical_facets or {}
+    range_facet_buckets = config.range_facet_buckets or {}
     _validate_range_facet_buckets(range_facet_buckets)
-    if fuzzy_max_edits not in (1, 2):
-        raise ValueError(f"invalid fuzzy_max_edits {fuzzy_max_edits!r} -- must be 1 or 2")
-    if embed is not None and embedding_provider is None:
+    if config.fuzzy_max_edits not in (1, 2):
+        raise ValueError(f"invalid fuzzy_max_edits {config.fuzzy_max_edits!r} -- must be 1 or 2")
+    if config.embed is not None and config.embedding_provider is None:
         raise ValueError(
             "embedding_provider is required when embed is set -- "
             "query-time provider compatibility (SearchClientOptions.embedQuery) "
             "can't be established without it"
         )
-    if vector_quantization not in ("int8", "float32"):
+    if config.vector_quantization not in ("int8", "float32"):
         raise ValueError(
-            f'invalid vector_quantization {vector_quantization!r} -- must be "int8" or "float32"'
+            f"invalid vector_quantization {config.vector_quantization!r} "
+            f'-- must be "int8" or "float32"'
         )
-    if not isinstance(vector_window, int) or isinstance(vector_window, bool) or vector_window <= 0:
-        raise ValueError(f"invalid vector_window {vector_window!r} -- must be a positive integer")
     if (
-        not isinstance(vector_overlap, int)
-        or isinstance(vector_overlap, bool)
-        or vector_overlap < 0
-        or vector_overlap >= vector_window
+        not isinstance(config.vector_window, int)
+        or isinstance(config.vector_window, bool)
+        or config.vector_window <= 0
     ):
         raise ValueError(
-            f"invalid vector_overlap {vector_overlap!r} -- must be "
-            f">= 0 and < vector_window ({vector_window!r})"
+            f"invalid vector_window {config.vector_window!r} -- must be a positive integer"
+        )
+    if (
+        not isinstance(config.vector_overlap, int)
+        or isinstance(config.vector_overlap, bool)
+        or config.vector_overlap < 0
+        or config.vector_overlap >= config.vector_window
+    ):
+        raise ValueError(
+            f"invalid vector_overlap {config.vector_overlap!r} -- must be "
+            f">= 0 and < vector_window ({config.vector_window!r})"
         )
 
     seen_ids: set[int] = set()
     seen_external_ids: set[str] = set()
     for item in prepared:
-        _validate_index_document(item.document, field_definitions, seen_ids, seen_external_ids)
+        _validate_index_document(
+            item.document, config.field_definitions, seen_ids, seen_external_ids
+        )
 
     indexed_field_names = sorted(
-        name for name, definition in field_definitions.items() if definition.indexed
+        name for name, definition in config.field_definitions.items() if definition.indexed
     )
 
     term_shards: dict[str, dict[str, Any]] = {}
@@ -367,9 +354,7 @@ def _build_prepared_documents(
                 continue
             tokens = analyze(text, profile)
             stats[field_name] += len(tokens)
-            _add_postings(
-                term_shard, posting_index, field_name, document.id, document.boost, tokens
-            )
+            add_postings(term_shard, posting_index, field_name, document.id, document.boost, tokens)
 
         add_facet_values(facet_shards, item.facets, document.id, hierarchical_facets)
         add_range_facet_values(facet_shards, item.range_facets, document.id)
@@ -397,7 +382,7 @@ def _build_prepared_documents(
             entry["externalId"] = document.external_id
         if document.metadata:
             entry["metadata"] = document.metadata
-        if content_hash:
+        if config.content_hash:
             entry["contentHash"] = compute_content_hash(document)
         doc_store[str(document.id)] = entry
 
@@ -420,17 +405,17 @@ def _build_prepared_documents(
         if shard.get("sorted") is not None:
             shard["sorted"].sort(key=lambda e: (e["value"], e["doc"]))
         if shard["type"] == "range":
-            config = range_facet_buckets.get(field_name, RANGE_FACET_BUCKET_COUNT)
-            if isinstance(config, list):
-                compute_range_facet_buckets_explicit(shard, config)
+            bucket_config = range_facet_buckets.get(field_name, RANGE_FACET_BUCKET_COUNT)
+            if isinstance(bucket_config, list):
+                compute_range_facet_buckets_explicit(shard, bucket_config)
             else:
-                compute_range_facet_buckets_equal_width(shard, config)
+                compute_range_facet_buckets_equal_width(shard, bucket_config)
     for shard in facet_shards.values():
         for entry in shard["values"].values():
             entry["docs"].sort()
 
     facet_fields = sorted(facet_shards.keys())
-    languages = sorted(stats_by_language.keys()) if stats_by_language else [default_language]
+    languages = sorted(stats_by_language.keys()) if stats_by_language else [config.default_language]
 
     doc_count: dict[str, int] = {}
     avg_field_length: dict[str, dict[str, float]] = {}
@@ -444,9 +429,9 @@ def _build_prepared_documents(
         }
 
     fuzzy_shards: dict[str, dict[str, Any]] = {}
-    if fuzzy:
+    if config.fuzzy:
         for language, term_shard in term_shards.items():
-            fuzzy_shards[language] = build_fuzzy_shard(term_shard, fuzzy_max_edits)
+            fuzzy_shards[language] = build_fuzzy_shard(term_shard, config.fuzzy_max_edits)
 
     manifest_fields = {
         name: {
@@ -454,7 +439,7 @@ def _build_prepared_documents(
             "stored": definition.stored,
             **({"boost": definition.boost} if definition.indexed else {}),
         }
-        for name, definition in sorted(field_definitions.items())
+        for name, definition in sorted(config.field_definitions.items())
     }
 
     manifest = {
@@ -462,7 +447,7 @@ def _build_prepared_documents(
         "buildId": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "format": "json",
         "languages": languages,
-        "defaultLanguage": default_language,
+        "defaultLanguage": config.default_language,
         "fields": manifest_fields,
         **({"facetFields": facet_fields} if facet_fields else {}),
         "docCount": doc_count,
@@ -477,14 +462,14 @@ def _build_prepared_documents(
         id_range = (0, 0)
 
     vector_shards: dict[str, dict[str, Any]] = {}
-    if embed is not None and vector_documents:
+    if config.embed is not None and vector_documents:
         vector_shards = build_vector_shards(
             vector_documents,
-            embed,
-            quantization=vector_quantization,
-            window=vector_window,
-            overlap=vector_overlap,
-            chunk=vector_chunking,
+            config.embed,
+            quantization=config.vector_quantization,
+            window=config.vector_window,
+            overlap=config.vector_overlap,
+            chunk=config.vector_chunking,
         )
 
     return BuiltIndex(
@@ -494,11 +479,11 @@ def _build_prepared_documents(
         id_range=id_range,
         facet_shards=facet_shards,
         pins_shards=pins_shards,
-        synonym_shards=build_synonym_shards(synonyms),
+        synonym_shards=build_synonym_shards(config.synonyms),
         fuzzy_shards=fuzzy_shards,
         vector_shards=vector_shards,
-        embedding_provider=embedding_provider if embed is not None else None,
-        structured=structured,
+        embedding_provider=config.embedding_provider if config.embed is not None else None,
+        structured=config.structured,
     )
 
 
@@ -539,19 +524,21 @@ def build_index_documents(
         prepared.append(_PreparedDocument(document=copied_document, vector_text=vector_text))
     return _build_prepared_documents(
         prepared,
-        field_definitions=copied_definitions,
-        default_language=default_language,
-        synonyms=synonyms,
-        fuzzy=fuzzy,
-        fuzzy_max_edits=fuzzy_max_edits,
-        content_hash=True,
-        structured=True,
-        embed=embed,
-        embedding_provider=embedding_provider,
-        vector_quantization=vector_quantization,
-        vector_window=vector_window,
-        vector_overlap=vector_overlap,
-        vector_chunking=False,
+        BuildConfig(
+            field_definitions=copied_definitions,
+            default_language=default_language,
+            synonyms=synonyms,
+            fuzzy=fuzzy,
+            fuzzy_max_edits=fuzzy_max_edits,
+            content_hash=True,
+            structured=True,
+            embed=embed,
+            embedding_provider=embedding_provider,
+            vector_quantization=vector_quantization,
+            vector_window=vector_window,
+            vector_overlap=vector_overlap,
+            vector_chunking=False,
+        ),
     )
 
 
@@ -630,18 +617,20 @@ def build_index(
 
     return _build_prepared_documents(
         prepared,
-        field_definitions=_legacy_field_definitions(field_boosts),
-        default_language=default_language,
-        hierarchical_facets=hierarchical_facets,
-        range_facet_buckets=range_facet_buckets,
-        synonyms=synonyms,
-        fuzzy=fuzzy,
-        fuzzy_max_edits=fuzzy_max_edits,
-        content_hash=False,
-        structured=False,
-        embed=embed,
-        embedding_provider=embedding_provider,
-        vector_quantization=vector_quantization,
-        vector_window=vector_window,
-        vector_overlap=vector_overlap,
+        BuildConfig(
+            field_definitions=_legacy_field_definitions(field_boosts),
+            default_language=default_language,
+            hierarchical_facets=hierarchical_facets,
+            range_facet_buckets=range_facet_buckets,
+            synonyms=synonyms,
+            fuzzy=fuzzy,
+            fuzzy_max_edits=fuzzy_max_edits,
+            content_hash=False,
+            structured=False,
+            embed=embed,
+            embedding_provider=embedding_provider,
+            vector_quantization=vector_quantization,
+            vector_window=vector_window,
+            vector_overlap=vector_overlap,
+        ),
     )
