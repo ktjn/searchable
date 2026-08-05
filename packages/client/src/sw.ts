@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import type { Manifest } from "@ktjn/searchable-format";
+import { resolve } from "./url.js";
 import { validateManifest } from "./validate-manifest.js";
 
 declare const self: ServiceWorkerGlobalScope;
@@ -23,10 +24,6 @@ declare const self: ServiceWorkerGlobalScope;
  * improvement, not attempted here.
  */
 const CACHE_NAME = "searchable-offline";
-
-function resolve(baseUrl: string, relPath: string): string {
-  return new URL(relPath, baseUrl).href;
-}
 
 function parseConfig(): {
   indexUrl: string;

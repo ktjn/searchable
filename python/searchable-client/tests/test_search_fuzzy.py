@@ -3,12 +3,8 @@ from pathlib import Path
 import pytest
 
 from searchable_client.fetch import ShardCache
-from searchable_client.search import (
-    MAX_FUZZY_CANDIDATES_PER_TERM,
-    SearchOptions,
-    _fuzzy_candidates_for,
-    search,
-)
+from searchable_client.fuzzy import MAX_FUZZY_CANDIDATES_PER_TERM, _fuzzy_candidates_for
+from searchable_client.search import SearchOptions, search
 from searchable_client.validate_manifest import validate_manifest
 from tests.fixtures.build_index import (
     write_index_with_fuzzy,
