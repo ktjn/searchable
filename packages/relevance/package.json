@@ -16,7 +16,8 @@
     "refresh": "node dist/refresh-cli.js"
   },
   "dependencies": {
-    "@ktjn/searchable-client": "workspace:*"
+    "@ktjn/searchable-client": "workspace:*",
+    "@ktjn/searchable-fixtures": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

@@ -1,16 +1,14 @@
-import { cp, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Product } from "./gallery-data.js";
 import { generateProducts } from "./gallery-data.js";
-import { escapeHtml, pageShell } from "./gallery-shared.js";
+import { buildGalleryDemo, escapeHtml, pageShell } from "./gallery-shared.js";
 import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
 import { writePythonIndex } from "./python-index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
 const galleryDir = join(distDir, "gallery", "products");
-const searchIndexDir = join(galleryDir, "search-index");
 
 const RETURNS_POLICY_ID = 1000;
 
@@ -29,30 +27,22 @@ function renderProductPage(product: Product): string {
           ${product.tags.map((t) => `<span class="gallery-tag">${escapeHtml(t)}</span>`).join("\n          ")}
         </p>
       </main>`;
-  const meta = [
-    `<meta name="searchable-facet-category" content="${escapeHtml(product.category)}">`,
-    `<meta name="searchable-facet-price" content="${escapeHtml(product.priceBucket)}">`,
-    ...product.tags.map(
-      (t) => `<meta name="searchable-facet-tags" content="${escapeHtml(t)}">`,
-    ),
-    ...(product.featured
-      ? [`<meta name="searchable-boost" content="2.5">`]
-      : []),
-  ].join("\n    ");
-  const html = pageShell({
+  return pageShell({
     title: product.name,
     description: product.description,
     root: "../../../",
     bodyHtml,
+    meta: [
+      `<meta name="searchable-facet-category" content="${escapeHtml(product.category)}">`,
+      `<meta name="searchable-facet-price" content="${escapeHtml(product.priceBucket)}">`,
+      ...product.tags.map(
+        (t) => `<meta name="searchable-facet-tags" content="${escapeHtml(t)}">`,
+      ),
+      ...(product.featured
+        ? [`<meta name="searchable-boost" content="2.5">`]
+        : []),
+    ],
   });
-  // pageShell doesn't know about per-page facet/boost meta tags -- splice
-  // them in right after the shared <meta name="description"> line rather
-  // than threading a growing options bag through a template meant to be
-  // shared with the (meta-tag-free) landing page.
-  return html.replace(
-    '<link rel="stylesheet" href="../../../style.css" />',
-    `${meta}\n    <link rel="stylesheet" href="../../../style.css" />`,
-  );
 }
 
 function renderReturnsPolicyPage(): string {
@@ -65,16 +55,13 @@ function renderReturnsPolicyPage(): string {
         replacement of the same model within 14 days. Custom or
         made-to-order furniture is final sale.</p>
       </main>`;
-  const html = pageShell({
+  return pageShell({
     title: "Returns Policy",
     description: "Our returns and refund policy.",
     root: "../../",
     bodyHtml,
+    meta: ['<meta name="searchable-pin" content="returns policy">'],
   });
-  return html.replace(
-    '<link rel="stylesheet" href="../../style.css" />',
-    `<meta name="searchable-pin" content="returns policy">\n    <link rel="stylesheet" href="../../style.css" />`,
-  );
 }
 
 function renderGalleryIndexPage(products: Product[]): string {
@@ -128,35 +115,18 @@ async function main() {
   };
   const sources = [...productSources, returnsPolicySource];
 
-  const { outDir, cleanup } = await writePythonIndex(sources, {
-    defaultLanguage: "en",
-    fuzzy: true,
+  await buildGalleryDemo({
+    galleryDir,
+    distDir,
+    pages: [...productSources, returnsPolicySource],
+    indexHtml: renderGalleryIndexPage(products),
+    buildIndex: () =>
+      writePythonIndex(sources, {
+        defaultLanguage: "en",
+        fuzzy: true,
+      }),
+    log: `built product catalog demo: ${products.length} products + 1 support page -> ${galleryDir}`,
   });
-  await cp(outDir, searchIndexDir, { recursive: true });
-  await cleanup();
-
-  await mkdir(join(galleryDir, "p"), { recursive: true });
-  for (const source of productSources) {
-    await writeFile(
-      join(distDir, source.url.replace(/^\//, "")),
-      source.html,
-      "utf8",
-    );
-  }
-  await writeFile(
-    join(distDir, returnsPolicySource.url.replace(/^\//, "")),
-    returnsPolicySource.html,
-    "utf8",
-  );
-  await writeFile(
-    join(galleryDir, "index.html"),
-    renderGalleryIndexPage(products),
-    "utf8",
-  );
-
-  console.log(
-    `built product catalog demo: ${products.length} products + 1 support page -> ${galleryDir}`,
-  );
 }
 
 main();

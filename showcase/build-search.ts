@@ -1,8 +1,9 @@
-import { cp, readdir, readFile } from "node:fs/promises";
+import { cp, readFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
 import { writePythonIndex } from "./python-index.js";
+import { walkFiles } from "./walk-files.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -16,20 +17,11 @@ const clientDist = join(__dirname, "..", "packages", "client", "dist");
  * their own manifests, not part of the docs search index (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5,
  * "not one shared mega corpus").
  */
-async function findHtmlFiles(dir: string, root = dir): Promise<string[]> {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const files: string[] = [];
-  for (const entry of entries) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (full === join(root, "gallery")) continue;
-      files.push(...(await findHtmlFiles(full, root)));
-    } else if (entry.name.endsWith(".html")) {
-      files.push(full);
-    }
-  }
-  return files;
-}
+const htmlFiles = (root: string) =>
+  walkFiles(root, {
+    extensions: [".html"],
+    skipDirectories: (directory) => directory === join(root, "gallery"),
+  });
 
 /**
  * Deliberately keeps the .html extension in each doc's url (unlike
@@ -44,7 +36,7 @@ async function findHtmlFiles(dir: string, root = dir): Promise<string[]> {
 async function discoverRenderedPages(
   rootDir: string,
 ): Promise<SourceDocument[]> {
-  const files = (await findHtmlFiles(rootDir)).sort();
+  const files = (await htmlFiles(rootDir)).sort();
   return Promise.all(
     files.map(async (file, id) => {
       const html = await readFile(file, "utf8");

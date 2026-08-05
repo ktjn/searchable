@@ -1,11 +1,11 @@
 import { SearchClient } from "@ktjn/searchable-client";
+import { type StaticServer, serveDirectory } from "@ktjn/searchable-fixtures";
 import { evaluateSuite, type SuiteReport } from "./evaluate.js";
 import {
   type PythonSourceDocument as SourceDocument,
   writePythonIndex,
 } from "./python-index.js";
 import type { RelevanceDocument, RelevanceSuite } from "./schema.js";
-import { type StaticServer, serveDirectory } from "./static-server.js";
 
 function escapeHtml(text: string): string {
   return text

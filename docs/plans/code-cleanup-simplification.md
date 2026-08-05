@@ -212,23 +212,22 @@ Verify: Python gates + the Python and TS conformance suites
 
 ## Phase D — Cross-package dedup (TS / showcase)
 
-- [ ] **D.1** De-triplicate `python-index.ts` (`relevance/src` ×109,
+- [x] **D.1** De-triplicate `python-index.ts` (`relevance/src` ×109,
   `client/test-support` ×157 — superset, keep its `PythonStructuredDocument` +
-  `embed` surface — `showcase` ×104) into `@ktjn/searchable-fixtures`,
-  parameterized by `repoRoot` depth; all three import it. Kills the
-  "keep in sync" drift (already drifting).
-- [ ] **D.2** Static file server consolidation: fold `relevance/static-server.ts`
-  (59) onto fixtures `serveDirectory` (122) (old 2.2; benchmark's copy is gone).
-  `escapeHtml`: fixtures copy = `relevance/searchable-runner.ts:10-16`.
-- [ ] **D.3** Showcase: shared gallery-pipeline helper for `build-gallery.ts`,
-  `build-gallery-synonyms.ts`, `build-gallery-i18n.ts` (and the index step of
-  `build-search.ts`); `pageShell` takes `meta?: string[]` / `lang?: string` to
-  kill the string-splices at `build-gallery.ts:52-55` and `build-gallery-i18n.ts`
-  (lang replace); `quick-examples.ts:70-76` local `escapeAttribute` →
-  `gallery-shared` `escapeHtml`.
-- [ ] **D.4** Merge the showcase directory walkers (`build-search.ts:19-32`
-  `findHtmlFiles`, `site-validation.ts:24-41` `listSiteFiles`) onto one helper
-  (mirroring fixtures `serve-directory.ts:35-47` `discoverFiles`).
+  `embed` surface — `showcase` ×104) into `@ktjn/searchable-fixtures` (new
+  `./python-index` subpath export); the three copies are one-line `export *`
+  facades (same paths, zero import churn), repoRoot computed once from
+  fixtures' own location. Kills the "keep in sync" drift.
+- [x] **D.2** Static file server consolidation: `relevance/static-server.ts`
+  deleted; `domain-runner.ts` + `searchable-runner.ts` now use fixtures'
+  `serveDirectory` (they serve fully-built dirs, so the fixtures server's
+  pre-discovery semantics are equivalent).
+- [x] **D.3** Showcase: shared `buildGalleryDemo()` pipeline helper for
+  `build-gallery.ts`, `build-gallery-synonyms.ts`, `build-gallery-i18n.ts`;
+  `pageShell` now takes `meta?: string[]` / `lang?: string`, killing the
+  string-splice hacks; `quick-examples.ts` uses `gallery-shared` `escapeHtml`.
+- [x] **D.4** Merge the showcase directory walkers (`findHtmlFiles`,
+  `listSiteFiles`) onto one `walk-files.ts` helper.
 
 ## Phase E — Config, CI, docs
 
@@ -342,10 +341,10 @@ reasons. Old 4.1 survives as C.1, 2.2 as D.2, 3.1 as E.1, 3.2 as E.3, 4.4/4.5/
 | C.4 | Split Python `build_index.py`; de-parametrize `_build_prepared_documents` | done | | `postings.py` extracted; `BuildConfig` bundles the ~15 kwargs; ruff/mypy/235 indexer pytest green |
 | C.5 | Dedupe `resolve()` + binary directory decoders | done | | `decodeDirectory`/`read_directory` shared by the three shard directory decoders (both langs); client 278 vitest + 136 pytest green |
 | C.6 | Carried relevance/client items (4.4,4.5,5.3,5.5,5.6) | done | | `html-to-text.ts` + `snapshot-hash.ts` extracted (govuk-normalize 394→224); `#assertUsable` unifies 3 duplicate guard preambles; `BuiltIndex.pin_warnings` carries warnings (stderr print kept); `cli-runner.ts` dedupes the CLI entry bootstrap (subcommand merge deferred); `Manifest.format` retained (decision recorded). relevance 165 vitest, client 278 vitest, indexer 235 pytest green |
-| D.1 | De-triplicate `python-index.ts` into fixtures | pending | | keep client superset surface |
-| D.2 | Fold `relevance/static-server.ts` onto fixtures `serveDirectory` | pending | | |
-| D.3 | Showcase build pipeline + `pageShell` options + escapeHtml | pending | | |
-| D.4 | Merge showcase directory walkers | pending | | |
+| D.1 | De-triplicate `python-index.ts` into fixtures | done | | single source in `@ktjn/searchable-fixtures/python-index`; three facade re-exports; relevance gains the workspace dep; client 278 + relevance 165 + showcase 53 green |
+| D.2 | Fold `relevance/static-server.ts` onto fixtures `serveDirectory` | done | | module deleted; both relevance runners import from fixtures; 165 relevance tests green |
+| D.3 | Showcase build pipeline + `pageShell` options + escapeHtml | done | | `buildGalleryDemo` + `pageShell` meta/lang; escapeHtml shared; full showcase build + 53 tests green |
+| D.4 | Merge showcase directory walkers | done | | `walk-files.ts` shared by build-search + site-validation |
 | E.1 | Kill pre-hook rebuild sprawl (CI 4×→1) | pending | | |
 | E.2 | Fold `uv sync` into setup-python action; update policy test | pending | | pages-workflow-policy coupling |
 | E.3 | No-op vitest configs (analysis/relevance) | pending | | re-check workspace resolution |

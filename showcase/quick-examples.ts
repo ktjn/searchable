@@ -1,3 +1,5 @@
+import { escapeHtml } from "./gallery-shared.js";
+
 export interface QuickExample {
   id: string;
   title: string;
@@ -67,31 +69,21 @@ export const QUICK_EXAMPLES: readonly QuickExample[] = [
   },
 ];
 
-function escapeAttribute(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 export function renderRuntimeAttributes(example: QuickExample): string {
   const attributes = [
     "data-gallery-root",
-    `data-example-id="${escapeAttribute(example.id)}"`,
-    `data-index-path="${escapeAttribute(example.indexPath)}"`,
-    `data-default-query="${escapeAttribute(example.initialQuery)}"`,
+    `data-example-id="${escapeHtml(example.id)}"`,
+    `data-index-path="${escapeHtml(example.indexPath)}"`,
+    `data-default-query="${escapeHtml(example.initialQuery)}"`,
   ];
   if (example.facets?.length) {
-    attributes.push(
-      `data-facets="${escapeAttribute(example.facets.join(","))}"`,
-    );
+    attributes.push(`data-facets="${escapeHtml(example.facets.join(","))}"`);
   }
   if (example.fuzzy) attributes.push('data-fuzzy-toggle="true"');
   if (example.synonyms) attributes.push('data-synonyms-toggle="true"');
   if (example.languages?.length) {
     attributes.push(
-      `data-languages="${escapeAttribute(example.languages.join(","))}"`,
+      `data-languages="${escapeHtml(example.languages.join(","))}"`,
     );
   }
   return attributes.join("\n");
