@@ -1,10 +1,11 @@
 from typing import cast
 from urllib.parse import urljoin, urlparse
 
+from searchable_client.errors import SearchClientError
 from searchable_client.types import Manifest, manifest_from_dict
 
 
-class InvalidManifestError(Exception):
+class InvalidManifestError(SearchClientError):
     pass
 
 

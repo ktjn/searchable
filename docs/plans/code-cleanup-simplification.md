@@ -145,25 +145,25 @@ Verify: `pnpm build && pnpm lint && npx vitest run <affected>`; Python:
 Reference: TS `packages/client/src/search.ts`; target: Python
 `searchable_client/search.py`. Each item lands with a conformance test.
 
-- [ ] **B.1** Multi-word phrase-synonyms. TS expands quoted phrases via
+- [x] **B.1** Multi-word phrase-synonyms. TS expands quoted phrases via
   `multiWordVariantsFor` (`search.ts:428-441, 888-960`); Python parses the
   shard (`types.py:203,296`) but never consumes it (`search.py:660-688`).
   Port the expansion into the Python phrase path. Biggest divergence.
-- [ ] **B.2** Hybrid fusion pinned hits. Port `fuseHybridResult`
+- [x] **B.2** Hybrid fusion pinned hits. Port `fuseHybridResult`
   (`search.ts:1364-1442`): carry pins through unchanged, exclude from
   RRF/weighted fusion, re-merge in front with `remainingSlots = max(0, limit -
   pinned.length)`; candidate floor `max(limit*3, 30)` to match `search.ts:1311`
   (Python `search.py:475` uses `max(limit*3, limit)`).
-- [ ] **B.3** Missing-vector-shard semantics: raw `search()` returns an empty
+- [x] **B.3** Missing-vector-shard semantics: raw `search()` returns an empty
   result like TS (`search.ts:1303-1306`); keep the loud `VectorUnavailableError`
   only at `SearchClient` level (`search.py:383-384`).
-- [ ] **B.4** Fuzzy-cap truncation warning: match TS `console.warn`
+- [x] **B.4** Fuzzy-cap truncation warning: match TS `console.warn`
   (`search.ts:522-526`); Python truncates silently at `MAX_FUZZY_CANDIDATES_PER_TERM`
   (`search.py:246`).
-- [ ] **B.5** Error-base standardization: `InvalidManifestError` subclasses
+- [x] **B.5** Error-base standardization: `InvalidManifestError` subclasses
   `ValueError` alongside the vector errors (`errors.py:1-18`), and a single
   common public base for search errors.
-- [ ] **B.6** Indexer reuse: delete private `_generate_deletes`
+- [x] **B.6** Indexer reuse: delete private `_generate_deletes`
   (`searchable_indexer/fuzzy.py:7-18`) and import the public
   `generate_deletes` from `searchable-analysis` (already a dependency,
   `indexer/pyproject.toml:7`).
@@ -319,12 +319,12 @@ reasons. Old 4.1 survives as C.1, 2.2 as D.2, 3.1 as E.1, 3.2 as E.3, 4.4/4.5/
 | A.5 | Ship `py.typed` ×3; drop import-untyped ignores; real indexer `__all__` | done | | `py.typed` in all three src packages; ignores removed from client (`search.py`, `parse_query.py`); indexer `__init__.py` exports `build_index`, `write_index`, `discover_html_documents`, `extract_document`, `build_vector_shards`, `chunk_text` + types |
 | A.6 | Prune TS analysis: delete `getOrCreate`; fix stale indexer-citing docs | done | | `getOrCreate` removed (0 callers); `detect-language.ts` + `package.json` descriptions corrected to the Python-only-indexer reality |
 | A.7 | Indexer error conventions (TypeError, drop msg prefixes) | in-progress | | msg prefixes dropped (`build_index:`/`build_index_documents:` ×34); ValueError→TypeError deferred — ruff selects don't include TRY004 and 53 tests pin `ValueError` (behavior-changing) |
-| B.1 | Python multi-word phrase-synonyms | pending | | biggest parity gap; needs conformance test |
-| B.2 | Hybrid fusion pins + candidate floor | pending | | |
-| B.3 | No-vector-shard → empty result at raw `search()` level | pending | | keep loud error at SearchClient |
-| B.4 | Fuzzy-cap truncation warning | pending | | |
-| B.5 | Error-base standardization (errors.py) | pending | | |
-| B.6 | Indexer reuses analysis `generate_deletes` | pending | | |
+| B.1 | Python multi-word phrase-synonyms | done | | `_multi_word_variants_for` + attempt loop ported; variant words added to loaded-term set; 7 new tests mirroring the TS e2e multiWord suite (`test_search_multi_word_synonyms.py`), incl. literal-absent-from-corpus + highlight cases |
+| B.2 | Hybrid fusion pins + candidate floor | done | | `fuseHybridResult` ported: pinned carried untouched/excluded from RRF+weighted fusion, re-merged in front, `remainingSlots`; floor now `max(limit*3, 30)`; 4 new tests (`test_hybrid_pins_parity.py`) |
+| B.3 | No-vector-shard → empty result at raw `search()` level | done | | `_load_vector_hits` returns `[]` (TS parity); `SearchClient._query_vector` still raises `VectorUnavailableError` (test added) |
+| B.4 | Fuzzy-cap truncation warning | done | | stderr warning mirroring TS `console.warn` text added at the cap; test asserts warning + exactly-cap scoring |
+| B.5 | Error-base standardization (errors.py) | done | | new `SearchClientError(ValueError)` base; all vector errors + `InvalidManifestError` now subclass it; exported in `__init__` |
+| B.6 | Indexer reuses analysis `generate_deletes` | done | | private fork removed; `searchable-analysis` shared function used |
 | C.1 | Split TS `search.ts` → fuzzy/facets/hybrid/phrase | pending | | |
 | C.2 | Split Python `search.py` → mirrored modules | pending | | incl. nested class + closures |
 | C.3 | Split `language-profile.ts` → `stopwords.ts` | pending | | |

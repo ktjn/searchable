@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from math import isfinite
@@ -12,7 +13,6 @@ from searchable_analysis import (
 from searchable_client.errors import (
     InvalidVectorShardError,
     VectorSearchNotConfiguredError,
-    VectorUnavailableError,
 )
 from searchable_client.fetch import ShardCache, resolve_url
 from searchable_client.highlight import HighlightSpan, HighlightTerm, highlight_text
@@ -210,6 +210,21 @@ def _synonym_variants_for(term: str, synonym_shard: SynonymShard | None) -> list
     return list(variants)
 
 
+def _multi_word_variants_for(
+    normalized_phrase: str, synonym_shard: SynonymShard | None
+) -> list[str]:
+    """Every other normalized phrase `normalized_phrase` expands to via the
+    synonym shard's `multiWord` equivalence classes (docs/guides/synonyms.md).
+    Symmetric only, matching the TS `multiWordVariantsFor`."""
+    if synonym_shard is None:
+        return []
+    variants: set[str] = set()
+    for group in synonym_shard.multi_word:
+        if normalized_phrase in group:
+            variants.update(v for v in group if v != normalized_phrase)
+    return list(variants)
+
+
 def _levenshtein_distance(a: str, b: str) -> int:
     s, t = list(a), list(b)
     prev_row = list(range(len(t) + 1))
@@ -243,7 +258,22 @@ def _fuzzy_candidates_for(term: str, lookup: "_FuzzyLookup | None") -> list[tupl
     candidates: set[str] = set(lookup.get(term))
     for deletion in generate_deletes(term, lookup.max_edits):
         candidates.update(lookup.get(deletion))
-    candidate_terms = list(candidates)[:MAX_FUZZY_CANDIDATES_PER_TERM]
+    candidate_terms = list(candidates)
+    if len(candidate_terms) > MAX_FUZZY_CANDIDATES_PER_TERM:
+        # Mirror the TS client's console.warn: candidates beyond the cap are
+        # dropped before scoring (bounds worst-case per-term CPU), and which
+        # ones survive depends on set insertion order, not distance.
+        print(
+            f'[searchable-client] fuzzy lookup for "{term}" found '
+            f"{len(candidate_terms)} dictionary candidates, over the "
+            f"{MAX_FUZZY_CANDIDATES_PER_TERM}-candidate cap -- scoring only the first "
+            f"{MAX_FUZZY_CANDIDATES_PER_TERM} (not necessarily the closest). "
+            "A dense vocabulary this large may want a shorter query term, a smaller "
+            "fuzzyMaxEdits, or this project's benchmarking data to size the tradeoff "
+            "(docs/project/governance.md).",
+            file=sys.stderr,
+        )
+        candidate_terms = candidate_terms[:MAX_FUZZY_CANDIDATES_PER_TERM]
     return [(c, _levenshtein_distance(term, c)) for c in candidate_terms if c != term]
 
 
@@ -379,9 +409,14 @@ def _load_vector_hits(
     query_vector: list[float],
     limit: int,
 ) -> list["VectorHit"]:
+    # A language without a vector shard (empty partition, or a corpus built
+    # without a `vectors` option) simply has no vector matches, mirroring how a
+    # language with no term shard returns no lexical matches rather than raising
+    # -- same as the TS client (`vectorHitsForLanguage`). Callers that want a
+    # loud error (SearchClient.search) check `manifest.vectors` separately.
     vectors = manifest.vectors
     if vectors is None or language not in vectors.shards:
-        raise VectorUnavailableError(f"no vector shard is configured for language {language!r}")
+        return []
     try:
         shard = vector_shard_from_dict(
             cache.fetch_json(resolve_url(base_url, vectors.shards[language]))
@@ -472,7 +507,11 @@ def _vector_or_hybrid_search(
             f'Search mode "{options.mode}" requires a query vector'
         )
     limit = max(0, options.limit)
-    candidate_limit = max(limit * 3, limit)
+    # RRF/weighted fusion over just the final page size would starve out
+    # documents that rank, say, 4th on one side and 4th on the other from ever
+    # combining into a top-10 fused result -- same floor as the TS client
+    # (fusionCandidateLimit).
+    candidate_limit = max(limit * 3, 30)
     vector_hits = _load_vector_hits(
         manifest, cache, base_url, language, query_vector, candidate_limit
     )
@@ -481,29 +520,43 @@ def _vector_or_hybrid_search(
 
     lexical_options = replace(options, mode="lexical", vector_weight=None, limit=candidate_limit)
     lexical_result = search(query, manifest, cache, base_url, lexical_options)
-    lexical_by_id = {hit.id: hit for hit in lexical_result.hits}
-    vector_by_id = {hit.doc_id: hit for hit in vector_hits}
-    lexical_ids = list(lexical_by_id)
-    vector_ids = list(vector_by_id)
+
+    # Pinned hits are an editorial override, not candidates for a
+    # similarity-based reordering: carry them through unchanged, exclude them
+    # (and their vector hits) from fusion entirely, then re-merge in front,
+    # truncating to the caller's real limit after -- mirrors the TS client's
+    # fuseHybridResult.
+    pinned_hits = [hit for hit in lexical_result.hits if hit.pinned]
+    organic_lexical = [hit for hit in lexical_result.hits if not hit.pinned]
+    pinned_ids = {hit.id for hit in pinned_hits}
+    non_pinned_vector_hits = [v for v in vector_hits if v.doc_id not in pinned_ids]
+    organic_lexical_by_id = {hit.id: hit for hit in organic_lexical}
+    non_pinned_vector_by_id = {v.doc_id: v for v in non_pinned_vector_hits}
+
     if options.vector_weight is None:
-        fused_scores = reciprocal_rank_fusion([lexical_ids, vector_ids])
+        fused_scores = reciprocal_rank_fusion(
+            [[hit.id for hit in organic_lexical], [v.doc_id for v in non_pinned_vector_hits]]
+        )
     else:
         if not 0.0 <= options.vector_weight <= 1.0:
             raise ValueError("vector_weight must be between 0 and 1")
-        lexical_normalized = _normalize_scores([hit.score for hit in lexical_by_id.values()])
-        vector_normalized = _normalize_scores([hit.score for hit in vector_by_id.values()])
+        lexical_normalized = _normalize_scores([hit.score for hit in organic_lexical])
+        vector_normalized = _normalize_scores([v.score for v in non_pinned_vector_hits])
         fused_scores = {
             doc_id: (1.0 - options.vector_weight)
-            * lexical_normalized.get(lexical_by_id[doc_id].score, 0.0)
-            + options.vector_weight * vector_normalized.get(vector_by_id[doc_id].score, 0.0)
-            for doc_id in {*lexical_by_id, *vector_by_id}
+            * lexical_normalized.get(organic_lexical_by_id[doc_id].score, 0.0)
+            + options.vector_weight
+            * vector_normalized.get(non_pinned_vector_by_id[doc_id].score, 0.0)
+            for doc_id in {*organic_lexical_by_id, *non_pinned_vector_by_id}
         }
-    ordered_ids = sorted(fused_scores, key=lambda doc_id: (-fused_scores[doc_id], doc_id))[:limit]
-    missing_ids = [doc_id for doc_id in ordered_ids if doc_id not in lexical_by_id]
+    ranked = sorted(fused_scores, key=lambda doc_id: (-fused_scores[doc_id], doc_id))
+    remaining_slots = max(0, limit - len(pinned_hits))
+    top_ranked = ranked[:remaining_slots]
+    missing_ids = [doc_id for doc_id in top_ranked if doc_id not in organic_lexical_by_id]
     doc_lookup = _fetch_doc_store_entries_by_ids(manifest, cache, base_url, missing_ids)
-    hits: list[Hit] = []
-    for doc_id in ordered_ids:
-        lexical_hit = lexical_by_id.get(doc_id)
+    hits: list[Hit] = list(pinned_hits)
+    for doc_id in top_ranked:
+        lexical_hit = organic_lexical_by_id.get(doc_id)
         if lexical_hit is not None:
             hits.append(replace(lexical_hit, score=fused_scores[doc_id]))
             continue
@@ -521,7 +574,7 @@ def _vector_or_hybrid_search(
         )
     return SearchResult(
         hits=hits,
-        total_hits=len(fused_scores),
+        total_hits=len({*pinned_ids, *fused_scores}),
         language=language,
         facets=lexical_result.facets,
         did_you_mean=lexical_result.did_you_mean,
@@ -582,7 +635,11 @@ def search(
             exact_terms_needed.update(_synonym_variants_for(qt.term, synonym_shard))
             exact_terms_needed.update(t for t, _ in _fuzzy_matches_for(qt.term, fuzzy_lookup))
     for phrase_term in parsed_query.phrases:
-        exact_terms_needed.update(qt.term for qt in phrase_term.terms)
+        phrase_words = [qt.term for qt in phrase_term.terms]
+        exact_terms_needed.update(phrase_words)
+        if options.synonyms and synonym_shard:
+            for variant in _multi_word_variants_for(" ".join(phrase_words), synonym_shard):
+                exact_terms_needed.update(variant.split(" "))
 
     needed_shard_entries = _shard_entries_for_query(
         shard_entries, exact_terms_needed, prefixes_needed
@@ -660,32 +717,50 @@ def search(
     phrase_doc_sets: list[set[int]] = []
     for phrase_term in parsed_query.phrases:
         phrase_words = [qt.term for qt in phrase_term.terms]
-        phrase_entries = [term_lookup.get(w) for w in phrase_words]
-        if any(e is None for e in phrase_entries):
-            phrase_doc_sets.append(set())
-            continue
-        phrase_word_doc_sets = [
-            set(p.doc for p in e.postings) for e in phrase_entries if e is not None
-        ]
-        phrase_common_ids = (
-            set.intersection(*phrase_word_doc_sets) if phrase_word_doc_sets else set()
-        )
-        phrase_matched_ids = {
-            doc_id
-            for doc_id in phrase_common_ids
-            if _has_consecutive_positions(phrase_entries, doc_id)
-        }
-        phrase_doc_sets.append(phrase_matched_ids)
-        for phrase_word, phrase_entry in zip(phrase_words, phrase_entries, strict=True):
-            if phrase_entry is None:
+        # Each quoted phrase is tried literally first, then via every other
+        # phrase in its multiWord synonym group (docs/guides/synonyms.md), each
+        # variant weighted at `synonym_weight` like a single-word synonym --
+        # mirroring the TS client's `multiWordVariantsFor` attempt loop. The
+        # clause only supports a variant if that *variant* adjacency-matched;
+        # a doc matching a lower-weight variant isn't scored as if the literal
+        # phrase matched there.
+        attempts: list[tuple[list[str], float]] = [(phrase_words, 1.0)]
+        if options.synonyms and synonym_shard:
+            for variant in _multi_word_variants_for(" ".join(phrase_words), synonym_shard):
+                attempts.append((variant.split(" "), options.synonym_weight))
+
+        total_matched_ids: set[int] = set()
+        for attempt_words, attempt_weight in attempts:
+            attempt_entries = [term_lookup.get(w) for w in attempt_words]
+            if any(e is None for e in attempt_entries):
+                if attempt_weight == 1.0:
+                    for w in attempt_words:
+                        if term_lookup.get(w) is None and w not in failed_terms:
+                            failed_terms.append(w)
                 continue
-            # Note: if a phrase word also appears as a bare query term, both the plain-term
-            # clause and this phrase clause contribute to its score -- intentional/acceptable.
-            restricted = TermEntry(
-                df=phrase_entry.df,
-                postings=[p for p in phrase_entry.postings if p.doc in phrase_matched_ids],
+            attempt_word_doc_sets = [
+                set(p.doc for p in e.postings) for e in attempt_entries if e is not None
+            ]
+            attempt_common_ids = (
+                set.intersection(*attempt_word_doc_sets) if attempt_word_doc_sets else set()
             )
-            clauses.append((phrase_word, restricted, 1.0))
+            attempt_matched_ids = {
+                doc_id
+                for doc_id in attempt_common_ids
+                if _has_consecutive_positions(attempt_entries, doc_id)
+            }
+            total_matched_ids.update(attempt_matched_ids)
+            for phrase_word, phrase_entry in zip(attempt_words, attempt_entries, strict=True):
+                if phrase_entry is None:
+                    continue
+                # Note: if a phrase word also appears as a bare query term, both the plain-term
+                # clause and this phrase clause contribute to its score -- intentional/acceptable.
+                restricted = TermEntry(
+                    df=phrase_entry.df,
+                    postings=[p for p in phrase_entry.postings if p.doc in attempt_matched_ids],
+                )
+                clauses.append((phrase_word, restricted, attempt_weight))
+        phrase_doc_sets.append(total_matched_ids)
 
     all_doc_sets = term_slot_doc_sets + phrase_doc_sets
     if not all_doc_sets:

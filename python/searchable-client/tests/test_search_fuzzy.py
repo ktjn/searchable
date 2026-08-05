@@ -3,7 +3,12 @@ from pathlib import Path
 import pytest
 
 from searchable_client.fetch import ShardCache
-from searchable_client.search import SearchOptions, search
+from searchable_client.search import (
+    MAX_FUZZY_CANDIDATES_PER_TERM,
+    SearchOptions,
+    _fuzzy_candidates_for,
+    search,
+)
 from searchable_client.validate_manifest import validate_manifest
 from tests.fixtures.build_index import (
     write_index_with_fuzzy,
@@ -104,6 +109,20 @@ def test_fuzzy_distance_two_scores_lower_than_distance_one(tmp_path: Path):
     distance_two_hit = next(h for h in result.hits if h.id == 2)
     assert distance_two_hit.score < distance_one_hit.score
     assert distance_two_hit.score == pytest.approx(distance_one_hit.score * 0.3)
+
+
+class _DenseLookup:
+    max_edits = 1
+
+    def get(self, variant: str):
+        return [f"term{i}" for i in range(250)]
+
+
+def test_fuzzy_candidate_cap_warns_and_scores_only_the_cap(capsys):
+    matches = _fuzzy_candidates_for("x", _DenseLookup())  # type: ignore[arg-type]
+    assert len(matches) == MAX_FUZZY_CANDIDATES_PER_TERM
+    captured = capsys.readouterr()
+    assert "candidate cap" in captured.err
 
 
 def test_fuzzy_short_term_capped_to_distance_one(tmp_path: Path):
