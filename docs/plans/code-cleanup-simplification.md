@@ -254,12 +254,27 @@ Verify: Python gates + the Python and TS conformance suites
 
 ## Phase F — Structural, separate decisions
 
-- [ ] **F.1** (old 6.1) Single home for the binary-format codec. Re-examine in
-  light of the Python-only indexer: the target is one encoder/decoder pair per
-  language co-located per shard type, with the format spec as the arbiter —
-  not necessarily a move into `packages/format`.
-- [ ] **F.2** (old 6.2) Unify relevance v1/v2 frameworks (one-time fixture
-  migration).
+- [ ] **F.1** (old 6.1) Single home for the binary-format codec. Re-examined in
+  light of the Python-only indexer: the codec exists as Python encode
+  (`searchable-indexer/binary_*.py`) + Python decode (`searchable-client/
+  binary_*.py`) + TS decode (`packages/client/src/binary-*.ts`); cross-language
+  sharing is impossible, so "single home" per language means a neutral shared
+  package (e.g. a `searchable-binary` both Python packages depend on) housing
+  encode+decode per shard type. A genuine cross-package restructure guarded by
+  the binary conformance suite — deferred as an owner decision, separate PR.
+- [ ] **F.2** (old 6.2) Unify relevance v1/v2 frameworks. **Re-assessed:
+  superseded by the actual architecture** — the v2 domain layer already reuses
+  v1's evaluation engine (`searchable-runner`, `evaluate`/`metrics`/`report`;
+  snapshot corpora convert via `toSnapshotEvaluationSuite`), so there is no
+  redundant whole framework left to delete. The only v1-specific modules
+  (`load-suites.ts`, `validate-suite.ts`, plus the `--language` baseline CLI
+  path) would require migrating the six *reviewed* per-language baseline
+  fixtures into v2 snapshot shape — which `validateDomainSuite` forbids without
+  per-doc `/`-prefixed ids + https-url/pathname identity + sha256 `contentHash`
+  + a domain-specific `topic` per query + a `rationale` per positive judgment,
+  semantics the generic Wikipedia-family baselines don't have. That is a
+  data-meaning migration of reviewed corpora, deferred as a design decision —
+  not a mechanical cleanup.
 
 ---
 
@@ -357,8 +372,8 @@ reasons. Old 4.1 survives as C.1, 2.2 as D.2, 3.1 as E.1, 3.2 as E.3, 4.4/4.5/
 | E.2 | Fold `uv sync` into setup-python action; update policy test | done | | `working-directory` input added; `setup-python` call sites carry `python/searchable-indexer`; standalone steps deleted in `ci.yml` + `deploy-pages.yml`; policy test untouched (ordering preserved) |
 | E.3 | No-op vitest configs (analysis/relevance) | dropped | | auto-generated project names defeat `--project` filtering; explicit-name restructure not worth 2 no-op 7-line configs |
 | E.4 | `docs/project/language-support.md` reachability | done | | consciously accepted as a standalone reference; linking ripples into the reviewed relevance fixture (page-list pin) |
-| F.1 | Binary codec single home (re-examined) | pending | | separate decision |
-| F.2 | Relevance v1/v2 unification | pending | | fixture migration |
+| F.1 | Binary codec single home (re-examined) | pending | | per-language neutral package (e.g. `searchable-binary`) for encode+decode; owner decision, separate PR |
+| F.2 | Relevance v1/v2 unification | pending | | re-assessed 2026-08: v2 already reuses v1's engine; leftover v1-only loader/validator (≈114 lines) requires a reviewed-baseline data migration (ids/url/hash/topic/rationale) with no natural mapping — deferred as a design decision |
 
 ### Ledger conventions
 
