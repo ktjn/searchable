@@ -1,6 +1,7 @@
 from searchable_client.client import SearchClient
 from searchable_client.errors import (
     InvalidVectorShardError,
+    SearchClientError,
     VectorDimensionMismatchError,
     VectorProviderMismatchError,
     VectorSearchNotConfiguredError,
@@ -28,6 +29,7 @@ __all__ = [
     "FacetValuesOptions",
     "InvalidManifestError",
     "InvalidVectorShardError",
+    "SearchClientError",
     "VectorDimensionMismatchError",
     "VectorProviderMismatchError",
     "VectorSearchNotConfiguredError",

@@ -1232,5 +1232,139 @@ def write_structured_binary_format_index(out_dir: Path) -> str:
     manifest_path = out_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["shards"]["docs"][0]["binaryVersion"] = 2
+    manifest["shards"]["docs"][0]["idRange"] = [1, 2]
     manifest_path.write_text(json.dumps(manifest))
     return manifest_url
+
+
+def write_index_with_multi_word_synonym(out_dir: Path) -> str:
+    """City-guide corpus mirroring the TS e2e multiWord phrase-synonym suite
+    (packages/client/test/e2e.test.ts): docs 1-3 share the "new york"/"nyc"/
+    "big apple" multiWord equivalence class, doc 4 ("Paris") is the control.
+
+    Term keys and the multiWord group use the stemmed-analyzed forms the real
+    indexer produces ('appl', not 'apple'), so query-time lookups line up.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "new": {
+            "df": 1,
+            "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 4}}}],
+        },
+        "york": {
+            "df": 1,
+            "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [1], "len": 4}}}],
+        },
+        "nyc": {
+            "df": 1,
+            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}}],
+        },
+        "big": {
+            "df": 1,
+            "postings": [{"doc": 3, "fields": {"title": {"tf": 1, "pos": [0], "len": 4}}}],
+        },
+        "appl": {
+            "df": 1,
+            "postings": [{"doc": 3, "fields": {"title": {"tf": 1, "pos": [1], "len": 4}}}],
+        },
+        "travel": {
+            "df": 4,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [1], "len": 3}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [2], "len": 4}}},
+                {"doc": 3, "fields": {"title": {"tf": 1, "pos": [2], "len": 4}}},
+                {"doc": 4, "fields": {"title": {"tf": 1, "pos": [1], "len": 3}}},
+            ],
+        },
+        "guid": {
+            "df": 4,
+            "postings": [
+                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}},
+                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [3], "len": 4}}},
+                {"doc": 3, "fields": {"title": {"tf": 1, "pos": [3], "len": 4}}},
+                {"doc": 4, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}},
+            ],
+        },
+        "pari": {
+            "df": 1,
+            "postings": [{"doc": 4, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "1": {"url": "https://example.com/1", "fields": {"title": "NYC Travel Guide"}},
+        "2": {"url": "https://example.com/2", "fields": {"title": "New York Travel Guide"}},
+        "3": {"url": "https://example.com/3", "fields": {"title": "Big Apple Travel Guide"}},
+        "4": {"url": "https://example.com/4", "fields": {"title": "Paris Travel Guide"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    (out_dir / "synonyms.json").write_text(
+        json.dumps({"multiWord": [["new york", "nyc", "big appl"]]})
+    )
+    manifest = {
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 4},
+        "avgFieldLength": {"en": {"title": 3.5}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 7}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 4]}],
+        },
+        "synonyms": {"en": "synonyms.json"},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
+def write_index_with_multi_word_synonym_literal_absent(out_dir: Path) -> str:
+    """Only 'nyc' appears in the corpus -- 'new'/'york' are not real terms  --
+    so the literal phrase fails but its multiWord synonym variant still
+    matches (mirrors the TS e2e describe block at e2e.test.ts:978)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "terms").mkdir(exist_ok=True)
+    (out_dir / "docs").mkdir(exist_ok=True)
+    term_shard = {
+        "nyc": {
+            "df": 1,
+            "postings": [{"doc": 5, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}}],
+        },
+        "travel": {
+            "df": 1,
+            "postings": [{"doc": 5, "fields": {"title": {"tf": 1, "pos": [1], "len": 3}}}],
+        },
+        "guid": {
+            "df": 1,
+            "postings": [{"doc": 5, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}}],
+        },
+    }
+    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
+    doc_shard = {
+        "5": {"url": "https://example.com/5", "fields": {"title": "NYC Travel Guide"}},
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+    (out_dir / "synonyms.json").write_text(json.dumps({"multiWord": [["new york", "nyc"]]}))
+    manifest = {
+        "version": 1,
+        "buildId": "test",
+        "format": "json",
+        "languages": ["en"],
+        "defaultLanguage": "en",
+        "fields": {"title": {"boost": 1.0, "stored": True}},
+        "docCount": {"en": 1},
+        "avgFieldLength": {"en": {"title": 3.0}},
+        "shards": {
+            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 3}],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [5, 5]}],
+        },
+        "synonyms": {"en": "synonyms.json"},
+    }
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
