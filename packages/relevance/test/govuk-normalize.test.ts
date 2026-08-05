@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import {
-  hashSnapshotContent,
-  htmlToText,
-  normalizeGovukDocument,
-} from "../src/govuk-normalize.js";
+import { normalizeGovukDocument } from "../src/govuk-normalize.js";
+import { htmlToText } from "../src/html-to-text.js";
+import { hashSnapshotContent } from "../src/snapshot-hash.js";
 
 function item(
   schemaName: string,

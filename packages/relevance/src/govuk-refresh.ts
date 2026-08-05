@@ -5,10 +5,8 @@ import {
   writeFile as defaultWriteFile,
 } from "node:fs/promises";
 import type { SnapshotDomainDocument } from "./domain-schema.js";
-import {
-  hashSnapshotContent,
-  normalizeGovukDocument,
-} from "./govuk-normalize.js";
+import { normalizeGovukDocument } from "./govuk-normalize.js";
+import { hashSnapshotContent } from "./snapshot-hash.js";
 import { validateDomainSuite } from "./validate-domain-suite.js";
 import { expectRecord as record, type UnknownRecord } from "./validation.js";
 

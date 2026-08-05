@@ -200,11 +200,15 @@ Verify: Python gates + the Python and TS conformance suites
   `decodeDirectory` (TS `binary-directory.ts`) / `read_directory`
   (`byte_reader.ts`), with per-shard key readers for strings vs delta-encoded
   doc ids.
-- [ ] **C.6** Carry-over from old plan: extract `html-to-text` + `snapshot-hash`
-  from `relevance/govuk-normalize.ts` (old 4.4); unify `#assertUsable` guard
-  preamble in `packages/client/src/client.ts` (old 4.5); `resolvePins` warnings
-  into `BuiltIndex` (old 5.3); relevance CLI subcommand consolidation (old 5.5);
-  decide `Manifest.format` fate (old 5.6).
+- [x] **C.6** Carry-over from old plan: extract `html-to-text` + `snapshot-hash`
+  from `relevance/govuk-normalize.ts` (old 4.4, done); unify `#assertUsable`
+  guard preamble in `packages/client/src/client.ts` (old 4.5, done); `resolvePins`
+  warnings into `BuiltIndex` (old 5.3, done); relevance CLI entry bootstrap
+  deduped via `cli-runner.ts` (old 5.5 — full subcommand merge deferred: changes
+  the package's CLI surface, own PR); `Manifest.format` decided (old 5.6 —
+  retained: it's part of the index-format spec; the per-shard `format` flag is
+  the operative signal. Removing it is a format change, deferred to any future
+  revision tracked under F.1).
 
 ## Phase D — Cross-package dedup (TS / showcase)
 
@@ -337,7 +341,7 @@ reasons. Old 4.1 survives as C.1, 2.2 as D.2, 3.1 as E.1, 3.2 as E.3, 4.4/4.5/
 | C.3 | Split `language-profile.ts` → `stopwords.ts` | done | | stopwords moved; profiles + `stripDiacritics` remain; 77 analysis vitest + build/typecheck/biome green |
 | C.4 | Split Python `build_index.py`; de-parametrize `_build_prepared_documents` | done | | `postings.py` extracted; `BuildConfig` bundles the ~15 kwargs; ruff/mypy/235 indexer pytest green |
 | C.5 | Dedupe `resolve()` + binary directory decoders | done | | `decodeDirectory`/`read_directory` shared by the three shard directory decoders (both langs); client 278 vitest + 136 pytest green |
-| C.6 | Carried relevance/client items (4.4,4.5,5.3,5.5,5.6) | pending | | |
+| C.6 | Carried relevance/client items (4.4,4.5,5.3,5.5,5.6) | done | | `html-to-text.ts` + `snapshot-hash.ts` extracted (govuk-normalize 394→224); `#assertUsable` unifies 3 duplicate guard preambles; `BuiltIndex.pin_warnings` carries warnings (stderr print kept); `cli-runner.ts` dedupes the CLI entry bootstrap (subcommand merge deferred); `Manifest.format` retained (decision recorded). relevance 165 vitest, client 278 vitest, indexer 235 pytest green |
 | D.1 | De-triplicate `python-index.ts` into fixtures | pending | | keep client superset surface |
 | D.2 | Fold `relevance/static-server.ts` onto fixtures `serveDirectory` | pending | | |
 | D.3 | Showcase build pipeline + `pageShell` options + escapeHtml | pending | | |
