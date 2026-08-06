@@ -51,20 +51,6 @@ are explicitly marked experimental and may change in a minor release.
 - Abort semantics are race-free: `raceAbort()` honors an already-aborted
   signal, so a synchronous `query` listener that aborts reliably cancels the
   query instead of racing the listener subscription.
-- Search event listeners receive a snapshot of the search options; mutating
-  the object a `query` listener receives can no longer alter the query that
-  executes or what the `result` event reports.
-- A Worker whose `init` request fails (invalid manifest, unknown domain
-  error, or a protocol mismatch) is now terminated and dereferenced, the
-  original error becomes the client's fatal error, and future calls fail
-  immediately with it — instead of leaving a doomed Worker referenced
-  (worker-protocol.ts handshake below).
-- A legacy (version-1) Worker `{ message }` error payload — from a freshly
-  deployed `index.js` against a stale cached `worker.js` — now rejects the
-  pending request instead of hanging it, and a malformed Worker message can
-  never leave a pending request unresolved (the client retires itself
-  fatally); the Worker protocol is now versioned (handshake in `init`,
-  `docs/reference/compatibility.md#worker-protocol-versions`).
 - Cancellation is prompt across every awaited caller-visible operation:
   an abort fires while the client is still initializing (Worker `init` or
   the direct-mode manifest load) or while `embedQuery()` is computing now
@@ -78,11 +64,20 @@ are explicitly marked experimental and may change in a minor release.
   `filters.price.min = ...`, deleting a filter, nested boosts, the facet
   list — can no longer alter the query that executes or the `result` event
   payload.
+- A Worker whose `init` request fails (invalid manifest, unknown domain
+  error, or a protocol mismatch) is now terminated and dereferenced, the
+  original error becomes the client's fatal error, and future calls fail
+  immediately with it — instead of leaving a doomed Worker referenced
+  (worker-protocol.ts handshake below).
+- A legacy (version-1) Worker `{ message }` error payload — from a freshly
+  deployed `index.js` against a stale cached `worker.js` — now rejects the
+  pending request instead of hanging it, and a malformed Worker message can
+  never leave a pending request unresolved (the client retires itself
+  fatally).
 - The offline Service Worker's installation is now atomic: every referenced
   shard is fetched, validated, and written before the manifest entry is
   replaced (the manifest is the install's commit marker), so a failed
-  install leaves the previously active index fully operational offline
-  (docs/guides/offline-search.md).
+  install leaves the previously active index fully operational offline.
 - Stale-while-revalidate now awaits the successful network response's
   `cache.put()` before the refresh settles, so `waitUntil()` genuinely
   covers cache persistence; failed or non-OK responses are never written
