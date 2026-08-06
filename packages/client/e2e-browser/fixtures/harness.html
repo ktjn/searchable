@@ -97,6 +97,15 @@
         return rejectionOf(client.ready());
       };
 
+      window.__csfTestWorkerManifestValidationWithUrl = async (workerUrl) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: true,
+          workerUrl: new URL(workerUrl, location.href),
+        });
+        return rejectionOf(client.ready());
+      };
+
       window.__csfTestErrorParity = async (manifestUrl) => {
         const direct = new SearchClient({
           indexUrl: manifestUrl,
