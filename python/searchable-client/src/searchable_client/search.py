@@ -97,6 +97,22 @@ def _shard_entries_for_query(
     return result
 
 
+def terms_with_binary_prefix(sorted_terms: list[str], prefix: str) -> list[str]:
+    lo, hi = 0, len(sorted_terms)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if sorted_terms[mid] < prefix:
+            lo = mid + 1
+        else:
+            hi = mid
+    result: list[str] = []
+    for i in range(lo, len(sorted_terms)):
+        if not sorted_terms[i].startswith(prefix):
+            break
+        result.append(sorted_terms[i])
+    return result
+
+
 def search(
     query: str,
     manifest: Manifest,
@@ -163,10 +179,9 @@ def search(
     term_lookup: dict[str, TermEntry] = {}
     for entry in needed_shard_entries:
         if entry.format == "binary":
-            from searchable_client.binary_term_shard import (
+            from searchable_binary import (
                 decode_binary_term_entry,
                 decode_binary_term_shard_directory,
-                terms_with_binary_prefix,
             )
 
             data = cache.fetch_bytes(resolve_url(base_url, entry.file))

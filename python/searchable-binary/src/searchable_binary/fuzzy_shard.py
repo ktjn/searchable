@@ -1,9 +1,9 @@
 from typing import Any
 
-from searchable_indexer.byte_writer import ByteWriter
+from searchable_binary.bytecode import ByteReader, ByteWriter, read_directory
 
-# Direct port of packages/indexer/src/binary-fuzzy-shard.ts's
-# encodeFuzzyShardBinary.
+"""Fuzzy-shard binary codec (encode + decode), shared by the Python indexer
+(writer) and the Python client (reader)."""
 
 
 def encode_fuzzy_shard_binary(shard: dict[str, Any]) -> bytes:
@@ -32,3 +32,19 @@ def encode_fuzzy_shard_binary(shard: dict[str, Any]) -> bytes:
         blob_writer.write_bytes(blob)
 
     return header.to_bytes() + blob_writer.to_bytes()
+
+
+def decode_binary_fuzzy_shard_directory(
+    data: bytes,
+) -> tuple[int, list[str], dict[str, tuple[int, int]], int]:
+    r = ByteReader(data, 0)
+    max_edits = r.read_varint()
+    variant_count = r.read_varint()
+    sorted_variants, index = read_directory(r, variant_count, lambda reader: reader.read_string())
+    return max_edits, sorted_variants, index, r.position
+
+
+def decode_binary_fuzzy_entry(data: bytes, directory_byte_length: int, offset: int) -> list[str]:
+    r = ByteReader(data, directory_byte_length + offset)
+    term_count = r.read_varint()
+    return [r.read_string() for _ in range(term_count)]

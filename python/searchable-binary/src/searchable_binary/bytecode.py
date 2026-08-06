@@ -5,6 +5,32 @@ from typing import TypeVar
 K = TypeVar("K")
 
 
+class ByteWriter:
+    def __init__(self) -> None:
+        self._buf = bytearray()
+
+    def write_varint(self, value: int) -> None:
+        v = value
+        while v >= 0x80:
+            self._buf.append((v & 0x7F) | 0x80)
+            v >>= 7
+        self._buf.append(v)
+
+    def write_bytes(self, data: bytes) -> None:
+        self._buf.extend(data)
+
+    def write_string(self, s: str) -> None:
+        encoded = s.encode("utf-8")
+        self.write_varint(len(encoded))
+        self.write_bytes(encoded)
+
+    def write_float64(self, value: float) -> None:
+        self._buf.extend(struct.pack("<d", value))
+
+    def to_bytes(self) -> bytes:
+        return bytes(self._buf)
+
+
 class ByteReader:
     def __init__(self, data: bytes, start_pos: int = 0) -> None:
         self._data = data

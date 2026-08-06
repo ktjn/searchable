@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
 import { runCliEntry } from "./cli-runner.js";
-import { runDomainSuite } from "./domain-runner.js";
+import { runSuite } from "./domain-runner.js";
 import type { DomainRelevanceSuite } from "./domain-schema.js";
 import type { SuiteReport } from "./evaluate.js";
 import {
@@ -17,7 +17,6 @@ import {
   SUPPORTED_BASELINE_LANGUAGES,
   type SupportedBaselineLanguage,
 } from "./schema.js";
-import { runSearchableSuite } from "./searchable-runner.js";
 
 export interface CliOptions {
   language?: SupportedBaselineLanguage;
@@ -26,14 +25,15 @@ export interface CliOptions {
   json: boolean;
 }
 
+export type RunnableSuite = RelevanceSuite | DomainRelevanceSuite;
+
 export interface CliDependencies {
   prepareDomain(suite: DomainRelevanceSuite): Promise<void>;
   loadBaselines(
     language?: SupportedBaselineLanguage,
   ): Promise<RelevanceSuite[]>;
   loadDomain(name: KnownDomainSuite): Promise<DomainRelevanceSuite>;
-  runBaseline(suite: RelevanceSuite, k: number): Promise<SuiteReport>;
-  runDomain(suite: DomainRelevanceSuite, k: number): Promise<SuiteReport>;
+  runSuite(suite: RunnableSuite, k: number): Promise<SuiteReport>;
   writeOutput(text: string): void;
 }
 
@@ -87,8 +87,7 @@ export const defaultCliDependencies: CliDependencies = {
   },
   loadBaselines: (language) => loadSuites(fixtureDirectory, language),
   loadDomain: (name) => loadDomainSuite(domainFixtureDirectory, name),
-  runBaseline: runSearchableSuite,
-  runDomain: (suite, k) => runDomainSuite(suite, showcaseDistDirectory, k),
+  runSuite: (suite, k) => runSuite(suite, showcaseDistDirectory, k),
   writeOutput: (value) => process.stdout.write(value),
 };
 
@@ -101,10 +100,10 @@ export async function main(
   if (options.suite) {
     const suite = await dependencies.loadDomain(options.suite);
     await dependencies.prepareDomain(suite);
-    reports.push(await dependencies.runDomain(suite, options.k));
+    reports.push(await dependencies.runSuite(suite, options.k));
   } else {
     for (const suite of await dependencies.loadBaselines(options.language))
-      reports.push(await dependencies.runBaseline(suite, options.k));
+      reports.push(await dependencies.runSuite(suite, options.k));
   }
   dependencies.writeOutput(
     options.json

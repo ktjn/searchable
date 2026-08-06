@@ -162,8 +162,7 @@ function dependencies(): CliDependencies {
     prepareDomain: vi.fn(async () => undefined),
     loadBaselines: vi.fn(async () => [baselineSuite]),
     loadDomain: vi.fn(async () => domainSuite),
-    runBaseline: vi.fn(async () => report),
-    runDomain: vi.fn(async () => report),
+    runSuite: vi.fn(async () => report),
     writeOutput: vi.fn(),
   };
 }
@@ -177,7 +176,7 @@ describe("main", () => {
 
     expect(target.prepareDomain).not.toHaveBeenCalled();
     expect(target.loadBaselines).toHaveBeenCalledWith("en");
-    expect(target.runBaseline).toHaveBeenCalledWith(baselineSuite, 5);
+    expect(target.runSuite).toHaveBeenCalledWith(baselineSuite, 5);
     expect(target.loadDomain).not.toHaveBeenCalled();
     expect(target.writeOutput).toHaveBeenCalledOnce();
   });
@@ -190,7 +189,7 @@ describe("main", () => {
     expect(target.loadDomain).toHaveBeenCalledBefore(target.prepareDomain);
     expect(target.prepareDomain).toHaveBeenCalledWith(domainSuite);
     expect(target.prepareDomain).toHaveBeenCalledOnce();
-    expect(target.runDomain).toHaveBeenCalledWith(domainSuite, 5);
+    expect(target.runSuite).toHaveBeenCalledWith(domainSuite, 5);
     expect(target.loadBaselines).not.toHaveBeenCalled();
     expect(target.writeOutput).toHaveBeenCalledOnce();
   });
@@ -202,7 +201,7 @@ describe("main", () => {
 
     expect(target.loadDomain).toHaveBeenCalledWith("govuk-learn-to-drive");
     expect(target.prepareDomain).toHaveBeenCalledWith(snapshotSuite);
-    expect(target.runDomain).toHaveBeenCalledWith(snapshotSuite, 5);
+    expect(target.runSuite).toHaveBeenCalledWith(snapshotSuite, 5);
   });
 
   it("prepares the showcase only for generated domain corpora", async () => {

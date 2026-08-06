@@ -1,21 +1,17 @@
 import struct
 
 import pytest
-
-from searchable_client.binary_doc_store import (
+from searchable_binary import (
     decode_binary_doc_store_directory,
     decode_binary_doc_store_entry,
-)
-from searchable_client.binary_fuzzy_shard import (
     decode_binary_fuzzy_entry,
     decode_binary_fuzzy_shard_directory,
-)
-from searchable_client.binary_term_shard import (
     decode_binary_term_entry,
     decode_binary_term_shard_directory,
-    terms_with_binary_prefix,
 )
-from searchable_client.byte_reader import ByteReader
+from searchable_binary.bytecode import ByteReader
+
+from searchable_client.search import terms_with_binary_prefix
 
 
 def _varint(n: int) -> bytes:

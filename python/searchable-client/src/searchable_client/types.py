@@ -1,6 +1,23 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+# The binary container types live with the shared codec
+# (python/searchable-binary) so the reader, the writer, and this JSON-side
+# parser all agree on one shape; re-exported here so the public names are
+# unchanged.
+from searchable_binary.types import (
+    DocStoreEntry as DocStoreEntry,
+)
+from searchable_binary.types import (
+    FieldPosting as FieldPosting,
+)
+from searchable_binary.types import (
+    Posting as Posting,
+)
+from searchable_binary.types import (
+    TermEntry as TermEntry,
+)
+
 from searchable_client.highlight import HighlightSpan
 
 DEFAULT_SYNONYM_WEIGHT = 0.5
@@ -133,36 +150,6 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
             else None
         ),
     )
-
-
-@dataclass(frozen=True)
-class FieldPosting:
-    tf: int
-    pos: list[int]
-    len: int
-
-
-@dataclass(frozen=True)
-class Posting:
-    doc: int
-    fields: dict[str, FieldPosting]
-    boost: float | None = None
-
-
-@dataclass(frozen=True)
-class TermEntry:
-    df: int
-    postings: list[Posting]
-
-
-@dataclass(frozen=True)
-class DocStoreEntry:
-    url: str
-    fields: dict[str, str]
-    boost: float | None = None
-    external_id: str | None = None
-    metadata: dict[str, Any] | None = None
-    content_hash: str | None = None
 
 
 @dataclass(frozen=True)

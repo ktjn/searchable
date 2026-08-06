@@ -4,12 +4,13 @@ import re
 from pathlib import Path
 from typing import Any
 
-from searchable_indexer.binary_doc_store import (
+from searchable_binary import (
     encode_doc_store_binary,
+    encode_fuzzy_shard_binary,
     encode_structured_doc_store_binary,
+    encode_term_shard_binary,
 )
-from searchable_indexer.binary_fuzzy_shard import encode_fuzzy_shard_binary
-from searchable_indexer.binary_term_shard import encode_term_shard_binary
+
 from searchable_indexer.hash import content_hash
 from searchable_indexer.types import BuiltIndex
 

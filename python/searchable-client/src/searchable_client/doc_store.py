@@ -15,7 +15,7 @@ def _fetch_doc_store_entries_by_ids(
         if not any(entry.id_range[0] <= i <= entry.id_range[1] for i in ids):
             continue
         if entry.format == "binary":
-            from searchable_client.binary_doc_store import (
+            from searchable_binary import (
                 decode_binary_doc_store_directory,
                 decode_binary_doc_store_entry,
             )
