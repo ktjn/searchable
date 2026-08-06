@@ -46,7 +46,7 @@ jobs:
       - name: Build Python packages
         shell: bash
         run: |
-          for project in python/searchable-analysis python/searchable-indexer python/searchable-client; do
+          for project in python/searchable-analysis python/searchable-binary python/searchable-indexer python/searchable-client; do
             uv build --project "$project"
           done
       - name: Collect Python distributions
