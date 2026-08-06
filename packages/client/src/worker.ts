@@ -2,12 +2,56 @@
 import type { Manifest } from "@ktjn/searchable-format";
 import { ShardCache } from "./fetch-json.js";
 import { facetValues, search, searchStream } from "./search.js";
-import { validateManifest } from "./validate-manifest.js";
-import type { WorkerRequest, WorkerResponse } from "./worker-protocol.js";
+import { InvalidManifestError, validateManifest } from "./validate-manifest.js";
+import {
+  VectorProviderMismatchError,
+  VectorSearchNotConfiguredError,
+} from "./vector-search.js";
+import type {
+  SerializedWorkerError,
+  WorkerRequest,
+  WorkerResponse,
+} from "./worker-protocol.js";
 
 const cache = new ShardCache();
 let manifestPromise: Promise<Manifest> | undefined;
 let indexUrl: string | undefined;
+
+/**
+ * Maps an error thrown inside the Worker to its stable serialized form
+ * (worker-protocol.ts), preserving the type of the exported domain
+ * error classes so the main thread can reconstruct the same `instanceof`
+ * contract it would get from direct execution. Deliberately structured
+ * as class-based `instanceof` checks rather than `err.name` string
+ * matching -- subclassing, minification-independent, and symmetric with
+ * how `client.ts` reconstructs them back into real class instances.
+ */
+function serializeError(err: unknown): SerializedWorkerError {
+  if (err instanceof InvalidManifestError) {
+    return {
+      code: "INVALID_MANIFEST",
+      name: err.name,
+      message: err.message,
+    };
+  }
+  if (err instanceof VectorSearchNotConfiguredError) {
+    return {
+      code: "VECTOR_SEARCH_NOT_CONFIGURED",
+      name: err.name,
+      message: err.message,
+    };
+  }
+  if (err instanceof VectorProviderMismatchError) {
+    return {
+      code: "VECTOR_PROVIDER_MISMATCH",
+      name: err.name,
+      message: err.message,
+    };
+  }
+  const message = err instanceof Error ? err.message : String(err);
+  const name = err instanceof Error ? err.name : "Error";
+  return { code: "UNKNOWN", name, message };
+}
 
 function post(message: WorkerResponse): void {
   (self as unknown as DedicatedWorkerGlobalScope).postMessage(message);
@@ -68,10 +112,6 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       post({ type: "result", id: msg.id, result });
     }
   } catch (err) {
-    post({
-      type: "error",
-      id: msg.id,
-      message: err instanceof Error ? err.message : String(err),
-    });
+    post({ type: "error", id: msg.id, error: serializeError(err) });
   }
 };

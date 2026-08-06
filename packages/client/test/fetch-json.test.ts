@@ -72,4 +72,61 @@ describe("ShardCache", () => {
     expect(result).toEqual({ a: 1 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("caches JSON and binary representations of the same URL separately, never colliding", async () => {
+    const raw = new TextEncoder().encode("raw bytes");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ a: 1 }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => raw.buffer as ArrayBuffer,
+      });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const cache = new ShardCache();
+    const shared = "https://example.com/shared";
+    const json = await cache.fetchJson<{ a: number }>(shared);
+    const binary = await cache.fetchArrayBuffer(shared);
+
+    expect(json).toEqual({ a: 1 });
+    expect([...binary]).toEqual([...raw]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("a failed JSON request for a URL does not poison a later binary request for the same URL", async () => {
+    const raw = new TextEncoder().encode("raw bytes");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => raw.buffer as ArrayBuffer,
+      });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const cache = new ShardCache();
+    const shared = "https://example.com/shared";
+    await expect(cache.fetchJson(shared)).rejects.toThrow(/500/);
+
+    const binary = await cache.fetchArrayBuffer(shared);
+    expect([...binary]).toEqual([...raw]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("a failed binary request for a URL does not poison a later JSON request for the same URL", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ a: 1 }) });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const cache = new ShardCache();
+    const shared = "https://example.com/shared";
+    await expect(cache.fetchArrayBuffer(shared)).rejects.toThrow(/500/);
+
+    const json = await cache.fetchJson<{ a: number }>(shared);
+    expect(json).toEqual({ a: 1 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

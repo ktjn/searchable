@@ -28,6 +28,22 @@ declare global {
       indexUrl: string,
       opts?: Record<string, unknown>,
     ) => Promise<string>;
+    __csfRegisterOfflineWithScope?: (
+      swPath: string,
+      indexUrl: string,
+      opts?: Record<string, unknown>,
+    ) => Promise<string>;
+    __csfCacheNames?: () => Promise<string[]>;
+    __csfCacheEntryStatus?: (
+      cacheName: string,
+      url: string,
+    ) => Promise<number | undefined>;
+    __csfSeedCache?: (
+      cacheName: string,
+      url: string,
+      status: number,
+      body?: string,
+    ) => Promise<void>;
   }
 }
 
@@ -152,6 +168,46 @@ test.describe("offline Service Worker caching (real browser)", () => {
     await context.setOffline(false);
   });
 
+  test("cache-first reads stay isolated to searchable-offline, ignoring other caches on the origin", async ({
+    page,
+    context,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    // Seed a *competing* cache with a bogus entry for the manifest URL
+    // BEFORE searchable-offline exists. A global caches.match() (which
+    // searches every cache the origin owns, in creation order) would
+    // find this junk entry first and blindly serve it; the Service
+    // Worker's cacheFirst() must instead be authoritative only against
+    // its own named cache.
+    await page.evaluate(
+      ([url]) => window.__csfSeedCache?.("unrelated-cache", url, 503, "junk"),
+      [`${baseUrl}manifest.json`] as [string],
+    );
+    await page.evaluate(
+      ([swPath, indexUrl]) => window.__csfRegisterOffline?.(swPath, indexUrl),
+      ["./sw.js", "./manifest.json"] as [string, string],
+    );
+
+    await context.setOffline(true);
+    const body = await page.evaluate(
+      async ([url]) => {
+        const res = await fetch(url);
+        const text = await res.text();
+        return {
+          status: res.status,
+          isManifest:
+            text.includes('"version"') && text.includes('"languages"'),
+        };
+      },
+      [`${baseUrl}manifest.json`] as [string],
+    );
+    await context.setOffline(false);
+
+    expect(body).toEqual({ status: 200, isManifest: true });
+  });
+
   test("options.languages restricts precaching to the selected language's term shard only", async ({
     page,
   }) => {
@@ -218,6 +274,116 @@ test.describe("offline Service Worker caching (real browser)", () => {
       ([swPath, indexUrl, opts]) =>
         window.__csfRegisterOffline?.(swPath, indexUrl, opts),
       ["./sw.js", "./manifest.json", { mode: "stale-while-revalidate" }] as [
+        string,
+        string,
+        Record<string, unknown>,
+      ],
+    );
+
+    await context.setOffline(true);
+    const status = await page.evaluate(
+      (indexUrl) => window.__csfFetchStatus?.(indexUrl),
+      `${baseUrl}manifest.json`,
+    );
+    expect(status).toBe(200);
+    await context.setOffline(false);
+  });
+});
+
+test.describe("offline registration API (documented usage, no caller-side normalization)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let rootDir: string;
+
+  test.beforeAll(async () => {
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-offline-registration-"),
+    );
+    await cp(clientDist, rootDir, { recursive: true });
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
+    const { outDir, cleanup } = await writePythonIndex(offlineSources);
+    await cp(outDir, rootDir, { recursive: true });
+    await cleanup();
+    const server = await serveDir(rootDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  test("relative swUrl and relative indexUrl work without caller-side URL normalization", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    await page.evaluate(
+      ([swPath, indexUrl]) => window.__csfRegisterOffline?.(swPath, indexUrl),
+      ["./sw.js", "./manifest.json"] as [string, string],
+    );
+
+    const cachedUrls = await page.evaluate(() =>
+      window.__csfOfflineCacheUrls?.(),
+    );
+    // The indexUrl crossed into the Service Worker as a relative path; the
+    // cached key being absolute proves registerOfflineCaching() normalized it
+    // (a relative manifest URL could never be a CacheStorage key).
+    expect(cachedUrls).toContain(`${baseUrl}manifest.json`);
+  });
+
+  test("root-hosted Service Worker (/sw.js) registers and precaches", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    await page.evaluate(
+      ([swPath, indexUrl]) => window.__csfRegisterOffline?.(swPath, indexUrl),
+      ["/sw.js", "/manifest.json"] as [string, string],
+    );
+
+    const cachedUrls = await page.evaluate(() =>
+      window.__csfOfflineCacheUrls?.(),
+    );
+    expect(cachedUrls).toContain(`${baseUrl}manifest.json`);
+    expect(cachedUrls?.some((u) => u.startsWith(`${baseUrl}terms/`))).toBe(
+      true,
+    );
+  });
+
+  test("explicit scope takes effect on the registration", async ({ page }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const scope = await page.evaluate(
+      ([swPath, indexUrl, opts]) =>
+        window.__csfRegisterOfflineWithScope?.(swPath, indexUrl, opts),
+      ["./sw.js", "./manifest.json", { scope: "/" }] as [
+        string,
+        string,
+        Record<string, unknown>,
+      ],
+    );
+    expect(scope).toBe(baseUrl);
+  });
+
+  test("fully offline manifest and shard access via the documented call shape", async ({
+    page,
+    context,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    await page.evaluate(
+      ([swPath, indexUrl, opts]) =>
+        window.__csfRegisterOffline?.(swPath, indexUrl, opts),
+      ["./sw.js", "./manifest.json", { mode: "cache-first" }] as [
         string,
         string,
         Record<string, unknown>,

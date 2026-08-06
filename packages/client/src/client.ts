@@ -10,12 +10,13 @@ import type {
   SearchResult,
 } from "./search.js";
 import { facetValues, search, searchStream } from "./search.js";
-import { validateManifest } from "./validate-manifest.js";
+import { InvalidManifestError, validateManifest } from "./validate-manifest.js";
 import {
   VectorProviderMismatchError,
   VectorSearchNotConfiguredError,
 } from "./vector-search.js";
 import type {
+  SerializedWorkerError,
   WorkerRequestPayload,
   WorkerResponse,
 } from "./worker-protocol.js";
@@ -43,6 +44,59 @@ function toAbsoluteUrl(url: string): string {
 
 function abortError(): DOMException {
   return new DOMException("The operation was aborted.", "AbortError");
+}
+
+/**
+ * Shallow-copies the root `SearchOptions` object plus every nested
+ * mutable map the query actually reads (`boosts.fields`/`boosts.terms`,
+ * `filters`, `facets`) into a stable snapshot. Event listeners receive
+ * this snapshot, not the caller's live object -- so a synchronous 'query'
+ * listener that mutates `options.filters`/`options.boosts` to observe or
+ * tweak state can never silently change the query that actually runs.
+ * Cost is negligible relative to shard loading and scoring.
+ */
+function snapshotSearchOptions<T extends SearchOptions>(options: T): T {
+  return {
+    ...options,
+    ...(options.boosts
+      ? {
+          boosts: {
+            ...(options.boosts.fields
+              ? { fields: { ...options.boosts.fields } }
+              : {}),
+            ...(options.boosts.terms
+              ? { terms: { ...options.boosts.terms } }
+              : {}),
+          },
+        }
+      : {}),
+    ...(options.filters ? { filters: { ...options.filters } } : {}),
+    ...(options.facets ? { facets: [...options.facets] } : {}),
+  };
+}
+
+/**
+ * Reconstructs a serialized Worker error (worker-protocol.ts) into the same
+ * public error contract direct execution would produce: the exported domain
+ * error classes come back as real `instanceof`-compatible instances (keyed by
+ * the stable code, not by any embedded class reference), and every other
+ * error becomes a plain `Error` keeping its `name`/`message` but not its
+ * stack trace.
+ */
+function deserializeWorkerError(error: SerializedWorkerError): Error {
+  switch (error.code) {
+    case "INVALID_MANIFEST":
+      return new InvalidManifestError(error.message);
+    case "VECTOR_SEARCH_NOT_CONFIGURED":
+      return new VectorSearchNotConfiguredError(error.message);
+    case "VECTOR_PROVIDER_MISMATCH":
+      return new VectorProviderMismatchError(error.message);
+    default: {
+      const err = new Error(error.message);
+      err.name = error.name;
+      return err;
+    }
+  }
 }
 
 /** Structural equality for the small, fixed `EmbeddingProviderConfig` union -- deliberately not `JSON.stringify` comparison, since key order between a manifest parsed from JSON and a locally-constructed object isn't guaranteed to match. */
@@ -75,6 +129,11 @@ function raceAbort<T>(
   signal: AbortSignal | undefined,
 ): Promise<T> {
   if (!signal) return work;
+  // A synchronous 'query' listener can abort the signal before this
+  // subscribes -- test the already-aborted state up front, or the abort
+  // event has already fired by the time the listener is added and the
+  // work would resolve to a caller who already aborted.
+  if (signal.aborted) return Promise.reject(abortError());
   return new Promise<T>((resolve, reject) => {
     const onAbort = () => reject(abortError());
     signal.addEventListener("abort", onAbort, { once: true });
@@ -328,12 +387,20 @@ export class SearchClient {
     // (docs/guides/vector-search.md).
     const queryVector = await this.#resolveQueryVector(query, options.mode);
     throwIfAborted(options.signal);
-    this.#emit("query", { query, options });
+    // Snapshot the options before the query event fires: a synchronous
+    // listener may abort (honored by raceAbort's aborted-first check) or
+    // mutate the object it receives (`listenerOptions`) -- a deliberately
+    // separate snapshot, so mutation can never change the query that
+    // actually runs (`effectiveOptions`) or what the 'result' event
+    // later reports.
+    const effectiveOptions = snapshotSearchOptions(options);
+    const listenerOptions = snapshotSearchOptions(options);
+    this.#emit("query", { query, options: listenerOptions });
     // `signal` is stripped before the options cross into the worker
     // message or the direct-execution search() call -- neither needs
     // to know about it (see SearchOptions.signal's doc comment for why
     // cancellation is handled entirely here).
-    const { signal, ...rest } = options;
+    const { signal, ...rest } = effectiveOptions;
     const work = this.#worker
       ? this.#sendToWorker<SearchResult>({
           type: "search",
@@ -354,7 +421,7 @@ export class SearchClient {
           );
         })();
     const result = await raceAbort(work, signal);
-    this.#emit("result", { query, options, result });
+    this.#emit("result", { query, options: effectiveOptions, result });
     return result;
   }
 
@@ -448,8 +515,11 @@ export class SearchClient {
     options: SearchStreamOptions = {},
   ): Promise<SearchResult> {
     await this.#assertUsable(options.signal);
-    this.#emit("query", { query, options });
-    const { signal, onPartial, ...rest } = options;
+    // Same independent-snapshot-before-emit discipline as search().
+    const effectiveOptions = snapshotSearchOptions(options);
+    const listenerOptions = snapshotSearchOptions(options);
+    this.#emit("query", { query, options: listenerOptions });
+    const { signal, onPartial, ...rest } = effectiveOptions;
     const guardedOnPartial = onPartial
       ? (partial: SearchResult) => {
           if (!signal?.aborted) onPartial(partial);
@@ -473,7 +543,7 @@ export class SearchClient {
           );
         })();
     const result = await raceAbort(work, signal);
-    this.#emit("result", { query, options, result });
+    this.#emit("result", { query, options: effectiveOptions, result });
     return result;
   }
 
@@ -554,24 +624,44 @@ export class SearchClient {
    * pending against it would otherwise never settle. Idempotent, and
    * also disables further use in main-thread (non-worker) mode, so
    * `dispose()` means the same thing regardless of which mode the
-   * client happens to be running in.
+   * client happens to be running in. Delegates all of that to the same
+   * internal `#fail()` cleanup a fatal worker error triggers, so every
+   * path that retires a client converges on one operation.
    */
   dispose(): void {
-    if (this.#fatalError) return;
-    this.#worker?.terminate();
-    this.#worker = undefined;
-    this.#setFatalError(new Error("SearchClient disposed"));
+    this.#fail(new Error("SearchClient disposed"));
   }
 
   #handleWorkerFatalError(err: Error): void {
-    this.#setFatalError(err);
+    this.#fail(err);
   }
 
-  #setFatalError(err: Error): void {
-    if (this.#fatalError) return;
-    this.#fatalError = err;
+  /**
+   * The one cleanup operation for every way a worker/client becomes
+   * permanently unusable — `dispose()`, a worker `error` event, a
+   * `messageerror` (a message that can't be deserialized even though the
+   * worker script itself is fine — which is *not* guaranteed to
+   * terminate the worker, so the reference must be dropped explicitly),
+   * and fatal initialization failures.
+   *
+   * Terminates and dereferences the worker, records the first failure as
+   * `#fatalError` (never overwriting an earlier, more specific one),
+   * and settles every still-pending request exactly once with it. Safe
+   * to call repeatedly and in any order: after the first call the worker
+   * is gone, `#pendingRequests` is empty, and future calls fail
+   * immediately from `#assertUsable()`/`#sendToWorker()` with the stored
+   * `#fatalError`.
+   */
+  #fail(error: Error): void {
+    this.#worker?.terminate();
+    this.#worker = undefined;
+
+    if (!this.#fatalError) {
+      this.#fatalError = error;
+    }
+
     for (const pending of this.#pendingRequests.values()) {
-      pending.reject(err);
+      pending.reject(this.#fatalError);
     }
     this.#pendingRequests.clear();
   }
@@ -606,7 +696,7 @@ export class SearchClient {
     }
     this.#pendingRequests.delete(message.id);
     if (message.type === "error") {
-      pending.reject(new Error(message.message));
+      pending.reject(deserializeWorkerError(message.error));
     } else {
       pending.resolve(message.result);
     }

@@ -41,6 +41,31 @@ export type WorkerRequestPayload =
 
 export type WorkerRequest = WorkerRequestPayload & { id: number };
 
+/**
+ * Stable error codes for the exported domain error classes, shared by the
+ * Worker's serializer (worker.ts) and the main thread's reconstructor
+ * (client.ts) so both sides can't drift on the mapping independently.
+ * `UNKNOWN` covers every error that isn't one of the exported classes. The
+ * error payload deliberately carries `name`/`message` but never a stack
+ * trace: stacks can expose internal paths and aren't a stable API.
+ */
+export const WORKER_ERROR_CODES = {
+  INVALID_MANIFEST: "INVALID_MANIFEST",
+  VECTOR_SEARCH_NOT_CONFIGURED: "VECTOR_SEARCH_NOT_CONFIGURED",
+  VECTOR_PROVIDER_MISMATCH: "VECTOR_PROVIDER_MISMATCH",
+  SEARCH_CLIENT_DISPOSED: "SEARCH_CLIENT_DISPOSED",
+  UNKNOWN: "UNKNOWN",
+} as const;
+
+export type WorkerErrorCode =
+  (typeof WORKER_ERROR_CODES)[keyof typeof WORKER_ERROR_CODES];
+
+export interface SerializedWorkerError {
+  code: WorkerErrorCode;
+  name: string;
+  message: string;
+}
+
 export type WorkerResponse =
   | { type: "result"; id: number; result: SearchResult | FacetResult }
   /**
@@ -51,4 +76,4 @@ export type WorkerResponse =
    * arrives; only `"result"`/`"error"` settle it.
    */
   | { type: "partial"; id: number; result: SearchResult }
-  | { type: "error"; id: number; message: string };
+  | { type: "error"; id: number; error: SerializedWorkerError };

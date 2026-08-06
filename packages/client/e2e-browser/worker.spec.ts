@@ -42,7 +42,40 @@ declare global {
     __csfTestWorkerManifestValidation?: (
       manifestUrl: string,
     ) => Promise<string | undefined>;
+    __csfTestErrorParity?: (manifestUrl: string) => Promise<{
+      direct?: {
+        name: string;
+        message: string;
+        isInvalidManifest: boolean;
+        isVectorNotConfigured: boolean;
+        isVectorMismatch: boolean;
+      };
+      worker?: {
+        name: string;
+        message: string;
+        isInvalidManifest: boolean;
+        isVectorNotConfigured: boolean;
+        isVectorMismatch: boolean;
+      };
+    }>;
+    __csfTestVectorErrorParity?: (useWorker: boolean) => Promise<{
+      name: string;
+      message: string;
+      isVectorNotConfigured: boolean;
+    }>;
     __csfTestAbortSearch?: (useWorker: boolean) => Promise<string | undefined>;
+    __csfTestAbortedBeforeSearch?: (
+      useWorker: boolean,
+    ) => Promise<string | undefined>;
+    __csfTestAbortInQueryListener?: (
+      useWorker: boolean,
+    ) => Promise<string | undefined>;
+    __csfTestListenerMutatesOptionsParity?: (
+      useWorker: boolean,
+    ) => Promise<{ mutated: number[]; untouched: number[] }>;
+    __csfTestNoResultEventAfterAbort?: (
+      useWorker: boolean,
+    ) => Promise<string[]>;
     __csfRunSearchStream?: (
       query: string,
       useWorker: boolean,
@@ -244,6 +277,72 @@ test.describe("Web Worker execution (real browser)", () => {
     expect(withWorker).toBe("AbortError");
     expect(withoutWorker).toBe("AbortError");
   });
+
+  test("a signal already aborted before search() rejects immediately, worker and direct alike", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestAbortedBeforeSearch?.(true);
+      const m = await window.__csfTestAbortedBeforeSearch?.(false);
+      return [w, m];
+    });
+
+    expect(withWorker).toBe("AbortError");
+    expect(withoutWorker).toBe("AbortError");
+  });
+
+  test("a synchronous 'query' listener that aborts reliably cancels the query", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestAbortInQueryListener?.(true);
+      const m = await window.__csfTestAbortInQueryListener?.(false);
+      return [w, m];
+    });
+
+    expect(withWorker).toBe("AbortError");
+    expect(withoutWorker).toBe("AbortError");
+  });
+
+  test("a 'query' listener mutating options.filters/boosts cannot alter the executing query", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestListenerMutatesOptionsParity?.(true);
+      const m = await window.__csfTestListenerMutatesOptionsParity?.(false);
+      return [w, m];
+    });
+
+    for (const result of [withWorker, withoutWorker]) {
+      expect(result?.mutated).toEqual([1, 2]);
+      expect(result?.untouched).toEqual([1, 2]);
+    }
+  });
+
+  test("no 'result' event fires after the caller aborts, worker and direct alike", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestNoResultEventAfterAbort?.(true);
+      const m = await window.__csfTestNoResultEventAfterAbort?.(false);
+      return [w, m];
+    });
+
+    expect(withWorker).toEqual(["query"]);
+    expect(withoutWorker).toEqual(["query"]);
+  });
 });
 
 test.describe("structured binary document store in a real Worker", () => {
@@ -377,6 +476,44 @@ test.describe("SearchClient lifecycle (real browser)", () => {
       "./bad-manifest.json",
     );
     expect(message).toContain("invalid manifest");
+  });
+
+  test("an invalid manifest rejects ready() with a real InvalidManifestError in worker and direct modes alike", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const { direct, worker } =
+      (await page.evaluate(
+        (manifestUrl) => window.__csfTestErrorParity?.(manifestUrl),
+        "./bad-manifest.json",
+      )) ?? {};
+
+    expect(direct?.name).toBe("InvalidManifestError");
+    expect(worker?.name).toBe("InvalidManifestError");
+    expect(direct?.isInvalidManifest).toBe(true);
+    expect(worker?.isInvalidManifest).toBe(true);
+    expect(worker?.message).toBe(direct?.message);
+  });
+
+  test("a VectorSearchNotConfiguredError raised inside the Worker survives the round trip with its type", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestVectorErrorParity?.(true);
+      const m = await window.__csfTestVectorErrorParity?.(false);
+      return [w, m];
+    });
+
+    expect(withWorker?.name).toBe("VectorSearchNotConfiguredError");
+    expect(withoutWorker?.name).toBe("VectorSearchNotConfiguredError");
+    expect(withWorker?.isVectorNotConfigured).toBe(true);
+    expect(withoutWorker?.isVectorNotConfigured).toBe(true);
+    expect(withWorker?.message).toBe(withoutWorker?.message);
   });
 });
 

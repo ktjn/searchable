@@ -35,4 +35,14 @@ separate release operation.
 - changelog and migration notes are current;
 - build, tests, type checks, lint, browser checks, and size gates pass;
 - package artifacts and consumer fixtures are verified;
+- Python artifacts pass the isolated release-artifact smoke test
+  (`.github/workflows/publish.yml`): the built `dist/` alone must resolve
+  every inter-package dependency and survive a minimal index-build and
+  client-read run;
 - roadmap status distinguishes shipped work from proposals.
+
+PyPI publishing authenticates with `PYPI_API_TOKEN`. Migrating to trusted
+publishing (OIDC) is the intended direction: it removes the long-lived token
+in favor of short-lived credentials, but requires a trusted publisher mapping
+for this repository's `pypi` environment on the PyPI side first, so until that
+mapping exists the token flow remains the operative release path.

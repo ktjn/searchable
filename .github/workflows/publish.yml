@@ -54,6 +54,58 @@ jobs:
         run: |
           mkdir -p dist
           cp python/*/dist/* dist/
+      - name: Smoke test release artifacts in an isolated environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          uv venv /tmp/searchable-release-smoke
+
+          # searchable-client's transitive searchable dependencies (analysis +
+          # binary) form a closed set that must resolve from dist/ alone -- this
+          # is the check that catches a sibling searchable package omitted from
+          # the release (e.g. searchable-binary) or a stale version leaking into
+          # a clean install. Kept strictly offline/--no-index so it can never
+          # silently pick up a workspace editable package or an already-published
+          # version from PyPI.
+          uv pip install \
+            --python /tmp/searchable-release-smoke/bin/python \
+            --no-index \
+            --find-links dist \
+            searchable-client
+
+          # searchable-indexer additionally depends on selectolax, a third-party
+          # C-extension library that is not part of the searchable release set.
+          # Stage that one external runtime dependency from PyPI, then install the
+          # indexer offline from dist/ to prove every *searchable* dependency it
+          # declares resolves from these built artifacts.
+          uv pip install --python /tmp/searchable-release-smoke/bin/python selectolax
+          uv pip install \
+            --python /tmp/searchable-release-smoke/bin/python \
+            --no-index \
+            --find-links dist \
+            searchable-indexer
+
+          /tmp/searchable-release-smoke/bin/python -c \
+            "import searchable_analysis, searchable_binary, searchable_indexer, searchable_client"
+
+          # Minimal index-build + client-read scenario against a fresh HTML doc.
+          WORKDIR=$(mktemp -d)
+          mkdir -p "$WORKDIR/docs"
+          cat > "$WORKDIR/docs/index.html" <<'EOF'
+          <!doctype html>
+          <html lang="en">
+            <head><title>Widgets</title>
+              <meta name="description" content="Everything about widgets."></head>
+            <body><main><p>Our widgets are wonderful. Buy widgets today.</p></main></body>
+          </html>
+          EOF
+          /tmp/searchable-release-smoke/bin/searchable-indexer \
+            "$WORKDIR/docs" "$WORKDIR/index"
+          /tmp/searchable-release-smoke/bin/searchable-client query \
+            "$WORKDIR/index/manifest.json" widgets --json \
+            | /tmp/searchable-release-smoke/bin/python -c \
+              "import json, sys; data = json.load(sys.stdin); assert data['totalHits'] == 1, data; assert data['hits'][0]['fields']['title'] == 'Widgets', data; print('release artifact smoke test: ok')"
       - name: Publish Python packages to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:

@@ -118,8 +118,16 @@ function isIndexRequest(requestUrl: string, indexUrl: string): boolean {
   return requestUrl === indexUrl || requestUrl.startsWith(indexDir);
 }
 
+/**
+ * Serves from this Service Worker's own `CACHE_NAME` only — never from
+ * `caches.match()`, which searches every cache the origin owns and could
+ * return an entry some unrelated page/app cached under the same request
+ * URL (`searchable-offline` is the authoritative, versioned home for this
+ * index).
+ */
 async function cacheFirst(request: Request): Promise<Response> {
-  const cached = await caches.match(request);
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
   return cached ?? fetch(request);
 }
 
