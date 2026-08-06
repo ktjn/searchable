@@ -26,6 +26,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
+      - name: Install, lint, and typecheck searchable-binary (Python)
+        working-directory: python/searchable-binary
+        run: |
+          uv sync
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy src
       - name: Install, lint, typecheck, and test searchable-analysis (Python)
         working-directory: python/searchable-analysis
         run: |

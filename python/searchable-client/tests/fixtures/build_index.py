@@ -6,190 +6,14 @@ job).
 """
 
 import json
-import struct
 from pathlib import Path
 
-# --- Hand-rolled binary encoders, mirroring the real indexer's byte layout (see
-# python/searchable-indexer/src/searchable_indexer/binary_term_shard.py,
-# binary_doc_store.py, binary_fuzzy_shard.py) so that write_binary_format_index below
-# can build genuine binary-format shards without taking a dependency on the
-# searchable-indexer package (not a dependency of searchable-client). These use the
-# same varint/string encoding already verified correct against the client's decoders
-# in test_binary_shards.py.
-
-
-def _varint(n: int) -> bytes:
-    out = bytearray()
-    while True:
-        byte = n & 0x7F
-        n >>= 7
-        if n:
-            out.append(byte | 0x80)
-        else:
-            out.append(byte)
-            return bytes(out)
-
-
-def _string(s: str) -> bytes:
-    encoded = s.encode("utf-8")
-    return _varint(len(encoded)) + encoded
-
-
-def _float64(value: float) -> bytes:
-    return struct.pack("<d", value)
-
-
-def _encode_term_postings(entry: dict) -> bytes:
-    out = bytearray()
-    out += _varint(entry["df"])
-    out += _varint(len(entry["postings"]))
-    prev_doc = 0
-    for posting in entry["postings"]:
-        out += _varint(posting["doc"] - prev_doc)
-        prev_doc = posting["doc"]
-        has_boost = "boost" in posting
-        out += _varint(1 if has_boost else 0)
-        if has_boost:
-            out += _float64(posting["boost"])
-        field_names = sorted(posting["fields"].keys())
-        out += _varint(len(field_names))
-        for field_name in field_names:
-            fld = posting["fields"][field_name]
-            out += _string(field_name)
-            out += _varint(fld["tf"])
-            out += _varint(fld["len"])
-            out += _varint(len(fld["pos"]))
-            prev_pos = 0
-            for pos in fld["pos"]:
-                out += _varint(pos - prev_pos)
-                prev_pos = pos
-    return bytes(out)
-
-
-def _encode_term_shard_binary(term_shard: dict) -> bytes:
-    terms = sorted(term_shard.keys())
-    blobs = [_encode_term_postings(term_shard[t]) for t in terms]
-    directory = bytearray()
-    directory += _varint(len(terms))
-    offset = 0
-    for term, blob in zip(terms, blobs, strict=True):
-        directory += _string(term)
-        directory += _varint(offset)
-        directory += _varint(len(blob))
-        offset += len(blob)
-    return bytes(directory) + b"".join(blobs)
-
-
-def _encode_doc_store_binary(doc_shard: dict) -> bytes:
-    ids = sorted(int(k) for k in doc_shard.keys())
-    blobs = []
-    for doc_id in ids:
-        doc_entry = doc_shard[str(doc_id)]
-        out = bytearray()
-        out += _string(doc_entry["url"])
-        has_boost = "boost" in doc_entry
-        out += _varint(1 if has_boost else 0)
-        if has_boost:
-            out += _float64(doc_entry["boost"])
-        field_names = sorted(doc_entry["fields"].keys())
-        out += _varint(len(field_names))
-        for field_name in field_names:
-            out += _string(field_name)
-            out += _string(doc_entry["fields"].get(field_name) or "")
-        blobs.append(bytes(out))
-    directory = bytearray()
-    directory += _varint(len(ids))
-    prev_id = 0
-    offset = 0
-    for doc_id, blob in zip(ids, blobs, strict=True):
-        directory += _varint(doc_id - prev_id)
-        prev_id = doc_id
-        directory += _varint(offset)
-        directory += _varint(len(blob))
-        offset += len(blob)
-    return bytes(directory) + b"".join(blobs)
-
-
-def _encode_structured_doc_store_binary(doc_shard: dict) -> bytes:
-    def tagged(value) -> bytes:
-        if value is None:
-            return _varint(0)
-        if value is False:
-            return _varint(1)
-        if value is True:
-            return _varint(2)
-        if isinstance(value, (int, float)):
-            return _varint(3) + _float64(float(value))
-        if isinstance(value, str):
-            return _varint(4) + _string(value)
-        if isinstance(value, list):
-            return _varint(5) + _varint(len(value)) + b"".join(tagged(item) for item in value)
-        if isinstance(value, dict):
-            items = sorted(value.items())
-            return (
-                _varint(6)
-                + _varint(len(items))
-                + b"".join(_string(key) + tagged(item) for key, item in items)
-            )
-        raise TypeError(f"unsupported structured metadata value: {value!r}")
-
-    blobs = []
-    for doc_id in sorted(int(key) for key in doc_shard):
-        entry = doc_shard[str(doc_id)]
-        flags = 0
-        if "boost" in entry:
-            flags |= 1
-        if "externalId" in entry:
-            flags |= 2
-        if "contentHash" in entry:
-            flags |= 4
-        if "metadata" in entry:
-            flags |= 8
-        blob = bytearray(b"SDOC" + _varint(2) + _string(entry["url"]) + _varint(flags))
-        if flags & 1:
-            blob += _float64(entry["boost"])
-        if flags & 2:
-            blob += _string(entry["externalId"])
-        if flags & 4:
-            blob += _string(entry["contentHash"])
-        if flags & 8:
-            blob += tagged(entry["metadata"])
-        fields = entry["fields"]
-        blob += _varint(len(fields))
-        for field_name in sorted(fields):
-            blob += _string(field_name) + _string(fields[field_name])
-        blobs.append(bytes(blob))
-
-    directory = bytearray(b"SDOC" + _varint(2) + _varint(len(blobs)))
-    previous_id = 0
-    offset = 0
-    for doc_id, blob in zip(sorted(int(key) for key in doc_shard), blobs, strict=True):
-        directory += _varint(doc_id - previous_id) + _varint(offset) + _varint(len(blob))
-        previous_id = doc_id
-        offset += len(blob)
-    return bytes(directory) + b"".join(blobs)
-
-
-def _encode_fuzzy_shard_binary(fuzzy_shard: dict) -> bytes:
-    variants = sorted(fuzzy_shard["deletions"].keys())
-    blobs = []
-    for variant in variants:
-        terms = fuzzy_shard["deletions"].get(variant, [])
-        out = bytearray()
-        out += _varint(len(terms))
-        for term in terms:
-            out += _string(term)
-        blobs.append(bytes(out))
-    header = bytearray()
-    header += _varint(fuzzy_shard["maxEdits"])
-    header += _varint(len(variants))
-    offset = 0
-    for variant, blob in zip(variants, blobs, strict=True):
-        header += _string(variant)
-        header += _varint(offset)
-        header += _varint(len(blob))
-        offset += len(blob)
-    return bytes(header) + b"".join(blobs)
+from searchable_binary import (
+    encode_doc_store_binary,
+    encode_fuzzy_shard_binary,
+    encode_structured_doc_store_binary,
+    encode_term_shard_binary,
+)
 
 
 def write_basic_index(out_dir: Path) -> str:
@@ -1170,16 +994,16 @@ def write_binary_format_index(out_dir: Path) -> str:
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 2}}}],
         },
     }
-    (out_dir / "terms" / "all.bin").write_bytes(_encode_term_shard_binary(term_shard))
+    (out_dir / "terms" / "all.bin").write_bytes(encode_term_shard_binary(term_shard))
 
     doc_shard = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Red Widget"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Blue Widget"}},
     }
-    (out_dir / "docs" / "0.bin").write_bytes(_encode_doc_store_binary(doc_shard))
+    (out_dir / "docs" / "0.bin").write_bytes(encode_doc_store_binary(doc_shard))
 
     fuzzy_shard = {"maxEdits": 1, "deletions": {"wdget": ["widget"]}}
-    (out_dir / "fuzzy.bin").write_bytes(_encode_fuzzy_shard_binary(fuzzy_shard))
+    (out_dir / "fuzzy.bin").write_bytes(encode_fuzzy_shard_binary(fuzzy_shard))
 
     manifest = {
         "version": 1,
@@ -1228,7 +1052,7 @@ def write_structured_binary_format_index(out_dir: Path) -> str:
             "fields": {"title": "Blue Widget"},
         },
     }
-    out_dir.joinpath("docs", "0.bin").write_bytes(_encode_structured_doc_store_binary(doc_shard))
+    out_dir.joinpath("docs", "0.bin").write_bytes(encode_structured_doc_store_binary(doc_shard))
     manifest_path = out_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["shards"]["docs"][0]["binaryVersion"] = 2

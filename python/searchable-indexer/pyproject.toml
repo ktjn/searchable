@@ -5,6 +5,7 @@ description = "Reference index builder for Searchable (Python port of the lexica
 requires-python = ">=3.10"
 dependencies = [
     "searchable-analysis",
+    "searchable-binary",
     "selectolax>=0.3.21",
 ]
 
@@ -20,6 +21,7 @@ packages = ["src/searchable_indexer"]
 
 [tool.uv.sources]
 searchable-analysis = { path = "../searchable-analysis", editable = true }
+searchable-binary = { path = "../searchable-binary", editable = true }
 
 [dependency-groups]
 dev = ["pytest>=8.0.0", "jsonschema>=4.23.0", "ruff>=0.8.0", "mypy>=1.13.0"]

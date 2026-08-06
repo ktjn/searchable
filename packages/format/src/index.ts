@@ -60,7 +60,7 @@ export interface Manifest {
        * the term shard entry's `format` field above
        * (docs/archive/specs/binary-format.md#manifest-integration) — a
        * directory-based `docId -> (byte offset, byte length)` encoding
-       * (`python/searchable-indexer/src/searchable_indexer/binary_doc_store.py`,
+       * (`python/searchable-binary/src/searchable_binary/doc_store.py`,
        * `packages/client/src/binary-doc-store.ts`) in place of the plain
        * JSON `Record<docId, DocStoreEntry>` shape, so a query only ever
        * decodes the specific hit ids it needs instead of the whole doc
@@ -80,7 +80,7 @@ export interface Manifest {
    * dictionary. An object (not a bare file-string like `pins`/`synonyms`
    * above) because `format` needs somewhere to live: a directory-based
    * `deletionVariant -> (byte offset, byte length)` encoding
-   * (`python/searchable-indexer/src/searchable_indexer/binary_fuzzy_shard.py`,
+   * (`python/searchable-binary/src/searchable_binary/fuzzy_shard.py`,
    * `packages/client/src/binary-fuzzy-shard.ts`) is available here, since
    * a fuzzy dictionary can be as large as the term vocabulary itself
    * (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching) but a query

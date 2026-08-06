@@ -1,8 +1,7 @@
 import math
 
 import pytest
-
-from searchable_indexer.binary_doc_store import (
+from searchable_binary import (
     encode_doc_store_binary,
     encode_structured_doc_store_binary,
 )

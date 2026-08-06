@@ -1,4 +1,4 @@
-from searchable_indexer.binary_term_shard import encode_term_shard_binary
+from searchable_binary import encode_term_shard_binary
 
 
 def test_encodes_a_single_term_single_posting_single_field_shard():

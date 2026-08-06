@@ -5,10 +5,8 @@ client (mirrors packages/client/src/fuzzy.ts).
 import sys
 
 from searchable_analysis import generate_deletes
+from searchable_binary import decode_binary_fuzzy_entry, decode_binary_fuzzy_shard_directory
 
-from searchable_client.binary_fuzzy_shard import (
-    decode_binary_fuzzy_entry,
-)
 from searchable_client.fetch import ShardCache, resolve_url
 from searchable_client.types import Manifest, fuzzy_shard_from_dict
 
@@ -106,10 +104,6 @@ def _load_fuzzy_lookup(
     if entry is None:
         return None
     if entry.format == "binary":
-        from searchable_client.binary_fuzzy_shard import (
-            decode_binary_fuzzy_shard_directory,
-        )
-
         data = cache.fetch_bytes(resolve_url(base_url, entry.file))
         max_edits, _, index, dir_len = decode_binary_fuzzy_shard_directory(data)
 

@@ -1,4 +1,4 @@
-from searchable_indexer.byte_writer import ByteWriter
+from searchable_binary.bytecode import ByteWriter
 
 
 def test_write_varint_single_byte_values():

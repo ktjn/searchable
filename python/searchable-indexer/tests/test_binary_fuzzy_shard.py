@@ -1,4 +1,4 @@
-from searchable_indexer.binary_fuzzy_shard import encode_fuzzy_shard_binary
+from searchable_binary import encode_fuzzy_shard_binary
 
 
 def test_encodes_a_single_variant_shard():
