@@ -7,10 +7,11 @@ import {
   VectorProviderMismatchError,
   VectorSearchNotConfiguredError,
 } from "./vector-search.js";
-import type {
-  SerializedWorkerError,
-  WorkerRequest,
-  WorkerResponse,
+import {
+  type SerializedWorkerError,
+  WORKER_PROTOCOL_VERSION,
+  type WorkerRequest,
+  type WorkerResponse,
 } from "./worker-protocol.js";
 
 const cache = new ShardCache();
@@ -68,11 +69,16 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
           strict: msg.strict ?? false,
         }),
       );
-      const manifest = await manifestPromise;
+      // The manifest is still fetched+validated eagerly so `init` reports
+      // an invalid manifest (surfaced via the error path below) rather
+      // than letting the first query hit it -- but the init *result* the
+      // main thread waits on is the protocol handshake, not a search
+      // result (worker-protocol.ts).
+      await manifestPromise;
       post({
         type: "result",
         id: msg.id,
-        result: { hits: [], totalHits: 0, language: manifest.defaultLanguage },
+        result: { protocolVersion: WORKER_PROTOCOL_VERSION },
       });
       return;
     }

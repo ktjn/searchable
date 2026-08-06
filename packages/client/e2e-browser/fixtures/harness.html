@@ -97,6 +97,15 @@
         return rejectionOf(client.ready());
       };
 
+      window.__csfTestWorkerManifestValidationWithUrl = async (workerUrl) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: true,
+          workerUrl: new URL(workerUrl, location.href),
+        });
+        return rejectionOf(client.ready());
+      };
+
       window.__csfTestErrorParity = async (manifestUrl) => {
         const direct = new SearchClient({
           indexUrl: manifestUrl,
@@ -331,6 +340,125 @@
         return { mutated: await run(true), untouched: await run(false) };
       };
 
+      // Aborts while the client is still initializing (worker init pending,
+      // or the direct-mode manifest fetch in flight). ready() stays live in
+      // the background; only this caller's wait is cancelled.
+      window.__csfTestAbortDuringInit = async (useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker
+            ? new URL("./worker.js", location.href)
+            : undefined,
+        });
+        client.ready().catch(() => {});
+        const controller = new AbortController();
+        const pending = client.search("widgets", { signal: controller.signal });
+        controller.abort();
+        try {
+          await pending;
+          return undefined;
+        } catch (err) {
+          return err?.name;
+        }
+      };
+
+      // Aborts once the (already resolved) query embedding has started but
+      // not finished -- the caller must stop waiting on the embedding
+      // without cancelling it.
+      window.__csfTestAbortDuringEmbedding = async (useWorker) => {
+        window.__csfEmbedStarted = false;
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker
+            ? new URL("./worker.js", location.href)
+            : undefined,
+          embedQuery: () => {
+            window.__csfEmbedStarted = true;
+            return new Promise(() => {});
+          },
+        });
+        await client.ready();
+        const controller = new AbortController();
+        const pending = client.search("widgets", {
+          mode: "vector",
+          signal: controller.signal,
+        });
+        // Deterministic microtask spin (no timers): lets search() reach the
+        // embedding await before the abort, so the abort tests the
+        // embedding race rather than the readiness race.
+        for (let i = 0; i < 20; i++) await Promise.resolve();
+        if (!window.__csfEmbedStarted) return "embed-not-started";
+        controller.abort();
+        try {
+          await pending;
+          return undefined;
+        } catch (err) {
+          return err?.name;
+        }
+      };
+
+      // Filter values can be mutable arrays or range objects; a listener
+      // mutating the *received* options must not change what executes. The
+      // corpus here: doc 3 is the only "company" doc and never mentions
+      // "widgets", so with category ["company"] the query legitimately
+      // matches nothing -- a leaked mutation makes widgets visible.
+      window.__csfTestNestedFilterMutationParity = async (useWorker) => {
+        const run = async (mutate) => {
+          const client = new SearchClient({
+            indexUrl: "./manifest.json",
+            worker: useWorker,
+            workerUrl: useWorker
+              ? new URL("./worker.js", location.href)
+              : undefined,
+          });
+          await client.ready();
+          if (mutate) {
+            client.on("query", ({ options }) => {
+              options.filters.category.push("electronics");
+              delete options.filters.brand;
+            });
+          }
+          const result = await client.search("widgets", {
+            filters: { category: ["company"], brand: "acme" },
+          });
+          return result.hits.map((h) => h.id);
+        };
+        return { mutated: await run(true), untouched: await run(false) };
+      };
+
+      // Deep-nested mutations on the listener's options copy must not show
+      // up on the 'result' event either -- the result reports the original
+      // effective options, not what a listener tried to tweak.
+      window.__csfTestResultEventKeepsEffectiveOptions = async (useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker
+            ? new URL("./worker.js", location.href)
+            : undefined,
+        });
+        await client.ready();
+        let resultEventOptions;
+        client.on("query", ({ options }) => {
+          options.filters.category.push("electronics");
+          options.filters.price.min = 999;
+          if (options.boosts) options.boosts.fields.body = 999;
+          if (!options.boosts) options.boosts = { fields: { body: 999 } };
+          options.facets.push("injected");
+        });
+        client.on("result", ({ options }) => {
+          resultEventOptions = options;
+        });
+        const result = await client.search("widgets", {
+          filters: { category: ["company"], price: { min: 5 } },
+          boosts: { fields: { title: 1, body: 1 } },
+          facets: ["category"],
+        });
+        return { hits: result.hits.map((h) => h.id), resultEventOptions };
+      };
+
       // The 'query' event fires synchronously inside search(), but an
       // abort issued right after the call returns (before any microtask
       // runs) is caught by #assertUsable()'s post-ready re-check and the
@@ -476,6 +604,11 @@
         } catch {
           return "network-error";
         }
+      };
+
+      window.__csfFetchBody = async (url) => {
+        const res = await fetch(url);
+        return { status: res.status, body: await res.text() };
       };
 
       window.__csfHarnessReady = true;

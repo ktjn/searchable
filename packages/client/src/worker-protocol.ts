@@ -16,10 +16,35 @@ import type {
  * kept separate because `Omit<T, "id">` does not distribute over a
  * discriminated union, it collapses it.
  */
+/**
+ * Version of the wire protocol between `index.js` and `worker.js`. Bumped
+ * on the second release of the typed-error protocol: the main thread sends
+ * it in `init` and the Worker echoes it back in its `init` result, so a
+ * mixed-version deployment (a stale cached Worker next to a freshly
+ * deployed bundle, or vice versa) can be detected and failed safely rather
+ * than hanging. A Worker that doesn't return a `protocolVersion` is
+ * treated as the pre-handshake (version 1) protocol: its legacy
+ * `{ message }` error payloads are still accepted during the transition
+ * period (see `client.ts`'s `normalizeWorkerError` and
+ * docs/reference/compatibility.md).
+ */
+export const WORKER_PROTOCOL_VERSION = 2;
+
+export interface WorkerInitResult {
+  protocolVersion: number;
+}
+
+/**
+ * The `init` request's `result` is protocol metadata
+ * (`WorkerInitResult`), not a search result -- a fresh `init` implies no
+ * query has run yet. Search/facet requests carry `SearchResult`/`FacetResult`
+ * as today.
+ */
 export type WorkerRequestPayload =
   | {
       type: "init";
       indexUrl: string;
+      protocolVersion?: number;
       allowCrossOriginShards?: boolean;
       strict?: boolean;
     }
@@ -67,7 +92,11 @@ export interface SerializedWorkerError {
 }
 
 export type WorkerResponse =
-  | { type: "result"; id: number; result: SearchResult | FacetResult }
+  | {
+      type: "result";
+      id: number;
+      result: SearchResult | FacetResult | WorkerInitResult;
+    }
   /**
    * The literal/prefix-only pass of a `searchStream` request
    * (docs/reference/client-api.md#streamingincremental-results) -- sent
@@ -76,4 +105,18 @@ export type WorkerResponse =
    * arrives; only `"result"`/`"error"` settle it.
    */
   | { type: "partial"; id: number; result: SearchResult }
-  | { type: "error"; id: number; error: SerializedWorkerError };
+  /**
+   * `error` is the current payload (version 2, worker-protocol.ts);
+   * `message` is the legacy (version 1) payload a stale cached Worker
+   * script still sends. Both are optional in the type because the main
+   * thread's handler peels the pending request off only after
+   * normalizing either shape -- see `client.ts`'s
+   * `normalizeWorkerError()`. Neither being present falls back to a
+   * generic "Unknown Worker error" rather than hanging the request.
+   */
+  | {
+      type: "error";
+      id: number;
+      error?: SerializedWorkerError;
+      message?: string;
+    };

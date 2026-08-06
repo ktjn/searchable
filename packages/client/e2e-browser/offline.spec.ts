@@ -44,6 +44,7 @@ declare global {
       status: number,
       body?: string,
     ) => Promise<void>;
+    __csfFetchBody?: (url: string) => Promise<{ status: number; body: string }>;
   }
 }
 
@@ -452,6 +453,233 @@ test.describe("structured binary document store offline", () => {
         url: "/en/offline-rag",
         fields: { title: "Offline RAG", body: "cached evidence" },
       }),
+    ]);
+    await context.setOffline(false);
+  });
+});
+
+const alphaSources: PythonSourceDocument[] = [
+  {
+    id: 1,
+    url: "/alpha",
+    html: `<html lang="en"><head><title>Alpha Thing</title></head>
+      <body><main><p>alpha widgets</p></main></body></html>`,
+  },
+];
+
+const betaSources: PythonSourceDocument[] = [
+  {
+    id: 1,
+    url: "/beta-one",
+    html: `<html lang="en"><head><title>Beta One</title></head>
+      <body><main><p>beta banana</p></main></body></html>`,
+  },
+  {
+    id: 2,
+    url: "/beta-two",
+    html: `<html lang="en"><head><title>Beta Two</title></head>
+      <body><main><p>gamma cherry</p></main></body></html>`,
+  },
+];
+
+/** Every shard file a manifest references (docs/concepts/index-format.md#manifest). */
+function manifestFileRefs(manifest: {
+  shards: {
+    terms?: Array<{ file: string }>;
+    facets?: Array<{ file: string }>;
+    docs?: Array<{ file: string }>;
+  };
+  pins?: Record<string, string>;
+  synonyms?: Record<string, string>;
+  fuzzy?: Record<string, { file: string }>;
+  vectors?: { shards?: Record<string, string> };
+}): string[] {
+  const refs: string[] = [];
+  const push = (file: unknown): void => {
+    if (typeof file === "string") refs.push(file);
+  };
+  for (const e of manifest.shards.terms ?? []) push(e.file);
+  for (const e of manifest.shards.facets ?? []) push(e.file);
+  for (const e of manifest.shards.docs ?? []) push(e.file);
+  for (const e of Object.values(manifest.pins ?? {})) push(e);
+  for (const e of Object.values(manifest.synonyms ?? {})) push(e);
+  for (const e of Object.values(manifest.fuzzy ?? {})) push(e.file);
+  for (const e of Object.values(manifest.vectors?.shards ?? {})) push(e);
+  return refs;
+}
+
+test.describe("atomic offline index update: a failed install keeps the previous index (docs/guides/offline-search.md)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let rootDir: string;
+  let betaManifestBytes: Buffer;
+
+  test.beforeAll(async () => {
+    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-atomic-fail-"));
+    await cp(clientDist, rootDir, { recursive: true });
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
+
+    // Index A is the initial, fully-working offline index.
+    const alpha = await writePythonIndex(alphaSources);
+    await cp(alpha.outDir, rootDir, { recursive: true });
+    await alpha.cleanup();
+    const alphaManifest = JSON.parse(
+      await readFile(join(rootDir, "manifest.json"), "utf8"),
+    );
+
+    // Index B is the would-be update. One B-only shard file is left out of
+    // the served directory so its fetch 404s.
+    const beta = await writePythonIndex(betaSources);
+    const betaManifest = JSON.parse(
+      await readFile(join(beta.outDir, "manifest.json"), "utf8"),
+    );
+    betaManifestBytes = await readFile(join(beta.outDir, "manifest.json"));
+    const alphaRefs = manifestFileRefs(alphaManifest);
+    const betaRefs = manifestFileRefs(betaManifest);
+    const betaOnly = betaRefs.find((file) => !alphaRefs.includes(file));
+    if (!betaOnly) {
+      throw new Error("index B has no shard file distinct from index A");
+    }
+    for (const ref of betaRefs) {
+      if (ref === betaOnly) continue;
+      await cp(join(beta.outDir, ref), join(rootDir, ref));
+    }
+    await beta.cleanup();
+
+    const server = await serveDir(rootDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  test("a failed B install leaves A active and fully operational offline", async ({
+    page,
+    context,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    // Install and activate index A, then verify it works fully offline.
+    await page.evaluate(
+      ([swPath, indexUrl]) => window.__csfRegisterOffline?.(swPath, indexUrl),
+      ["./sw.js", "./manifest.json"] as [string, string],
+    );
+    await context.setOffline(true);
+    const aOffline = await page.evaluate(
+      ([query]) => window.__csfRunSearch?.(query, false, { language: "en" }),
+      ["alpha"] as [string],
+    );
+    expect(aOffline?.hits.map((h) => h.id)).toEqual([1]);
+    await context.setOffline(false);
+
+    // Swap the same manifest URL to index B on disk (one B shard 404s) and
+    // attempt the update with a distinct worker script URL (how a deploy
+    // registers a new version).
+    await writeFile(join(rootDir, "manifest.json"), betaManifestBytes);
+    const bState = await page.evaluate(
+      ([swPath, indexUrl]) =>
+        window.__csfRegisterOfflineTrackInstall?.(swPath, indexUrl),
+      ["./sw.js?v=2", "./manifest.json"] as [string, string],
+    );
+    expect(bState).toBe("redundant");
+
+    // Offline again: A's manifest (docCount 1) is still served, never B's
+    // (docCount 2), and a query against A still succeeds.
+    await context.setOffline(true);
+    const body = (await page.evaluate(
+      (indexUrl) => window.__csfFetchBody?.(indexUrl),
+      `${baseUrl}manifest.json`,
+    )) ?? { status: -1, body: "{}" };
+    const parsed = JSON.parse(body.body);
+    expect(parsed.docCount.en).toBe(1);
+    const aQuery = await page.evaluate(
+      ([query]) => window.__csfRunSearch?.(query, false, { language: "en" }),
+      ["alpha"] as [string],
+    );
+    expect(aQuery?.hits.map((h) => h.id)).toEqual([1]);
+    await context.setOffline(false);
+  });
+});
+
+test.describe("atomic offline index update: a successful install replaces the previous index", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let rootDir: string;
+  let betaManifestBytes: Buffer;
+
+  test.beforeAll(async () => {
+    rootDir = await mkdtemp(join(tmpdir(), "searchable-browser-atomic-ok-"));
+    await cp(clientDist, rootDir, { recursive: true });
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
+
+    const alpha = await writePythonIndex(alphaSources);
+    await cp(alpha.outDir, rootDir, { recursive: true });
+    await alpha.cleanup();
+
+    // Every B shard present this time.
+    const beta = await writePythonIndex(betaSources);
+    const betaManifest = JSON.parse(
+      await readFile(join(beta.outDir, "manifest.json"), "utf8"),
+    );
+    betaManifestBytes = await readFile(join(beta.outDir, "manifest.json"));
+    for (const ref of manifestFileRefs(betaManifest)) {
+      await cp(join(beta.outDir, ref), join(rootDir, ref));
+    }
+    await beta.cleanup();
+
+    const server = await serveDir(rootDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  test("a successful B install replaces A and serves B fully offline", async ({
+    page,
+    context,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    await page.evaluate(
+      ([swPath, indexUrl]) => window.__csfRegisterOffline?.(swPath, indexUrl),
+      ["./sw.js", "./manifest.json"] as [string, string],
+    );
+    await writeFile(join(rootDir, "manifest.json"), betaManifestBytes);
+
+    const bState = await page.evaluate(
+      ([swPath, indexUrl]) =>
+        window.__csfRegisterOfflineTrackInstall?.(swPath, indexUrl),
+      ["./sw.js?v=2", "./manifest.json"] as [string, string],
+    );
+    expect(bState).toBe("activated");
+
+    await context.setOffline(true);
+    const body = (await page.evaluate(
+      (indexUrl) => window.__csfFetchBody?.(indexUrl),
+      `${baseUrl}manifest.json`,
+    )) ?? { status: -1, body: "{}" };
+    const parsed = JSON.parse(body.body);
+    expect(parsed.docCount.en).toBe(2); // B is now authoritative
+    const bQuery = await page.evaluate(
+      ([query]) => window.__csfRunSearch?.(query, false, { language: "en" }),
+      ["banana"] as [string],
+    );
+    expect(bQuery?.hits).toEqual([
+      expect.objectContaining({ id: 1, url: "/beta-one" }),
     ]);
     await context.setOffline(false);
   });
