@@ -31,7 +31,7 @@
 - Test: `packages/format` typecheck and schema validation tests
 
 **Interfaces:**
-- Consumes: existing v1 directory/record layout in `python/searchable-indexer/src/searchable_indexer/binary_doc_store.py` and `packages/client/src/binary-doc-store.ts`.
+- Consumes: existing v1 directory/record layout in `python/searchable-binary/src/searchable_binary/doc_store.py` and `packages/client/src/binary-doc-store.ts`.
 - Produces: a documented structured binary v2 contract and shared `DocStoreEntry` type fields `externalId?: string`, `contentHash?: string`, and `metadata?: Record<string, JsonValue>`.
 
 - [ ] Write the failing format/type tests first.
@@ -80,7 +80,7 @@ Document that the directory retains the existing delta-encoded document IDs and 
 ### Task 2: Implement Python structured binary encoding
 
 **Files:**
-- Modify: `python/searchable-indexer/src/searchable_indexer/binary_doc_store.py`
+- Modify: `python/searchable-binary/src/searchable_binary/doc_store.py`
 - Modify: `python/searchable-indexer/src/searchable_indexer/write_index.py`
 - Test: `python/searchable-indexer/tests/test_binary_doc_store.py`
 - Test: `python/searchable-indexer/tests/test_write_index.py`
@@ -115,7 +115,7 @@ uv run pytest tests/test_binary_doc_store.py tests/test_write_index.py -q
 ### Task 3: Implement Python v2 decoding and client integration
 
 **Files:**
-- Modify: `python/searchable-client/src/searchable_client/binary_doc_store.py`
+- Modify: `python/searchable-binary/src/searchable_binary/doc_store.py`
 - Modify: `python/searchable-client/src/searchable_client/types.py`
 - Modify: `python/searchable-client/src/searchable_client/client.py`
 - Test: `python/searchable-client/tests/test_binary_shards.py`
