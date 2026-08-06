@@ -40,6 +40,19 @@ client.dispose();
 
 `on("query", listener)` and `on("result", listener)` return unsubscribe functions. Events are local observation hooks; the library sends no analytics. `dispose()` is idempotent, terminates the worker, rejects pending work, and prevents future use.
 
+### Worker deployment compatibility
+
+`index.js` (main thread) and `worker.js` (the worker script) speak a versioned wire protocol, carried from `init` to the worker and echoed back (docs/reference/compatibility.md#worker-protocol-versions). Deploy both from the same package version where possible — content-hashed worker URLs are the recommended pattern:
+
+```ts
+new SearchClient({
+  indexUrl,
+  workerUrl: new URL("./worker.<content-hash>.js", import.meta.url),
+});
+```
+
+A temporarily mixed deployment (a freshly deployed bundle against a stale cached worker script, or vice versa) still fails safely: legacy `{ message }` worker errors are accepted during the transition, and a genuinely incompatible protocol version makes `ready()` reject with a clear error instead of hanging a request.
+
 ## Other exports
 
 The package exports highlighting types, manifest validation (`validateManifest`, `InvalidManifestError`), offline caching (`registerOfflineCaching`), RTL detection, vector helpers and errors, and the optional Transformers query adapter. The complete type declarations shipped with the package are the normative API. Designs for warm-up, suggestions, federation, and broader diagnostics are archived and linked from the [roadmap](../project/roadmap.md).

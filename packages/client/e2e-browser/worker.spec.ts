@@ -42,6 +42,9 @@ declare global {
     __csfTestWorkerManifestValidation?: (
       manifestUrl: string,
     ) => Promise<string | undefined>;
+    __csfTestWorkerManifestValidationWithUrl?: (
+      workerUrl: string,
+    ) => Promise<string | undefined>;
     __csfTestErrorParity?: (manifestUrl: string) => Promise<{
       direct?: {
         name: string;
@@ -514,6 +517,67 @@ test.describe("SearchClient lifecycle (real browser)", () => {
     expect(withWorker?.isVectorNotConfigured).toBe(true);
     expect(withoutWorker?.isVectorNotConfigured).toBe(true);
     expect(withWorker?.message).toBe(withoutWorker?.message);
+  });
+});
+
+test.describe("legacy Worker protocol compatibility (real browser)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let rootDir: string;
+
+  test.beforeAll(async () => {
+    rootDir = await mkdtemp(
+      join(tmpdir(), "searchable-browser-e2e-legacy-worker-"),
+    );
+    await cp(clientDist, rootDir, { recursive: true });
+    await cp(
+      join(__dirname, "fixtures", "harness.html"),
+      join(rootDir, "harness.html"),
+    );
+    await cp(
+      join(__dirname, "fixtures", "worker-legacy.js"),
+      join(rootDir, "worker-legacy.js"),
+    );
+    const { outDir: pythonOutDir, cleanup: cleanupIndex } =
+      await writePythonIndex(sources);
+    await cp(pythonOutDir, rootDir, { recursive: true });
+    await cleanupIndex();
+
+    const server = await serveDir(rootDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  test.afterAll(async () => {
+    await closeServer();
+    await rm(rootDir, { recursive: true, force: true });
+  });
+
+  test("a current index.js accepts a pre-handshake Worker's init result (no protocolVersion)", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const message = await page.evaluate(() =>
+      window.__csfTestWorkerManifestValidationWithUrl?.("./worker-legacy.js"),
+    );
+    // Legacy init succeeds: ready() resolves, so no rejection message.
+    expect(message).toBeUndefined();
+  });
+
+  test("a legacy Worker's `{ message }` error payload rejects ready() instead of hanging", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const message = await page.evaluate(() =>
+      window.__csfTestWorkerManifestValidationWithUrl?.(
+        "./worker-legacy.js?fail=1",
+      ),
+    );
+    expect(message).toContain("legacy init rejected: invalid manifest");
   });
 });
 

@@ -15,10 +15,12 @@ import {
   VectorProviderMismatchError,
   VectorSearchNotConfiguredError,
 } from "./vector-search.js";
-import type {
-  SerializedWorkerError,
-  WorkerRequestPayload,
-  WorkerResponse,
+import {
+  type SerializedWorkerError,
+  WORKER_PROTOCOL_VERSION,
+  type WorkerInitResult,
+  type WorkerRequestPayload,
+  type WorkerResponse,
 } from "./worker-protocol.js";
 
 /**
@@ -72,6 +74,24 @@ function snapshotSearchOptions<T extends SearchOptions>(options: T): T {
       : {}),
     ...(options.filters ? { filters: { ...options.filters } } : {}),
     ...(options.facets ? { facets: [...options.facets] } : {}),
+  };
+}
+
+/**
+ * Normalizes a Worker response's `"error"` payload so both the current
+ * (version 2, `error: { code, name, message }`) and legacy (version 1,
+ * `message: string`) shapes settle the pending request instead of
+ * hanging it. A stale cached Worker script from the previous release
+ * still speaks the legacy shape (docs/reference/compatibility.md).
+ */
+function normalizeWorkerError(
+  message: Extract<WorkerResponse, { type: "error" }>,
+): SerializedWorkerError {
+  if (message.error) return message.error;
+  return {
+    code: "UNKNOWN",
+    name: "Error",
+    message: message.message ?? "Unknown Worker error",
   };
 }
 
@@ -230,7 +250,7 @@ export interface SearchClientOptions {
 }
 
 interface PendingRequest {
-  resolve: (result: SearchResult | FacetResult) => void;
+  resolve: (result: SearchResult | FacetResult | WorkerInitResult) => void;
   reject: (err: Error) => void;
   /** Only set for a searchStream() request -- see #handleWorkerMessage. */
   onPartial?: (result: SearchResult) => void;
@@ -337,14 +357,30 @@ export class SearchClient {
           new Error("worker message could not be deserialized"),
         );
       });
-      this.#ready = this.#sendToWorker({
+      this.#ready = this.#sendToWorker<WorkerInitResult>({
         type: "init",
+        protocolVersion: WORKER_PROTOCOL_VERSION,
         indexUrl: this.#indexUrl,
         ...(options.allowCrossOriginShards !== undefined
           ? { allowCrossOriginShards: options.allowCrossOriginShards }
           : {}),
         ...(options.strict !== undefined ? { strict: options.strict } : {}),
-      }).then(() => undefined);
+      })
+        .then((initResult) => {
+          this.#assertProtocolCompatible(initResult.protocolVersion);
+        })
+        .catch((error: unknown) => {
+          // A Worker whose initiation failed (invalid manifest, unknown
+          // domain error, protocol mismatch, ...) can never become usable:
+          // terminate and dereference it so the client can't keep a
+          // reference to a doomed worker, and record the original error as
+          // the client's fatal error so future calls fail immediately with
+          // the same type/message (docs/reference/compatibility.md).
+          const normalized =
+            error instanceof Error ? error : new Error(String(error));
+          this.#fail(normalized);
+          throw normalized;
+        });
     } else {
       this.#manifest = this.#cache
         .fetchJson<Manifest>(this.#indexUrl)
@@ -666,7 +702,18 @@ export class SearchClient {
     this.#pendingRequests.clear();
   }
 
-  #sendToWorker<T extends SearchResult | FacetResult>(
+  #assertProtocolCompatible(version: number | undefined): void {
+    // A missing version means the Worker predates the protocol handshake
+    // (version 1, legacy `{ message }` error payloads), which the
+    // normalization layer still accepts during the transition period -- so
+    // only a *known* foreign version is a hard incompatibility.
+    if (version === undefined || version === WORKER_PROTOCOL_VERSION) return;
+    throw new Error(
+      `SearchClient: worker protocol version ${version} is not supported (expected ${WORKER_PROTOCOL_VERSION}) — deploy index.js and worker.js from the same package version (docs/reference/compatibility.md)`,
+    );
+  }
+
+  #sendToWorker<T extends SearchResult | FacetResult | WorkerInitResult>(
     message: WorkerRequestPayload,
     onPartial?: (result: SearchResult) => void,
   ): Promise<T> {
@@ -676,7 +723,9 @@ export class SearchClient {
     const id = this.#nextRequestId++;
     return new Promise<T>((resolve, reject) => {
       this.#pendingRequests.set(id, {
-        resolve: resolve as (result: SearchResult | FacetResult) => void,
+        resolve: resolve as (
+          result: SearchResult | FacetResult | WorkerInitResult,
+        ) => void,
         reject,
         ...(onPartial ? { onPartial } : {}),
       });
@@ -686,19 +735,34 @@ export class SearchClient {
   }
 
   #handleWorkerMessage(message: WorkerResponse): void {
-    const pending = this.#pendingRequests.get(message.id);
-    if (!pending) return;
-    // A "partial" message doesn't settle the request -- the final
-    // "result"/"error" message for the same id still follows.
-    if (message.type === "partial") {
-      pending.onPartial?.(message.result);
-      return;
-    }
-    this.#pendingRequests.delete(message.id);
-    if (message.type === "error") {
-      pending.reject(deserializeWorkerError(message.error));
-    } else {
+    try {
+      const pending = this.#pendingRequests.get(message.id);
+      if (!pending) return;
+      // A "partial" message doesn't settle the request -- the final
+      // "result"/"error" message for the same id still follows.
+      if (message.type === "partial") {
+        pending.onPartial?.(message.result);
+        return;
+      }
+      // Normalize and deserialize *before* peeling the pending request
+      // off the map: if this throws (malformed message), the request must
+      // still settle -- via the fatal path below -- rather than being left
+      // to hang after its entry was already removed.
+      if (message.type === "error") {
+        const error = deserializeWorkerError(normalizeWorkerError(message));
+        this.#pendingRequests.delete(message.id);
+        pending.reject(error);
+        return;
+      }
+      this.#pendingRequests.delete(message.id);
       pending.resolve(message.result);
+    } catch (error) {
+      // A malformed Worker message must never leave pending requests
+      // unresolved -- retire the whole client so every pending request
+      // settles with the stored fatal error and future calls fail fast.
+      this.#fail(
+        error instanceof Error ? error : new Error("Invalid Worker response"),
+      );
     }
   }
 }

@@ -54,6 +54,17 @@ are explicitly marked experimental and may change in a minor release.
 - Search event listeners receive a snapshot of the search options; mutating
   the object a `query` listener receives can no longer alter the query that
   executes or what the `result` event reports.
+- A Worker whose `init` request fails (invalid manifest, unknown domain
+  error, or a protocol mismatch) is now terminated and dereferenced, the
+  original error becomes the client's fatal error, and future calls fail
+  immediately with it — instead of leaving a doomed Worker referenced
+  (worker-protocol.ts handshake below).
+- A legacy (version-1) Worker `{ message }` error payload — from a freshly
+  deployed `index.js` against a stale cached `worker.js` — now rejects the
+  pending request instead of hanging it, and a malformed Worker message can
+  never leave a pending request unresolved (the client retires itself
+  fatally); the Worker protocol is now versioned (handshake in `init`,
+  `docs/reference/compatibility.md#worker-protocol-versions`).
 
 ### Security
 
