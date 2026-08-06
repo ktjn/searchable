@@ -49,13 +49,37 @@ function abortError(): DOMException {
 }
 
 /**
- * Shallow-copies the root `SearchOptions` object plus every nested
- * mutable map the query actually reads (`boosts.fields`/`boosts.terms`,
- * `filters`, `facets`) into a stable snapshot. Event listeners receive
- * this snapshot, not the caller's live object -- so a synchronous 'query'
- * listener that mutates `options.filters`/`options.boosts` to observe or
- * tweak state can never silently change the query that actually runs.
- * Cost is negligible relative to shard loading and scoring.
+ * Clones a `SearchOptions.filters` record plus every nested mutable value:
+ * a filter value can be a string, a mutable string array, or a mutable
+ * `{ min?, max? }` range object, and all three must be copied so a
+ * listener mutating a received snapshot (`filters.category.push(...)`,
+ * `filters.price.min = ...`) can't reach the executing query.
+ */
+function snapshotFilters(
+  filters: NonNullable<SearchOptions["filters"]>,
+): NonNullable<SearchOptions["filters"]> {
+  return Object.fromEntries(
+    Object.entries(filters).map(([field, value]) => [
+      field,
+      Array.isArray(value)
+        ? [...value]
+        : typeof value === "object"
+          ? { ...(value as { min?: number; max?: number }) }
+          : value,
+    ]),
+  );
+}
+
+/**
+ * Copies the root `SearchOptions` object plus every nested mutable value
+ * the query actually reads (`boosts.fields`/`boosts.terms`, `filters`
+ * including nested arrays/range objects, `facets`) into a stable
+ * snapshot. Event listeners receive this snapshot, not the caller's live
+ * object -- so a synchronous 'query' listener that mutates what it
+ * receives can never silently change the query that actually runs.
+ * `onPartial`/`signal` keep their references (functions and signals aren't
+ * clone targets). Cost is negligible relative to shard loading and
+ * scoring.
  */
 function snapshotSearchOptions<T extends SearchOptions>(options: T): T {
   return {
@@ -72,7 +96,7 @@ function snapshotSearchOptions<T extends SearchOptions>(options: T): T {
           },
         }
       : {}),
-    ...(options.filters ? { filters: { ...options.filters } } : {}),
+    ...(options.filters ? { filters: snapshotFilters(options.filters) } : {}),
     ...(options.facets ? { facets: [...options.facets] } : {}),
   };
 }
@@ -403,11 +427,17 @@ export class SearchClient {
    * always wins, the caller's `signal` aborts waiting, the manifest (or
    * worker `init`) must be resolved, and a fatal error that only surfaces
    * *during* that resolution (rather than before it) is still surfaced.
+   * Readiness is raced against `signal` so an abort while the client is
+   * still initializing rejects promptly instead of waiting for the shared
+   * init work to finish -- the init itself still completes and is shared,
+   * only this caller's wait is cancelled.
    */
   async #assertUsable(signal: AbortSignal | undefined): Promise<void> {
     if (this.#fatalError) throw this.#fatalError;
     throwIfAborted(signal);
-    await this.#ready;
+
+    await raceAbort(this.#ready, signal);
+
     if (this.#fatalError) throw this.#fatalError;
     throwIfAborted(signal);
   }
@@ -420,8 +450,14 @@ export class SearchClient {
     // Computed here, not inside search.ts, because `embedQuery` is
     // arbitrary caller JS that can't cross the Worker postMessage
     // boundary -- only its plain-array *result* can
-    // (docs/guides/vector-search.md).
-    const queryVector = await this.#resolveQueryVector(query, options.mode);
+    // (docs/guides/vector-search.md). Raced against `signal` so a slow
+    // remote embedding call or local model inference doesn't hold the
+    // aborted caller hostage -- the embedding promise keeps running (it may
+    // be shared), only the wait is cancelled.
+    const queryVector = await raceAbort(
+      this.#resolveQueryVector(query, options.mode),
+      options.signal,
+    );
     throwIfAborted(options.signal);
     // Snapshot the options before the query event fires: a synchronous
     // listener may abort (honored by raceAbort's aborted-first check) or

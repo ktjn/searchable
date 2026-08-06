@@ -40,6 +40,12 @@ client.dispose();
 
 `on("query", listener)` and `on("result", listener)` return unsubscribe functions. Events are local observation hooks; the library sends no analytics. `dispose()` is idempotent, terminates the worker, rejects pending work, and prevents future use.
 
+Both event payloads carry an *isolated mutable snapshot* of the search options: the `query` event fires with a copy (including copied nested filter arrays and range objects, boost maps, and the facet list), so a listener can read or mutate what it receives without changing the query that executes or what the later `result` event reports. The `result` event always reports the options the query actually ran with.
+
+### Abort semantics
+
+`SearchOptions.signal` rejects the caller's `search()`/`searchStream()`/`facetValues()` promise with an `AbortError` as soon as it fires — including while the client is still initializing (worker `init` or the direct-mode manifest load) or while `embedQuery()` is computing. Cancelling *waits*, never the shared work itself: shared shard fetches, the shared init, and a shared embedding keep running for other callers, and nothing is delivered (no `result` event, no `onPartial`) to a caller who already aborted.
+
 ### Worker deployment compatibility
 
 `index.js` (main thread) and `worker.js` (the worker script) speak a versioned wire protocol, carried from `init` to the worker and echoed back (docs/reference/compatibility.md#worker-protocol-versions). Deploy both from the same package version where possible — content-hashed worker URLs are the recommended pattern:
