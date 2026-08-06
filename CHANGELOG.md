@@ -78,6 +78,15 @@ are explicitly marked experimental and may change in a minor release.
   `filters.price.min = ...`, deleting a filter, nested boosts, the facet
   list — can no longer alter the query that executes or the `result` event
   payload.
+- The offline Service Worker's installation is now atomic: every referenced
+  shard is fetched, validated, and written before the manifest entry is
+  replaced (the manifest is the install's commit marker), so a failed
+  install leaves the previously active index fully operational offline
+  (docs/guides/offline-search.md).
+- Stale-while-revalidate now awaits the successful network response's
+  `cache.put()` before the refresh settles, so `waitUntil()` genuinely
+  covers cache persistence; failed or non-OK responses are never written
+  and never replace an existing good cached entry.
 
 ### Security
 

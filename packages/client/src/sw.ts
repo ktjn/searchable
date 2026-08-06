@@ -22,6 +22,11 @@ declare const self: ServiceWorkerGlobalScope;
  * become unreferenced dead weight rather than ever being served
  * incorrectly. Pruning that dead weight is a known future
  * improvement, not attempted here.
+ *
+ * The manifest entry doubles as the install's commit marker: `precache()`
+ * caches every referenced shard before writing it, so a failed install
+ * never replaces the previously-active manifest with one whose shards
+ * aren't all cached from the same build (docs/guides/offline-search.md).
  */
 const CACHE_NAME = "searchable-offline";
 
@@ -97,7 +102,15 @@ function shardUrlsFor(
 
 async function precache(): Promise<void> {
   const { indexUrl, languages, allowCrossOriginShards } = parseConfig();
-  const manifestResponse = await fetch(indexUrl);
+  // no-store: an install must always see the *current* deployment's
+  // manifest, never a heuristic HTTP-cache hit for the same URL from an
+  // earlier version.
+  const manifestResponse = await fetch(indexUrl, { cache: "no-store" });
+  if (!manifestResponse.ok) {
+    throw new Error(
+      `searchable offline Service Worker: failed to fetch manifest ${indexUrl}: HTTP ${manifestResponse.status}`,
+    );
+  }
   const rawManifest: Manifest = await manifestResponse.clone().json();
   // Same validation the main-thread/Worker query paths already run
   // before trusting a fetched manifest (client.ts, worker.ts) -- without
@@ -107,9 +120,36 @@ async function precache(): Promise<void> {
   const manifest = validateManifest(rawManifest, indexUrl, {
     allowCrossOriginShards,
   });
+
+  // Fetch every referenced shard up front, checking each response, then
+  // write them all *before* the manifest. The manifest entry is the
+  // commit marker for the install: replacing it only after every shard is
+  // safely in the cache means a failed install (one shard 404s, a write
+  // throws, ...) can never leave the previously-active Worker serving a
+  // new manifest whose shards aren't all cached -- the old manifest entry
+  // still points at the old, fully-cached, content-hashed shards. Shards
+  // partially written by a failed attempt are unreachable until a later
+  // successful commit overwrites the manifest, so they're harmless.
+  // Deliberately explicit fetch+put rather than cache.addAll() so each
+  // response's status is validated and the commit point stays obvious.
+  const shardUrls = shardUrlsFor(manifest, indexUrl, languages);
+  const shardResponses = await Promise.all(
+    shardUrls.map(async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(
+          `searchable offline Service Worker: failed to precache ${url}: HTTP ${response.status}`,
+        );
+      }
+      return [url, response] as const;
+    }),
+  );
+
   const cache = await caches.open(CACHE_NAME);
+  for (const [url, response] of shardResponses) {
+    await cache.put(url, response);
+  }
   await cache.put(indexUrl, manifestResponse);
-  await cache.addAll(shardUrlsFor(manifest, indexUrl, languages));
 }
 
 /** Only requests under the manifest's own directory are ever intercepted -- everything else (unrelated page traffic) passes straight through, untouched, so this Service Worker's presence never adds latency to requests it has nothing to do with. */
@@ -137,11 +177,20 @@ async function staleWhileRevalidate(
 ): Promise<Response> {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
-  const networkUpdate = fetch(request).then((response) => {
-    if (response.ok) cache.put(request, response.clone());
+  // `networkUpdate` resolves only after a successful cache write *and* the
+  // network response both complete, so the lifetime registered with
+  // event.waitUntil() below genuinely covers cache persistence -- not just
+  // the fetch. A failed or non-OK response is returned but never written
+  // (and never replaces an existing good cached entry).
+  const networkUpdate = fetch(request).then(async (response) => {
+    if (response.ok) {
+      await cache.put(request, response.clone());
+    }
     return response;
   });
   event.waitUntil(networkUpdate.catch(() => undefined));
+  // With no cached response the caller's answer is the refresh itself,
+  // which now also awaits persistence.
   return cached ?? networkUpdate;
 }
 

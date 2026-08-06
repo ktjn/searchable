@@ -606,6 +606,11 @@
         }
       };
 
+      window.__csfFetchBody = async (url) => {
+        const res = await fetch(url);
+        return { status: res.status, body: await res.text() };
+      };
+
       window.__csfHarnessReady = true;
     </script>
   </body>
