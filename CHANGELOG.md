@@ -16,7 +16,32 @@ are explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
-## [1.1.1] - 2026-08-03
+## [1.1.2] - 2026-08-06
+
+This release is `1.1.2` for the npm packages, `0.2.2` for `searchable-indexer`
+and `searchable-analysis`, `0.4.1` for the Python client, and the first PyPI
+publish of the new `searchable-binary` `0.1.0` package.
+
+### Changed
+
+- Internal-only: the binary shard codecs (term/fuzzy shards and the document
+  store) now live in a single shared home, the new `searchable-binary` package,
+  used by both the Python indexer (writer) and the Python client (reader) so a
+  format change is a single edit per language. `searchable-client` and
+  `searchable-indexer` now depend on it; the publish workflow learns to ship it
+  to PyPI so both artifacts remain installable.
+- Internal-only cleanup: the TypeScript and Python clients were split into
+  focused modules (fuzzy, facets, hybrid, phrase, synonyms, doc store, ...) by
+  cross-package dedup, the gallery/pipeline walkers were deduplicated, and the
+  relevance suites' v1/v2 load/run paths were unified. None of this changes the
+  published API surface or the index format.
+
+### Notes
+
+- No functional changes to the published API or the `Manifest.version` contract
+  (`1`); this patch bump releases the internal restructuring and the first
+  `searchable-binary` artifact.
+
 
 This release is `1.1.1` for the npm packages, `0.2.1` for `searchable-indexer`
 and `searchable-analysis`, and `0.4.0` for the Python client.

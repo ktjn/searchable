@@ -1,6 +1,6 @@
 {
   "name": "@ktjn/searchable-analysis",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Tokenization/analysis pipeline for the TypeScript search client (query-time analysis). The Python port (searchable-analysis) is shared with the Python-only indexer, so index-time and query-time analysis can never drift apart.",
   "license": "MIT",
   "repository": {
