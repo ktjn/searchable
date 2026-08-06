@@ -34,6 +34,19 @@ export interface OfflineCacheOptions {
    * registration URL, since `register()` only accepts a script URL.
    */
   allowCrossOriginShards?: boolean;
+  /**
+   * Explicit scope for the Service Worker registration, passed through
+   * to `navigator.serviceWorker.register(url, { scope })`. Without it a
+   * Service Worker hosted below the app root (e.g. under `/assets/`,
+   * minted by a bundler) only intercepts requests under its own
+   * directory and will never see the application's index/search traffic
+   * outside that path. Prefer serving `sw.js` at the root (`/sw.js`),
+   * whose default scope is already `/`; otherwise pass the desired
+   * scope here *and* serve `Service-Worker-Allowed: <scope>` on the
+   * script response, or `register()` rejects the broader scope
+   * (docs/guides/offline-search.md).
+   */
+  scope?: string;
 }
 
 /**
@@ -45,15 +58,13 @@ export interface OfflineCacheOptions {
  * requests per `options.mode` on every subsequent load, including
  * fully offline, since the index is 100% static files to begin with.
  *
- * `swUrl` isn't auto-resolved for the same reason
- * `SearchClientOptions.workerUrl` isn't (docs/reference/client-api.md) --
- * every bundler has its own incompatible convention for referencing a
- * sibling worker file from a library, so the caller passes whatever
- * URL their build/CDN actually serves `sw.js` at. Config travels as
- * query params appended to `swUrl` (the standard way to pass data into
- * a Service Worker registration, since `register()` only accepts a
- * script URL) -- the Service Worker reads them back off its own
- * `location.search`.
+ * Both `swUrl` and `indexUrl` may be relative; each is resolved
+ * against the current page's URL at this boundary, so a caller can pass
+ * whatever forms their build/CDN uses without pre-normalizing. Config
+ * travels as query params appended to the (now absolute) `swUrl` -- the
+ * standard way to pass data into a Service Worker registration, since
+ * `register()` only accepts a script URL -- and the Service Worker
+ * reads them back off its own `location.search`.
  */
 export async function registerOfflineCaching(
   swUrl: string | URL,
@@ -65,14 +76,20 @@ export async function registerOfflineCaching(
       "registerOfflineCaching: Service Workers are not supported in this environment",
     );
   }
-  const url = new URL(swUrl, globalThis.location?.href);
-  url.searchParams.set("indexUrl", indexUrl);
-  url.searchParams.set("mode", options.mode ?? "cache-first");
+  const base = globalThis.location?.href;
+  const absoluteSwUrl = new URL(swUrl, base);
+  const absoluteIndexUrl = new URL(indexUrl, base).href;
+
+  absoluteSwUrl.searchParams.set("indexUrl", absoluteIndexUrl);
+  absoluteSwUrl.searchParams.set("mode", options.mode ?? "cache-first");
   if (options.languages) {
-    url.searchParams.set("languages", options.languages.join(","));
+    absoluteSwUrl.searchParams.set("languages", options.languages.join(","));
   }
   if (options.allowCrossOriginShards) {
-    url.searchParams.set("allowCrossOriginShards", "1");
+    absoluteSwUrl.searchParams.set("allowCrossOriginShards", "1");
   }
-  return navigator.serviceWorker.register(url, { type: "module" });
+  return navigator.serviceWorker.register(absoluteSwUrl, {
+    type: "module",
+    ...(options.scope ? { scope: options.scope } : {}),
+  });
 }

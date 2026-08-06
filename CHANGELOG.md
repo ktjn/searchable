@@ -16,6 +16,53 @@ are explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
+### Added
+
+- `OfflineCacheOptions.scope` (`registerOfflineCaching`) registers the
+  offline Service Worker with an explicit scope (docs/guides/offline-search.md).
+  Prefer serving `sw.js` at the document root, whose default scope is `/`; a
+  script hosted below a broader desired scope must also serve
+  `Service-Worker-Allowed` on its response, or the browser rejects the
+  registration.
+
+### Changed
+
+- `registerOfflineCaching()` now resolves both `swUrl` and `indexUrl` against
+  the page URL at the call boundary, so relative URLs work directly — the
+  documented usage — and the Service Worker only ever sees absolute URLs.
+- Worker errors preserve their public type: `InvalidManifestError`,
+  `VectorSearchNotConfiguredError`, and `VectorProviderMismatchError` come
+  back from the Worker as real `instanceof`-compatible instances, carried by a
+  stable `code`/`name`/`message` protocol payload (worker-protocol.ts) that
+  never includes stack traces.
+- A fatal worker failure — a worker `error`, a `messageerror`, or `dispose()`
+  — now always terminates and dereferences the worker and settles every
+  pending request exactly once, via one internal cleanup path (`#fail`); the
+  first failure wins and is never shadowed by a later `dispose()`.
+- `ShardCache` caches JSON and binary representations of a URL in separate
+  maps, so the two can never collide; failure eviction is likewise
+  representation-specific.
+- The offline Service Worker's cache-first path reads only its own
+  `searchable-offline` cache, never another cache owned by the same origin
+  (replacing a global `caches.match()`).
+
+### Fixed
+
+- Abort semantics are race-free: `raceAbort()` honors an already-aborted
+  signal, so a synchronous `query` listener that aborts reliably cancels the
+  query instead of racing the listener subscription.
+- Search event listeners receive a snapshot of the search options; mutating
+  the object a `query` listener receives can no longer alter the query that
+  executes or what the `result` event reports.
+
+### Security
+
+- `SECURITY.md` now reflects the public, released state: supported release
+  lines, private vulnerability reporting, scope (browser runtime, index
+  format, Python and npm packages), the public-index confidentiality
+  boundary, and the release-artifact smoke test that runs before PyPI
+  publication.
+
 ## [1.1.2] - 2026-08-06
 
 This release is `1.1.2` for the npm packages, `0.2.2` for `searchable-indexer`

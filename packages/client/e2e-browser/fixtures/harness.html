@@ -3,7 +3,13 @@
   <head><meta charset="utf-8" /><title>searchable worker test harness</title></head>
   <body>
     <script type="module">
-      import { registerOfflineCaching, SearchClient } from "./index.js";
+      import {
+        InvalidManifestError,
+        registerOfflineCaching,
+        SearchClient,
+        VectorProviderMismatchError,
+        VectorSearchNotConfiguredError,
+      } from "./index.js";
 
       window.__csfRunSearch = async (query, useWorker, options) => {
         const client = new SearchClient({
@@ -89,6 +95,63 @@
           workerUrl: new URL("./worker.js", location.href),
         });
         return rejectionOf(client.ready());
+      };
+
+      window.__csfTestErrorParity = async (manifestUrl) => {
+        const direct = new SearchClient({
+          indexUrl: manifestUrl,
+          worker: false,
+        });
+        const worker = new SearchClient({
+          indexUrl: manifestUrl,
+          worker: true,
+          workerUrl: new URL("./worker.js", location.href),
+        });
+        const capture = async (promise) => {
+          try {
+            await promise;
+            return undefined;
+          } catch (err) {
+            return {
+              name: err?.name,
+              message: err?.message,
+              isInvalidManifest: err instanceof InvalidManifestError,
+              isVectorNotConfigured:
+                err instanceof VectorSearchNotConfiguredError,
+              isVectorMismatch: err instanceof VectorProviderMismatchError,
+            };
+          }
+        };
+        return {
+          direct: await capture(direct.ready()),
+          worker: await capture(worker.ready()),
+        };
+      };
+
+      // A worker-side-only domain error: searchStream() never computes a
+      // query embedding on the main thread, so with mode "vector" the
+      // VectorSearchNotConfiguredError arises *inside* the Worker (direct
+      // mode raises the same error from search.ts) -- the case that proves
+      // the protocol round-trips the exported error class.
+      window.__csfTestVectorErrorParity = async (useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker
+            ? new URL("./worker.js", location.href)
+            : undefined,
+        });
+        try {
+          await client.ready();
+          await client.searchStream("widgets", { mode: "vector" });
+          return undefined;
+        } catch (err) {
+          return {
+            name: err?.name,
+            message: err?.message,
+            isVectorNotConfigured: err instanceof VectorSearchNotConfiguredError,
+          };
+        }
       };
 
       window.__csfRunSearchStream = async (query, useWorker, opts) => {
@@ -187,12 +250,124 @@
         }
       };
 
+      window.__csfTestAbortedBeforeSearch = async (useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker
+            ? new URL("./worker.js", location.href)
+            : undefined,
+        });
+        // Rejecting before ever awaiting readiness leaves the
+        // constructor's own eager init/manifest promise unobserved by
+        // this test -- attach a no-op handler so it can't surface as an
+        // unrelated unhandled rejection.
+        client.ready().catch(() => {});
+        const controller = new AbortController();
+        controller.abort();
+        try {
+          await client.search("widgets", { signal: controller.signal });
+          return undefined;
+        } catch (err) {
+          return err?.name;
+        }
+      };
+
+      // A synchronous 'query' listener aborts the signal before any work
+      // starts -- raceAbort() must honor the already-aborted state or this
+      // query would resolve (and even emit 'result') to a caller who
+      // already aborted.
+      window.__csfTestAbortInQueryListener = async (useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker
+            ? new URL("./worker.js", location.href)
+            : undefined,
+        });
+        await client.ready();
+        const controller = new AbortController();
+        client.on("query", () => controller.abort());
+        try {
+          await client.search("widgets", { signal: controller.signal });
+          return undefined;
+        } catch (err) {
+          return err?.name;
+        }
+      };
+
+      // A listener mutating the options object it receives must not change
+      // the query that actually executes: mutating `filters` to a facet the
+      // widgets docs don't belong to (and boosts to favor body) would zero
+      // out or re-rank the hits if the mutation leaked into execution.
+      // The corpus here gives doc 1 a boosted title, so untouched results
+      // are [1, 2].
+      window.__csfTestListenerMutatesOptionsParity = async (useWorker) => {
+        const run = async (mutate) => {
+          const client = new SearchClient({
+            indexUrl: "./manifest.json",
+            worker: useWorker,
+            workerUrl: useWorker
+              ? new URL("./worker.js", location.href)
+              : undefined,
+          });
+          await client.ready();
+          if (mutate) {
+            client.on("query", ({ options }) => {
+              options.filters = { category: "company" };
+              if (options.boosts) {
+                options.boosts.fields = { title: 0.001, body: 100 };
+              } else {
+                options.boosts = { fields: { title: 0.001, body: 100 } };
+              }
+            });
+          }
+          const result = await client.search("widgets", {
+            limit: 10,
+            boosts: { fields: { title: 1, body: 1 } },
+          });
+          return result.hits.map((h) => h.id);
+        };
+        return { mutated: await run(true), untouched: await run(false) };
+      };
+
+      // The 'query' event fires synchronously inside search(), but an
+      // abort issued right after the call returns (before any microtask
+      // runs) is caught by #assertUsable()'s post-ready re-check and the
+      // 'query' event never fires at all. To deterministically land the
+      // abort *after* the 'query' event for both worker and direct modes,
+      // the query listener itself aborts synchronously -- the executing
+      // query must then reject (raceAbort's aborted-first check) and never
+      // emit 'result', even though the underlying worker computation is
+      // still running.
+      window.__csfTestNoResultEventAfterAbort = async (useWorker) => {
+        const client = new SearchClient({
+          indexUrl: "./manifest.json",
+          worker: useWorker,
+          workerUrl: useWorker
+            ? new URL("./worker.js", location.href)
+            : undefined,
+        });
+        await client.ready();
+        const events = [];
+        const controller = new AbortController();
+        client.on("query", () => {
+          events.push("query");
+          controller.abort();
+        });
+        client.on("result", () => events.push("result"));
+        const pending = client.search("widgets", { signal: controller.signal });
+        await pending.catch(() => {});
+        return events;
+      };
+
+      // Both helpers pass their arguments straight through to
+      // registerOfflineCaching() -- deliberately resolved by the public
+      // API itself, exactly as a consuming page would call it, so the
+      // relative `swUrl`/`indexUrl` tests exercise the documented usage
+      // rather than a pre-normalized one.
       window.__csfRegisterOffline = async (swPath, indexUrl, opts) => {
-        await registerOfflineCaching(
-          new URL(swPath, location.href),
-          new URL(indexUrl, location.href).href,
-          opts,
-        );
+        await registerOfflineCaching(swPath, indexUrl, opts);
         await navigator.serviceWorker.ready;
       };
 
@@ -210,8 +385,8 @@
         opts,
       ) => {
         const registration = await registerOfflineCaching(
-          new URL(swPath, location.href),
-          new URL(indexUrl, location.href).href,
+          swPath,
+          indexUrl,
           opts,
         );
         const worker =
@@ -236,6 +411,29 @@
         const cache = await caches.open("searchable-offline");
         const keys = await cache.keys();
         return keys.map((r) => r.url);
+      };
+
+      window.__csfRegisterOfflineWithScope = async (swPath, indexUrl, opts) => {
+        const registration = await registerOfflineCaching(
+          swPath,
+          indexUrl,
+          opts,
+        );
+        await navigator.serviceWorker.ready;
+        return registration.scope;
+      };
+
+      window.__csfCacheNames = async () => (await caches.keys()).sort();
+
+      window.__csfCacheEntryStatus = async (cacheName, url) => {
+        const cache = await caches.open(cacheName);
+        const match = await cache.match(url);
+        return match ? match.status : undefined;
+      };
+
+      window.__csfSeedCache = async (cacheName, url, status, body) => {
+        const cache = await caches.open(cacheName);
+        await cache.put(url, new Response(body ?? "junk", { status }));
       };
 
       window.__csfManifestTermShardFiles = async (indexUrl) => {
