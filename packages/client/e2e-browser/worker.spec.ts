@@ -76,9 +76,28 @@ declare global {
     __csfTestListenerMutatesOptionsParity?: (
       useWorker: boolean,
     ) => Promise<{ mutated: number[]; untouched: number[] }>;
+    __csfTestNestedFilterMutationParity?: (
+      useWorker: boolean,
+    ) => Promise<{ mutated: number[]; untouched: number[] }>;
+    __csfTestResultEventKeepsEffectiveOptions?: (
+      useWorker: boolean,
+    ) => Promise<{
+      hits: number[];
+      resultEventOptions?: {
+        filters?: { category?: string[]; price?: { min?: number } };
+        boosts?: { fields?: Record<string, number> };
+        facets?: string[];
+      };
+    }>;
     __csfTestNoResultEventAfterAbort?: (
       useWorker: boolean,
     ) => Promise<string[]>;
+    __csfTestAbortDuringInit?: (
+      useWorker: boolean,
+    ) => Promise<string | undefined>;
+    __csfTestAbortDuringEmbedding?: (
+      useWorker: boolean,
+    ) => Promise<string | undefined>;
     __csfRunSearchStream?: (
       query: string,
       useWorker: boolean,
@@ -346,6 +365,82 @@ test.describe("Web Worker execution (real browser)", () => {
     expect(withWorker).toEqual(["query"]);
     expect(withoutWorker).toEqual(["query"]);
   });
+
+  test("a signal aborted during initialization rejects promptly, worker and direct alike", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestAbortDuringInit?.(true);
+      const m = await window.__csfTestAbortDuringInit?.(false);
+      return [w, m];
+    });
+
+    expect(withWorker).toBe("AbortError");
+    expect(withoutWorker).toBe("AbortError");
+  });
+
+  test("a signal aborted while embedQuery() is pending rejects promptly, worker and direct alike", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestAbortDuringEmbedding?.(true);
+      const m = await window.__csfTestAbortDuringEmbedding?.(false);
+      return [w, m];
+    });
+
+    expect(withWorker).toBe("AbortError");
+    expect(withoutWorker).toBe("AbortError");
+  });
+
+  test("a 'query' listener mutating nested filter values (arrays, range objects, property deletes) cannot alter the executing query", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestNestedFilterMutationParity?.(true);
+      const m = await window.__csfTestNestedFilterMutationParity?.(false);
+      return [w, m];
+    });
+
+    // category ["company"] matches nothing for "widgets" (doc 3 is the only
+    // company doc and never mentions the word) -- if the listener's pushes
+    // or deletes reached execution, widgets docs would appear.
+    for (const result of [withWorker, withoutWorker]) {
+      expect(result?.mutated).toEqual([]);
+      expect(result?.untouched).toEqual([]);
+    }
+  });
+
+  test("the 'result' event reports the original effective options, unchanged by listener mutations", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}harness.html`);
+    await page.waitForFunction(() => "__csfHarnessReady" in window);
+
+    const [withWorker, withoutWorker] = await page.evaluate(async () => {
+      const w = await window.__csfTestResultEventKeepsEffectiveOptions?.(true);
+      const m = await window.__csfTestResultEventKeepsEffectiveOptions?.(false);
+      return [w, m];
+    });
+
+    for (const result of [withWorker, withoutWorker]) {
+      expect(result?.hits).toEqual([]);
+      expect(result?.resultEventOptions?.filters?.category).toEqual([
+        "company",
+      ]);
+      expect(result?.resultEventOptions?.filters?.price?.min).toBe(5);
+      expect(result?.resultEventOptions?.boosts?.fields?.body).toBe(1);
+      expect(result?.resultEventOptions?.facets).toEqual(["category"]);
+    }
+  });
 });
 
 test.describe("structured binary document store in a real Worker", () => {
@@ -560,9 +655,7 @@ test.describe("legacy Worker protocol compatibility (real browser)", () => {
     await page.waitForFunction(() => "__csfHarnessReady" in window);
 
     const message = await page.evaluate(() =>
-      window.__csfTestWorkerManifestValidationWithUrl?.(
-        "./worker-legacy.js",
-      ),
+      window.__csfTestWorkerManifestValidationWithUrl?.("./worker-legacy.js"),
     );
     // Legacy init succeeds: ready() resolves, so no rejection message.
     expect(message).toBeUndefined();

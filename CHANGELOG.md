@@ -65,6 +65,19 @@ are explicitly marked experimental and may change in a minor release.
   never leave a pending request unresolved (the client retires itself
   fatally); the Worker protocol is now versioned (handshake in `init`,
   `docs/reference/compatibility.md#worker-protocol-versions`).
+- Cancellation is prompt across every awaited caller-visible operation:
+  an abort fires while the client is still initializing (Worker `init` or
+  the direct-mode manifest load) or while `embedQuery()` is computing now
+  rejects the caller immediately — the shared init/embedding keeps running
+  for others, and no `result` event or `onPartial` is delivered after an
+  abort.
+- Search event listeners receive a *deep-enough* snapshot of the search
+  options: filter arrays and `{min, max}` range objects (not just the
+  `filters`/`boosts`/`facets` containers) are copied, so mutating anything
+  a `query` listener receives — `filters.category.push(...)`,
+  `filters.price.min = ...`, deleting a filter, nested boosts, the facet
+  list — can no longer alter the query that executes or the `result` event
+  payload.
 
 ### Security
 
