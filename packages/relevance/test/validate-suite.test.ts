@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateSuite } from "../src/validate-suite.js";
+import { validateSuite } from "../src/load-suites.js";
 
 const validSuite = {
   schemaVersion: 1,

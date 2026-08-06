@@ -217,3 +217,22 @@ export async function runDomainSuite(
     ? runGeneratedDomainSuite(suite, showcaseDistDirectory, k)
     : runSearchableSuite(toSnapshotEvaluationSuite(suite), k);
 }
+
+/**
+ * Single evaluation entry point for every relevance suite in this repo,
+ * v1 or v2: dispatches on `schemaVersion` (1 = a per-language baseline,
+ * evaluated directly; 2 = a domain suite, whose snapshot corpora are
+ * adapted to the shared evaluation engine and whose generated-index
+ * corpora are checked against the live build). The v2 domain layer already
+ * reuses the v1 engine; this collapses the last "two frameworks" seam at
+ * the call site.
+ */
+export async function runSuite(
+  suite: RelevanceSuite | DomainRelevanceSuite,
+  showcaseDistDirectory: string,
+  k = 5,
+): Promise<SuiteReport> {
+  return suite.schemaVersion === 2
+    ? runDomainSuite(suite, showcaseDistDirectory, k)
+    : runSearchableSuite(suite, k);
+}

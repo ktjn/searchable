@@ -1,4 +1,5 @@
 import type { RangeFilter } from "@ktjn/searchable-client";
+import { validateSuite } from "./load-suites.js";
 import { evaluateRanking, type RankingMetrics } from "./metrics.js";
 import type {
   RelevanceGrade,
@@ -6,7 +7,6 @@ import type {
   SuiteProvenance,
   SupportedBaselineLanguage,
 } from "./schema.js";
-import { validateSuite } from "./validate-suite.js";
 
 export type SearchForEvaluation = (
   query: string,

@@ -265,19 +265,18 @@ Verify: Python gates + the Python and TS conformance suites
   `packages/client/src/binary-*.ts` (single writer for it never existed;
   cross-language sharing is impossible). Guarded green by the full indexer,
   client, and conformance suites.
-- [ ] **F.2** (old 6.2) Unify relevance v1/v2 frameworks. **Re-assessed:
-  superseded by the actual architecture** — the v2 domain layer already reuses
-  v1's evaluation engine (`searchable-runner`, `evaluate`/`metrics`/`report`;
-  snapshot corpora convert via `toSnapshotEvaluationSuite`), so there is no
-  redundant whole framework left to delete. The only v1-specific modules
-  (`load-suites.ts`, `validate-suite.ts`, plus the `--language` baseline CLI
-  path) would require migrating the six *reviewed* per-language baseline
-  fixtures into v2 snapshot shape — which `validateDomainSuite` forbids without
-  per-doc `/`-prefixed ids + https-url/pathname identity + sha256 `contentHash`
-  + a domain-specific `topic` per query + a `rationale` per positive judgment,
-  semantics the generic Wikipedia-family baselines don't have. That is a
-  data-meaning migration of reviewed corpora, deferred as a design decision —
-  not a mechanical cleanup.
+- [x] **F.2** (old 6.2) Unify relevance v1/v2 frameworks. **Consolidated, with
+  the baseline *data* kept as v1** (see ledger): the v1 validator
+  (`validate-suite.ts`) was folded into `load-suites.ts` and deleted; a single
+  `runSuite` entry now dispatches both kinds on `schemaVersion` in
+  `domain-runner.ts`, and `cli.ts`'s two evaluation seams (`runBaseline` +
+  `runDomain`) collapsed into one `runSuite`. Migrating the six *reviewed*
+  per-language baseline fixtures into v2 snapshot shape is impossible without
+  corrupting them: `validateDomainSuite` requires per-doc `/`-prefixed ids with
+  https-url/pathname identity + sha256 `contentHash` + a domain-specific
+  `topic`/`rationale` per query, but baseline documents are per-anchor excerpts
+  sharing one URL path — so the migration would collapse distinct judged docs
+  into a single id or fabricate urls/topics. Recorded as out of scope.
 
 ---
 
@@ -376,7 +375,7 @@ reasons. Old 4.1 survives as C.1, 2.2 as D.2, 3.1 as E.1, 3.2 as E.3, 4.4/4.5/
 | E.3 | No-op vitest configs (analysis/relevance) | dropped | | auto-generated project names defeat `--project` filtering; explicit-name restructure not worth 2 no-op 7-line configs |
 | E.4 | `docs/project/language-support.md` reachability | done | | consciously accepted as a standalone reference; linking ripples into the reviewed relevance fixture (page-list pin) |
 | F.1 | Binary codec single home (re-examined) | done | | new `python/searchable-binary` (bytes + per-shard encode/decode + container types); indexer + client + client fixtures all consume it; CI gates added; ruff/mypy/235+136 pytest green |
-| F.2 | Relevance v1/v2 unification | pending | | re-assessed 2026-08: v2 already reuses v1's engine; leftover v1-only loader/validator (≈114 lines) requires a reviewed-baseline data migration (ids/url/hash/topic/rationale) with no natural mapping — deferred as a design decision |
+| F.2 | Relevance v1/v2 unification | done | | `validate-suite.ts` folded into `load-suites.ts` (deleted); `runSuite` dispatches v1/v2 in `domain-runner.ts`; CLI `runBaseline`/`runDomain` seams -> one `runSuite`. Six baseline fixtures stay v1 (v2 snapshot schema can't represent per-anchor baseline docs without data corruption — documented). 165 relevance tests green |
 
 ### Ledger conventions
 
