@@ -36,7 +36,7 @@ const DEMOS: DemoLink[] = [
     href: "synonyms/index.html",
     title: "Synonym playground",
     description:
-      "Non-overlapping vocabulary docs demonstrating synonym expansion, with matched-via-synonym results visibly labeled.",
+      "Non-overlapping vocabulary docs demonstrating synonym expansion, with matched-via-synonym results visibly labeled, and selectable lexical/vector/hybrid retrieval.",
   },
   {
     href: "i18n/index.html",

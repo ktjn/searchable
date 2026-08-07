@@ -490,6 +490,19 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     await expect(first).toContainText("Returns Policy");
   });
 
+  test("retrieval mode selector swaps lexical, vector, and hybrid search", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/products/index.html`);
+    const mode = page.locator(".gallery-mode-select");
+    await expect(mode).toHaveValue("lexical");
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+    await mode.selectOption("vector");
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+    await mode.selectOption("hybrid");
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+  });
+
   test("fuzzy toggle: a typo finds nothing until fuzzy matching is enabled", async ({
     page,
   }) => {
@@ -596,6 +609,19 @@ test.describe("feature gallery: synonym playground demo (real browser)", () => {
     await page.locator(".gallery-synonyms-toggle input").check();
     await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
     await expect(page.locator(".gallery-badge")).toHaveCount(0);
+  });
+
+  test("retrieval mode selector swaps lexical, vector, and hybrid search", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/synonyms/index.html`);
+    const mode = page.locator(".gallery-mode-select");
+    await expect(mode).toHaveValue("lexical");
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+    await mode.selectOption("vector");
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+    await mode.selectOption("hybrid");
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
   });
 });
 

@@ -91,6 +91,7 @@ function renderGalleryIndexPage(products: Product[]): string {
           data-range-facets="priceRange"
           data-fuzzy-toggle="true"
           data-fuzzy-weight="0.5"
+          data-modes="lexical,vector,hybrid"
         ></div>
       </main>`;
   return pageShell({
