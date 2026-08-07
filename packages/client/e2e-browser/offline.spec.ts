@@ -797,11 +797,10 @@ test.describe("atomic runtime SWR manifest refresh: a failed refresh keeps the p
 
     // Offline: A's manifest is still authoritative and an A query works.
     await context.setOffline(true);
-    const body =
-      (await page.evaluate(
-        (indexUrl) => window.__csfFetchBody?.(indexUrl),
-        `${baseUrl}manifest.json`,
-      )) ?? { status: -1, body: "{}" };
+    const body = (await page.evaluate(
+      (indexUrl) => window.__csfFetchBody?.(indexUrl),
+      `${baseUrl}manifest.json`,
+    )) ?? { status: -1, body: "{}" };
     expect(JSON.parse(body.body).docCount.en).toBe(1);
     const aQuery = await page.evaluate(
       ([query]) => window.__csfRunSearch?.(query, false, { language: "en" }),
@@ -884,10 +883,7 @@ test.describe("atomic runtime SWR manifest refresh: a successful refresh replace
         const cached = await page.evaluate(
           ([cacheName, indexUrl]) =>
             window.__csfCachedBody?.(cacheName, indexUrl),
-          ["searchable-offline", `${baseUrl}manifest.json`] as [
-            string,
-            string,
-          ],
+          ["searchable-offline", `${baseUrl}manifest.json`] as [string, string],
         );
         if (cached == null) return undefined;
         return JSON.parse(cached).docCount?.en;
@@ -895,11 +891,10 @@ test.describe("atomic runtime SWR manifest refresh: a successful refresh replace
       .toBe(2);
 
     await context.setOffline(true);
-    const body =
-      (await page.evaluate(
-        (indexUrl) => window.__csfFetchBody?.(indexUrl),
-        `${baseUrl}manifest.json`,
-      )) ?? { status: -1, body: "{}" };
+    const body = (await page.evaluate(
+      (indexUrl) => window.__csfFetchBody?.(indexUrl),
+      `${baseUrl}manifest.json`,
+    )) ?? { status: -1, body: "{}" };
     expect(JSON.parse(body.body).docCount.en).toBe(2);
     const bQuery = await page.evaluate(
       ([query]) => window.__csfRunSearch?.(query, false, { language: "en" }),

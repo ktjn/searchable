@@ -259,10 +259,7 @@ self.addEventListener("fetch", (event) => {
   // before its shards). Under cache-first it stays frozen at the last
   // install/commit -- that mode deliberately does not discover a newly
   // deployed index on its own (docs/guides/offline-search.md).
-  if (
-    mode === "stale-while-revalidate" &&
-    event.request.url === indexUrl
-  ) {
+  if (mode === "stale-while-revalidate" && event.request.url === indexUrl) {
     event.respondWith(staleManifestWhileRevalidate(event.request, event));
     return;
   }

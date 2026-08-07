@@ -176,7 +176,10 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
       if (event.waitUntilPromises.length > 0) {
         await Promise.all(
           event.waitUntilPromises.map((p) =>
-            p.then(() => undefined, () => undefined),
+            p.then(
+              () => undefined,
+              () => undefined,
+            ),
           ),
         );
         return;
@@ -193,17 +196,15 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
       shards: (url: string) => Response | undefined;
     }> = {},
   ) {
-    fetchMock = vi.fn(
-      (input: RequestInfo | URL): Promise<Response> => {
-        const url = typeof input === "string" ? String(input) : String(input);
-        if (url === INDEX_URL) {
-          return Promise.resolve(overrides.manifest?.() ?? okJson(MANIFEST));
-        }
-        const shard = overrides.shards?.(url);
-        if (shard) return Promise.resolve(shard);
-        return Promise.resolve(okJson({ shard: url }));
-      },
-    );
+    fetchMock = vi.fn((input: RequestInfo | URL): Promise<Response> => {
+      const url = typeof input === "string" ? String(input) : String(input);
+      if (url === INDEX_URL) {
+        return Promise.resolve(overrides.manifest?.() ?? okJson(MANIFEST));
+      }
+      const shard = overrides.shards?.(url);
+      if (shard) return Promise.resolve(shard);
+      return Promise.resolve(okJson({ shard: url }));
+    });
     globalThis.fetch = fetchMock;
   }
 
@@ -246,9 +247,9 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
       await flush();
       await flush();
       expect(refreshSettled).toBe(true);
-      expect(
-        await cache.store.get(`${INDEX_DIR}content.json`)?.text(),
-      ).toBe('{"fresh":true}');
+      expect(await cache.store.get(`${INDEX_DIR}content.json`)?.text()).toBe(
+        '{"fresh":true}',
+      );
     });
 
     it("serves the fresh network response and persists it when no cached entry exists", async () => {
@@ -258,9 +259,9 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
 
       const served = await servedResponseOf(event);
       expect(await served.text()).toBe('{"fresh":true}');
-      expect(
-        await cache.store.get(`${INDEX_DIR}content.json`)?.text(),
-      ).toBe('{"fresh":true}');
+      expect(await cache.store.get(`${INDEX_DIR}content.json`)?.text()).toBe(
+        '{"fresh":true}',
+      );
     });
 
     it("a failed network request stalls the refresh but never replaces the cached entry", async () => {
@@ -272,9 +273,9 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
       const served = await servedResponseOf(event);
       expect(await served.text()).toBe('{"cached":true}');
       await settledWaitUntil(event);
-      expect(
-        await cache.store.get(`${INDEX_DIR}content.json`)?.text(),
-      ).toBe('{"cached":true}');
+      expect(await cache.store.get(`${INDEX_DIR}content.json`)?.text()).toBe(
+        '{"cached":true}',
+      );
     });
 
     it("returns a non-OK network response when nothing is cached, without caching it", async () => {
@@ -298,9 +299,9 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
       const served = await servedResponseOf(event);
       expect(await served.text()).toBe('{"cached":true}');
       await settledWaitUntil(event);
-      expect(
-        await cache.store.get(`${INDEX_DIR}content.json`)?.text(),
-      ).toBe('{"cached":true}');
+      expect(await cache.store.get(`${INDEX_DIR}content.json`)?.text()).toBe(
+        '{"cached":true}',
+      );
     });
   });
 
@@ -323,10 +324,15 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
       await settledWaitUntil(event);
 
       // Shards were written before the manifest (manifest is commit last).
-      expect(cache.putOrder).toEqual([EN_SHARD, DE_SHARD, DOCS_SHARD, INDEX_URL]);
-      expect(
-        await cache.store.get(INDEX_URL)?.text(),
-      ).toBe(JSON.stringify(MANIFEST));
+      expect(cache.putOrder).toEqual([
+        EN_SHARD,
+        DE_SHARD,
+        DOCS_SHARD,
+        INDEX_URL,
+      ]);
+      expect(await cache.store.get(INDEX_URL)?.text()).toBe(
+        JSON.stringify(MANIFEST),
+      );
       expect(await cache.store.get(EN_SHARD)?.text()).toBe(
         JSON.stringify({ shard: EN_SHARD }),
       );
@@ -375,9 +381,7 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
       cache.store.set(INDEX_URL, new Response(PREVIOUS_MANIFEST_BODY));
       globalThis.fetch = mockIndexFetch({
         shards: (url) =>
-          url === DE_SHARD
-            ? new Response("no", { status: 404 })
-            : undefined,
+          url === DE_SHARD ? new Response("no", { status: 404 }) : undefined,
       });
 
       const event = dispatch(requestFor("manifest.json"));
@@ -416,7 +420,8 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
     it("a failed manifest validation performs no commit at all", async () => {
       cache.store.set(INDEX_URL, new Response(PREVIOUS_MANIFEST_BODY));
       globalThis.fetch = mockIndexFetch({
-        manifest: () => okJson({ version: 2, format: "json", languages: ["en"] }),
+        manifest: () =>
+          okJson({ version: 2, format: "json", languages: ["en"] }),
       });
 
       const event = dispatch(requestFor("manifest.json"));
@@ -464,9 +469,7 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
       const event = dispatch(requestFor("manifest.json"));
       await settledWaitUntil(event);
 
-      const fetchedUrls = fetchMock.mock.calls.map(
-        (call) => String(call[0]),
-      );
+      const fetchedUrls = fetchMock.mock.calls.map((call) => String(call[0]));
       expect(fetchedUrls).toContain(INDEX_URL);
       expect(fetchedUrls).toContain(EN_SHARD);
       expect(fetchedUrls).toContain(DOCS_SHARD);
