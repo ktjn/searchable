@@ -23,10 +23,11 @@ declare const self: ServiceWorkerGlobalScope;
  * incorrectly. Pruning that dead weight is a known future
  * improvement, not attempted here.
  *
- * The manifest entry doubles as the install's commit marker: `precache()`
- * caches every referenced shard before writing it, so a failed install
- * never replaces the previously-active manifest with one whose shards
- * aren't all cached from the same build (docs/guides/offline-search.md).
+ * The manifest entry doubles as the index's commit marker: `updateCachedIndex()`
+ * caches every referenced shard before writing the manifest, so a failed
+ * install *or* a failed runtime refresh never replaces the previously-active
+ * manifest with one whose shards aren't all cached from the same build
+ * (docs/guides/offline-search.md).
  */
 const CACHE_NAME = "searchable-offline";
 
@@ -100,45 +101,56 @@ function shardUrlsFor(
   return urls;
 }
 
-async function precache(): Promise<void> {
+interface IndexUpdateResult {
+  manifestResponse: Response;
+  manifest: Manifest;
+}
+
+/**
+ * The one atomic index-update transaction, shared by installation
+ * (`precache`) and runtime stale-while-revalidate manifest refresh so the
+ * two paths can never drift again (docs/guides/offline-search.md):
+ *
+ * 1. Fetch the manifest with `cache: "no-store"` so a refresh always sees
+ *    the *current* deployment, never a heuristic HTTP-cache hit.
+ * 2. Reject non-OK responses.
+ * 3. Parse and validate the manifest (the same checks the main-thread /
+ *    Worker query paths run before trusting a fetched manifest).
+ * 4. Resolve the shard set selected by `languages`.
+ * 5. Fetch every selected shard, rejecting any non-OK response.
+ * 6. Open the authoritative `CACHE_NAME` cache.
+ * 7. Write every shard response.
+ * 8. Write the manifest last -- it is the commit marker, so a failed step
+ *    (a shard 404, a write error, invalid manifest) leaves the previous
+ *    fully-cached index authoritative, and partially-written new shards
+ *    are unreachable until a later successful commit.
+ *
+ * The manifest is committed via `manifestResponse.clone()` so the caller
+ * can still read the original response (e.g. serve it when no cached
+ * manifest exists yet).
+ */
+async function updateCachedIndex(): Promise<IndexUpdateResult> {
   const { indexUrl, languages, allowCrossOriginShards } = parseConfig();
-  // no-store: an install must always see the *current* deployment's
-  // manifest, never a heuristic HTTP-cache hit for the same URL from an
-  // earlier version.
+
   const manifestResponse = await fetch(indexUrl, { cache: "no-store" });
   if (!manifestResponse.ok) {
     throw new Error(
       `searchable offline Service Worker: failed to fetch manifest ${indexUrl}: HTTP ${manifestResponse.status}`,
     );
   }
+
   const rawManifest: Manifest = await manifestResponse.clone().json();
-  // Same validation the main-thread/Worker query paths already run
-  // before trusting a fetched manifest (client.ts, worker.ts) -- without
-  // it, a malformed or cross-origin-shard-pointing manifest would get
-  // precached (and later blindly served) by this Service Worker alone,
-  // the one ingestion path that skipped it.
+
   const manifest = validateManifest(rawManifest, indexUrl, {
     allowCrossOriginShards,
   });
 
-  // Fetch every referenced shard up front, checking each response, then
-  // write them all *before* the manifest. The manifest entry is the
-  // commit marker for the install: replacing it only after every shard is
-  // safely in the cache means a failed install (one shard 404s, a write
-  // throws, ...) can never leave the previously-active Worker serving a
-  // new manifest whose shards aren't all cached -- the old manifest entry
-  // still points at the old, fully-cached, content-hashed shards. Shards
-  // partially written by a failed attempt are unreachable until a later
-  // successful commit overwrites the manifest, so they're harmless.
-  // Deliberately explicit fetch+put rather than cache.addAll() so each
-  // response's status is validated and the commit point stays obvious.
-  const shardUrls = shardUrlsFor(manifest, indexUrl, languages);
   const shardResponses = await Promise.all(
-    shardUrls.map(async (url) => {
+    shardUrlsFor(manifest, indexUrl, languages).map(async (url) => {
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(
-          `searchable offline Service Worker: failed to precache ${url}: HTTP ${response.status}`,
+          `searchable offline Service Worker: failed to cache ${url}: HTTP ${response.status}`,
         );
       }
       return [url, response] as const;
@@ -146,10 +158,18 @@ async function precache(): Promise<void> {
   );
 
   const cache = await caches.open(CACHE_NAME);
+
   for (const [url, response] of shardResponses) {
     await cache.put(url, response);
   }
-  await cache.put(indexUrl, manifestResponse);
+
+  await cache.put(indexUrl, manifestResponse.clone());
+
+  return { manifest, manifestResponse };
+}
+
+async function precache(): Promise<void> {
+  await updateCachedIndex();
 }
 
 /** Only requests under the manifest's own directory are ever intercepted -- everything else (unrelated page traffic) passes straight through, untouched, so this Service Worker's presence never adds latency to requests it has nothing to do with. */
@@ -194,6 +214,33 @@ async function staleWhileRevalidate(
   return cached ?? networkUpdate;
 }
 
+/**
+ * Stale-while-revalidate for the *manifest* URL specifically: unlike an
+ * ordinary shard file, the manifest is the offline index's commit marker,
+ * so a runtime refresh must not write it until every shard the new build
+ * references has been fetched and cached -- i.e. through the same atomic
+ * `updateCachedIndex()` transaction installation uses. Serve the cached
+ * manifest (build A) immediately, refresh the new build (B) in the
+ * background, and only commit B as a whole; if the refresh fails, A stays
+ * authoritative. With nothing cached yet the caller's answer is the
+ * complete atomic update itself.
+ */
+async function staleManifestWhileRevalidate(
+  request: Request,
+  event: ExtendableEvent,
+): Promise<Response> {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  const refresh = updateCachedIndex().then(
+    ({ manifestResponse }) => manifestResponse,
+  );
+
+  event.waitUntil(refresh.catch(() => undefined));
+
+  return cached ?? refresh;
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(precache().then(() => self.skipWaiting()));
 });
@@ -206,6 +253,20 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const { indexUrl, mode } = parseConfig();
   if (!isIndexRequest(event.request.url, indexUrl)) return;
+
+  // The manifest follows its own transaction-aware path: under
+  // stale-while-revalidate it is refreshed atomically (never written
+  // before its shards). Under cache-first it stays frozen at the last
+  // install/commit -- that mode deliberately does not discover a newly
+  // deployed index on its own (docs/guides/offline-search.md).
+  if (
+    mode === "stale-while-revalidate" &&
+    event.request.url === indexUrl
+  ) {
+    event.respondWith(staleManifestWhileRevalidate(event.request, event));
+    return;
+  }
+
   event.respondWith(
     mode === "stale-while-revalidate"
       ? staleWhileRevalidate(event.request, event)

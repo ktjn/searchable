@@ -337,6 +337,19 @@ export class SearchClient {
    * mode, silently continuing to work after `dispose()`).
    */
   #fatalError?: Error;
+  /**
+   * Rejected the moment the client first enters its fatal state
+   * (`dispose()` or a fatal worker failure). Every caller-visible public
+   * operation races its work against this promise -- so a disposed client
+   * promptly rejects *direct-mode* in-flight work (manifest loading, shard
+   * fetches, search, facets, embeddings) too, not just the Worker requests
+   * tracked in `#pendingRequests`. The rejected promise is always consumed
+   * by an operation race; a permanent no-op catch keeps it from ever
+   * surfacing as an unhandled rejection in the window before the first
+   * race subscribes.
+   */
+  #lifecycleFailure: Promise<never>;
+  #rejectLifecycle!: (error: Error) => void;
   #listeners = new Map<SearchClientEvent, Set<AnyListener>>();
   #embedQuery: SearchClientOptions["embedQuery"];
   #validateVectorProvider: boolean;
@@ -354,6 +367,10 @@ export class SearchClient {
   #vectorValidationManifest?: Promise<Manifest>;
 
   constructor(options: SearchClientOptions) {
+    this.#lifecycleFailure = new Promise<never>((_, reject) => {
+      this.#rejectLifecycle = reject;
+    });
+    this.#lifecycleFailure.catch(() => undefined);
     this.#indexUrl = toAbsoluteUrl(options.indexUrl);
     this.#embedQuery = options.embedQuery;
     this.#validateVectorProvider = options.validateVectorProvider ?? true;
@@ -427,19 +444,33 @@ export class SearchClient {
    * always wins, the caller's `signal` aborts waiting, the manifest (or
    * worker `init`) must be resolved, and a fatal error that only surfaces
    * *during* that resolution (rather than before it) is still surfaced.
-   * Readiness is raced against `signal` so an abort while the client is
-   * still initializing rejects promptly instead of waiting for the shared
-   * init work to finish -- the init itself still completes and is shared,
-   * only this caller's wait is cancelled.
+   * Readiness is raced against `signal` (an abort while initializing
+   * rejects promptly without cancelling the shared init) and against the
+   * lifecycle failure (a disposal while initializing does the same).
    */
   async #assertUsable(signal: AbortSignal | undefined): Promise<void> {
     if (this.#fatalError) throw this.#fatalError;
     throwIfAborted(signal);
 
-    await raceAbort(this.#ready, signal);
+    await this.#raceOperation(this.#ready, signal);
 
     if (this.#fatalError) throw this.#fatalError;
     throwIfAborted(signal);
+  }
+
+  /**
+   * Races every caller-visible await against the client lifecycle and the
+   * caller's AbortSignal: on `dispose()` (or a fatal worker failure) the
+   * in-flight direct-mode operation rejects promptly with the fatal error,
+   * like the Worker requests `#fail()` already settles. The shared
+   * underlying work (manifest/shards/embeddings) may still complete in the
+   * background but is no longer delivered to this caller.
+   */
+  #raceOperation<T>(
+    work: Promise<T>,
+    signal: AbortSignal | undefined,
+  ): Promise<T> {
+    return raceAbort(Promise.race([work, this.#lifecycleFailure]), signal);
   }
 
   async search(
@@ -452,9 +483,9 @@ export class SearchClient {
     // boundary -- only its plain-array *result* can
     // (docs/guides/vector-search.md). Raced against `signal` so a slow
     // remote embedding call or local model inference doesn't hold the
-    // aborted caller hostage -- the embedding promise keeps running (it may
-    // be shared), only the wait is cancelled.
-    const queryVector = await raceAbort(
+    // aborted *or disposed* caller hostage -- the embedding promise keeps
+    // running (it may be shared), only the wait is cancelled.
+    const queryVector = await this.#raceOperation(
       this.#resolveQueryVector(query, options.mode),
       options.signal,
     );
@@ -492,7 +523,11 @@ export class SearchClient {
             queryVector,
           );
         })();
-    const result = await raceAbort(work, signal);
+    const result = await this.#raceOperation(work, signal);
+    // The lifecycle race above normally prevents reaching this point after
+    // disposal, but make the invariant explicit: nothing is delivered to a
+    // client that has entered its fatal state.
+    if (this.#fatalError) throw this.#fatalError;
     this.#emit("result", { query, options: effectiveOptions, result });
     return result;
   }
@@ -594,7 +629,9 @@ export class SearchClient {
     const { signal, onPartial, ...rest } = effectiveOptions;
     const guardedOnPartial = onPartial
       ? (partial: SearchResult) => {
-          if (!signal?.aborted) onPartial(partial);
+          if (!signal?.aborted && !this.#fatalError) {
+            onPartial(partial);
+          }
         }
       : undefined;
     const work = this.#worker
@@ -614,7 +651,8 @@ export class SearchClient {
             guardedOnPartial,
           );
         })();
-    const result = await raceAbort(work, signal);
+    const result = await this.#raceOperation(work, signal);
+    if (this.#fatalError) throw this.#fatalError;
     this.#emit("result", { query, options: effectiveOptions, result });
     return result;
   }

@@ -611,6 +611,12 @@
         return { status: res.status, body: await res.text() };
       };
 
+      window.__csfCachedBody = async (cacheName, url) => {
+        const cache = await caches.open(cacheName);
+        const match = await cache.match(url);
+        return match ? await match.text() : null;
+      };
+
       window.__csfHarnessReady = true;
     </script>
   </body>
