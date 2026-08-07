@@ -11,9 +11,18 @@
  *        data-index-path="gallery/<demo>/search-index/manifest.json"
  *        data-default-query="..."      (shown/used before the visitor types)
  *        data-facets="field1,field2"   (comma list of facet fields to render as checkboxes)
+ *        data-range-facets="field"     (comma list of numeric range-facet fields -> min/max filter inputs)
  *        data-fuzzy-toggle="true"      (omit to hide the fuzzy on/off control)
  *        data-synonyms-toggle="true"   (omit to hide the synonym-expansion on/off control)
  *        data-languages="en,de">       (comma list -> a language <select>; omit to use manifest.defaultLanguage)
+ *        data-operator="and|or"        (present -> an AND/OR <select>; omit for the default "and")
+ *        data-modes="lexical,hybrid,vector"  (comma list -> a retrieval-mode <select> + query embedder)
+ *        data-highlight="true"         (pass highlight:true and render <mark> spans from hit.highlights)
+ *        data-boost-fields="title=3"   (csv "field=mult" -> a checkbox re-ranking that field per query)
+ *        data-boost-terms="term=5"     (csv "term=mult" -> a checkbox re-ranking that term per query)
+ *        data-fuzzy-weight="0.3"       (numeric input tuning fuzzyWeight, only when the fuzzy toggle is on)
+ *        data-synonym-weight="0.3"     (numeric input tuning synonymWeight, only when the synonyms toggle is on)
+ *        data-browse="true">           (empty query -> a facet-only panel via client.facetValues)
  *   </div>
  *
  * When a fuzzy/synonyms toggle is on, a hit that only appears because of
@@ -34,6 +43,12 @@ interface Hit {
   url: string;
   fields: Record<string, string>;
   pinned?: boolean;
+  highlights?: Record<string, HighlightSpan[]>;
+}
+
+interface HighlightSpan {
+  text: string;
+  isMatch: boolean;
 }
 
 interface FacetResultValue {
@@ -53,13 +68,35 @@ interface SearchResult {
   didYouMean?: string[];
 }
 
+interface RangeFilter {
+  min?: number;
+  max?: number;
+}
+
 interface SearchOptions {
   language?: string;
   limit?: number;
-  filters?: Record<string, string | string[]>;
+  filters?: Record<string, string | string[] | RangeFilter>;
   facets?: string[];
   fuzzy?: boolean;
+  fuzzyWeight?: number;
   synonyms?: boolean;
+  synonymWeight?: number;
+  operator?: "and" | "or";
+  highlight?: boolean;
+  mode?: "lexical" | "vector" | "hybrid";
+  boosts?: {
+    fields?: Record<string, number>;
+    terms?: Record<string, number>;
+  };
+}
+
+interface SearchClientLike {
+  search(query: string, options?: SearchOptions): Promise<SearchResult>;
+  facetValues?(
+    field: string,
+    options?: { filters?: SearchOptions["filters"] },
+  ): Promise<FacetResult>;
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -71,8 +108,45 @@ const LANGUAGE_LABELS: Record<string, string> = {
   nn: "Norsk nynorsk",
 };
 
-interface SearchClientLike {
-  search(query: string, options?: SearchOptions): Promise<SearchResult>;
+type Mode = "lexical" | "vector" | "hybrid";
+
+/**
+ * Mirrors the indexer's `_deterministic_embed`
+ * (python/searchable-indexer/scripts/build_from_config.py): the 2D
+ * stand-in embedding that built the corpus vectors, replicated exactly so
+ * the query is embedded in the same (non-semantic) space at query time --
+ * the vector/hybrid gallery demo proves the retrieval mechanism end to
+ * end without bundling a real model (docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from).
+ */
+function deterministicQueryEmbed(query: string): number[] {
+  let charSum = 0;
+  for (const ch of query) charSum += ch.codePointAt(0) ?? 0;
+  return [query.length, charSum % 97];
+}
+
+function parseNumberInput(value: string): number | undefined {
+  if (value === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+interface BoostSpecEntry {
+  key: string;
+  multiplier: number;
+}
+
+function parseBoostSpec(spec: string | undefined): BoostSpecEntry[] {
+  if (!spec) return [];
+  return spec
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .flatMap((part) => {
+      const [key, rawMultiplier] = part.split("=");
+      const multiplier = Number(rawMultiplier);
+      if (!key || !Number.isFinite(multiplier)) return [];
+      return [{ key, multiplier }];
+    });
 }
 
 const siteRoot = new URL(".", import.meta.url);
@@ -110,20 +184,45 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     .split(",")
     .map((f) => f.trim())
     .filter(Boolean);
+  const rangeFacetFields = (root.dataset.rangeFacets ?? "")
+    .split(",")
+    .map((f) => f.trim())
+    .filter(Boolean);
   const showFuzzyToggle = root.dataset.fuzzyToggle === "true";
   const showSynonymsToggle = root.dataset.synonymsToggle === "true";
   const languageCodes = (root.dataset.languages ?? "")
     .split(",")
     .map((c) => c.trim())
     .filter(Boolean);
+  const showHighlight = root.dataset.highlight === "true";
+  const browseOnly = root.dataset.browse === "true";
+  const operator =
+    root.dataset.operator === "or" ? ("or" as const) : ("and" as const);
+  const modes = (root.dataset.modes ?? "")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean) as Mode[];
+  const boostFields = parseBoostSpec(root.dataset.boostFields);
+  const boostTerms = parseBoostSpec(root.dataset.boostTerms);
+  const fuzzyWeight = Number(root.dataset.fuzzyWeight);
+  const synonymWeight = Number(root.dataset.synonymWeight);
 
   const { SearchClient } = await import(
     new URL("assets/index.js", siteRoot).href
   );
+
   const client: SearchClientLike = new SearchClient({
     indexUrl: new URL(indexPath, siteRoot).href,
     worker: true,
     workerUrl: new URL("assets/worker.js", siteRoot),
+    ...(modes.length
+      ? {
+          embedQuery: {
+            embed: deterministicQueryEmbed,
+            provider: { type: "custom" },
+          },
+        }
+      : {}),
   });
 
   const controls = document.createElement("div");
@@ -189,6 +288,119 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     controls.append(label);
   }
 
+  // --- per-query weight knobs (docs/guides/ranking-and-boosts.md#boost-types-summarized) ---
+  const fuzzyWeightValue = Number.isFinite(fuzzyWeight)
+    ? fuzzyWeight
+    : undefined;
+  const synonymWeightValue = Number.isFinite(synonymWeight)
+    ? synonymWeight
+    : undefined;
+  const fuzzyWeightKnob = addWeightKnob(
+    "Fuzzy weight",
+    "Fuzzy match weight",
+    showFuzzyToggle,
+    fuzzyWeightValue,
+  );
+  const synonymWeightKnob = addWeightKnob(
+    "Synonym weight",
+    "Synonym match weight",
+    showSynonymsToggle,
+    synonymWeightValue,
+  );
+  function addWeightKnob(
+    labelText: string,
+    ariaLabel: string,
+    enabled: boolean,
+    initialValue: number | undefined,
+  ): HTMLInputElement | undefined {
+    if (!enabled || initialValue === undefined) return undefined;
+    const label = document.createElement("label");
+    label.className = "gallery-toggle";
+    const knob = document.createElement("input");
+    knob.type = "number";
+    knob.className = "gallery-weight-input";
+    knob.min = "0";
+    knob.max = "1";
+    knob.step = "0.1";
+    knob.value = String(initialValue);
+    knob.setAttribute("aria-label", ariaLabel);
+    knob.addEventListener("input", () => void runSearch());
+    label.append(document.createTextNode(`${labelText}: `), knob);
+    controls.append(label);
+    return knob;
+  }
+
+  // --- AND/OR query operator (docs/guides/ranking-and-boosts.md#query-input-forms) ---
+  let selectedOperator: "and" | "or" = operator;
+  if (root.dataset.operator !== undefined) {
+    const select = document.createElement("select");
+    select.className = "gallery-operator-select";
+    select.setAttribute("aria-label", "Query operator");
+    for (const value of ["and", "or"] as const) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value.toUpperCase();
+      select.append(option);
+    }
+    select.value = selectedOperator;
+    select.addEventListener("change", () => {
+      selectedOperator = select.value as "and" | "or";
+      void runSearch();
+    });
+    controls.append(select);
+  }
+
+  // --- retrieval mode select + per-query boosts (checkbox each) ---
+  let selectedMode: Mode | undefined = modes[0];
+  if (modes.length > 0) {
+    const select = document.createElement("select");
+    select.className = "gallery-mode-select";
+    select.setAttribute("aria-label", "Retrieval mode");
+    for (const mode of modes) {
+      const option = document.createElement("option");
+      option.value = mode;
+      option.textContent = mode;
+      select.append(option);
+    }
+    select.addEventListener("change", () => {
+      selectedMode = select.value as Mode;
+      void runSearch();
+    });
+    controls.append(select);
+  }
+
+  const activeFieldBoosts = new Map<string, number>();
+  const activeTermBoosts = new Map<string, number>();
+  const boostToggle = (
+    entries: BoostSpecEntry[],
+    formatter: (entry: BoostSpecEntry) => string,
+    active: Map<string, number>,
+  ): void => {
+    for (const entry of entries) {
+      const label = document.createElement("label");
+      label.className = "gallery-toggle gallery-boost-toggle";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) active.set(entry.key, entry.multiplier);
+        else active.delete(entry.key);
+        void runSearch();
+      });
+      label.append(checkbox, document.createTextNode(formatter(entry)));
+      controls.append(label);
+    }
+  };
+  boostToggle(
+    boostFields,
+    (entry) => ` Boost field "${entry.key}" \u00d7${entry.multiplier}`,
+    activeFieldBoosts,
+  );
+  boostToggle(
+    boostTerms,
+    (entry) => ` Boost term "${entry.key}" \u00d7${entry.multiplier}`,
+    activeTermBoosts,
+  );
+
   const body = document.createElement("div");
   body.className = "gallery-body";
 
@@ -199,6 +411,55 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   const resultsPane = document.createElement("div");
   resultsPane.className = "gallery-results";
   body.append(resultsPane);
+
+  // Range filters live in persistent inputs, so re-rendering the checkbox
+  // facet groups on every search must not clobber them (nor steal focus).
+  const rangeSection = document.createElement("div");
+  const checkboxSection = document.createElement("div");
+  facetsPane.append(rangeSection, checkboxSection);
+
+  const rangeStates = new Map<
+    string,
+    { min: number | undefined; max: number | undefined }
+  >();
+  for (const field of rangeFacetFields) {
+    const group = document.createElement("fieldset");
+    group.className = "gallery-facet-group gallery-range-facet";
+    const legend = document.createElement("legend");
+    legend.textContent = field;
+    group.append(legend);
+    const minInput = document.createElement("input");
+    minInput.type = "number";
+    minInput.className = "gallery-range-input";
+    minInput.placeholder = "Min";
+    minInput.setAttribute("aria-label", `${field} minimum`);
+    const maxInput = document.createElement("input");
+    maxInput.type = "number";
+    maxInput.className = "gallery-range-input";
+    maxInput.placeholder = "Max";
+    maxInput.setAttribute("aria-label", `${field} maximum`);
+    const labelForRange = (text: string): HTMLSpanElement => {
+      const span = document.createElement("span");
+      span.className = "gallery-range-label";
+      span.textContent = text;
+      return span;
+    };
+    group.append(
+      labelForRange("$"),
+      minInput,
+      labelForRange("\u2013"),
+      maxInput,
+    );
+    const readRange = (): void => {
+      const min = parseNumberInput(minInput.value);
+      const max = parseNumberInput(maxInput.value);
+      rangeStates.set(field, { min, max });
+      void runSearch();
+    };
+    minInput.addEventListener("input", readRange);
+    maxInput.addEventListener("input", readRange);
+    rangeSection.append(group);
+  }
 
   root.replaceChildren(controls, body);
 
@@ -211,17 +472,27 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     debounceTimer = setTimeout(() => void runSearch(), 150);
   });
 
-  function currentFilters(): Record<string, string[]> | undefined {
-    if (selectedFilters.size === 0) return undefined;
-    const out: Record<string, string[]> = {};
+  function currentFilters():
+    | Record<string, string | string[] | RangeFilter>
+    | undefined {
+    const out: Record<string, string | string[] | RangeFilter> = {};
     for (const [field, values] of selectedFilters) {
       if (values.size > 0) out[field] = [...values];
+    }
+    for (const field of rangeFacetFields) {
+      const range = rangeStates.get(field);
+      if (!range) continue;
+      if (range.min === undefined && range.max === undefined) continue;
+      const filter: RangeFilter = {};
+      if (range.min !== undefined) filter.min = range.min;
+      if (range.max !== undefined) filter.max = range.max;
+      out[field] = filter;
     }
     return Object.keys(out).length ? out : undefined;
   }
 
   function renderFacets(facets: SearchResult["facets"]): void {
-    facetsPane.replaceChildren();
+    checkboxSection.replaceChildren();
     if (!facets) return;
     for (const field of facetFields) {
       const result = facets[field];
@@ -251,7 +522,28 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
         );
         group.append(label);
       }
-      facetsPane.append(group);
+      checkboxSection.append(group);
+    }
+  }
+
+  function appendFieldText(
+    parent: HTMLElement,
+    span: HighlightSpan[] | undefined,
+    fallback: string,
+  ): void {
+    if (!span || span.length === 0) {
+      parent.textContent = fallback;
+      return;
+    }
+    for (const part of span) {
+      if (part.isMatch) {
+        const mark = document.createElement("mark");
+        mark.className = "gallery-hit-highlight";
+        mark.textContent = part.text;
+        parent.append(mark);
+      } else {
+        parent.append(document.createTextNode(part.text));
+      }
     }
   }
 
@@ -294,7 +586,11 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       a.href = new URL(hit.url.replace(/^\//, ""), siteRoot).href;
       const title = document.createElement("div");
       title.className = "gallery-hit-title";
-      title.textContent = hit.fields.title ?? hit.url;
+      appendFieldText(
+        title,
+        hit.highlights?.title,
+        hit.fields.title ?? hit.url,
+      );
       if (hit.pinned) {
         const badge = document.createElement("span");
         badge.className = "gallery-badge";
@@ -309,12 +605,30 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       }
       const excerpt = document.createElement("div");
       excerpt.className = "gallery-hit-excerpt";
-      excerpt.textContent = hit.fields.excerpt ?? "";
+      appendFieldText(
+        excerpt,
+        hit.highlights?.excerpt,
+        hit.fields.excerpt ?? "",
+      );
       a.append(title, excerpt);
       li.append(a);
       list.append(li);
     }
     resultsPane.append(list);
+  }
+
+  function renderHint(message: string): void {
+    resultsPane.replaceChildren();
+    const summary = document.createElement("p");
+    summary.className = "gallery-results-summary";
+    summary.setAttribute("role", "status");
+    summary.setAttribute("aria-live", "polite");
+    summary.textContent = "0 results";
+    resultsPane.append(summary);
+    const hint = document.createElement("p");
+    hint.className = "gallery-empty";
+    hint.textContent = message;
+    resultsPane.append(hint);
   }
 
   function renderSearchError(): void {
@@ -330,19 +644,58 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   let latestQueryId = 0;
   async function runSearch(): Promise<void> {
     const queryId = ++latestQueryId;
-    const query = input.value.trim() || defaultQuery;
-    if (!query) return;
+    const query = input.value.trim() || (browseOnly ? "" : defaultQuery);
+    const filters = currentFilters();
+    if (!query && !browseOnly) return;
     root.setAttribute("aria-busy", "true");
     try {
-      const filters = currentFilters();
-      const result = await client.search(query, {
+      if (!query && browseOnly) {
+        // A no-query search isn't a supported API (search() short-circuits on
+        // zero terms), but the facet-only surface is: render the filter panel
+        // via client.facetValues and wait for a query to show hits
+        // (docs/reference/client-api.md#facet-only-queries).
+        const facetResults: SearchResult["facets"] = {};
+        for (const field of facetFields) {
+          const result = await client.facetValues?.(field, {
+            ...(filters ? { filters } : {}),
+          });
+          if (result) facetResults[field] = result;
+        }
+        if (queryId !== latestQueryId) return;
+        renderFacets(facetResults);
+        renderHint("Type a query to see matching products.");
+        return;
+      }
+
+      const options: SearchOptions = {
         limit: RESULT_LIMIT,
         facets: facetFields,
-        ...(filters ? { filters } : {}),
-        ...(selectedLanguage ? { language: selectedLanguage } : {}),
         fuzzy: fuzzyEnabled,
         synonyms: synonymsEnabled,
-      });
+        operator: selectedOperator,
+        ...(filters ? { filters } : {}),
+        ...(selectedLanguage ? { language: selectedLanguage } : {}),
+        ...(showHighlight ? { highlight: true } : {}),
+        ...(fuzzyEnabled && fuzzyWeightKnob
+          ? { fuzzyWeight: Number(fuzzyWeightKnob.value) }
+          : {}),
+        ...(synonymsEnabled && synonymWeightKnob
+          ? { synonymWeight: Number(synonymWeightKnob.value) }
+          : {}),
+        ...(selectedMode ? { mode: selectedMode } : {}),
+      };
+      if (activeFieldBoosts.size > 0 || activeTermBoosts.size > 0) {
+        options.boosts = {
+          ...(activeFieldBoosts.size > 0
+            ? { fields: Object.fromEntries(activeFieldBoosts) }
+            : {}),
+          ...(activeTermBoosts.size > 0
+            ? { terms: Object.fromEntries(activeTermBoosts) }
+            : {}),
+        };
+      }
+
+      const result = await client.search(query, options);
       if (queryId !== latestQueryId) return; // a newer request already superseded this one
 
       // Only the toggles' own contribution is worth labeling -- if neither
@@ -351,10 +704,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       let expandedOnlyIds = new Set<number>();
       if (fuzzyEnabled || synonymsEnabled) {
         const baseline = await client.search(query, {
-          limit: RESULT_LIMIT,
-          facets: facetFields,
-          ...(filters ? { filters } : {}),
-          ...(selectedLanguage ? { language: selectedLanguage } : {}),
+          ...options,
           fuzzy: false,
           synonyms: false,
         });

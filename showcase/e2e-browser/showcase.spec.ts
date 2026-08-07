@@ -120,8 +120,8 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     ).toBe(true);
 
     await page.goto(`${baseUrl}gallery/index.html`);
-    await expect(page.locator(".quick-example-card")).toHaveCount(6);
-    await expect(page.locator(".gallery-results-summary")).toHaveCount(6);
+    await expect(page.locator(".quick-example-card")).toHaveCount(14);
+    await expect(page.locator(".gallery-results-summary")).toHaveCount(14);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -158,7 +158,7 @@ test.describe("feature gallery: quick examples (real browser)", () => {
 
     await page.goto(`${baseUrl}gallery/index.html`);
     await expect(page.locator('.gallery-loading[role="status"]')).toHaveCount(
-      6,
+      14,
     );
 
     releaseClient?.();
@@ -204,6 +204,14 @@ test.describe("feature gallery: quick examples (real browser)", () => {
     "synonyms",
     "pinning",
     "internationalization",
+    "highlighting",
+    "operator",
+    "phrase",
+    "prefix",
+    "boosts",
+    "did-you-mean",
+    "vector",
+    "browse",
   ]) {
     test(`quick example ${id} loads real results`, async ({ page }) => {
       await page.goto(`${baseUrl}gallery/index.html`);
@@ -263,6 +271,70 @@ test.describe("feature gallery: quick examples (real browser)", () => {
     await expect(i18n.locator(".gallery-hit-title")).toContainText(
       "Espresso Grundlagen",
     );
+  });
+
+  test("newer quick examples exercise their distinct search behaviors", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/index.html`);
+
+    const highlighting = page.locator('[data-example-card="highlighting"]');
+    await expect(
+      highlighting.locator(".gallery-hit-title").first(),
+    ).toContainText(/headphones/i);
+    await expect(
+      highlighting.locator(".gallery-hit-highlight").first(),
+    ).toHaveCount(1);
+
+    const operator = page.locator('[data-example-card="operator"]');
+    await expect(operator.locator(".gallery-operator-select")).toHaveValue(
+      "or",
+    );
+    await expect(operator.locator(".gallery-hit-list li")).toHaveCount(4);
+    await operator.locator(".gallery-operator-select").selectOption("and");
+    await expect(operator.locator(".gallery-empty")).toBeVisible();
+
+    const phrase = page.locator('[data-example-card="phrase"]');
+    await expect(phrase.locator(".gallery-hit-title").first()).toContainText(
+      "Mechanical Keyboard",
+    );
+
+    const prefix = page.locator('[data-example-card="prefix"]');
+    await expect(prefix.locator(".gallery-hit-title").first()).toContainText(
+      /headphones/i,
+    );
+
+    const boosts = page.locator('[data-example-card="boosts"]');
+    await expect(boosts.locator(".gallery-operator-select")).toHaveValue("or");
+    await expect(boosts.locator(".gallery-hit-title").first()).toContainText(
+      /wireless mouse/i,
+    );
+    await boosts.locator(".gallery-boost-toggle input").check();
+    await expect(boosts.locator(".gallery-hit-title").first()).toContainText(
+      /bluetooth speaker/i,
+    );
+
+    const didYouMean = page.locator('[data-example-card="did-you-mean"]');
+    await didYouMean.locator(".gallery-fuzzy-toggle input").check();
+    await expect(didYouMean.locator(".gallery-did-you-mean")).toContainText(
+      /wireless/,
+    );
+
+    const vector = page.locator('[data-example-card="vector"]');
+    await expect(vector.locator(".gallery-mode-select")).toHaveValue("hybrid");
+    await expect(vector.locator(".gallery-hit-list li").first()).toBeVisible();
+    await vector.locator(".gallery-mode-select").selectOption("vector");
+    await expect(vector.locator(".gallery-hit-list li").first()).toBeVisible();
+    await vector.locator(".gallery-mode-select").selectOption("lexical");
+    await expect(vector.locator(".gallery-hit-list li").first()).toBeVisible();
+
+    const browse = page.locator('[data-example-card="browse"]');
+    await expect(browse.locator(".gallery-facet-group")).toBeVisible();
+    await expect(browse.locator(".gallery-empty")).toContainText(
+      "Type a query",
+    );
+    await browse.locator(".gallery-search-input").fill("desk");
+    await expect(browse.locator(".gallery-hit-list li").first()).toBeVisible();
   });
 
   test("inline source is keyboard-operable and links to its guide", async ({
@@ -365,6 +437,28 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
       .allTextContents()) {
       expect(title).not.toBe("");
     }
+  });
+
+  test("a numeric range facet filters results between inclusive bounds", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/products/index.html`);
+    const hits = page.locator(".gallery-hit-list li");
+    await expect(hits.first()).toBeVisible();
+    expect(await hits.count()).toBeGreaterThan(0);
+
+    await page.getByLabel("priceRange minimum").fill("50");
+    await page.getByLabel("priceRange maximum").fill("120");
+
+    await expect(hits.first()).toBeVisible();
+    expect(await hits.count()).toBeGreaterThan(0);
+    await expect(page.locator(".gallery-error")).toHaveCount(0);
+
+    // Rechecking against the same demo across runs stays deterministic:
+    // clearing the range restores the full set.
+    await page.getByLabel("priceRange minimum").fill("");
+    await page.getByLabel("priceRange maximum").fill("");
+    await expect(hits).toHaveCount(4);
   });
 
   test("accessibility: result count is an aria-live region (docs/reference/client-api.md)", async ({

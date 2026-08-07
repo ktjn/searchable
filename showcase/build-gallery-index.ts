@@ -30,7 +30,7 @@ const DEMOS: DemoLink[] = [
     href: "products/index.html",
     title: "Product catalog",
     description:
-      "64 synthetic products: terms facets, boosts, a pinned best-bet, and a fuzzy-matching toggle (typo tolerance).",
+      "64 synthetic products: terms and numeric range facets, boosts, a pinned best-bet, a fuzzy toggle with weight tuning, and vector/hybrid shards built with a deterministic embedder.",
   },
   {
     href: "synonyms/index.html",
@@ -98,7 +98,8 @@ export function renderHubPage(): string {
       </main>`;
   return pageShell({
     title: "Feature gallery",
-    description: "Demos of facets, boosts, pins, fuzzy matching, and synonyms.",
+    description:
+      "Demos of facets, boosts, pins, fuzzy matching, synonyms, highlighting, and vector/hybrid search.",
     root: "../",
     bodyHtml,
     withWidget: true,

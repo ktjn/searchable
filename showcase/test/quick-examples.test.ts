@@ -15,6 +15,14 @@ test("contains one unique example for every approved behavior", () => {
     "synonyms",
     "pinning",
     "internationalization",
+    "highlighting",
+    "operator",
+    "phrase",
+    "prefix",
+    "boosts",
+    "did-you-mean",
+    "vector",
+    "browse",
   ]);
 });
 
@@ -31,7 +39,10 @@ test("displayed source and runtime attributes derive from one definition", () =>
     expect(attributes).toContain(`data-example-id="${example.id}"`);
     expect(attributes).toContain(`data-index-path="${example.indexPath}"`);
     expect(code).toContain(example.indexPath);
-    expect(code).toContain(JSON.stringify(example.initialQuery));
+    // The browse card's sample uses client.facetValues, so there is no
+    // query string in its source (docs/reference/client-api.md#facet-only-queries).
+    if (!example.browse)
+      expect(code).toContain(JSON.stringify(example.initialQuery));
   }
 });
 
@@ -62,6 +73,46 @@ test("renders every optional behavior in attributes and displayed source", () =>
   expect(
     renderExampleCode(byId.get("internationalization") as QuickExample),
   ).toContain('language: "en"');
+
+  expect(
+    renderRuntimeAttributes(byId.get("highlighting") as QuickExample),
+  ).toContain('data-highlight="true"');
+  expect(renderExampleCode(byId.get("highlighting") as QuickExample)).toContain(
+    "highlight: true",
+  );
+  expect(
+    renderRuntimeAttributes(byId.get("operator") as QuickExample),
+  ).toContain('data-operator="or"');
+  expect(renderExampleCode(byId.get("operator") as QuickExample)).toContain(
+    'operator: "or"',
+  );
+  expect(renderRuntimeAttributes(byId.get("phrase") as QuickExample)).toContain(
+    'data-default-query="&quot;mechanical keyboard&quot;"',
+  );
+  expect(renderRuntimeAttributes(byId.get("prefix") as QuickExample)).toContain(
+    'data-default-query="head*"',
+  );
+  expect(renderRuntimeAttributes(byId.get("boosts") as QuickExample)).toContain(
+    'data-boost-terms="speaker=5"',
+  );
+  expect(renderExampleCode(byId.get("boosts") as QuickExample)).toContain(
+    '"speaker": 5',
+  );
+  expect(
+    renderRuntimeAttributes(byId.get("did-you-mean") as QuickExample),
+  ).toContain('data-default-query="wirelssz"');
+  expect(renderRuntimeAttributes(byId.get("vector") as QuickExample)).toContain(
+    'data-modes="hybrid,lexical,vector"',
+  );
+  expect(renderExampleCode(byId.get("vector") as QuickExample)).toContain(
+    'mode: "hybrid"',
+  );
+  expect(renderRuntimeAttributes(byId.get("browse") as QuickExample)).toContain(
+    'data-browse="true"',
+  );
+  expect(renderExampleCode(byId.get("browse") as QuickExample)).toContain(
+    "facetValues",
+  );
 });
 
 test("escapes runtime attribute values", () => {
@@ -86,16 +137,23 @@ test("escapes runtime attribute values", () => {
   );
 });
 
-test("renders six interactive cards and four complete demo links", () => {
+test("renders every quick-example card and the demo links", () => {
   const html = renderHubPage();
 
-  expect(html.match(/data-gallery-root/g)).toHaveLength(6);
-  expect(html.match(/<article class="quick-example-card"/g)).toHaveLength(6);
-  expect(html.match(/<details class="example-source">/g)).toHaveLength(6);
+  expect(html.match(/data-gallery-root/g)).toHaveLength(QUICK_EXAMPLES.length);
+  expect(html.match(/<article class="quick-example-card"/g)).toHaveLength(
+    QUICK_EXAMPLES.length,
+  );
+  expect(html.match(/<details class="example-source">/g)).toHaveLength(
+    QUICK_EXAMPLES.length,
+  );
   expect(
     html.match(/<ul class="gallery-demo-list">[\s\S]*?<\/ul>/)?.[0],
   ).toMatch(/(?:<li>[\s\S]*?){4}/);
   expect(html.match(/gallery-widget\.js/g)).toHaveLength(1);
   expect(html).toContain('<span class="hljs-keyword">const</span>');
   expect(html).toContain('href="../docs/getting-started/first-search.html"');
+  expect(html).toContain(
+    'href="../docs/reference/client-api.html#facet-only-queries"',
+  );
 });

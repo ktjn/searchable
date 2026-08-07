@@ -90,7 +90,7 @@ live, editable example:
 
 | Demo | Corpus | Showcases | Status |
 |---|---|---|---|
-| Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), `searchable-boost` (7 "featured" products score-boosted), a `searchable-pin` best-bet ("returns policy" pinned to a support page) | ✅ built — [`showcase/build-gallery.ts`](../../../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../../../showcase/gallery-data.ts), live at `gallery/products/index.html` |
+| Product catalog | 64 synthetic products (name, category, price, tags) across 4 categories | Terms facets (category, bucketed price, tags), a true numeric range facet (`priceRange` min/max filter), `searchable-boost` (7 "featured" products score-boosted), a `searchable-pin` best-bet ("returns policy" pinned to a support page), a fuzzy toggle with a weight knob, and vector/hybrid shards built with the deterministic test embedder | ✅ built — [`showcase/build-gallery.ts`](../../../showcase/build-gallery.ts), [`showcase/gallery-data.ts`](../../../showcase/gallery-data.ts), live at `gallery/products/index.html` |
 | Typo tolerance | Reuses the product catalog | Fuzzy matching + "did you mean," a checkbox toggle on the same page so the value is visible by comparison (same query, fuzzy off vs. on) | ✅ built — same demo, `data-fuzzy-toggle` on [`showcase/src/gallery-widget.ts`](../../../showcase/src/gallery-widget.ts) |
 | Synonym playground | 6 docs with deliberately non-overlapping vocabulary ("couch"-only doc vs. "sofa"-only query, plus an unrelated control and a directional pair) | Synonym expansion, visibly labeled in the UI ("Synonym match" badge) so the mechanism is legible, not just "it worked" | ✅ built — [`showcase/build-gallery-synonyms.ts`](../../../showcase/build-gallery-synonyms.ts), [`showcase/gallery-synonyms-data.ts`](../../../showcase/gallery-synonyms-data.ts), live at `gallery/synonyms/index.html` |
 | Multi-language corpus | 6 short parallel articles, English + German only (docs/09-roadmap.md#status — the two LanguageProfiles that actually exist; Japanese/Arabic aren't built) | Language partitioning ("espresso," spelled identically in both languages, returns only the selected language's page) and the German stemmer's own umlaut-fold (`schon` vs. `schön` now both surface each other, despite reaching the stemmer as distinct strings) | ✅ built — [`showcase/build-gallery-i18n.ts`](../../../showcase/build-gallery-i18n.ts), [`showcase/gallery-i18n-data.ts`](../../../showcase/gallery-i18n-data.ts), live at `gallery/i18n/index.html`. `Intl.Segmenter` CJK handling and RTL rendering remain unbuilt |
@@ -106,9 +106,12 @@ under `dist/gallery/products/search-index/`, entirely separate from the
 docs site's own search index, and why `build-search.ts`'s doc-discovery
 walk explicitly skips `dist/gallery/`.
 
-Range facets don't exist yet (docs/09-roadmap.md#status), so price is a
-bucketed terms facet (`Under $25` / `$25–$100` / `$100–$500` / `$500+`)
-computed at corpus-generation time, not a true numeric range query.
+Price is shown both ways on purpose: `price` is a bucketed terms facet
+(`Under $25` / `$25–$100` / `$100–$500` / `$500+`) computed at
+corpus-generation time, while `priceRange` is a true numeric range facet
+(`searchable-facet-range-priceRange` meta tags) exposed as min/max inputs
+in the widget, so a visitor can compare the two facet types on the same
+attribute.
 
 A `search(query, {facets, filters})`-driven checkbox UI needs a
 non-empty query to get any hits/facets back at all
@@ -117,7 +120,10 @@ short-circuits on zero query terms) — there's no dedicated "browse all"
 mode. The demo works around this by defaulting the search box to a
 fixed word every product's body copy contains (`"product"`), giving a
 real "browse everything, then filter" experience without a separate
-API path. The one gotcha this surfaced: page-chrome text (e.g. a "back
+API path. The hub's "Browse before you type" card showcases the
+dedicated alternative to that workaround — `client.facetValues()` can
+drive a filter-only panel with no free-text query at all
+(docs/reference/client-api.md#facet-only-queries). The one gotcha this surfaced: page-chrome text (e.g. a "back
 to catalog" link) has to live inside a `<nav>` (or otherwise be
 excluded via `data-searchable-ignore`), or the indexer's boilerplate-stripping
 in `extractDocument` won't remove it and it silently leaks into every
@@ -156,15 +162,40 @@ searching either "schon" or "schön" now surfaces both pages: a
 deliberate, spec-conforming property of a real stemmer, not something
 either flag or a bug controls.
 
+Beyond the four full demos, the gallery hub's "Try individual features"
+grid ([`showcase/quick-examples.ts`](../../../showcase/quick-examples.ts)) hosts one
+card per remaining engine capability, each a real `SearchClient` search
+against the products corpus unless noted: basic search, fuzzy matching,
+facet filtering, synonym expansion, pinned results,
+internationalized search, result highlighting (`options.highlight`),
+an AND/OR operator select, quoted-phrase queries, `term*` prefix
+queries, per-query term boosting (`boosts.terms`, shown as a checkbox
+that visibly re-ranks `wireless speaker` toward "speaker"), a
+did-you-mean card (query `wirelssz` with fuzzy on), a
+vector/hybrid retrieval-mode select, and a facet-only "browse before
+you type" card that renders the sidebar via `client.facetValues()`
+before any query text exists. The widget's data-driven contract
+(`gallery-widget.ts` header comment) documents every attribute behind
+these cards; `quick-examples.test.ts` and `showcase.spec.ts` pin both
+the static render and the live browser behavior.
+
 ## Stage 3 — Vector/hybrid search (needs Phase 8)
 
-A demo of semantic search on the docs corpus itself is the best fit
-here — "search for 'how do I stop the engine from bloating my bundle'"
-finding [../../concepts/architecture.md](../../concepts/architecture.md)'s bundle-size
-section via meaning rather than exact wording is a legible, honest
-demonstration of the feature working, using content that's already
-real rather than contrived. Side-by-side lexical vs. hybrid results
-(toggle) makes the RRF fusion's effect visible rather than asserted.
+The vector/hybrid *mechanism* is now demonstrable end to end on a static
+host: the product catalog index is built with the indexer's
+deterministic test embedder (`_deterministic_embed` in
+[`build_from_config.py`](../../../python/searchable-indexer/scripts/build_from_config.py)),
+and the gallery widget's `data-modes` attribute supplies the matching
+query embedder, so switching between `lexical`, `hybrid` (RRF), and
+`vector` modes on the same query shows the retrieval strategies
+side-by-side. The deterministic embedder is explicitly *not* semantic —
+results prove the plumbing (build-time chunks → query embed → cosine →
+fusion), not meaning. The honest semantic showcase remains the original
+Stages plan: the docs corpus embedded by a real model
+(`createTransformersEmbedQuery`, docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from),
+which needs the bundle-size/loading tradeoff accepted before it's a
+gallery-card-fit, and it's tracked against the
+[roadmap](../project/roadmap.md).
 
 ## Non-goals for the showcase
 
