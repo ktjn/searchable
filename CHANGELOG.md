@@ -14,7 +14,11 @@ the "stable" API surface in
 the vector/hybrid search and binary storage tier surfaces
 are explicitly marked experimental and may change in a minor release.
 
-## [Unreleased]
+## [1.2.0] - 2026-08-08
+
+This release is `1.2.0` for the npm packages, `0.2.3` for `searchable-indexer`
+and `searchable-analysis`, `0.4.2` for the Python client, and `0.1.1` for
+`searchable-binary`.
 
 ### Added
 
@@ -90,6 +94,14 @@ are explicitly marked experimental and may change in a minor release.
   format, Python and npm packages), the public-index confidentiality
   boundary, and the release-artifact smoke test that runs before PyPI
   publication.
+
+### Notes
+
+- A minor bump on the strength of the additive `OfflineCacheOptions.scope`
+  option; the rest of the changes are bug fixes in `@ktjn/searchable-client`.
+  There are no functional changes to the Python packages or the
+  `Manifest.version` contract (`1`); their patch bumps let the tag-triggered
+  publish workflow republish each artifact once.
 
 ## [1.1.2] - 2026-08-06
 

@@ -1,6 +1,6 @@
 [project]
 name = "searchable-client"
-version = "0.4.1"
+version = "0.4.2"
 description = "Dependency-light Python search client for Searchable with lexical, vector and hybrid query support."
 requires-python = ">=3.10"
 dependencies = [
