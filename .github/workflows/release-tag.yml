@@ -74,9 +74,15 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "v${VERSION}" -m "Release ${VERSION}"
-          git push origin "v${VERSION}"
+          # Use an explicit authenticated URL. `git push` otherwise uses the
+          # credential helper actions/checkout configured with GITHUB_TOKEN,
+          # and a GITHUB_TOKEN push is suppressed by GitHub (no publish event).
+          # Pushing with RELEASE_TOKEN (a PAT/GitHub App token) makes the
+          # `v*` push event that publish.yml listens for actually fire.
+          git push "https://x-access-token:${RELEASE_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "v${VERSION}"
