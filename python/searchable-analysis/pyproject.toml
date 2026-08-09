@@ -1,6 +1,6 @@
 [project]
 name = "searchable-analysis"
-version = "0.2.3"
+version = "1.4.0"
 description = "Multi-language tokenization, stemming, and language detection for Searchable (Python port of @ktjn/searchable-analysis)."
 requires-python = ">=3.10"
 dependencies = []
