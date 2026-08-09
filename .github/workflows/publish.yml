@@ -48,6 +48,8 @@ jobs:
           node-version: 24
           registry-url: https://npm.pkg.github.com
           scope: '@ktjn'
+      - name: Build npm packages
+        run: pnpm build
       - name: Publish npm packages to GitHub Packages
         run: |
           pnpm --filter @ktjn/searchable-analysis publish --access public --no-git-checks
