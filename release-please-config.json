@@ -1,0 +1,59 @@
+{
+  "release-type": "node",
+  "changelog-sections": [
+    { "type": "feat", "section": "### Added" },
+    { "type": "fix", "section": "### Fixed" },
+    { "type": "perf", "section": "### Changed" },
+    { "type": "refactor", "section": "### Changed" },
+    { "type": "chore", "section": "### Changed" },
+    { "type": "docs", "section": "### Changed" },
+    { "type": "security", "section": "### Security" }
+  ],
+  "packages": {
+    "packages/analysis": {
+      "component": "searchable-analysis",
+      "skip-changelog": true
+    },
+    "packages/format": {
+      "component": "searchable-format",
+      "skip-changelog": true
+    },
+    "packages/client": {
+      "component": "searchable-client",
+      "changelog-path": "../../CHANGELOG.md",
+      "extra-files": ["../../showcase/test/public-readiness-policy.test.ts"]
+    },
+    "python/searchable-analysis": {
+      "release-type": "python",
+      "package-name": "searchable-analysis",
+      "skip-changelog": true
+    },
+    "python/searchable-binary": {
+      "release-type": "python",
+      "package-name": "searchable-binary",
+      "skip-changelog": true
+    },
+    "python/searchable-indexer": {
+      "release-type": "python",
+      "package-name": "searchable-indexer",
+      "skip-changelog": true
+    },
+    "python/searchable-client": {
+      "release-type": "python",
+      "package-name": "searchable-client",
+      "skip-changelog": true,
+      "extra-files": ["tests/test_package_metadata.py"]
+    }
+  },
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "searchable-npm",
+      "components": [
+        "searchable-analysis",
+        "searchable-format",
+        "searchable-client"
+      ]
+    }
+  ]
+}

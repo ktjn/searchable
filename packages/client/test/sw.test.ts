@@ -462,8 +462,7 @@ describe("offline Service Worker fetch lifecycle (sw.ts)", () => {
     });
 
     it("language-restricted refresh fetches only the selected language's shards", async () => {
-      workerSelf.location.href =
-        buildWorkerUrl("stale-while-revalidate") + "&languages=en";
+      workerSelf.location.href = `${buildWorkerUrl("stale-while-revalidate")}&languages=en`;
       mockIndexFetch();
 
       const event = dispatch(requestFor("manifest.json"));
