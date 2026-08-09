@@ -22,6 +22,14 @@ are explicitly marked experimental and may change in a minor release.
 
 ### Fixed
 
+## [1.4.1] - 2026-08-09
+
+### Added
+
+### Changed
+
+### Fixed
+
 ## [1.4.0] - 2026-08-09
 
 Add section based index.
