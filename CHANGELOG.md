@@ -14,6 +14,10 @@ the "stable" API surface in
 the vector/hybrid search and binary storage tier surfaces
 are explicitly marked experimental and may change in a minor release.
 
+## [Unreleased]
+
+Add section based index.
+
 ## [1.2.0] - 2026-08-08
 
 This release is `1.2.0` for the npm packages, `0.2.3` for `searchable-indexer`
