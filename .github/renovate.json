@@ -5,7 +5,7 @@
   "schedule": ["before 4am on monday"],
   "minimumReleaseAge": "1 day",
   "constraintsFiltering": "strict",
-    "major": {
+  "major": {
     "dependencyDashboardApproval": false
   },
   "packageRules": [
