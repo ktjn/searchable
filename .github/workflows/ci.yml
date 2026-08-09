@@ -2,9 +2,16 @@ name: CI
 
 on:
   workflow_call:
+    inputs:
+      run-all:
+        description: "Run every job regardless of changed paths (used by the release publish pipeline)"
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -14,7 +21,42 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changed paths
+    if: ${{ !inputs.run-all }}
+    runs-on: ubuntu-latest
+    outputs:
+      node: ${{ steps.filter.outputs.node }}
+      python: ${{ steps.filter.outputs.python }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            node:
+              - 'packages/**'
+              - 'showcase/**'
+              - 'docs/**'
+              - '.github/workflows/**'
+              - '.github/actions/**'
+              - 'package.json'
+              - 'pnpm-workspace.yaml'
+              - 'pnpm-lock.yaml'
+              - 'biome.json'
+              - 'vitest.config.ts'
+              - 'playwright.config.ts'
+              - 'tsconfig*.json'
+              - 'README.md'
+            python:
+              - 'python/**'
+              - 'spec/examples/python/**'
+
   lint:
+    needs: changes
+    if: needs.changes.outputs.node == 'true' || inputs.run-all == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -22,6 +64,8 @@ jobs:
       - run: pnpm lint
 
   python-tests:
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || inputs.run-all == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -60,6 +104,8 @@ jobs:
           uv run pytest -v
 
   test:
+    needs: changes
+    if: needs.changes.outputs.node == 'true' || inputs.run-all == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -74,6 +120,8 @@ jobs:
       - run: pnpm test
 
   test-browser:
+    needs: changes
+    if: needs.changes.outputs.node == 'true' || inputs.run-all == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
