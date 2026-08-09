@@ -13,6 +13,24 @@ jobs:
     with:
       run-all: true
 
+  release:
+    name: Create GitHub release
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - name: Create GitHub Release
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes "See the [changelog](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md#readme)."
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-npm:
     needs: checks
     runs-on: ubuntu-latest
