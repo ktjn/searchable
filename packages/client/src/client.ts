@@ -349,7 +349,6 @@ export class SearchClient {
    * race subscribes.
    */
   #lifecycleFailure: Promise<never>;
-  #rejectLifecycle!: (error: Error) => void;
   #listeners = new Map<SearchClientEvent, Set<AnyListener>>();
   #embedQuery: SearchClientOptions["embedQuery"];
   #validateVectorProvider: boolean;
@@ -367,9 +366,7 @@ export class SearchClient {
   #vectorValidationManifest?: Promise<Manifest>;
 
   constructor(options: SearchClientOptions) {
-    this.#lifecycleFailure = new Promise<never>((_, reject) => {
-      this.#rejectLifecycle = reject;
-    });
+    this.#lifecycleFailure = new Promise<never>(() => {});
     this.#lifecycleFailure.catch(() => undefined);
     this.#indexUrl = toAbsoluteUrl(options.indexUrl);
     this.#embedQuery = options.embedQuery;
