@@ -5,10 +5,23 @@ name: Tag release
 # `.github/workflows/publish.yml`, which re-verifies and publishes to GitHub
 # Packages / PyPI.
 #
-# Fires only when a PR titled `Release X.Y.Z` is merged (closed with
-# `merged == true`), so unrelated merges on main are never tagged.
+# Triggers when a PR titled `Release X.Y.Z` is merged (closed with
+# `merged == true`), or manually via workflow_dispatch (a version input is
+# required then), so unrelated merges on main are never tagged.
+#
+# The tag (and the release PR that release-prep opens) is pushed with
+# `RELEASE_TOKEN` when present. That must be a PAT or GitHub App installation
+# token (NOT `GITHUB_TOKEN`): GitHub suppresses downstream `pull_request.closed`
+# and `push` events caused by `GITHUB_TOKEN`, which would otherwise silently
+# break the release-prep -> release-tag -> publish chain.
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to tag (X.Y.Z). Required for manual tagging."
+        required: false
+        type: string
   pull_request:
     types: [closed]
 
@@ -18,11 +31,11 @@ permissions:
 jobs:
   tag:
     name: Tag release
-    if: ${{ github.event.pull_request.merged == true }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true }}
     runs-on: ubuntu-latest
 
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Check out main
@@ -31,16 +44,24 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Derive version from pull request title
+      - name: Derive version
         id: version
         shell: bash
         run: |
           set -euo pipefail
-          TITLE="${{ github.event.pull_request.title }}"
-          VERSION=$(echo "$TITLE" | sed -n 's/^Release \([0-9]*\.[0-9]*\.[0-9]*\)$/\1/p')
-          if [ -z "${VERSION:-}" ]; then
-            echo "title '$TITLE' is not a 'Release X.Y.Z' PR; skipping"
-            exit 0
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              echo "error: a version input is required when tagging manually" >&2
+              exit 1
+            fi
+          else
+            TITLE="${{ github.event.pull_request.title }}"
+            VERSION=$(echo "$TITLE" | sed -n 's/^Release \([0-9]*\.[0-9]*\.[0-9]*\)$/\1/p')
+            if [ -z "$VERSION" ]; then
+              echo "title '$TITLE' is not a 'Release X.Y.Z' PR; skipping"
+              exit 0
+            fi
           fi
           if git tag --list "v${VERSION}" | grep -q .; then
             echo "tag v${VERSION} already exists; skipping"
