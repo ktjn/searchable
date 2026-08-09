@@ -1,0 +1,9 @@
+{
+  "packages/analysis": "1.2.0",
+  "packages/format": "1.2.0",
+  "packages/client": "1.2.0",
+  "python/searchable-analysis": "0.2.3",
+  "python/searchable-binary": "0.1.1",
+  "python/searchable-indexer": "0.2.3",
+  "python/searchable-client": "0.4.2"
+}
