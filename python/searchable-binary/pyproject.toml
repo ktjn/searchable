@@ -1,6 +1,6 @@
 [project]
 name = "searchable-binary"
-version = "0.1.1"
+version = "1.4.0"
 description = "Shared binary shard codec (encode + decode) for Searchable, used by both the Python indexer (writer) and the Python client (reader) so a format change is a single edit per language."
 requires-python = ">=3.10"
 dependencies = []
