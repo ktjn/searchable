@@ -1,0 +1,124 @@
+name: Prepare release
+
+# One-click manual release preparation. Given a version, this workflow:
+#
+#   1. bumps the three npm manifests and four Python pyprojects to one aligned
+#      version, and updates the two hardcoded-version tests,
+#   2. freezes `## [Unreleased]` changelog entries into a dated release section,
+#   3. opens (and, if requested, auto-merges) a `Release <version>` PR.
+#
+# Pushing the version tag runs `.github/workflows/publish.yml`, which
+# re-verifies and publishes to GitHub Packages / PyPI. Tagging is performed by
+# `.github/workflows/release-tag.yml` once the release PR merges, so a
+# maintainer only has to click "Run workflow" and review/approve the PR.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New aligned version (X.Y.Z) applied to every package"
+        required: true
+        type: string
+      auto_merge:
+        description: "Open the release PR with auto-merge enabled"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    name: Prepare release PR
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate and normalize version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          case "$VERSION" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "error: version must be X.Y.Z, got '$VERSION'" >&2; exit 1 ;;
+          esac
+          if git tag --list "v${VERSION}" | grep -q .; then
+            echo "error: tag v${VERSION} already exists" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure the changelog has unfrozen entries
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! grep -q '^## \[' CHANGELOG.md || ! grep -qi '^## \[unreleased\]' CHANGELOG.md; then
+            echo "error: CHANGELOG.md has no '## [Unreleased]' section to freeze" >&2
+            exit 1
+          fi
+
+      - name: Create release branch
+        id: branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="release-${{ steps.version.outputs.version }}"
+          git checkout -b "$BRANCH"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump versions, tests, and changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/prepare_release.py "${{ steps.version.outputs.version }}"
+
+      - name: Show intended diff
+        shell: bash
+        run: git --no-pager diff --stat && git --no-pager diff -- CHANGELOG.md
+
+      - name: Commit release bump
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md packages python showcase scripts
+          git commit -m "chore: prepare release ${{ steps.version.outputs.version }}"
+          git push -u origin "${{ steps.branch.outputs.branch }}"
+
+      - name: Open release pull request
+        id: pr
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          URL=$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "Release ${VERSION}" \
+            --body "Version bump and changelog freeze for ${VERSION}. All packages are aligned to this one version."
+          )
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge when requested
+        if: github.event.inputs.auto_merge == 'true'
+        shell: bash
+        env:
+          PR: ${{ steps.pr.outputs.url }}
+        run: |
+          set -euo pipefail
+          gh pr merge --auto --squash "$PR"
