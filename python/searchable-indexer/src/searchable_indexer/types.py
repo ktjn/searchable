@@ -9,6 +9,23 @@ class SourceDocument:
     html: str
 
 
+@dataclass(frozen=True)
+class SectionIndexingConfig:
+    """Opt-in heading-level indexing for HTML pages.
+
+    `selectors` must be HTML heading element selectors (``h1`` .. ``h6``).
+    `mode` controls whether the page-level document is retained alongside the
+    section documents:
+
+    - ``"sections"`` -- index sections only, falling back to the page document
+      when no eligible section exists.
+    - ``"page-and-sections"`` -- index the page document and every section.
+    """
+
+    selectors: tuple[str, ...] = ("h2", "h3")
+    mode: str = "sections"  # "sections" | "page-and-sections"
+
+
 @dataclass
 class PinDeclaration:
     phrase: str
@@ -29,6 +46,17 @@ class ExtractedDocument:
     facets: dict[str, list[str]] = field(default_factory=dict)
     range_facets: dict[str, float] = field(default_factory=dict)
     pins: list[PinDeclaration] = field(default_factory=list)
+    metadata: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class ExtractedSection:
+    title: str
+    page_title: str
+    body: str
+    url: str
+    anchor: str
+    heading_level: int
 
 
 @dataclass
