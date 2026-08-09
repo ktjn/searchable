@@ -21,9 +21,7 @@
     "packages/client": {
       "component": "searchable-client",
       "changelog-path": "../../CHANGELOG.md",
-      "extra-files": [
-        "../../showcase/test/public-readiness-policy.test.ts"
-      ]
+      "extra-files": ["../../showcase/test/public-readiness-policy.test.ts"]
     },
     "python/searchable-analysis": {
       "release-type": "python",
@@ -44,9 +42,7 @@
       "release-type": "python",
       "package-name": "searchable-client",
       "skip-changelog": true,
-      "extra-files": [
-        "tests/test_package_metadata.py"
-      ]
+      "extra-files": ["tests/test_package_metadata.py"]
     }
   },
   "plugins": [
