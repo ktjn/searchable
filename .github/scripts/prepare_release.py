@@ -115,16 +115,21 @@ def _rewrite_changelog_text(text: str, version: str, release_date: str) -> str:
         len(body),
     )
     released_body = body[:body_end]
+    older_releases = body[body_end :]
 
     prefix = "\n".join(lines[:unreleased_index]).rstrip("\n")
     fresh_unreleased = "\n".join(
         ["## [Unreleased]", "", "### Added", "", "### Changed", "", "### Fixed"]
     )
 
-    if released_body:
-        saved = "\n".join(released_body).rstrip("\n")
-        return f"{prefix}\n\n{fresh_unreleased}\n\n## [{version}] - {release_date}\n{saved}\n"
-    return f"{prefix}\n\n{fresh_unreleased}\n"
+    out = [prefix, "", fresh_unreleased, "", f"## [{version}] - {release_date}"]
+    released = "\n".join(released_body).rstrip("\n")
+    if released:
+        out.append(released)
+    if older_releases:
+        out.append("")
+        out.append("\n".join(older_releases).rstrip("\n"))
+    return "\n".join(out) + "\n"
 
 
 def rewrite_changelog(path: Path, version: str, release_date: str) -> None:
