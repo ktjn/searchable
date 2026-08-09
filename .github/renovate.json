@@ -5,6 +5,9 @@
   "schedule": ["before 4am on monday"],
   "minimumReleaseAge": "1 day",
   "constraintsFiltering": "strict",
+    "major": {
+    "dependencyDashboardApproval": false
+  },
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
