@@ -38,7 +38,6 @@ test("public docs describe the published package surface", () => {
   );
 });
 
-// x-release-please-start-version
 test("public npm manifests use the current patch release", () => {
   for (const directory of ["client", "analysis", "format"]) {
     const pkg = JSON.parse(read(`packages/${directory}/package.json`)) as {
@@ -53,7 +52,6 @@ test("public npm manifests use the current patch release", () => {
     );
   }
 });
-// x-release-please-end
 
 test("post-public security gates are recorded", () => {
   const checklist = read("docs/project/public-launch-checklist.md");
