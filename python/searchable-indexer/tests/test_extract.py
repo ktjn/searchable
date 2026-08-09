@@ -260,3 +260,44 @@ def test_no_pins_when_no_searchable_pin_tag_present():
     """
     doc = extract_document(html, "/page")
     assert doc.pins == []
+
+
+def test_generic_meta_metadata_is_collected():
+    html = """
+    <html lang="en">
+      <head>
+        <title>T</title>
+        <meta name="searchable-meta-type" content="specification">
+        <meta name="searchable-meta-area" content="transactions">
+      </head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.metadata == {"type": "specification", "area": "transactions"}
+
+
+def test_duplicate_generic_meta_keeps_the_first_value():
+    html = """
+    <html lang="en">
+      <head>
+        <title>T</title>
+        <meta name="searchable-meta-type" content="first">
+        <meta name="searchable-meta-type" content="second">
+      </head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.metadata == {"type": "first"}
+
+
+def test_no_generic_metadata_by_default():
+    html = """
+    <html lang="en">
+      <head><title>T</title></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.metadata == {}

@@ -1,18 +1,22 @@
 import math
 import re
 import sys
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from searchable_analysis import detect_language, get_registered_language_codes
-from selectolax.parser import HTMLParser
+from selectolax.parser import HTMLParser, Node
 
-from searchable_indexer.types import ExtractedDocument, PinDeclaration
+from searchable_indexer.types import ExtractedDocument, ExtractedSection, PinDeclaration
 
 _FACET_TAG_PREFIX = "searchable-facet-"
 _RANGE_FACET_TAG_PREFIX = "searchable-facet-range-"
+_META_META_PREFIX = "searchable-meta-"
 _BOILERPLATE_SELECTORS = ["nav", "header", "footer", "aside", "script", "style"]
 _SAFE_URL_PROTOCOLS = {"http", "https"}
 _WHITESPACE_RE = re.compile(r"\s+")
+_TEXT_NODE_TAG = "-text"
+_HEADING_LEVELS = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
 
 
 def _collapse_whitespace(text: str) -> str:
@@ -83,15 +87,13 @@ def _sanitize_canonical_url(
     return parsed.geturl()
 
 
-def extract_document(
-    html: str,
+def _extract(
+    tree: HTMLParser,
     source_url: str,
     default_language: str = "en",
     allowed_url_origins: list[str] | None = None,
     canonical_base_url: str | None = None,
 ) -> ExtractedDocument:
-    tree = HTMLParser(html)
-
     noindex = tree.css_first('meta[name="searchable-noindex"]') is not None
 
     title_node = tree.css_first("title")
@@ -170,6 +172,16 @@ def extract_document(
         for phrase in pin_phrases
     ]
 
+    metadata: dict[str, str] = {}
+    for meta in tree.css("meta"):
+        meta_name = meta.attributes.get("name") or ""
+        if not meta_name.startswith(_META_META_PREFIX):
+            continue
+        field_name = meta_name[len(_META_META_PREFIX) :]
+        value = (meta.attributes.get("content") or "").strip()
+        if field_name and field_name not in metadata:
+            metadata[field_name] = value
+
     return ExtractedDocument(
         title=title,
         language=language,
@@ -181,4 +193,153 @@ def extract_document(
         facets=facets,
         range_facets=range_facets,
         pins=pins,
+        metadata=metadata,
     )
+
+
+def extract_document(
+    html: str,
+    source_url: str,
+    default_language: str = "en",
+    allowed_url_origins: list[str] | None = None,
+    canonical_base_url: str | None = None,
+) -> ExtractedDocument:
+    tree = HTMLParser(html)
+    return _extract(tree, source_url, default_language, allowed_url_origins, canonical_base_url)
+
+
+def _walk_sections(
+    root: Node,
+    level_map: dict[str, int],
+    stack: list[dict[str, Any]],
+    out: list[dict[str, Any]],
+) -> None:
+    """Walk the body in document order, pushing a frame for every selected
+    heading. Content is attributed to the deepest open heading's frame, so
+    nested selected section content is never duplicated into a parent
+    section."""
+    cur = root.child
+    while cur is not None:
+        if cur.tag == _TEXT_NODE_TAG:
+            if stack and cur.text().strip():
+                stack[-1]["parts"].append(_collapse_whitespace(cur.text()))
+        else:
+            level = level_map.get(cur.tag)
+            if level is not None:
+                while stack and stack[-1]["level"] >= level:
+                    stack.pop()
+                frame = {
+                    "level": level,
+                    "title": _collapse_whitespace(cur.text(deep=True, separator=" ")),
+                    "anchor": (cur.attributes.get("id") or "").strip(),
+                    "parts": [],
+                }
+                stack.append(frame)
+                out.append(frame)
+            else:
+                _walk_sections(cur, level_map, stack, out)
+        cur = cur.next
+
+
+def _collect_until_first_heading(
+    node: Node,
+    level_map: dict[str, int],
+    parts: list[str],
+) -> bool:
+    cur = node.child
+    while cur is not None:
+        if cur.tag == _TEXT_NODE_TAG:
+            if cur.text().strip():
+                parts.append(_collapse_whitespace(cur.text()))
+        else:
+            if cur.tag in level_map:
+                return True
+            if _collect_until_first_heading(cur, level_map, parts):
+                return True
+        cur = cur.next
+    return False
+
+
+def extract_pre_section_body(
+    tree: HTMLParser,
+    selectors: tuple[str, ...],
+) -> str:
+    """Return the collapsed text that precedes the first selected heading.
+
+    Used by sections-only indexing to preserve introductory content that is
+    not owned by any section.
+    """
+    level_map: dict[str, int] = {}
+    for selector in selectors:
+        level_map[selector] = _HEADING_LEVELS[selector]
+
+    body_node = (
+        tree.css_first("[data-searchable-body]") or tree.css_first("main") or tree.css_first("body")
+    )
+    if body_node is None or not body_node.child:
+        return ""
+    parts: list[str] = []
+    _collect_until_first_heading(body_node, level_map, parts)
+    return " ".join(parts)
+
+
+def extract_sections(
+    tree: HTMLParser,
+    page_url: str,
+    page_title: str,
+    selectors: tuple[str, ...],
+) -> list[ExtractedSection]:
+    """Split a parsed page into heading-bounded sections.
+
+    Every selected HTML heading narrows the section boundaries (by HTML
+    heading level rather than selector order). Only headings that carry a
+    usable ``id`` become indexable sections; headings without an id act as
+    boundaries but produce no document. Anchors must be stable and unique.
+    """
+    level_map: dict[str, int] = {}
+    for selector in selectors:
+        level_map[selector] = _HEADING_LEVELS[selector]
+
+    body_node = (
+        tree.css_first("[data-searchable-body]") or tree.css_first("main") or tree.css_first("body")
+    )
+    if body_node is None:
+        return []
+
+    frames: list[dict[str, Any]] = []
+    _walk_sections(body_node, level_map, [], frames)
+
+    page_base = page_url.split("#", 1)[0]
+    seen_urls: set[str] = set()
+    sections: list[ExtractedSection] = []
+    for frame in frames:
+        anchor = frame["anchor"]
+        if not anchor:
+            _warn(
+                f'heading "{frame["title"]}" on {page_url} has no "id" -- '
+                "skipping section indexing for it"
+            )
+            continue
+        body = " ".join(frame["parts"])
+        section_url = f"{page_base}#{anchor}"
+        if section_url in seen_urls:
+            _warn(
+                f'duplicate section URL "{section_url}" on {page_url} -- '
+                "skipping the later duplicate"
+            )
+            continue
+        title = frame["title"]
+        if not title and not body:
+            continue
+        seen_urls.add(section_url)
+        sections.append(
+            ExtractedSection(
+                title=title,
+                page_title=page_title,
+                body=body,
+                url=section_url,
+                anchor=anchor,
+                heading_level=frame["level"],
+            )
+        )
+    return sections

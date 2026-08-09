@@ -11,9 +11,15 @@ from searchable_analysis import (
     get_language_profile,
     normalize_phrase,
 )
+from selectolax.parser import HTMLParser
 
-from searchable_indexer.document import FieldDefinition, IndexDocument, compute_content_hash
-from searchable_indexer.extract import extract_document
+from searchable_indexer.document import (
+    FieldDefinition,
+    IndexDocument,
+    JsonValue,
+    compute_content_hash,
+)
+from searchable_indexer.extract import _extract, extract_pre_section_body, extract_sections
 from searchable_indexer.facets import (
     RANGE_FACET_BUCKET_COUNT,
     add_facet_values,
@@ -25,7 +31,14 @@ from searchable_indexer.fuzzy import build_fuzzy_shard
 from searchable_indexer.pins import resolve_pins
 from searchable_indexer.postings import add_postings
 from searchable_indexer.synonyms import build_synonym_shards
-from searchable_indexer.types import BuiltIndex, PinDeclaration, SourceDocument
+from searchable_indexer.types import (
+    BuiltIndex,
+    ExtractedDocument,
+    ExtractedSection,
+    PinDeclaration,
+    SectionIndexingConfig,
+    SourceDocument,
+)
 from searchable_indexer.vectors import build_vector_shards
 
 _DEFAULT_FIELD_BOOSTS = {"title": 3.0, "body": 1.0}
@@ -543,41 +556,73 @@ def build_index_documents(
     )
 
 
-def _legacy_field_definitions(field_boosts: dict[str, float] | None) -> dict[str, FieldDefinition]:
+def _legacy_field_definitions(
+    field_boosts: dict[str, float] | None,
+    *,
+    include_page_title: bool = False,
+) -> dict[str, FieldDefinition]:
     boosts = {**_DEFAULT_FIELD_BOOSTS, **(field_boosts or {})}
-    return {
+    definitions = {
         "title": FieldDefinition(indexed=True, stored=True, boost=boosts["title"]),
         "body": FieldDefinition(indexed=True, stored=False, boost=boosts["body"]),
         "excerpt": FieldDefinition(indexed=False, stored=True, boost=1.0),
     }
+    if include_page_title:
+        definitions["pageTitle"] = FieldDefinition(indexed=True, stored=True, boost=1.0)
+    return definitions
 
 
-def _prepare_html_document(
-    source: SourceDocument,
-    default_language: str,
-    allowed_url_origins: list[str] | None,
-    canonical_base_url: str | None,
-) -> _PreparedDocument | None:
-    extracted = extract_document(
-        source.html,
-        source.url,
-        default_language,
-        allowed_url_origins=allowed_url_origins,
-        canonical_base_url=canonical_base_url,
-    )
-    if extracted.noindex:
+def _normalize_section_config(
+    section_indexing: SectionIndexingConfig | dict[str, Any] | None,
+) -> SectionIndexingConfig | None:
+    if section_indexing is None:
         return None
+    config = (
+        section_indexing
+        if isinstance(section_indexing, SectionIndexingConfig)
+        else SectionIndexingConfig(
+            selectors=tuple(section_indexing.get("selectors", ("h2", "h3"))),
+            mode=section_indexing.get("mode", "sections"),
+        )
+    )
+    valid_levels = {"h1", "h2", "h3", "h4", "h5", "h6"}
+    if not config.selectors:
+        raise ValueError("section_indexing selectors must be non-empty")
+    if not all(isinstance(s, str) and s in valid_levels for s in config.selectors):
+        raise ValueError(
+            "section_indexing selectors must contain only heading element "
+            f"selectors (h1..h6), got {config.selectors!r}"
+        )
+    if config.mode not in ("sections", "page-and-sections"):
+        raise ValueError(
+            f"invalid section_indexing mode {config.mode!r} -- must be "
+            '"sections" or "page-and-sections"'
+        )
+    return config
+
+
+def _page_prepared_document(
+    source_id: int,
+    extracted: ExtractedDocument,
+    *,
+    body: str | None = None,
+    tag_as_page: bool = False,
+) -> _PreparedDocument:
+    body = extracted.body if body is None else body
+    metadata: dict[str, JsonValue] = (
+        {"documentType": "page", **extracted.metadata} if tag_as_page else dict(extracted.metadata)
+    )
     document = IndexDocument(
-        id=source.id,
+        id=source_id,
         external_id=None,
         url=extracted.url,
         language=extracted.language,
-        indexed_fields={"title": extracted.title, "body": extracted.body},
+        indexed_fields={"title": extracted.title, "body": body},
         stored_fields={
             "title": extracted.title,
-            "excerpt": extracted.excerpt or _derive_excerpt(extracted.body),
+            "excerpt": extracted.excerpt or _derive_excerpt(body),
         },
-        metadata={},
+        metadata=metadata,
         boost=extracted.boost,
     )
     return _PreparedDocument(
@@ -585,8 +630,102 @@ def _prepare_html_document(
         facets=extracted.facets,
         range_facets=extracted.range_facets,
         pins=extracted.pins,
-        vector_text=extracted.body,
+        vector_text=body,
     )
+
+
+def _section_prepared_document(
+    section: ExtractedSection,
+    *,
+    doc_id: int,
+    language: str,
+    boost: float,
+    facets: dict[str, list[str]],
+    range_facets: dict[str, float],
+    page_metadata: dict[str, str],
+) -> _PreparedDocument:
+    metadata: dict[str, JsonValue] = {
+        "documentType": "section",
+        "pageTitle": section.page_title,
+        "headingLevel": section.heading_level,
+        "anchor": section.anchor,
+        **page_metadata,
+    }
+    document = IndexDocument(
+        id=doc_id,
+        external_id=section.url,
+        url=section.url,
+        language=language,
+        indexed_fields={
+            "title": section.title,
+            "body": section.body,
+            "pageTitle": section.page_title,
+        },
+        stored_fields={
+            "title": section.title,
+            "excerpt": _derive_excerpt(section.body),
+            "pageTitle": section.page_title,
+        },
+        metadata=metadata,
+        boost=boost,
+    )
+    return _PreparedDocument(
+        document=document,
+        facets=dict(facets),
+        range_facets=dict(range_facets),
+        pins=[],
+        vector_text=section.body,
+    )
+
+
+def _prepare_html_items(
+    source: SourceDocument,
+    section_config: SectionIndexingConfig | None,
+    default_language: str,
+    allowed_url_origins: list[str] | None,
+    canonical_base_url: str | None,
+    next_section_id: int,
+) -> tuple[list[_PreparedDocument], int]:
+    tree = HTMLParser(source.html)
+    extracted = _extract(
+        tree, source.url, default_language, allowed_url_origins, canonical_base_url
+    )
+    if extracted.noindex:
+        return [], next_section_id
+
+    if section_config is None:
+        return [_page_prepared_document(source.id, extracted)], next_section_id
+
+    sections = extract_sections(tree, extracted.url, extracted.title, section_config.selectors)
+
+    if section_config.mode == "page-and-sections":
+        items = [_page_prepared_document(source.id, extracted, tag_as_page=True)]
+        all_sections = sections
+    elif sections:
+        items = []
+        pre_section = extract_pre_section_body(tree, section_config.selectors)
+        if pre_section:
+            items.append(
+                _page_prepared_document(source.id, extracted, body=pre_section, tag_as_page=True)
+            )
+        all_sections = sections
+    else:
+        return [_page_prepared_document(source.id, extracted, tag_as_page=True)], next_section_id
+
+    def make_section(section: ExtractedSection, doc_id: int) -> _PreparedDocument:
+        return _section_prepared_document(
+            section,
+            doc_id=doc_id,
+            language=extracted.language,
+            boost=extracted.boost,
+            facets=extracted.facets,
+            range_facets=extracted.range_facets,
+            page_metadata=extracted.metadata,
+        )
+
+    for index, section in enumerate(all_sections):
+        items.append(make_section(section, next_section_id + index))
+    return items, next_section_id + len(all_sections)
 
 
 def build_index(
@@ -604,22 +743,33 @@ def build_index(
     embedding_provider: dict[str, Any] | None = None,
     vector_quantization: str = "int8",
     vector_window: int = 200,
+    section_indexing: SectionIndexingConfig | dict[str, Any] | None = None,
     vector_overlap: int = 20,
 ) -> BuiltIndex:
     _validate_source_ids(sources)
 
+    section_config = _normalize_section_config(section_indexing)
+    field_definitions = _legacy_field_definitions(
+        field_boosts, include_page_title=section_config is not None
+    )
+
     prepared: list[_PreparedDocument] = []
+    next_section_id = (max((s.id for s in sources), default=-1)) + 1
     for source in sources:
-        item = _prepare_html_document(
-            source, default_language, allowed_url_origins, canonical_base_url
+        items, next_section_id = _prepare_html_items(
+            source,
+            section_config,
+            default_language,
+            allowed_url_origins,
+            canonical_base_url,
+            next_section_id,
         )
-        if item is not None:
-            prepared.append(item)
+        prepared.extend(items)
 
     return _build_prepared_documents(
         prepared,
         BuildConfig(
-            field_definitions=_legacy_field_definitions(field_boosts),
+            field_definitions=field_definitions,
             default_language=default_language,
             hierarchical_facets=hierarchical_facets,
             range_facet_buckets=range_facet_buckets,
