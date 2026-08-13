@@ -17,10 +17,22 @@ pnpm build
 pnpm test
 ```
 
-For npm, configure `@ktjn:registry=https://npm.pkg.github.com` and authenticate
-with a GitHub token that has `read:packages`. Python packages install from the
-standard PyPI index. `@ktjn/searchable` targets
-modern browsers with `fetch` and `URL`.
+Install the TypeScript client from GitHub Packages:
+
+```bash
+pnpm add @ktjn/searchable
+```
+
+Configure `@ktjn:registry=https://npm.pkg.github.com` in `.npmrc` and authenticate
+with a GitHub token that has `read:packages`.
+
+Install the Python client from PyPI:
+
+```bash
+uv add searchable
+```
+
+`@ktjn/searchable` targets modern browsers with `fetch` and `URL`.
 
 The repository also contains the Python `searchable-indexer`, which generates
 the index (`python/searchable-indexer`), and its shared analysis library

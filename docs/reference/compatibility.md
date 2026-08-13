@@ -1,27 +1,18 @@
 # Compatibility
 
-This reference distinguishes package-version promises from index-format compatibility and records the `1.0.0` API boundary.
+`@ktjn/searchable` 2.0 is published to GitHub Packages. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
 
-## Package semver
-
-`@ktjn/searchable` is published to GitHub Packages. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
-
-The index generator, `searchable-indexer` (`python/searchable-indexer`), is a Python project versioned and released independently of the npm package above; see its own project for its compatibility posture.
-
-The planned public package API is the export surface in the package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered.
+The index generator, `searchable-indexer` (`python/searchable-indexer`), and the Python client, `searchable` (`python/searchable-client`), are versioned and released independently of the npm package.
 
 ## Index format compatibility
 
-The over-HTTP index has an independent integer `Manifest.version`, currently `1`. `@ktjn/searchable` validates it before search and throws `InvalidManifestError` for unsupported versions. A package upgrade does not inherently require an index rebuild; a format-version change does.
+The over-HTTP index has an independent integer `Manifest.version`, currently `2` (introduced in Searchable 2.0). `@ktjn/searchable` validates it before search and throws `InvalidManifestError` for unsupported versions. Indexes produced by Searchable 1.x with `Manifest.version: 1` are not compatible with 2.0 clients — re-index your content with `searchable-indexer` 2.0.
 
 | Client package | Supported manifest version |
 |---|---|
-| `1.0.x`, `1.1.x` | `1` |
+| `2.0.x` | `2` |
 
-Content hashes and `buildId` identify a build, not a compatibility level. The producer should validate output against `spec/schema/` and the reference examples in `spec/examples/`. See ADR-0004 through [Architecture decisions](../project/architecture-decisions.md).
-
-`searchable-client` (Python) is a second consumer of this contract, alongside
-`@ktjn/searchable` (TypeScript).
+Content hashes and `buildId` identify a build, not a compatibility level. The producer should validate output against `spec/schema/` and the reference examples in `spec/examples/`.
 
 ## Language codes
 

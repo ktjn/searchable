@@ -14,15 +14,44 @@ the "stable" API surface in
 the binary storage tier surface
 is explicitly marked experimental and may change in a minor release.
 
-## [Unreleased]
+## [2.0.0] - 2026-08-13
 
-### Removed
+### Summary
 
-- Service Worker offline caching (`registerOfflineCaching`, `@ktjn/searchable-client/sw`) — removed in 2.0.
+Searchable 2.0 is a major simplification release. The 1.x packages (`@ktjn/searchable-client`, `@ktjn/searchable-format`, `@ktjn/searchable-analysis`, `searchable-binary`, `searchable-client`) are consolidated into two packages: `@ktjn/searchable` (TypeScript) and `searchable` (Python). Web Worker execution, Service Worker offline caching, vector/hybrid search, and binary shard codecs are removed. The index format version is bumped to `2` with JSON-only shards.
 
 ### Added
 
+- `@ktjn/searchable` — single TypeScript package replacing `@ktjn/searchable-client`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis`.
+- `searchable` — single Python client package replacing `searchable-client` (import as `from searchable import SearchClient`).
+
+### Removed
+
+- Web Worker execution (`@ktjn/searchable-client/worker`) — removed in 2.0.
+- Service Worker offline caching (`registerOfflineCaching`, `@ktjn/searchable-client/sw`) — removed in 2.0.
+- Vector/hybrid search (`cosineSimilarity`, `reciprocalRankFusion`, `dequantizeVector`, `createTransformersEmbedQuery`, `VectorHit`, `EmbeddingProviderConfig`, `VectorSearchNotConfiguredError`, `VectorProviderMismatchError`) — removed in 2.0.
+- Binary shard codecs (`ByteReader`, `ByteWriter`, `termShardFormat`, `fuzzyShardFormat`, `docStoreFormat`) — removed in 2.0; JSON-only in 2.0.
+- `@ktjn/searchable-client` subpath exports (`/worker`, `/sw`) — removed in 2.0.
+- `@ktjn/searchable-format` package — consolidated into `@ktjn/searchable`.
+- `@ktjn/searchable-analysis` package — consolidated into `@ktjn/searchable`.
+- `searchable-binary` Python package — removed in 2.0.
+- `SearchStreamOptions` — removed in 2.0.
+- `SearchClientEventMap` — removed in 2.0.
+- `OfflineCacheOptions` — removed in 2.0.
+- Manifest `format` and per-shard `format`/`binaryVersion` fields — removed in 2.0.
+- Manifest `vectors` field — removed in 2.0.
+
 ### Changed
+
+- Package name: `@ktjn/searchable-client` → `@ktjn/searchable`.
+- Package name: `searchable-client` (Python) → `searchable`.
+- Import path: `from searchable_client import SearchClient` → `from searchable import SearchClient`.
+- Manifest version bumped from `1` to `2`.
+- All shards are JSON-only (no binary encoding option).
+- `validateManifest` and `isRtlLanguage` are no longer publicly exported (internal implementation details).
+- `SearchClient` constructor no longer accepts `worker` or `workerUrl` options.
+- `searchable-indexer` `write_index()` no longer accepts `termShardFormat`, `fuzzyShardFormat`, or `docStoreFormat` parameters.
+- `build_index_documents()` no longer accepts `doc_store_format` parameter.
 
 ### Fixed
 

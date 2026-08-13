@@ -1,6 +1,6 @@
 # Python client API
 
-This reference lists the implemented `searchable-client` (Python) surface — a
+This reference lists the implemented `searchable` (Python) surface — a
 second, independent client implementation for CLI and backend-service use
 that reads the same manifest/shard contract as `@ktjn/searchable`. The
 package lives at `python/searchable-client/` and is published to PyPI from
@@ -9,8 +9,8 @@ package lives at `python/searchable-client/` and is published to PyPI from
 ## SearchClient
 
 ```python
-from searchable_client import SearchClient
-from searchable_client.search import SearchOptions, FacetValuesOptions
+from searchable import SearchClient
+from searchable.search import SearchOptions, FacetValuesOptions
 
 client = SearchClient(
     index_url,
@@ -27,8 +27,8 @@ documents = client.get_documents([42, 43])
 `SearchClient(index_url, *, allow_cross_origin_shards=False, strict=False)`
 validates the manifest at construction time (relative paths and `file:` URLs
 are resolved to an absolute URL first) and raises on an unsupported manifest
-version or shard origin. There is no `worker`/`workerUrl` option — the client
-always runs synchronously in the calling process.
+version or shard origin. The client always runs synchronously in the calling
+process.
 
 ## Search options and results
 
@@ -83,14 +83,14 @@ hierarchical facets.
 
 ## CLI
 
-The package installs a `searchable-client` command with two subcommands:
+The package installs a `searchable` command with two subcommands:
 
 ```bash
-searchable-client query <index_url> <query> \
+searchable query <index_url> <query> \
   [--limit N] [--language LANG] [--filter FIELD=VALUE ...] \
   [--facets field1,field2] [--synonyms] [--fuzzy] [--highlight] [--json]
 
-searchable-client facet <index_url> <field> \
+searchable facet <index_url> <field> \
   [--filter FIELD=VALUE ...] [--json]
 ```
 
@@ -100,11 +100,9 @@ a comma-separated list of facet fields to compute alongside the search.
 TypeScript client's wire shape); otherwise the CLI prints a short
 human-readable summary.
 
-## Differences from the TypeScript client
+## Differences from `@ktjn/searchable`
 
-- No Worker or browser execution — the Python client only runs directly, synchronously, in the host process.
-- No offline caching support.
-- No built-in embedding model or CLI semantic mode.
+- No browser execution — the Python client only runs directly, synchronously, in the host process.
 - No `AbortSignal`/cancellation support.
 - No `on()` lifecycle events — there is no query/result event API to subscribe to.
 - `search_stream()` is a Python generator (`Iterator[SearchResult]`) that the caller iterates, rather than a callback (`onPartial`) passed into the options.

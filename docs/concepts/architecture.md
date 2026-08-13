@@ -8,12 +8,11 @@ The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered
 
 ## Query time
 
-`@ktjn/searchable-client` validates the manifest, resolves all shard files relative to it, analyzes the query, fetches only the required data, evaluates filters and ranking, and loads stored fields for the final hits.
+`@ktjn/searchable` validates the manifest, resolves all shard files relative to it, analyzes the query, fetches only the required data, evaluates filters and ranking, and loads stored fields for the final hits.
 
-A second, independent client implementation, `searchable-client` (Python,
+A second, independent client implementation, `searchable` (Python,
 `python/searchable-client/`), reads the exact same manifest/shard contract
-for CLI and backend-service use — synchronous, no Worker/browser
-concepts. Feature work on search behavior
+for CLI and backend-service use. Feature work on search behavior
 (ranking, filtering, synonyms, fuzzy matching, etc.) should consider both
 clients, not just the TypeScript one — see
 [Python client API](../reference/python-client-api.md).
