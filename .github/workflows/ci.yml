@@ -70,32 +70,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
-      - name: Install, lint, typecheck, and test searchable-binary (Python)
-        working-directory: python/searchable-binary
-        run: |
-          uv sync
-          uv run ruff check .
-          uv run ruff format --check .
-          uv run mypy src
-          uv run pytest -v
-      - name: Install, lint, typecheck, and test searchable-analysis (Python)
-        working-directory: python/searchable-analysis
-        run: |
-          uv sync
-          uv run ruff check .
-          uv run ruff format --check .
-          uv run mypy src
-          uv run pytest -v
-      - name: Install, lint, typecheck, and test searchable-indexer (Python)
-        working-directory: python/searchable-indexer
-        run: |
-          uv sync
-          uv run ruff check .
-          uv run ruff format --check .
-          uv run mypy src
-          uv run pytest -v
-      - name: Install, lint, typecheck, and test searchable-client (Python)
-        working-directory: python/searchable-client
+      - name: Install, lint, typecheck, and test searchable (Python)
+        working-directory: python/searchable
         run: |
           uv sync
           uv run ruff check .
@@ -112,7 +88,7 @@ jobs:
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-python
         with:
-          working-directory: python/searchable-indexer
+          working-directory: python/searchable
       - name: Build packages once (typecheck/size/test reuse the same build)
         run: pnpm build
       - run: pnpm typecheck
@@ -128,7 +104,7 @@ jobs:
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-python
         with:
-          working-directory: python/searchable-indexer
+          working-directory: python/searchable
       - name: Resolve Playwright version
         id: playwright-version
         shell: bash
@@ -148,5 +124,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
       - name: Build packages + showcase once
-        run: pnpm build && pnpm --filter showcase build
+        run: |
+          pnpm build
+          pnpm --filter showcase build
       - run: pnpm test:browser
