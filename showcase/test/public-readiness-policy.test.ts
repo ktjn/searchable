@@ -13,9 +13,7 @@ test("public community and package documentation exists", () => {
     ".github/ISSUE_TEMPLATE/feature-request.yml",
     ".github/ISSUE_TEMPLATE/config.yml",
     ".github/pull_request_template.md",
-    "packages/client/README.md",
-    "packages/analysis/README.md",
-    "packages/format/README.md",
+    "packages/searchable/README.md",
     "docs/project/public-launch-checklist.md",
   ]) {
     expect(() => read(path), path).not.toThrow();
@@ -39,13 +37,13 @@ test("public docs describe the published package surface", () => {
 });
 
 test("public npm manifests use the current patch release", () => {
-  for (const directory of ["client", "analysis", "format"]) {
+  for (const directory of ["searchable"]) {
     const pkg = JSON.parse(read(`packages/${directory}/package.json`)) as {
       version?: string;
       engines?: { node?: string };
       repository?: { url?: string };
     };
-    expect(pkg.version, directory).toBe("1.4.1");
+    expect(pkg.version, directory).toBe("2.0.0");
     expect(pkg.engines?.node, directory).toBe(">=24");
     expect(pkg.repository?.url, directory).toBe(
       "git+https://github.com/ktjn/searchable.git",
@@ -66,3 +64,4 @@ test("post-public security gates are recorded", () => {
     expect(checklist).toContain(gate);
   }
 });
+

@@ -198,7 +198,7 @@ export function renderRuntimeAttributes(example: QuickExample): string {
 
 export function renderExampleCode(example: QuickExample): string {
   if (example.browse) {
-    return `import { SearchClient } from "@ktjn/searchable-client";
+    return `import { SearchClient } from "@ktjn/searchable";
 
 const client = new SearchClient({
   indexUrl: ${JSON.stringify(example.indexPath)},
@@ -253,7 +253,7 @@ for (const value of facets.values) {
     ? `, {\n${searchOptions.map((option) => `  ${option}`).join("\n")}\n}`
     : "";
 
-  return `import { SearchClient } from "@ktjn/searchable-client";
+  return `import { SearchClient } from "@ktjn/searchable";
 
 const client = new SearchClient({
   indexUrl: ${JSON.stringify(example.indexPath)},

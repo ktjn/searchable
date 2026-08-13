@@ -1,0 +1,41 @@
+{
+  "name": "@ktjn/searchable",
+  "version": "2.0.0",
+  "description": "Browser runtime: fetch a manifest and shards over plain HTTP, evaluate a query, return ranked hits.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ktjn/searchable.git",
+    "directory": "packages/searchable"
+  },
+  "homepage": "https://github.com/ktjn/searchable#readme",
+  "bugs": "https://github.com/ktjn/searchable/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.e2e-browser.json",
+    "check:bundle-size": "node scripts/check-bundle-size.mjs"
+  },
+  "devDependencies": {
+    "@ktjn/searchable-fixtures": "workspace:*",
+    "@types/node": "^26.1.2",
+    "typescript": "catalog:",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.10"
+  }
+}

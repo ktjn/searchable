@@ -5,7 +5,7 @@ This page provides the smallest copyable browser path from a deployed index mani
 Build an index as described in [Indexing content](../guides/indexing.md) and publish the generated directory at `/search-index/`. Then create one client:
 
 ```ts
-import { SearchClient } from "@ktjn/searchable-client";
+import { SearchClient } from "@ktjn/searchable";
 
 const search = new SearchClient({
   indexUrl: "/search-index/manifest.json",

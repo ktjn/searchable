@@ -32,7 +32,7 @@ The indexer resolves language from page metadata and stores separate term, synon
 const result = await search.search("Suchbegriff", { language: "de" });
 ```
 
-`isRtlLanguage`, re-exported from `@ktjn/searchable-client`, lets the consuming UI apply `dir="rtl"` for the returned language. Layout, translations, and locale-aware UI labels remain application responsibilities.
+`isRtlLanguage`, re-exported from `@ktjn/searchable`, lets the consuming UI apply `dir="rtl"` for the returned language. Layout, translations, and locale-aware UI labels remain application responsibilities.
 
 ## Stemming
 

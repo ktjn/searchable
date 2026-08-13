@@ -2,7 +2,7 @@
 
 This page explains when client-side static search fits and how the framework divides build-time and query-time responsibilities.
 
-Searchable is for documentation, marketing sites, product catalogs, and other mostly static corpora that need capable search without a query-time backend. An indexer extracts HTML and writes an immutable manifest plus shards. `@ktjn/searchable-client` loads that manifest and searches the required shards in the browser.
+Searchable is for documentation, marketing sites, product catalogs, and other mostly static corpora that need capable search without a query-time backend. An indexer extracts HTML and writes an immutable manifest plus shards. `@ktjn/searchable` loads that manifest and searches the required shards in the browser.
 
 The approach is a good fit when content can be rebuilt and published, the index can be served over static HTTP, and keeping queries local is useful. It is not a replacement for real-time database search, access-controlled per-user results, or a server-side analytics pipeline.
 

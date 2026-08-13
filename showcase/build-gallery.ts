@@ -74,7 +74,7 @@ function renderGalleryIndexPage(products: Product[]): string {
         <p>${products.length} synthetic products across ${categories.join(
           ", ",
         )}, indexed with the Python <code>searchable-indexer</code> and searched with
-        <code>@ktjn/searchable-client</code> -- real terms and numeric range
+        <code>@ktjn/searchable</code> -- real terms and numeric range
         facets, boosts, a pinned best-bet ("returns policy"), typo-tolerant
         fuzzy matching.
         See <a href="../../docs/guides/facets.html">faceted search</a>,
