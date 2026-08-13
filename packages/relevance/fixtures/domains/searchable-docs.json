@@ -95,10 +95,6 @@
         "title": "Synonyms"
       },
       {
-        "id": "/docs/guides/vector-search.html",
-        "title": "Vector and hybrid search"
-      },
-      {
         "id": "/docs/project/architecture-decisions.html",
         "title": "Architecture decisions"
       },

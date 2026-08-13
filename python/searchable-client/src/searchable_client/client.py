@@ -1,6 +1,5 @@
 import warnings
-from collections.abc import Callable, Iterable, Iterator
-from typing import Any
+from collections.abc import Iterable, Iterator
 
 from searchable_client.fetch import ShardCache
 from searchable_client.search import (

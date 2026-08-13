@@ -2,7 +2,7 @@ import copy
 import datetime
 import math
 import sys
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -39,6 +39,7 @@ from searchable_indexer.types import (
     SectionIndexingConfig,
     SourceDocument,
 )
+
 _DEFAULT_FIELD_BOOSTS = {"title": 3.0, "body": 1.0}
 _EXCERPT_LENGTH = 200
 

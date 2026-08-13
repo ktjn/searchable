@@ -35,7 +35,7 @@ describe("committed documentation relevance fixture", () => {
     expect(suite.id).toBe("searchable-docs");
     expect(suite.corpus.kind).toBe("generated-index");
     if (suite.corpus.kind !== "generated-index") throw new Error("unreachable");
-    expect(suite.corpus.pages).toHaveLength(29);
+    expect(suite.corpus.pages).toHaveLength(28);
     expect(suite.queries).toHaveLength(18);
     expect(new Set(suite.queries.map((query) => query.topic))).toEqual(
       new Set(SEARCHABLE_DOCS_TOPICS),

@@ -1,11 +1,9 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from searchable_indexer.build_index import build_index, build_index_documents
 from searchable_indexer.document import FieldDefinition, IndexDocument
-from searchable_indexer.types import BuiltIndex, SourceDocument
+from searchable_indexer.types import SourceDocument
 from searchable_indexer.write_index import write_index
 
 

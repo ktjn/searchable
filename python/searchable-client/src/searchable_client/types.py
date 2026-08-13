@@ -77,6 +77,8 @@ class Manifest:
     pins: dict[str, str] | None = None
     synonyms: dict[str, str] | None = None
     fuzzy: dict[str, FuzzyManifestEntry] | None = None
+
+
 def manifest_from_dict(data: dict[str, Any]) -> Manifest:
     shards = data["shards"]
     return Manifest(
