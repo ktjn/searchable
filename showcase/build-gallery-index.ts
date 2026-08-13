@@ -30,13 +30,13 @@ const DEMOS: DemoLink[] = [
     href: "products/index.html",
     title: "Product catalog",
     description:
-       "64 synthetic products: terms and numeric range facets, boosts, a pinned best-bet, and a fuzzy toggle with weight tuning.",
+      "64 synthetic products: terms and numeric range facets, boosts, a pinned best-bet, and a fuzzy toggle with weight tuning.",
   },
   {
     href: "synonyms/index.html",
     title: "Synonym playground",
     description:
-       "Non-overlapping vocabulary docs demonstrating synonym expansion, with matched-via-synonym results visibly labeled.",
+      "Non-overlapping vocabulary docs demonstrating synonym expansion, with matched-via-synonym results visibly labeled.",
   },
   {
     href: "i18n/index.html",
