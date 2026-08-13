@@ -9,7 +9,7 @@
   },
   "packageManager": "pnpm@11.20.0",
   "scripts": {
-    "build": "pnpm --filter @ktjn/searchable build",
+    "build": "pnpm --filter @ktjn/searchable build && pnpm --filter @ktjn/searchable-fixtures build",
     "docs:build": "pnpm build && pnpm --filter showcase build",
     "docs:check": "pnpm docs:build && pnpm --filter showcase validate && pnpm exec vitest run --config showcase/vitest.config.ts && pnpm test:browser",
     "test": "vitest run",
