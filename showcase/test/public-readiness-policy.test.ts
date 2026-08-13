@@ -31,9 +31,7 @@ test("public docs describe the published package surface", () => {
   expect(docs).toContain("published to GitHub Packages");
   expect(docs).toContain("published to PyPI");
   expect(docs).not.toContain("not yet published");
-  expect(read("README.md")).toContain(
-    "uv add searchable",
-  );
+  expect(read("README.md")).toContain("uv add searchable");
 });
 
 test("public npm manifests use the current patch release", () => {
