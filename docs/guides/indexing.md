@@ -21,15 +21,8 @@ See [Configuration](../reference/configuration.md) for the available `build_inde
 
 ## What to simplify at this scale
 
-For a corpus of roughly 2,000 documents, keep the JSON defaults unless measurements show a problem. `shard_by_prefix=False` can reduce request count for a deliberately small index.
+For a corpus of roughly 2,000 documents, the JSON defaults are appropriate. `shard_by_prefix=False` can reduce request count for a deliberately small index.
 
-By default, `write_index` splits terms by prefix and recursively splits oversized buckets against `DEFAULT_MAX_TERM_SHARD_GZIP_BYTES`. `term_shard_format`, `fuzzy_shard_format`, and `doc_store_format` opt individual shard families into their binary codecs; the other shard families remain JSON.
-
-For structured RAG documents, build with `build_index_documents()` and set
-`doc_store_format="binary"` to emit version-2 document shards. The manifest keeps
-one logical document store while allowing the writer to split its directory into
-ID-range shards. Each hit still carries the stored fields used by the client, and
-the structured `externalId`, `contentHash`, and `metadata` values remain available
-to Python retrieval callers. JSON is still the default for portability.
+By default, `write_index` splits terms by prefix and recursively splits oversized buckets against `DEFAULT_MAX_TERM_SHARD_GZIP_BYTES`.
 
 Publish the entire output directory without rewriting filenames. Serve `manifest.json` with short cache lifetime or revalidation, and content-hashed shard files with long-lived immutable caching. For extraction controls, see [CMS meta tags](../reference/cms-meta-tags.md); for build options, see [Configuration](../reference/configuration.md).

@@ -30,13 +30,13 @@ const DEMOS: DemoLink[] = [
     href: "products/index.html",
     title: "Product catalog",
     description:
-      "64 synthetic products: terms and numeric range facets, boosts, a pinned best-bet, a fuzzy toggle with weight tuning, and vector/hybrid shards built with a deterministic embedder.",
+      "64 synthetic products: terms and numeric range facets, boosts, a pinned best-bet, and a fuzzy toggle with weight tuning.",
   },
   {
     href: "synonyms/index.html",
     title: "Synonym playground",
     description:
-      "Non-overlapping vocabulary docs demonstrating synonym expansion, with matched-via-synonym results visibly labeled, and selectable lexical/vector/hybrid retrieval.",
+      "Non-overlapping vocabulary docs demonstrating synonym expansion, with matched-via-synonym results visibly labeled.",
   },
   {
     href: "i18n/index.html",
@@ -84,7 +84,7 @@ export function renderHubPage(): string {
         <h1>Feature gallery</h1>
         <p>Small, purpose-built demo corpora, each showcasing one part of
         the engine end to end with real indexed pages and a real
-        <code>@ktjn/searchable-client</code>-powered search box -- not mocked.</p>
+        <code>@ktjn/searchable</code>-powered search box -- not mocked.</p>
         <section aria-labelledby="quick-examples">
           <h2 id="quick-examples">Try individual features</h2>
           <div class="quick-example-grid">${quickCards}
@@ -99,7 +99,7 @@ export function renderHubPage(): string {
   return pageShell({
     title: "Feature gallery",
     description:
-      "Demos of facets, boosts, pins, fuzzy matching, synonyms, highlighting, and vector/hybrid search.",
+      "Demos of facets, boosts, pins, fuzzy matching, synonyms, and highlighting.",
     root: "../",
     bodyHtml,
     withWidget: true,

@@ -9,7 +9,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
 const searchIndexDir = join(distDir, "search-index");
 const assetsDir = join(distDir, "assets");
-const clientDist = join(__dirname, "..", "packages", "client", "dist");
+const clientDist = join(__dirname, "..", "packages", "searchable", "dist");
 
 /**
  * Skips dist/gallery -- the Stage 2 feature-gallery demos
@@ -60,7 +60,7 @@ async function main() {
   console.log(`indexed ${totalDocs} page(s) -> ${searchIndexDir}`);
 
   await cp(clientDist, assetsDir, { recursive: true });
-  console.log(`copied @ktjn/searchable-client build -> ${assetsDir}`);
+  console.log(`copied @ktjn/searchable build -> ${assetsDir}`);
 }
 
 main();

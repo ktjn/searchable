@@ -74,15 +74,13 @@ function renderGalleryIndexPage(products: Product[]): string {
         <p>${products.length} synthetic products across ${categories.join(
           ", ",
         )}, indexed with the Python <code>searchable-indexer</code> and searched with
-        <code>@ktjn/searchable-client</code> -- real terms and numeric range
+        <code>@ktjn/searchable</code> -- real terms and numeric range
         facets, boosts, a pinned best-bet ("returns policy"), typo-tolerant
-        fuzzy matching, and a fuzzy <em>and</em> vector index built with a
-        deterministic stand-in embedder, not a mock.
+        fuzzy matching.
         See <a href="../../docs/guides/facets.html">faceted search</a>,
         <a href="../../docs/guides/ranking-and-boosts.html">ranking &amp;
-        boosts</a>, <a href="../../docs/guides/pinning.html">
-        term-to-page pinning</a>, and <a href="../../docs/guides/vector-search.html">
-        vector search</a> for how each mechanism works.</p>
+        boosts</a>, and <a href="../../docs/guides/pinning.html">
+        term-to-page pinning</a> for how each mechanism works.</p>
         <div
           data-gallery-root
           data-index-path="gallery/products/search-index/manifest.json"
@@ -91,7 +89,7 @@ function renderGalleryIndexPage(products: Product[]): string {
           data-range-facets="priceRange"
           data-fuzzy-toggle="true"
           data-fuzzy-weight="0.5"
-          data-modes="lexical,vector,hybrid"
+           data-modes="lexical"
         ></div>
       </main>`;
   return pageShell({
@@ -131,8 +129,6 @@ async function main() {
       writePythonIndex(sources, {
         defaultLanguage: "en",
         fuzzy: true,
-        embed: "deterministic",
-        embeddingProvider: { type: "custom" },
       }),
     log: `built product catalog demo: ${products.length} products + 1 support page -> ${galleryDir}`,
   });

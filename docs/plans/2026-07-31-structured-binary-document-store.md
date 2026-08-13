@@ -1,5 +1,9 @@
 # Structured Binary Document Store Implementation Plan
 
+## Status
+
+Superseded by Searchable 2.0 (see [2026-08-13-searchable-2.0-simplification.md](2026-08-13-searchable-2.0-simplification.md)). 2.0 removes general binary index formats; JSON is the only supported index representation.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a versioned binary document-store encoding that preserves structured Searchable documents, so RAG indexes can be emitted and consumed as binary by the Python and TypeScript clients.

@@ -26,13 +26,13 @@ Chinese and Japanese use CJK bigrams; Thai, Khmer, and Lao use deterministic tri
 
 ## Mixed-language corpora and queries
 
-The indexer resolves language from page metadata and stores separate term, synonym, fuzzy, pin, and vector partitions by language. A query uses `options.language` or the manifest's `defaultLanguage`; one `SearchResult` contains hits from that single partition and reports the resolved `language`.
+The indexer resolves language from page metadata and stores separate term, synonym, fuzzy, and pin partitions by language. A query uses `options.language` or the manifest's `defaultLanguage`; one `SearchResult` contains hits from that single partition and reports the resolved `language`.
 
 ```ts
 const result = await search.search("Suchbegriff", { language: "de" });
 ```
 
-`isRtlLanguage`, re-exported from `@ktjn/searchable-client`, lets the consuming UI apply `dir="rtl"` for the returned language. Layout, translations, and locale-aware UI labels remain application responsibilities.
+`isRtlLanguage`, re-exported from `@ktjn/searchable`, lets the consuming UI apply `dir="rtl"` for the returned language. Layout, translations, and locale-aware UI labels remain application responsibilities.
 
 ## Stemming
 

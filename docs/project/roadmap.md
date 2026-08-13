@@ -10,20 +10,16 @@ This page is the single current list of shipped capability and remaining work; d
 | Lexical search | Stable; native six-language regression baseline plus reviewed documentation, GOV.UK learner-driving, German (`de-fahrerlaubnisrecht`), and Gutenberg facets (`gutenberg-fiction-facets`) domain corpora | Broader representative domains and judged sets, real query evidence, quality thresholds, and an internal query-planner abstraction |
 | Facets, synonyms, fuzzy search, and pins | Stable; a reviewed domain corpus (`gutenberg-fiction-facets`) now exercises terms and range facet filtering under judged relevance | No required 1.0 work; facet counts (`facetValues()`) remain outside judged relevance coverage |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
-| Offline and worker execution | Stable | Resource-aware loading refinements |
-| Binary storage | Term, fuzzy, legacy v1 document-store, and structured v2 document-store codecs; JSON remains the default | Finish/publish the structured-binary consumer release path before Modelable's static Playground switches its citation-bearing document shards from JSON |
-| Vector and hybrid search | Optional storage, similarity, and local embeddings implemented | Public semantic showcase and documented scale limits |
+| Offline and worker execution | Removed in 2.0 | Searchable 2.0 removes Worker execution; main-thread only. Service Worker support is also removed. See [2.0 simplification plan](../plans/2026-08-13-searchable-2.0-simplification.md) |
+| Vector and hybrid search | Removed in 2.0 | Searchable 2.0 removes vector indexing, hybrid fusion, and embedding integration. See [2.0 simplification plan](../plans/2026-08-13-searchable-2.0-simplification.md) |
 | Performance and scale | One reviewed CMS-2k Chromium main-thread lexical vertical baseline with raw JSON evidence | Broader sizes, browsers, execution modes, query classes, operating guidance, and CI comparison |
 | Extensibility and diagnostics | Draft designs archived | Implement only with a concrete consumer |
 
 ## Near-term work
 
 - Expand relevance coverage beyond the documentation, learner-driving, German driving-license-law, and Gutenberg faceted-fiction domains — now spanning English and German, and now including judged-relevance coverage of terms and range facet filtering — with broader judged sets and real query evidence before defining thresholds or making production-scale claims. Real query evidence is now partially addressed for one suite: `govuk-learn-to-drive@1.1.0` adds 8 queries sourced from Google's public autocomplete suggestion endpoint as a real-search-language proxy (see [Relevance baselines](relevance-baselines.md)). This is not full production query-log evidence — GOV.UK does not publish query logs, and no equivalent source is currently available — and it remains open for the documentation, German, and Gutenberg suites, and for a more rigorous real-log source if one ever becomes available.
-- Add a semantic-search example that states model, download, memory, and latency costs clearly; keep lexical search as the default for content sites.
 - Expand full language profiles only with representative corpora, analyzer fixtures, relevance queries, and cross-implementation conformance tests.
-- Refine loading priority, memory controls, and prefetching from measured browser behavior rather than fixed speculative policies.
-- Evaluate any further binary encoding only when lazy access and benchmarks show a meaningful gain over JSON.
-- Modelable's static Playground is an active consumer: it will use JSON document shards until the structured binary v2 implementation is published across the Python and TypeScript clients. Keep the integration tracked by [`docs/plans/2026-07-31-structured-binary-document-store.md`](../plans/2026-07-31-structured-binary-document-store.md).
+- Modelable's static Playground is an active consumer: it uses JSON document shards.
 - Make ranking parameters configurable only with stable defaults and manifest-recorded configuration so results remain reproducible.
 - Add prominent guidance that every generated index artifact is public data and must not contain restricted content.
 
@@ -41,8 +37,8 @@ Keep the following work open:
 
 - multiple corpus sizes and deployment classes
 - Firefox, WebKit, and low-end mobile measurements
-- worker, Service Worker, and browser-cache-warm modes
-- prefix, fuzzy, phrase, facet, vector, and hybrid expansion beyond the current six-query slice
+- browser-cache-warm modes
+- prefix, fuzzy, phrase, facet expansion beyond the current six-query slice
 - supported operating ranges, shard-sizing guidance, and warning thresholds
 - CI benchmark comparison and enforcement
 
@@ -73,7 +69,7 @@ representative domains, not broad domain coverage or a CI quality gate.
 Quality thresholds, broader performance evidence, query-planning work, and CI
 enforcement remain open.
 
-Run relevance evaluation when changing analyzers, tokenization, stemming, synonyms, fuzzy expansion, BM25 parameters, field boosts, phrase behavior, or hybrid fusion. Keep domain-specific relevance suites separate from generic engine conformance tests.
+Run relevance evaluation when changing analyzers, tokenization, stemming, synonyms, fuzzy expansion, BM25 parameters, field boosts, or phrase behavior. Keep domain-specific relevance suites separate from generic engine conformance tests.
 
 ## Language-profile requirements
 
@@ -100,7 +96,6 @@ The planner should be able to decide:
 - rarest-term-first intersections
 - filter pushdown
 - shard fetch order
-- lexical and vector parallelism
 - when full candidate materialization is required
 - whether facets require a separate candidate pass
 - when top-k early termination is safe
@@ -109,9 +104,7 @@ Keep this internal until multiple real consumers require a stable extension API.
 
 ## Vector-search boundary
 
-Vector search remains optional. The primary investment for public content sites is lexical relevance, predictable ranking, small downloads, and low browser memory use.
-
-Brute-force vector search is appropriate for small static corpora. Document recommended vector-count limits, expected memory usage, query latency by dimension, model download cost, and browser compatibility. Evaluate quantization, clustering, lexical reranking, HNSW, or WASM-based ANN only when representative benchmarks show a concrete need. Do not make ANN or WASM mandatory dependencies.
+Vector and hybrid search are removed in Searchable 2.0. Searchable's role is lexical retrieval. Applications requiring semantic retrieval implement it at the application level.
 
 ## Public-index security boundary
 
@@ -121,7 +114,7 @@ Treat every indexed field, posting, facet value, stored document, synonym, pin, 
 
 ## Operational guidance
 
-Document recommended configurations for common deployments such as small documentation sites, medium CMS exports, large public knowledge bases, offline-first applications, lexical-only search, and hybrid search. For each profile, state enabled features, expected index size, shard strategy, cache policy, worker and Service Worker usage, and memory expectations.
+Document recommended configurations for common deployments such as small documentation sites, medium CMS exports, large public knowledge bases, and lexical-only search. For each profile, state enabled features, expected index size, shard strategy, cache policy, and memory expectations.
 
 ## Consumer-driven architecture work
 

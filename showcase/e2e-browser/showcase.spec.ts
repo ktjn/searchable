@@ -120,8 +120,8 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     ).toBe(true);
 
     await page.goto(`${baseUrl}gallery/index.html`);
-    await expect(page.locator(".quick-example-card")).toHaveCount(14);
-    await expect(page.locator(".gallery-results-summary")).toHaveCount(14);
+    await expect(page.locator(".quick-example-card")).toHaveCount(13);
+    await expect(page.locator(".gallery-results-summary")).toHaveCount(13);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -158,7 +158,7 @@ test.describe("feature gallery: quick examples (real browser)", () => {
 
     await page.goto(`${baseUrl}gallery/index.html`);
     await expect(page.locator('.gallery-loading[role="status"]')).toHaveCount(
-      14,
+      13,
     );
 
     releaseClient?.();
@@ -210,7 +210,6 @@ test.describe("feature gallery: quick examples (real browser)", () => {
     "prefix",
     "boosts",
     "did-you-mean",
-    "vector",
     "browse",
   ]) {
     test(`quick example ${id} loads real results`, async ({ page }) => {
@@ -319,14 +318,6 @@ test.describe("feature gallery: quick examples (real browser)", () => {
     await expect(didYouMean.locator(".gallery-did-you-mean")).toContainText(
       /wireless/,
     );
-
-    const vector = page.locator('[data-example-card="vector"]');
-    await expect(vector.locator(".gallery-mode-select")).toHaveValue("hybrid");
-    await expect(vector.locator(".gallery-hit-list li").first()).toBeVisible();
-    await vector.locator(".gallery-mode-select").selectOption("vector");
-    await expect(vector.locator(".gallery-hit-list li").first()).toBeVisible();
-    await vector.locator(".gallery-mode-select").selectOption("lexical");
-    await expect(vector.locator(".gallery-hit-list li").first()).toBeVisible();
 
     const browse = page.locator('[data-example-card="browse"]');
     await expect(browse.locator(".gallery-facet-group")).toBeVisible();
@@ -490,19 +481,6 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     await expect(first).toContainText("Returns Policy");
   });
 
-  test("retrieval mode selector swaps lexical, vector, and hybrid search", async ({
-    page,
-  }) => {
-    await page.goto(`${baseUrl}gallery/products/index.html`);
-    const mode = page.locator(".gallery-mode-select");
-    await expect(mode).toHaveValue("lexical");
-    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
-    await mode.selectOption("vector");
-    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
-    await mode.selectOption("hybrid");
-    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
-  });
-
   test("fuzzy toggle: a typo finds nothing until fuzzy matching is enabled", async ({
     page,
   }) => {
@@ -609,19 +587,6 @@ test.describe("feature gallery: synonym playground demo (real browser)", () => {
     await page.locator(".gallery-synonyms-toggle input").check();
     await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
     await expect(page.locator(".gallery-badge")).toHaveCount(0);
-  });
-
-  test("retrieval mode selector swaps lexical, vector, and hybrid search", async ({
-    page,
-  }) => {
-    await page.goto(`${baseUrl}gallery/synonyms/index.html`);
-    const mode = page.locator(".gallery-mode-select");
-    await expect(mode).toHaveValue("lexical");
-    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
-    await mode.selectOption("vector");
-    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
-    await mode.selectOption("hybrid");
-    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
   });
 });
 

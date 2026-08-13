@@ -11,14 +11,47 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semantic Versioning](https://semver.org/), scoped to
 the "stable" API surface in
 [package semver policy](docs/reference/compatibility.md#package-semver) —
-the vector/hybrid search and binary storage tier surfaces
-are explicitly marked experimental and may change in a minor release.
+the binary storage tier surface
+is explicitly marked experimental and may change in a minor release.
 
-## [Unreleased]
+## [2.0.0] - 2026-08-13
+
+### Summary
+
+Searchable 2.0 is a major simplification release. The 1.x packages (`@ktjn/searchable-client`, `@ktjn/searchable-format`, `@ktjn/searchable-analysis`, `searchable-binary`, `searchable-client`) are consolidated into two packages: `@ktjn/searchable` (TypeScript) and `searchable` (Python). Web Worker execution, Service Worker offline caching, vector/hybrid search, and binary shard codecs are removed. The index format version is bumped to `2` with JSON-only shards.
 
 ### Added
 
+- `@ktjn/searchable` — single TypeScript package replacing `@ktjn/searchable-client`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis`.
+- `searchable` — single Python client package replacing `searchable-client` (import as `from searchable import SearchClient`).
+
+### Removed
+
+- Web Worker execution (`@ktjn/searchable-client/worker`) — removed in 2.0.
+- Service Worker offline caching (`registerOfflineCaching`, `@ktjn/searchable-client/sw`) — removed in 2.0.
+- Vector/hybrid search (`cosineSimilarity`, `reciprocalRankFusion`, `dequantizeVector`, `createTransformersEmbedQuery`, `VectorHit`, `EmbeddingProviderConfig`, `VectorSearchNotConfiguredError`, `VectorProviderMismatchError`) — removed in 2.0.
+- Binary shard codecs (`ByteReader`, `ByteWriter`, `termShardFormat`, `fuzzyShardFormat`, `docStoreFormat`) — removed in 2.0; JSON-only in 2.0.
+- `@ktjn/searchable-client` subpath exports (`/worker`, `/sw`) — removed in 2.0.
+- `@ktjn/searchable-format` package — consolidated into `@ktjn/searchable`.
+- `@ktjn/searchable-analysis` package — consolidated into `@ktjn/searchable`.
+- `searchable-binary` Python package — removed in 2.0.
+- `SearchStreamOptions` — removed in 2.0.
+- `SearchClientEventMap` — removed in 2.0.
+- `OfflineCacheOptions` — removed in 2.0.
+- Manifest `format` and per-shard `format`/`binaryVersion` fields — removed in 2.0.
+- Manifest `vectors` field — removed in 2.0.
+
 ### Changed
+
+- Package name: `@ktjn/searchable-client` → `@ktjn/searchable`.
+- Package name: `searchable-client` (Python) → `searchable`.
+- Import path: `from searchable_client import SearchClient` → `from searchable import SearchClient`.
+- Manifest version bumped from `1` to `2`.
+- All shards are JSON-only (no binary encoding option).
+- `validateManifest` and `isRtlLanguage` are no longer publicly exported (internal implementation details).
+- `SearchClient` constructor no longer accepts `worker` or `workerUrl` options.
+- `searchable-indexer` `write_index()` no longer accepts `termShardFormat`, `fuzzyShardFormat`, or `docStoreFormat` parameters.
+- `build_index_documents()` no longer accepts `doc_store_format` parameter.
 
 ### Fixed
 
@@ -54,9 +87,8 @@ and `searchable-analysis`, `0.4.2` for the Python client, and `0.1.1` for
 - `registerOfflineCaching()` now resolves both `swUrl` and `indexUrl` against
   the page URL at the call boundary, so relative URLs work directly — the
   documented usage — and the Service Worker only ever sees absolute URLs.
-- Worker errors preserve their public type: `InvalidManifestError`,
-  `VectorSearchNotConfiguredError`, and `VectorProviderMismatchError` come
-  back from the Worker as real `instanceof`-compatible instances, carried by a
+- Worker errors preserve their public type: `InvalidManifestError` comes
+  back from the Worker as a real `instanceof`-compatible instance, carried by a
   stable `code`/`name`/`message` protocol payload (worker-protocol.ts) that
   never includes stack traces.
 - A fatal worker failure — a worker `error`, a `messageerror`, or `dispose()`
@@ -77,10 +109,9 @@ and `searchable-analysis`, `0.4.2` for the Python client, and `0.1.1` for
   query instead of racing the listener subscription.
 - Cancellation is prompt across every awaited caller-visible operation:
   an abort fires while the client is still initializing (Worker `init` or
-  the direct-mode manifest load) or while `embedQuery()` is computing now
-  rejects the caller immediately — the shared init/embedding keeps running
-  for others, and no `result` event or `onPartial` is delivered after an
-  abort.
+  the direct-mode manifest load) now rejects the caller immediately — the
+  shared init keeps running for others, and no `result` event or `onPartial`
+  is delivered after an abort.
 - Search event listeners receive a *deep-enough* snapshot of the search
   options: filter arrays and `{min, max}` range objects (not just the
   `filters`/`boosts`/`facets` containers) are copied, so mutating anything
@@ -138,7 +169,7 @@ publish of the new `searchable-binary` `0.1.0` package.
   `searchable-indexer` now depend on it; the publish workflow learns to ship it
   to PyPI so both artifacts remain installable.
 - Internal-only cleanup: the TypeScript and Python clients were split into
-  focused modules (fuzzy, facets, hybrid, phrase, synonyms, doc store, ...) by
+  focused modules (fuzzy, facets, phrase, synonyms, doc store, ...) by
   cross-package dedup, the gallery/pipeline walkers were deduplicated, and the
   relevance suites' v1/v2 load/run paths were unified. None of this changes the
   published API surface or the index format.
@@ -201,24 +232,6 @@ and `searchable-analysis`, and `0.3.0` for the Python client.
 
 ## [1.0.5] - 2026-07-31
 
-This release publishes the merged Python vector and hybrid query support.
-
-- `searchable-client` `0.2.0`: injected query embeddings, vector shard
-  loading, cosine search, best-passage collapse, hybrid RRF, and explicit
-  provider/configuration errors.
-- Patch releases for the compatible npm packages (`1.0.1`) and Python
-  analysis/indexer packages (`0.1.1`) allow the tag-triggered publish workflow
-  to publish each artifact exactly once.
-
-### Python `searchable-client` 0.2.0
-
-- Added injected `embed_query` support for vector and hybrid search against
-  the shared Searchable vector-shard format, including int8 dequantization,
-  cosine ranking, one best passage per document, and Reciprocal Rank Fusion.
-- Added provider compatibility checks and explicit errors for missing vector
-  configuration, unavailable shards, malformed vectors, and dimension
-  mismatches. No embedding-model dependency was added.
-
 The npm packages are published to GitHub Packages and the Python packages are
 published to PyPI from tagged releases. The entries below preserve the
 historical `1.0.0` feature summary.
@@ -255,11 +268,7 @@ This is the feature summary for the first stable release.
   (`termShardFormat`/`fuzzyShardFormat`/`docStoreFormat: "binary"`),
   real per-prefix term sharding, and doc-store multi-shard splitting
   (`docStoreShardSize`).
-- **Vector & hybrid search** (experimental): chunking, int8/float32
-  vector shards, brute-force cosine similarity, Reciprocal Rank Fusion,
-  `search(query, { mode: "vector" | "hybrid" })`, and real local-model
-  embedding integration via `@huggingface/transformers`
-  (`createTransformersEmbedder`/`createTransformersEmbedQuery`).
+- (vector/hybrid search removed in a later version)
 - **Validation & compatibility**: `validateManifest()` rejects a
   structurally invalid, cross-origin-shard, or unsupported-`version`
   manifest with a named `InvalidManifestError` before any query runs

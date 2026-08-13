@@ -22,7 +22,7 @@ Template (per project/governance.md):
 | ADR | Decision |
 |---|---|
 | [0001](0001-pull-based-static-http.md) | Pull-based static HTTP transport, no query-time backend |
-| [0002](0002-json-first-index-format.md) | JSON-first index format; binary tier is an opt-in per-shard encoding, not a format switch |
+| [0002](0002-json-first-index-format.md) | JSON-first index format |
 | [0003](0003-bm25f-ranking-model.md) | BM25F with configurable field/doc/term boosts as the ranking model |
 | [0004](0004-compatibility-policy.md) | Semver for the public API; a manifest `version` integer for the index format, checked independently |
 | [0005](0005-plugin-opt-in-boundary.md) | What's core (always bundled) vs. opt-in (a separate capability gated by its own bundle cost) |

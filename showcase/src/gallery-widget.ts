@@ -16,7 +16,7 @@
  *        data-synonyms-toggle="true"   (omit to hide the synonym-expansion on/off control)
  *        data-languages="en,de">       (comma list -> a language <select>; omit to use manifest.defaultLanguage)
  *        data-operator="and|or"        (present -> an AND/OR <select>; omit for the default "and")
- *        data-modes="lexical,hybrid,vector"  (comma list -> a retrieval-mode <select> + query embedder)
+ *        (retrieval-mode selection removed in 2.0; lexical only)
  *        data-highlight="true"         (pass highlight:true and render <mark> spans from hit.highlights)
  *        data-boost-fields="title=3"   (csv "field=mult" -> a checkbox re-ranking that field per query)
  *        data-boost-terms="term=5"     (csv "term=mult" -> a checkbox re-ranking that term per query)
@@ -84,7 +84,7 @@ interface SearchOptions {
   synonymWeight?: number;
   operator?: "and" | "or";
   highlight?: boolean;
-  mode?: "lexical" | "vector" | "hybrid";
+  mode?: "lexical";
   boosts?: {
     fields?: Record<string, number>;
     terms?: Record<string, number>;
@@ -107,22 +107,6 @@ const LANGUAGE_LABELS: Record<string, string> = {
   nb: "Norsk bokmål",
   nn: "Norsk nynorsk",
 };
-
-type Mode = "lexical" | "vector" | "hybrid";
-
-/**
- * Mirrors the indexer's `_deterministic_embed`
- * (python/searchable-indexer/scripts/build_from_config.py): the 2D
- * stand-in embedding that built the corpus vectors, replicated exactly so
- * the query is embedded in the same (non-semantic) space at query time --
- * the vector/hybrid gallery demo proves the retrieval mechanism end to
- * end without bundling a real model (docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from).
- */
-function deterministicQueryEmbed(query: string): number[] {
-  let charSum = 0;
-  for (const ch of query) charSum += ch.codePointAt(0) ?? 0;
-  return [query.length, charSum % 97];
-}
 
 function parseNumberInput(value: string): number | undefined {
   if (value === "") return undefined;
@@ -198,10 +182,6 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   const browseOnly = root.dataset.browse === "true";
   const operator =
     root.dataset.operator === "or" ? ("or" as const) : ("and" as const);
-  const modes = (root.dataset.modes ?? "")
-    .split(",")
-    .map((m) => m.trim())
-    .filter(Boolean) as Mode[];
   const boostFields = parseBoostSpec(root.dataset.boostFields);
   const boostTerms = parseBoostSpec(root.dataset.boostTerms);
   const fuzzyWeight = Number(root.dataset.fuzzyWeight);
@@ -213,16 +193,6 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
 
   const client: SearchClientLike = new SearchClient({
     indexUrl: new URL(indexPath, siteRoot).href,
-    worker: true,
-    workerUrl: new URL("assets/worker.js", siteRoot),
-    ...(modes.length
-      ? {
-          embedQuery: {
-            embed: deterministicQueryEmbed,
-            provider: { type: "custom" },
-          },
-        }
-      : {}),
   });
 
   const controls = document.createElement("div");
@@ -345,25 +315,6 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     select.value = selectedOperator;
     select.addEventListener("change", () => {
       selectedOperator = select.value as "and" | "or";
-      void runSearch();
-    });
-    controls.append(select);
-  }
-
-  // --- retrieval mode select + per-query boosts (checkbox each) ---
-  let selectedMode: Mode | undefined = modes[0];
-  if (modes.length > 0) {
-    const select = document.createElement("select");
-    select.className = "gallery-mode-select";
-    select.setAttribute("aria-label", "Retrieval mode");
-    for (const mode of modes) {
-      const option = document.createElement("option");
-      option.value = mode;
-      option.textContent = mode;
-      select.append(option);
-    }
-    select.addEventListener("change", () => {
-      selectedMode = select.value as Mode;
       void runSearch();
     });
     controls.append(select);
@@ -682,7 +633,6 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
         ...(synonymsEnabled && synonymWeightKnob
           ? { synonymWeight: Number(synonymWeightKnob.value) }
           : {}),
-        ...(selectedMode ? { mode: selectedMode } : {}),
       };
       if (activeFieldBoosts.size > 0 || activeTermBoosts.size > 0) {
         options.boosts = {

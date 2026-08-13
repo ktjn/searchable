@@ -1,0 +1,35 @@
+[project]
+name = "searchable"
+version = "2.0.0"
+description = "Consolidated Python toolkit for Searchable: index builder, search client, and analysis."
+requires-python = ">=3.10"
+dependencies = [
+    "selectolax>=0.3.21",
+]
+
+[project.scripts]
+searchable = "searchable.indexer.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/searchable"]
+
+[tool.uv.sources]
+
+[dependency-groups]
+dev = ["pytest>=8.0.0", "ruff>=0.8.0", "mypy>=1.13.0", "jsonschema>=4.23.0"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src"]

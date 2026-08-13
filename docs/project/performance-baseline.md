@@ -184,4 +184,4 @@ pnpm benchmark:render <explicit-report-path>
 
 This is reproducible evidence from one machine, one Chromium version, one corpus size, and one main-thread lexical profile, not a performance budget. It is also not a supported operating range: different corpora, hardware, browsers, cache states, and query mixes can produce materially different results. gzip-equivalent sizes are level-9 calculations over emitted bytes, not observed Content-Encoding payload sizes.
 
-Remaining work includes multiple corpus sizes and deployment classes; Firefox, WebKit, and low-end mobile measurements; worker, Service Worker, and browser-cache-warm modes; broader lexical, vector, and hybrid query classes; supported operating ranges and shard guidance; and CI comparison without prematurely turning this baseline into a threshold.
+Remaining work includes multiple corpus sizes and deployment classes; Firefox, WebKit, and low-end mobile measurements; browser-cache-warm modes; broader lexical, vector, and hybrid query classes; supported operating ranges and shard guidance; and CI comparison without prematurely turning this baseline into a threshold.

@@ -45,7 +45,7 @@ function renderPlaygroundIndexPage(): string {
           data-index-path="gallery/synonyms/search-index/manifest.json"
           data-default-query="sofa"
           data-synonyms-toggle="true"
-          data-modes="lexical,vector,hybrid"
+          data-modes="lexical"
         ></div>
       </main>`;
   return pageShell({
@@ -78,8 +78,6 @@ async function main() {
       writePythonIndex(sources, {
         defaultLanguage: "en",
         synonyms: SYNONYM_CONFIG,
-        embed: "deterministic",
-        embeddingProvider: { type: "custom" },
       }),
     log: `built synonym playground demo: ${sources.length} pages -> ${galleryDir}`,
   });

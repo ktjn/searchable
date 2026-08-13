@@ -21,7 +21,6 @@ test("contains one unique example for every approved behavior", () => {
     "prefix",
     "boosts",
     "did-you-mean",
-    "vector",
     "browse",
   ]);
 });
@@ -101,12 +100,6 @@ test("renders every optional behavior in attributes and displayed source", () =>
   expect(
     renderRuntimeAttributes(byId.get("did-you-mean") as QuickExample),
   ).toContain('data-default-query="wirelssz"');
-  expect(renderRuntimeAttributes(byId.get("vector") as QuickExample)).toContain(
-    'data-modes="hybrid,lexical,vector"',
-  );
-  expect(renderExampleCode(byId.get("vector") as QuickExample)).toContain(
-    'mode: "hybrid"',
-  );
   expect(renderRuntimeAttributes(byId.get("browse") as QuickExample)).toContain(
     'data-browse="true"',
   );

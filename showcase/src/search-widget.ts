@@ -2,7 +2,7 @@
  * Loaded on every showcase page via <script type="module">. Not
  * bundled — plain TypeScript compiled to plain ES modules (see
  * ../tsconfig.widget.json) — this glue code has nothing to bundle, just
- * a dynamic import of the already-built @ktjn/searchable-client from a path
+ * a dynamic import of the already-built @ktjn/searchable from a path
  * computed at runtime.
  *
  * `import.meta.url` (not the page's own location) is the anchor for
@@ -42,8 +42,6 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
 
   const client: SearchClientLike = new SearchClient({
     indexUrl: new URL("search-index/manifest.json", siteRoot).href,
-    worker: true,
-    workerUrl: new URL("assets/worker.js", siteRoot),
   });
 
   const input = document.createElement("input");

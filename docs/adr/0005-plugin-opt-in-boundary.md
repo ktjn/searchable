@@ -29,16 +29,10 @@ shape, not one uniform plugin system:
    isn't worth the complexity yet; the *data* for each (a synonym shard,
    a fuzzy shard) is still fetched lazily only when a query needs it, so
    the runtime cost is opt-in even though the code isn't.
-2. **Genuinely separate, lazy-loaded dependency**
-   (`@huggingface/transformers`-backed embedding): the
-   transformers integration is a `devDependency` + optional
-   `peerDependency`, loaded via a lazy `import()` and listed in
-   `rollupOptions.external`
-   ([Project governance](../project/governance.md#performance-policy)) —
-   it costs zero bytes against the core budget unless a consumer
-   actually calls `createTransformersEmbedQuery()`. This is the pattern
-   for anything with real weight (a multi-MB model, a codec only some
-   deployments need).
+2. **Genuinely separate, lazy-loaded dependency** (removed in 2.0):
+   previously used for `@huggingface/transformers`-backed embedding.
+   The pattern remains valid for any future heavy dependency
+   (a multi-MB model, a codec only some deployments need).
 
 A real dynamic plugin *registration* API (third-party analyzers/ranking/
 storage backends registering themselves, per
@@ -55,10 +49,10 @@ the [roadmap](../project/roadmap.md).
   features that cost nothing today is complexity with no present payoff,
   the same "don't design for hypothetical future requirements" tradeoff
   the project's own contributor guidelines call for.
-- **Bundling `@huggingface/transformers` unconditionally**: rejected
-  outright — it would blow the 15 KB core budget by orders of magnitude
-  for every consumer, including the majority who never touch vector
-  search.
+- **Bundling `@huggingface/transformers` unconditionally** (removed in 2.0):
+  was rejected outright — it would have blown the 15 KB core budget by
+  orders of magnitude for every consumer, including the majority who never
+  needed vector search.
 
 ## Consequences
 
@@ -66,5 +60,4 @@ the [roadmap](../project/roadmap.md).
   the client search bundle; `pnpm size` checks that combined reality.
 - Adding a genuinely large future feature (e.g. a WASM scoring core)
   should default to mechanism 2 (lazy-loaded, external, opt-in
-  dependency) rather than mechanism 1, following the precedent
-  transformers integration already set.
+  dependency) rather than mechanism 1.

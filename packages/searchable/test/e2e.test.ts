@@ -1,0 +1,2057 @@
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { SearchClient } from "../src/client.js";
+import type { PythonSourceDocument as SourceDocument } from "../test-support/python-index.js";
+import { writePythonIndex } from "../test-support/python-index.js";
+import { serveStatic } from "./static-server.js";
+
+const sources: SourceDocument[] = [
+  {
+    id: 1,
+    url: "/widgets",
+    html: `<html lang="en"><head><title>Widgets</title>
+      <meta name="description" content="Everything you need to know about widgets."></head>
+      <body><main><p>Our widgets are wonderful. Buy widgets today.</p></main></body></html>`,
+  },
+  {
+    id: 2,
+    url: "/gadgets",
+    html: `<html lang="en"><head><title>Gadgets</title></head>
+      <body><main><p>Gadgets and gizmos, plus a few widgets for good measure.</p></main></body></html>`,
+  },
+  {
+    id: 3,
+    url: "/about",
+    html: `<html lang="en"><head><title>About Us</title></head>
+      <body><main><p>We are a small company that makes things.</p></main></body></html>`,
+  },
+  {
+    id: 4,
+    url: "/draft",
+    html: `<html lang="en"><head><title>Widgets Draft</title><meta name="searchable-noindex"></head>
+      <body><main><p>widgets widgets widgets</p></main></body></html>`,
+  },
+];
+
+describe("indexer -> client end to end (over real HTTP)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(sources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("fetches the manifest and returns ranked, relevant hits", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+
+    expect(hits.map((h) => h.id)).toEqual([1, 2]); // 3/about never mentions widgets
+    expect(hits[0]?.url).toBe("/widgets");
+    expect(hits[0]?.fields.title).toBe("Widgets");
+    expect((hits[0]?.score ?? 0) > (hits[1]?.score ?? 0)).toBe(true);
+  });
+
+  it("excludes searchable-noindex documents from being findable at all", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+    expect(hits.some((h) => h.url === "/draft")).toBe(false);
+  });
+
+  it("boolean-ANDs multiple query terms", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("gadgets gizmos");
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("returns no results when a query term matches nothing", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    expect((await client.search("nonexistentterm")).hits).toEqual([]);
+  });
+
+  it("uses the derived excerpt when no meta description was given", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("company");
+    expect(hits[0]?.fields.excerpt).toContain("small company");
+  });
+
+  it("prefers the explicit meta description as the excerpt when present", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+    expect(hits[0]?.fields.excerpt).toBe(
+      "Everything you need to know about widgets.",
+    );
+  });
+});
+
+describe("cancellation (options.signal)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(sources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("rejects immediately with an AbortError when the signal is already aborted", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // Rejecting before ever awaiting readiness (the whole point of this
+    // test) leaves the constructor's own eager manifest fetch promise
+    // otherwise unobserved by this test -- attach a no-op handler so it
+    // can't surface as an unrelated unhandled rejection.
+    client.ready().catch(() => {});
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      client.search("widgets", { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("rejects with an AbortError when aborted after the call has started", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    await client.ready();
+    const controller = new AbortController();
+
+    const promise = client.search("widgets", { signal: controller.signal });
+    controller.abort();
+
+    await expect(promise).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("does not affect a concurrent, non-aborted call against the same client", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const controller = new AbortController();
+
+    const aborted = client.search("widgets", { signal: controller.signal });
+    const notAborted = client.search("widgets");
+    controller.abort();
+
+    await expect(aborted).rejects.toMatchObject({ name: "AbortError" });
+    const { hits } = await notAborted;
+    expect(hits.map((h) => h.id)).toEqual([1, 2]);
+  });
+
+  it("a later call without a signal still succeeds after a prior call was aborted", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const controller = new AbortController();
+    controller.abort();
+    await client
+      .search("widgets", { signal: controller.signal })
+      .catch(() => {});
+
+    const { hits } = await client.search("widgets");
+    expect(hits.map((h) => h.id)).toEqual([1, 2]);
+  });
+
+  it("facetValues() also honors an already-aborted signal", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    client.ready().catch(() => {});
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      client.facetValues("category", { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+});
+
+describe("SearchClient.dispose()", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(sources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("is idempotent -- calling it more than once does not throw", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    await client.ready();
+    client.dispose();
+    expect(() => client.dispose()).not.toThrow();
+  });
+
+  it("rejects search() after dispose()", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    await client.ready();
+    client.dispose();
+    await expect(client.search("widgets")).rejects.toThrow(/disposed/);
+  });
+});
+
+describe("manifest validation (real HTTP)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(sources));
+    const manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    await Promise.all([
+      writeFile(
+        join(outDir, "bad-manifest.json"),
+        JSON.stringify({ version: 1 }),
+        "utf8",
+      ),
+      writeFile(
+        join(outDir, "cross-origin-manifest.json"),
+        JSON.stringify({
+          ...manifest,
+          shards: {
+            ...manifest.shards,
+            terms: manifest.shards.terms.map(
+              (shard: Record<string, unknown>, index: number) =>
+                index === 0
+                  ? {
+                      ...shard,
+                      file: "https://evil.example.com/terms/en/all.json",
+                    }
+                  : shard,
+            ),
+          },
+        }),
+        "utf8",
+      ),
+      writeFile(
+        join(outDir, "strict-invalid-manifest.json"),
+        JSON.stringify({
+          ...manifest,
+          shards: {
+            ...manifest.shards,
+            terms: manifest.shards.terms.map(
+              (shard: Record<string, unknown>, index: number) =>
+                index === 0 ? { ...shard, lang: "de" } : shard,
+            ),
+          },
+        }),
+        "utf8",
+      ),
+    ]);
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("rejects a structurally invalid manifest instead of failing deep in search()", async () => {
+    const client = new SearchClient({
+      indexUrl: `${baseUrl}bad-manifest.json`,
+    });
+    await expect(client.ready()).rejects.toThrow(/invalid manifest/);
+  });
+
+  it("rejects a manifest whose shard file resolves cross-origin by default", async () => {
+    const client = new SearchClient({
+      indexUrl: `${baseUrl}cross-origin-manifest.json`,
+    });
+    await expect(client.ready()).rejects.toThrow(/different origin/);
+  });
+
+  it("strict: true rejects a semantically-invalid manifest that lite mode accepts (issue #1 finding 7)", async () => {
+    const lite = new SearchClient({
+      indexUrl: `${baseUrl}strict-invalid-manifest.json`,
+    });
+    await expect(lite.ready()).resolves.toBeUndefined();
+
+    const strict = new SearchClient({
+      indexUrl: `${baseUrl}strict-invalid-manifest.json`,
+      strict: true,
+    });
+    await expect(strict.ready()).rejects.toThrow(/not in languages/);
+  });
+});
+
+describe("document-level boost (searchable-boost)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const boostSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widgets",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>Buy widgets today.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/clearance",
+      html: `<html lang="en"><head><title>Clearance Sale</title>
+        <meta name="searchable-boost" content="50"></head>
+        <body><main><p>Clearance widgets, while supplies last.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(boostSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("lets a heavily boosted, otherwise-lower-relevance doc outrank a title match", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+    expect(hits.map((h) => h.id)).toEqual([2, 1]);
+  });
+});
+
+describe("per-query field boost override", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const fieldBoostSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>Unrelated padding content here.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/b",
+      html: `<html lang="en"><head><title>Other Page</title></head>
+        <body><main><p>widgets widgets widgets widgets widgets</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(fieldBoostSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("ranks the 5x body match first under default field boosts", async () => {
+    // doc 1 matches once via a 3x-boosted title; doc 2 matches 5 times in
+    // an unboosted body — BM25's saturation curve means raw occurrence
+    // count still wins here despite the title boost, empirically.
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+    expect(hits[0]?.id).toBe(2);
+  });
+
+  it("flips the ranking when the query overrides title far above body", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets", {
+      boosts: { fields: { title: 100, body: 0.01 } },
+    });
+    expect(hits[0]?.id).toBe(1);
+  });
+});
+
+describe("per-query term boost", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  // Symmetric fixture: doc 1 has more "apple", doc 2 has more "banana" -
+  // both match both terms, so under default (no term boost) weighting
+  // they should score identically by symmetry.
+  const termBoostSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>Page A</title></head>
+        <body><main><p>apple apple apple banana</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/b",
+      html: `<html lang="en"><head><title>Page B</title></head>
+        <body><main><p>apple banana banana banana</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(termBoostSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("scores symmetric documents equally with no term boost", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("apple banana");
+    expect(hits[0]?.score).toBeCloseTo(hits[1]?.score ?? Number.NaN);
+  });
+
+  it("boosting a term tips the tie toward the doc with more of that term", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("apple banana", {
+      boosts: { terms: { apple: 20 } },
+    });
+    expect(hits[0]?.id).toBe(1); // doc 1 has 3x "apple", benefits most
+  });
+});
+
+describe("prefix matching (term*)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const prefixSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widget",
+      html: `<html lang="en"><head><title>Widget</title></head>
+        <body><main><p>A single widget for sale.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/widgets",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>Buy widgets in bulk.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/widgetry",
+      html: `<html lang="en"><head><title>Widgetry</title></head>
+        <body><main><p>The fine art of widgetry.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/gadgets",
+      html: `<html lang="en"><head><title>Gadgets</title></head>
+        <body><main><p>Gadgets and gizmos only.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(prefixSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("matches every real term sharing the prefix, not just an exact term", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widg*");
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("does not match documents outside the prefix", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widg*");
+    expect(hits.some((h) => h.id === 4)).toBe(false);
+  });
+
+  it("still ANDs a prefix clause against other exact clauses", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widg* bulk");
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("returns no results when a prefix matches no real term", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    expect((await client.search("zzz*")).hits).toEqual([]);
+  });
+
+  it("falls back to an exact (post-stemming) match when there's no trailing *", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget");
+    // "widget" and "widgets" both stem to "widget" -- an exact clause is
+    // exact about the *stemmed* term, not the surface form, so both the
+    // singular and plural page match; "widgetry" stems differently
+    // ("widgetri") and correctly does not.
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
+  });
+});
+
+describe("prefix-sharded term shard fetching (docs/concepts/index-format.md#term-shard-inverted-index)", () => {
+  // A vocabulary spread across distinct leading characters -- with the
+  // default sharding budget this produces one tiny term shard per
+  // character, exactly the scenario prefix sharding exists for: a query
+  // should fetch only the shard(s) covering the terms it actually
+  // mentions, not every term shard for the language (the pre-sharding
+  // behavior packages/indexer/test/write-index.test.ts used to lock in
+  // as "prefix: 'all'").
+  const shardedSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/alpha",
+      html: `<html lang="en"><head><title>Alpha Page</title></head>
+        <body><main><p>alpha content here</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/bravo",
+      html: `<html lang="en"><head><title>Bravo Page</title></head>
+        <body><main><p>bravo content here</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/charlie",
+      html: `<html lang="en"><head><title>Charlie Page</title></head>
+        <body><main><p>charlie content here</p></main></body></html>`,
+    },
+  ];
+
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let requestedPaths: string[];
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+  let manifest: {
+    shards: { terms: { lang: string; prefix: string; file: string }[] };
+  };
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(shardedSources));
+    manifest = JSON.parse(
+      await readFile(join(outDir, "manifest.json"), "utf8"),
+    );
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+    requestedPaths = server.requestedPaths;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  function shardFileFor(prefix: string): string {
+    const entry = manifest.shards.terms.find(
+      (s) => s.lang === "en" && s.prefix === prefix,
+    );
+    if (!entry) throw new Error(`no shard for prefix ${prefix}`);
+    return `/${entry.file}`;
+  }
+
+  it("fetches only the term shard covering an exact query term's prefix", async () => {
+    requestedPaths.length = 0;
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("alpha");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+
+    const termShardRequests = requestedPaths.filter((p) =>
+      p.startsWith("/terms/"),
+    );
+    expect(termShardRequests).toEqual([shardFileFor("a")]);
+    expect(termShardRequests).not.toContain(shardFileFor("b"));
+    expect(termShardRequests).not.toContain(shardFileFor("c"));
+  });
+
+  it("fetches only the shards covering every clause in a multi-term query", async () => {
+    requestedPaths.length = 0;
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("content alpha");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+
+    const termShardRequests = requestedPaths.filter((p) =>
+      p.startsWith("/terms/"),
+    );
+    expect(new Set(termShardRequests)).toEqual(
+      new Set([shardFileFor("a"), shardFileFor("c")]), // "content" stems under prefix "c"
+    );
+    expect(termShardRequests).not.toContain(shardFileFor("b"));
+  });
+});
+
+describe("shardByPrefix:false (docs/guides/indexing.md's small-corpus mode)", () => {
+  // The `prefix: "all"` sentinel (docs/concepts/index-format.md#term-shard-inverted-index)
+  // is not a real character prefix, so the shard-selection logic in
+  // shardEntriesForQuery() has to special-case it rather than test it
+  // with String.prototype.startsWith() like every other prefix value --
+  // this locks that in against the same query paths the sharded suite
+  // above exercises, using the same vocabulary spread across distinct
+  // leading characters.
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const unshardedSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/alpha",
+      html: `<html lang="en"><head><title>Alpha Page</title></head>
+        <body><main><p>alpha content here</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/bravo",
+      html: `<html lang="en"><head><title>Bravo Page</title></head>
+        <body><main><p>bravo content here</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(
+      unshardedSources,
+      {},
+      { shardByPrefix: false },
+    ));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("still resolves an exact-term query against a single unsharded term shard", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("alpha");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("still resolves a multi-term query against a single unsharded term shard", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("content alpha");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+});
+
+describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-boosts.md#phrase-and-proximity-queries)', () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const phraseSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/adjacent",
+      html: `<html lang="en"><head><title>Noise Cancelling Headphones</title></head>
+        <body><main><p>Great for travel.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/reversed",
+      html: `<html lang="en"><head><title>Cancelling Noise Headphones</title></head>
+        <body><main><p>Great for travel.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/not-adjacent",
+      html: `<html lang="en"><head><title>Noise Great Cancelling Technology</title></head>
+        <body><main><p>Great for travel.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/split-fields",
+      html: `<html lang="en"><head><title>Noise</title></head>
+        <body><main><p>Cancelling technology inside.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(phraseSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("matches a document where the phrase words appear adjacent, in order, in the same field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"');
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("does not match when the same words appear in reverse order", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"');
+    expect(hits.some((h) => h.id === 2)).toBe(false);
+  });
+
+  it("does not match when the words are present in the same field but not adjacent", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"');
+    expect(hits.some((h) => h.id === 3)).toBe(false);
+  });
+
+  it("does not match when the words are each in a different field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"');
+    expect(hits.some((h) => h.id === 4)).toBe(false);
+  });
+
+  it("ANDs a phrase clause against a plain term clause", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling" headphones');
+    // doc 2 also has "headphones" but fails the phrase's word order.
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("a single-word quoted phrase behaves identically to the same unquoted term", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const quoted = await client.search('"noise"');
+    const unquoted = await client.search("noise");
+    expect(quoted.hits.map((h) => h.id).sort()).toEqual(
+      unquoted.hits.map((h) => h.id).sort(),
+    );
+    expect(quoted.hits.map((h) => h.id).sort()).toEqual([1, 2, 3, 4]);
+  });
+
+  it("returns zero hits when one phrase word doesn't exist anywhere in the corpus", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise zzzznotaword"');
+    expect(hits).toEqual([]);
+  });
+
+  it("highlights each phrase word in the matching result", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"noise cancelling"', {
+      highlight: true,
+    });
+    const titleSpans = hits[0]?.highlights?.title ?? [];
+    const matchedText = titleSpans
+      .filter((s) => s.isMatch)
+      .map((s) => s.text.toLowerCase())
+      .join(" ");
+    expect(matchedText).toContain("noise");
+    expect(matchedText).toContain("cancelling");
+  });
+});
+
+describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/guides/synonyms.md#synonym-file-format)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const cityGuideSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/nyc",
+      html: `<html lang="en"><head><title>NYC Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/new-york",
+      html: `<html lang="en"><head><title>New York Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/big-apple",
+      html: `<html lang="en"><head><title>Big Apple Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/paris",
+      html: `<html lang="en"><head><title>Paris Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(cityGuideSources, {
+      defaultLanguage: "en",
+      synonyms: { en: { multiWord: [["new york", "nyc", "big apple"]] } },
+    }));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("does not cross-match multiWord synonym phrases by default (synonyms option off)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"');
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("expands a quoted phrase to every other phrase in its multiWord group when synonyms:true", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', { synonyms: true });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+    expect(hits.some((h) => h.id === 4)).toBe(false);
+  });
+
+  it("ranks the literal phrase match above synonym-expanded phrase matches", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', { synonyms: true });
+    expect(hits[0]?.id).toBe(2); // literal "new york" match
+    for (const hit of hits.slice(1)) {
+      expect(hit.score).toBeLessThan(hits[0]?.score ?? Number.NaN);
+    }
+  });
+
+  it("respects a custom synonymWeight for phrase expansion, same as single-word synonyms", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', {
+      synonyms: true,
+      synonymWeight: 0.01,
+    });
+    const literal = hits.find((h) => h.id === 2);
+    const expanded = hits.find((h) => h.id === 1);
+    expect(expanded?.score).toBeLessThan((literal?.score ?? Number.NaN) * 0.1);
+  });
+
+  it("a single quoted word can also participate in a multiWord group", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"nyc"', { synonyms: true });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("does not highlight a synonym-matched variant's words, only the literal phrase actually typed", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', {
+      synonyms: true,
+      highlight: true,
+    });
+    const nycHit = hits.find((h) => h.id === 1);
+    const spans = nycHit?.highlights?.title ?? [];
+    expect(spans.some((s) => s.isMatch)).toBe(false);
+  });
+});
+
+describe("multiWord phrase-level synonyms: literal phrase absent from the corpus entirely", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  // Only "nyc" appears anywhere in this corpus -- "new" and "york" are
+  // not real terms in any document, verifying the literal phrase's own
+  // missing words don't block a synonym variant from still matching.
+  const nycOnlySources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/nyc",
+      html: `<html lang="en"><head><title>NYC Travel Guide</title></head>
+        <body><main><p>Explore the city.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(nycOnlySources, {
+      defaultLanguage: "en",
+      synonyms: { en: { multiWord: [["new york", "nyc"]] } },
+    }));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("still matches via a synonym variant even though the literal phrase's words don't exist in the corpus", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"', { synonyms: true });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("fails without synonyms enabled, since the literal phrase's words don't exist at all", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search('"new york"');
+    expect(hits).toEqual([]);
+  });
+});
+
+describe("facet filtering and contextual counts", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  // All three organically match "durable widget"; category/brand facets
+  // split them so filtering/counting behavior is unambiguous.
+  const facetSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>Widget A</title>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="acme"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/b",
+      html: `<html lang="en"><head><title>Widget B</title>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="globex"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/c",
+      html: `<html lang="en"><head><title>Widget C</title>
+        <meta name="searchable-facet-category" content="books"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(facetSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("intersects results with a single-value filter", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("durable widget", {
+      filters: { category: "electronics" },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
+  });
+
+  it("unions multiple values within one filter field (OR)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("durable widget", {
+      filters: { brand: ["acme", "globex"] },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
+  });
+
+  it("intersects across different filter fields (AND)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("durable widget", {
+      filters: { category: "electronics", brand: "acme" },
+    });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("ignores a filter field with no matching facet shard", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("durable widget", {
+      filters: { nonexistentField: "whatever" },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("reports global (unfiltered) facet values and counts", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { facets } = await client.search("durable widget", {
+      facets: ["category"],
+    });
+    const values = facets?.category?.values.sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+    expect(values).toEqual([
+      { value: "books", count: 1, selected: false },
+      { value: "electronics", count: 2, selected: false },
+    ]);
+  });
+
+  it("computes contextual counts against other active filters, but not a facet's own", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits, facets } = await client.search("durable widget", {
+      filters: { brand: "acme" },
+      facets: ["category", "brand"],
+    });
+
+    // Results are narrowed by the active brand filter.
+    expect(hits.map((h) => h.id)).toEqual([1]);
+
+    // The brand facet excludes its OWN active filter from the base set,
+    // so the unselected value ("globex") still shows its real count
+    // instead of being zeroed out by the very filter that selects "acme".
+    const brandValues = facets?.brand?.values.sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+    expect(brandValues).toEqual([
+      { value: "acme", count: 1, selected: true },
+      { value: "globex", count: 1, selected: false },
+    ]);
+
+    // The category facet is a different field, so it DOES reflect the
+    // active brand filter (contextual, not global, counts).
+    const categoryValues = facets?.category?.values.sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+    expect(categoryValues).toEqual([
+      { value: "books", count: 0, selected: false },
+      { value: "electronics", count: 1, selected: false },
+    ]);
+  });
+});
+
+describe("hierarchical facet filtering and contextual counts (over real HTTP)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  // All four organically match "device"; category is a hierarchical
+  // facet (docs/guides/facets.md#facet-types) three levels deep for
+  // three of them, and a bare top-level value (no separator) for the
+  // fourth, to prove both shapes coexist in one shard.
+  const hierarchySources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/headphones",
+      html: `<html lang="en"><head><title>Headphones</title>
+        <meta name="searchable-facet-category" content="electronics>audio>headphones"></head>
+        <body><main><p>A wireless device.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/speakers",
+      html: `<html lang="en"><head><title>Speakers</title>
+        <meta name="searchable-facet-category" content="electronics>audio>speakers"></head>
+        <body><main><p>A bluetooth device.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/tv",
+      html: `<html lang="en"><head><title>TV</title>
+        <meta name="searchable-facet-category" content="electronics>video>tv"></head>
+        <body><main><p>A smart device.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/novel",
+      html: `<html lang="en"><head><title>Novel</title>
+        <meta name="searchable-facet-category" content="books"></head>
+        <body><main><p>A great read, nothing electronic about it.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(hierarchySources, {
+      defaultLanguage: "en",
+      hierarchicalFacets: { category: {} },
+    }));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("filtering by a top-level ancestor path matches every descendant leaf", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("device", {
+      filters: { category: "electronics" },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
+  });
+
+  it("filtering by a mid-level path matches only that branch's leaves", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("device", {
+      filters: { category: "electronics>audio" },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
+  });
+
+  it("filtering by a full leaf path matches only that one document", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("device", {
+      filters: { category: "electronics>audio>headphones" },
+    });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("reports every path level as its own facet value, with the shard's separator", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { facets } = await client.search("device", {
+      facets: ["category"],
+    });
+    expect(facets?.category?.separator).toBe(">");
+    const values = facets?.category?.values.sort((a, b) =>
+      a.value.localeCompare(b.value),
+    );
+    expect(values).toEqual([
+      { value: "books", count: 0, selected: false },
+      { value: "electronics", count: 3, selected: false },
+      { value: "electronics>audio", count: 2, selected: false },
+      { value: "electronics>audio>headphones", count: 1, selected: false },
+      { value: "electronics>audio>speakers", count: 1, selected: false },
+      { value: "electronics>video", count: 1, selected: false },
+      { value: "electronics>video>tv", count: 1, selected: false },
+    ]);
+  });
+
+  it("marks the active ancestor-level filter's own value as selected", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { facets } = await client.search("device", {
+      filters: { category: "electronics>audio" },
+      facets: ["category"],
+    });
+    const audio = facets?.category?.values.find(
+      (v) => v.value === "electronics>audio",
+    );
+    expect(audio).toEqual({
+      value: "electronics>audio",
+      count: 2,
+      selected: true,
+    });
+  });
+
+  it("facetValues() (no free-text query) returns the same tree and separator", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values, separator } = await client.facetValues("category");
+    expect(separator).toBe(">");
+    expect(values.find((v) => v.value === "electronics")).toEqual({
+      value: "electronics",
+      count: 3,
+      selected: false,
+    });
+    expect(values.find((v) => v.value === "books")).toEqual({
+      value: "books",
+      count: 1,
+      selected: false,
+    });
+  });
+
+  it("does not surface a separator for an ordinary (non-hierarchical) facet field", async () => {
+    // Reuses the plain "facet filtering and contextual counts" corpus's
+    // shape via a fresh small index, confirming the new field is opt-in
+    // per writePythonIndex() call, not a global default.
+    const { outDir: plainOutDir, cleanup: plainCleanup } =
+      await writePythonIndex([
+        {
+          id: 1,
+          url: "/a",
+          html: `<html lang="en"><head><title>A</title>
+              <meta name="searchable-facet-category" content="electronics>audio>headphones"></head>
+              <body><main><p>device</p></main></body></html>`,
+        },
+      ]);
+    try {
+      const server = await serveStatic(plainOutDir);
+      try {
+        const client = new SearchClient({
+          indexUrl: `${server.baseUrl}manifest.json`,
+        });
+        const { facets } = await client.search("device", {
+          facets: ["category"],
+        });
+        expect(facets?.category?.separator).toBeUndefined();
+        expect(facets?.category?.values).toEqual([
+          { value: "electronics>audio>headphones", count: 1, selected: false },
+        ]);
+      } finally {
+        await server.close();
+      }
+    } finally {
+      await plainCleanup();
+    }
+  });
+});
+
+describe("facetValues() -- filter-only facet queries with no free-text search", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  // Same shape as the "facet filtering and contextual counts" fixture above,
+  // duplicated (not shared) so this describe block stays self-contained --
+  // category/brand split the docs so global vs. contextual counts are
+  // unambiguous even with no organic query narrowing the candidate set.
+  const facetSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/a",
+      html: `<html lang="en"><head><title>Widget A</title>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="acme">
+        <meta name="searchable-facet-range-price" content="10"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/b",
+      html: `<html lang="en"><head><title>Widget B</title>
+        <meta name="searchable-facet-category" content="electronics">
+        <meta name="searchable-facet-brand" content="globex">
+        <meta name="searchable-facet-range-price" content="20"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/c",
+      html: `<html lang="en"><head><title>Widget C</title>
+        <meta name="searchable-facet-category" content="books"></head>
+        <body><main><p>A durable widget.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(facetSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("reports global counts over the whole corpus with no filters at all", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("category");
+    expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
+      { value: "books", count: 1, selected: false },
+      { value: "electronics", count: 2, selected: false },
+    ]);
+  });
+
+  it("narrows counts by another active filter field, but not the field's own", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("category", {
+      filters: { brand: "acme" },
+    });
+    expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
+      { value: "books", count: 0, selected: false },
+      { value: "electronics", count: 1, selected: false },
+    ]);
+  });
+
+  it("marks the currently-selected value(s) for the field itself without narrowing its own counts", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("brand", {
+      filters: { brand: "acme" },
+    });
+    expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
+      { value: "acme", count: 1, selected: true },
+      { value: "globex", count: 1, selected: false },
+    ]);
+  });
+
+  it("returns an empty values array for an unknown facet field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("nonexistentField");
+    expect(values).toEqual([]);
+  });
+
+  it("returns aggregate bucket values for a range-type facet field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { values } = await client.facetValues("price");
+    // min=10 (doc 1), max=20 (doc 2) -> 5 equal-width buckets of width 2;
+    // 10 falls in the first ("10-12"), 20 in the last, open-ended one ("18+").
+    expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
+      { value: "10-12", count: 1, selected: false },
+      { value: "18+", count: 1, selected: false },
+    ]);
+  });
+});
+
+describe("range facet filtering", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  // All four organically match "widget"; price is a range facet
+  // (searchable-facet-range-price) so min/max filtering is unambiguous.
+  const rangeSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/cheap",
+      html: `<html lang="en"><head><title>Cheap Widget</title>
+        <meta name="searchable-facet-range-price" content="9.99"></head>
+        <body><main><p>An affordable widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/mid",
+      html: `<html lang="en"><head><title>Midrange Widget</title>
+        <meta name="searchable-facet-range-price" content="49.5"></head>
+        <body><main><p>A midrange widget.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/premium",
+      html: `<html lang="en"><head><title>Premium Widget</title>
+        <meta name="searchable-facet-range-price" content="199"></head>
+        <body><main><p>A premium widget.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/no-price",
+      html: `<html lang="en"><head><title>Undated Widget</title></head>
+        <body><main><p>A widget with no listed price.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(rangeSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("filters to an inclusive [min, max] range", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { min: 10, max: 100 } },
+    });
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("supports an open-ended minimum (no max)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { min: 50 } },
+    });
+    expect(hits.map((h) => h.id).sort()).toEqual([3]);
+  });
+
+  it("supports an open-ended maximum (no min)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { max: 10 } },
+    });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("includes exact boundary values (inclusive bounds)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { min: 49.5, max: 49.5 } },
+    });
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("excludes documents with no declared value for the range field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { price: { min: 0 } },
+    });
+    expect(hits.map((h) => h.id)).not.toContain(4);
+  });
+
+  it("combines a range filter with organic scoring (still ranked by relevance)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { totalHits } = await client.search("widget", {
+      filters: { price: { min: 0, max: 1000 } },
+    });
+    expect(totalHits).toBe(3); // every priced widget, excluding the unpriced one
+  });
+
+  it("search()'s facets option also returns aggregate bucket values for a range field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { facets } = await client.search("widget", { facets: ["price"] });
+    const priceValues = facets?.price?.values ?? [];
+    // Exact bucket boundaries are covered by the indexer's own tests
+    // (packages/indexer/test/build-index.test.ts) -- this just proves
+    // search() surfaces them at all, reusing the same generic
+    // shard.values aggregation terms facets already use.
+    expect(priceValues.length).toBeGreaterThan(0);
+    expect(priceValues.reduce((sum, v) => sum + v.count, 0)).toBe(3); // every priced widget, excluding the unpriced one
+  });
+});
+
+describe("term-to-page pinning (searchable-pin)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const pinSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/pricing",
+      html: `<html lang="en"><head><title>Enterprise Plans</title>
+        <meta name="searchable-pin" content="pricing"></head>
+        <body><main><p>Our enterprise plans are flexible.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/budget",
+      html: `<html lang="en"><head><title>Budget Guide</title></head>
+        <body><main><p>How to save money.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/faq",
+      html: `<html lang="en"><head><title>FAQ</title>
+        <meta name="searchable-pin" content="cost">
+        <meta name="searchable-pin-mode" content="contains"></head>
+        <body><main><p>Answers to common questions about cost and pricing.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(pinSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("places an exact-mode pin first, marked pinned:true, above organic matches", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("pricing");
+    // doc 1 only via its pin (its own text never says "pricing"); doc 3
+    // matches organically too, since its body literally contains "pricing".
+    expect(hits.map((h) => ({ id: h.id, pinned: h.pinned ?? false }))).toEqual([
+      { id: 1, pinned: true },
+      { id: 3, pinned: false },
+    ]);
+  });
+
+  it("requires the whole query to equal the phrase under the default exact mode", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("enterprise pricing plans");
+    expect(hits.some((h) => h.id === 1 && h.pinned)).toBe(false);
+  });
+
+  it("matches a contains-mode pin as a subsequence of a longer query", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("total cost estimate");
+    expect(hits[0]).toMatchObject({ id: 3, pinned: true });
+  });
+});
+
+describe("term-to-page pinning: conflicts and exclusivity", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const conflictSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/vip-a",
+      html: `<html lang="en"><head><title>VIP A</title>
+        <meta name="searchable-pin" content="vip">
+        <meta name="searchable-pin-priority" content="1"></head>
+        <body><main><p>A vip page.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/vip-b",
+      html: `<html lang="en"><head><title>VIP B</title>
+        <meta name="searchable-pin" content="vip">
+        <meta name="searchable-pin-priority" content="10">
+        <meta name="searchable-pin-exclusive"></head>
+        <body><main><p>Another vip page.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/other",
+      html: `<html lang="en"><head><title>Other</title></head>
+        <body><main><p>This page also mentions vip in passing.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(conflictSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("orders conflicting pins by priority and suppresses organic results once any is exclusive", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("vip");
+    expect(hits).toEqual([
+      expect.objectContaining({ id: 2, pinned: true }),
+      expect.objectContaining({ id: 1, pinned: true }),
+    ]);
+    expect(hits.some((h) => h.id === 3)).toBe(false); // organic match suppressed
+  });
+});
+
+describe("term-to-page pinning: facet-filter interaction", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const pinFilterSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/pin-target",
+      html: `<html lang="en"><head><title>Widget</title>
+        <meta name="searchable-pin" content="featured">
+        <meta name="searchable-facet-category" content="electronics"></head>
+        <body><main><p>Standard product listing.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/other-book",
+      html: `<html lang="en"><head><title>Book</title>
+        <meta name="searchable-facet-category" content="books"></head>
+        <body><main><p>An unrelated book.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(pinFilterSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("shows a pin with no active filters", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("featured");
+    expect(hits).toEqual([expect.objectContaining({ id: 1, pinned: true })]);
+  });
+
+  it("hides a pin excluded by an active filter the user explicitly set", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("featured", {
+      filters: { category: "books" },
+    });
+    expect(hits).toEqual([]);
+  });
+});
+
+describe("multi-language corpora", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const multiLangSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/en/widgets",
+      html: `<html lang="en"><head><title>Widgets</title></head>
+        <body><main><p>We sell wonderful widgets.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/de/preise",
+      html: `<html lang="de"><head><title>Preise</title></head>
+        <body><main><p>Unsere Preise sind einfach und fair.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(multiLangSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("searches the default language's partition when no language is given", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("searches a different language's partition when asked", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("preise", { language: "de" });
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+
+  it("never cross-matches a term against the wrong language's partition", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    expect((await client.search("widgets", { language: "de" })).hits).toEqual(
+      [],
+    );
+    expect((await client.search("preise", { language: "en" })).hits).toEqual(
+      [],
+    );
+  });
+
+  it("SearchResult.language reports the resolved language, defaulted or explicit", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    expect((await client.search("widgets")).language).toBe("en");
+    expect((await client.search("preise", { language: "de" })).language).toBe(
+      "de",
+    );
+    // Still reported even for a query with zero query terms/phrases.
+    expect((await client.search("")).language).toBe("en");
+  });
+});
+
+describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#segmentation)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const cjkSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/zh/nlp",
+      html: `<html lang="zh"><head><title>自然語言處理</title></head>
+        <body><main><p>自然語言處理是電腦科學的一個領域。獨 處 也很好。</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/zh/cooking",
+      html: `<html lang="zh"><head><title>中式烹飪</title></head>
+        <body><main><p>中式烹飪注重色香味俱全。</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(cjkSources, {
+      defaultLanguage: "zh",
+    }));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("finds a document via a single 2-character bigram query", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("語言");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("finds a document via a longer query that expands into multiple AND-ed bigrams, all of which appear as a contiguous run", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("自然語言");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("finds a document via a lone single CJK character query (the 1-gram fallback)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("處");
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("does not match a bigram that only appears in a different, unrelated document", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("中式");
+    expect(hits.map((h) => h.id)).toEqual([2]);
+    expect((await client.search("語言")).hits.map((h) => h.id)).toEqual([1]);
+  });
+});
+
+describe("synonym expansion (searchable synonyms)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const synonymSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/couch",
+      html: `<html lang="en"><head><title>Couch Selection</title></head>
+        <body><main><p>Our couch selection is huge.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/sofa-brand",
+      html: `<html lang="en"><head><title>Brand X Sofa</title></head>
+        <body><main><p>The Brand X sofa is elegant.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/notebook",
+      html: `<html lang="en"><head><title>Notebook Reviews</title></head>
+        <body><main><p>Notebook reviews and comparisons.</p></main></body></html>`,
+    },
+    {
+      id: 4,
+      url: "/laptop",
+      html: `<html lang="en"><head><title>Laptop Deals</title></head>
+        <body><main><p>Laptop deals this week.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(synonymSources, {
+      defaultLanguage: "en",
+      synonyms: {
+        en: {
+          equivalences: [["sofa", "couch"]],
+          directional: { laptop: ["notebook"] },
+        },
+      },
+    }));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("does not expand synonyms by default", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("sofa");
+    expect(hits.map((h) => h.id)).toEqual([2]); // only the literal "sofa" doc
+  });
+
+  it("expands an equivalence class when synonyms:true, ranking the literal match above the synonym match", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("sofa", { synonyms: true });
+    expect(hits.map((h) => h.id)).toEqual([2, 1]); // literal "sofa" (id 2) outranks synonym-matched "couch" (id 1)
+    expect(hits[0]?.score).toBeGreaterThan(hits[1]?.score ?? Number.NaN);
+  });
+
+  it("is symmetric for equivalence classes: searching the other member also cross-matches", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("couch", { synonyms: true });
+    expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
+  });
+
+  it("expands a directional synonym forward but not backward", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const forward = await client.search("laptop", { synonyms: true });
+    expect(forward.hits.map((h) => h.id).sort()).toEqual([3, 4]); // laptop -> also matches notebook doc
+
+    const backward = await client.search("notebook", { synonyms: true });
+    expect(backward.hits.map((h) => h.id)).toEqual([3]); // notebook does NOT expand back to laptop
+  });
+
+  it("respects a custom synonymWeight", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("sofa", {
+      synonyms: true,
+      synonymWeight: 0.01,
+    });
+    // Still finds both, but the synonym match's score drops much closer to zero.
+    expect(hits.map((h) => h.id)).toEqual([2, 1]);
+    expect(hits[1]?.score).toBeLessThan(0.1);
+  });
+});
+
+describe("fuzzy matching (SymSpell deletion dictionary)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const fuzzySources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widget",
+      html: `<html lang="en"><head><title>Widget Page</title></head>
+        <body><main><p>All about the widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/widgit-literal",
+      html: `<html lang="en"><head><title>Widgit Literal</title></head>
+        <body><main><p>This page literally says widgit, on purpose.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/unrelated",
+      html: `<html lang="en"><head><title>Unrelated</title></head>
+        <body><main><p>Nothing to do with any of that.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(fuzzySources, {
+      defaultLanguage: "en",
+      fuzzy: true,
+    }));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("does not fuzzy-match a typo by default", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgit"); // typo of "widget", true edit distance 1
+    expect(hits.map((h) => h.id)).toEqual([2]); // only the literal "widgit" doc
+  });
+
+  it("fuzzy:true finds a true distance-1 typo, ranked below a literal match", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgit", { fuzzy: true });
+    expect(hits.map((h) => h.id)).toEqual([2, 1]); // literal "widgit" (id 2) outranks fuzzy-matched "widget" (id 1)
+    expect(hits[0]?.score).toBeGreaterThan(hits[1]?.score ?? Number.NaN);
+  });
+
+  it("respects a custom fuzzyWeight", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgit", {
+      fuzzy: true,
+      fuzzyWeight: 0.01,
+    });
+    expect(hits.map((h) => h.id)).toEqual([2, 1]);
+    expect(hits[1]?.score).toBeLessThan(0.1);
+  });
+
+  it("does not fuzzy-match a true distance-2 typo (beyond maxEdits:1), but surfaces it via didYouMean", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // "wigdet" is an adjacent-character transposition of "widget" (true edit distance 2).
+    const { hits, didYouMean } = await client.search("wigdet", { fuzzy: true });
+    expect(hits).toEqual([]);
+    expect(didYouMean).toContain("widget");
+  });
+
+  it("does not fuzzy-match a genuine distance-2 substitution typo either, at the default maxEdits:1", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // "widkat" substitutes two characters in "widget" (g->k, e->a) --
+    // true edit distance 2, unrelated to this corpus's other terms.
+    const { hits } = await client.search("widkat", { fuzzy: true });
+    expect(hits).toEqual([]);
+  });
+
+  it("omits didYouMean when fuzzy is not enabled", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits, didYouMean } = await client.search("wigdet");
+    expect(hits).toEqual([]);
+    expect(didYouMean).toBeUndefined();
+  });
+
+  it("omits didYouMean when the query returns hits, even with unmatched terms", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits, didYouMean } = await client.search("widget zzzznotaword", {
+      fuzzy: true,
+    });
+    expect(hits).toEqual([]); // boolean AND: the nonsense term fails the whole query
+    expect(didYouMean).toBeUndefined(); // no hits, but only because zzzznotaword has no near match either
+  });
+});
+
+describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const distance2Sources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widget",
+      html: `<html lang="en"><head><title>Widget Page</title></head>
+        <body><main><p>All about the widget.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/cat",
+      html: `<html lang="en"><head><title>Cat Page</title></head>
+        <body><main><p>All about the cat.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(distance2Sources, {
+      defaultLanguage: "en",
+      fuzzy: true,
+      fuzzyMaxEdits: 2,
+    }));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("finds a genuine distance-2 substitution typo of a long word when the index was built with fuzzyMaxEdits: 2", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // "widkat" substitutes two characters in "widget" (g->k, e->a) --
+    // true edit distance 2. Finding this genuinely requires generating
+    // deletions two levels deep on *both* the dictionary (build time)
+    // and the query (lookup time) sides -- a direct single-sided
+    // lookup at either depth never meets in the middle for a
+    // substitution-type (as opposed to pure-deletion) distance-2 pair.
+    const { hits } = await client.search("widkat", { fuzzy: true });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("still caps a short (<=3 code point) query term's fuzzy matching at distance 1, even though the dictionary supports distance 2", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    // "cop" is a genuine distance-2 substitution typo of "cat"
+    // (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching:
+    // fuzzy matching is "length- and language-dependent") -- a
+    // 3-character term is too short for a distance-2 match to mean
+    // anything, so it's rejected even though the same dictionary just
+    // found "widkat" (6 characters) as a genuine distance-2 match above.
+    const { hits } = await client.search("cop", { fuzzy: true });
+    expect(hits).toEqual([]);
+  });
+
+  it("still fuzzy-matches a short term's own distance-1 typo (the length cap doesn't disable fuzzy matching entirely)", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("cot", { fuzzy: true }); // distance 1 from "cat"
+    expect(hits.map((h) => h.id)).toEqual([2]);
+  });
+});
+
+describe("result highlighting (options.highlight)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  const highlightSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/widgets",
+      html: `<html lang="en"><head><title>Premium Widgets</title>
+        <meta name="description" content="Our widgets are built to last a lifetime."></head>
+        <body><main><p>widgets widgets widgets</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/about",
+      html: `<html lang="en"><head><title>About Us</title></head>
+        <body><main><p>We are a small company that makes things.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(highlightSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("omits highlights by default", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets");
+    expect(hits[0]?.highlights).toBeUndefined();
+  });
+
+  it("splits every stored field into match/non-match spans when requested", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widgets", { highlight: true });
+    const hit = hits[0];
+    expect(hit?.highlights?.title).toEqual([
+      { text: "Premium ", isMatch: false },
+      { text: "Widgets", isMatch: true },
+    ]);
+    expect(hit?.highlights?.excerpt).toEqual([
+      { text: "Our ", isMatch: false },
+      { text: "widgets", isMatch: true },
+      { text: " are built to last a lifetime.", isMatch: false },
+    ]);
+  });
+
+  it("does not highlight terms absent from a hit's fields", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("company", { highlight: true });
+    const hit = hits.find((h) => h.url === "/about");
+    expect(hit?.highlights?.title).toEqual([
+      { text: "About Us", isMatch: false },
+    ]);
+    expect(hit?.highlights?.excerpt?.some((s) => s.isMatch)).toBe(true);
+  });
+
+  it("is prefix-aware, matching the whole word for a term* query", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widg*", { highlight: true });
+    expect(hits[0]?.highlights?.title).toEqual([
+      { text: "Premium ", isMatch: false },
+      { text: "Widgets", isMatch: true },
+    ]);
+  });
+});

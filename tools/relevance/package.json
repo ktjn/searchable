@@ -1,0 +1,27 @@
+{
+  "name": "@ktjn/searchable-relevance",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Internal multilingual relevance evaluation tooling for Searchable.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "evaluate": "node dist/cli.js",
+    "refresh": "node dist/refresh-cli.js"
+  },
+  "dependencies": {
+    "@ktjn/searchable": "workspace:*",
+    "@ktjn/searchable-fixtures": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "catalog:",
+    "vitest": "^4.1.10"
+  }
+}
