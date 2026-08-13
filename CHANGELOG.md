@@ -12,6 +12,14 @@ is explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+## [2.0.1] - 2026-08-13
+
 ### Summary
 
 The 1.x packages (`@ktjn/searchable-client`, `@ktjn/searchable-format`, `@ktjn/searchable-analysis`, `searchable-binary`, `searchable-client`) are consolidated into two packages: `@ktjn/searchable` (TypeScript) and `searchable` (Python). Web Worker execution, Service Worker offline caching, vector/hybrid search, and binary shard codecs are removed. The index format version is bumped to `2` with JSON-only shards.

@@ -1,6 +1,6 @@
 {
   "name": "@ktjn/searchable",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Browser runtime: fetch a manifest and shards over plain HTTP, evaluate a query, return ranked hits.",
   "license": "MIT",
   "repository": {
