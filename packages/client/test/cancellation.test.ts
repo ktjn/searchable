@@ -23,14 +23,6 @@ const VALID_MANIFEST = {
   shards: { terms: [], docs: [] },
 };
 
-/**
- * Flushes the microtask queue and one macrotask. Used to let an async
- * `search()` progress into its embedding await *before* the test aborts,
- * so the abort lands on the embedding (not on the readiness race). A
- * scheduling primitive, not a wall-clock sleep.
- */
-const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
-
 function makeDirectClient(): SearchClient {
   return new SearchClient({ indexUrl: INDEX_URL, worker: false });
 }
@@ -97,83 +89,6 @@ describe("prompt cancellation across initialization and embeddings", () => {
       // cancelled, and readiness resolves once it lands.
       resolveFetch({ ok: true, json: async () => VALID_MANIFEST });
       await expect(client.ready()).resolves.toBeUndefined();
-    });
-  });
-
-  describe("while embedQuery() is pending", () => {
-    it("rejects with AbortError after readiness, lets the embedding finish, and emits no result event", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => VALID_MANIFEST,
-      }) as unknown as typeof fetch;
-
-      let resolveEmbed!: (vector: number[]) => void;
-      const embedMock = vi.fn(
-        () =>
-          new Promise<number[]>((resolve) => {
-            resolveEmbed = resolve;
-          }),
-      );
-
-      const client = new SearchClient({
-        indexUrl: INDEX_URL,
-        worker: false,
-        embedQuery: embedMock,
-      });
-      await client.ready();
-
-      const events: string[] = [];
-      client.on("query", () => events.push("query"));
-      client.on("result", () => events.push("result"));
-
-      const controller = new AbortController();
-      const pending = client.search("widgets", {
-        mode: "vector",
-        signal: controller.signal,
-      });
-      // Let search() get past the (already-resolved) readiness race and
-      // onto the pending embedding before aborting.
-      await tick();
-      controller.abort();
-
-      await expect(pending).rejects.toMatchObject({ name: "AbortError" });
-      expect(events).toEqual([]);
-
-      // The embedding promise may complete afterwards -- nothing is
-      // delivered to the caller who already aborted.
-      resolveEmbed([0.1, 0.2]);
-      await Promise.resolve();
-      await Promise.resolve();
-      expect(events).toEqual([]);
-    });
-
-    it("leaves the client fully usable for a later call after an aborted embedding", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => VALID_MANIFEST,
-      }) as unknown as typeof fetch;
-
-      const embedMock = vi.fn(() => new Promise<number[]>(() => undefined));
-      const client = new SearchClient({
-        indexUrl: INDEX_URL,
-        worker: false,
-        embedQuery: embedMock,
-      });
-      await client.ready();
-
-      const controller = new AbortController();
-      const pending = client.search("widgets", {
-        mode: "vector",
-        signal: controller.signal,
-      });
-      await tick();
-      controller.abort();
-      await expect(pending).rejects.toMatchObject({ name: "AbortError" });
-
-      // The cancelled embedding didn't take the client down with it -- a
-      // later, un-aborted call still works.
-      const result = await client.search("widgets");
-      expect(result.hits).toEqual([]);
     });
   });
 });

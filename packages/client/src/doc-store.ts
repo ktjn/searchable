@@ -10,8 +10,7 @@ import { resolve } from "./url.js";
 /**
  * Fetches doc-store entries for exactly the given ids, from whichever
  * doc shard(s) cover them — shared by `lexicalSearch`'s inline hit
- * assembly and vector/hybrid result assembly (which builds its hit list
- * from a different candidate set). A binary-format shard
+ * assembly. A binary-format shard
  * (`./binary-doc-store.js`) decodes only the requested ids by seeking
  * directly to each one's byte range, never the whole store — the only
  * doc store shard today covers the *entire* corpus regardless of size

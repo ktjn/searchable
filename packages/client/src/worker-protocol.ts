@@ -52,14 +52,6 @@ export type WorkerRequestPayload =
       type: "search";
       query: string;
       options: SearchOptions;
-      /**
-       * Precomputed by SearchClient from its `embedQuery` before the
-       * message is sent, when `options.mode` is `"vector"`/`"hybrid"` —
-       * a query embedding function is arbitrary caller JS and can't
-       * cross the postMessage boundary, only its plain-array *result*
-       * can (docs/guides/vector-search.md).
-       */
-      queryVector?: number[];
     }
   | { type: "searchStream"; query: string; options: SearchOptions }
   | { type: "facetValues"; field: string; options: FacetValuesOptions };
@@ -76,8 +68,6 @@ export type WorkerRequest = WorkerRequestPayload & { id: number };
  */
 export const WORKER_ERROR_CODES = {
   INVALID_MANIFEST: "INVALID_MANIFEST",
-  VECTOR_SEARCH_NOT_CONFIGURED: "VECTOR_SEARCH_NOT_CONFIGURED",
-  VECTOR_PROVIDER_MISMATCH: "VECTOR_PROVIDER_MISMATCH",
   SEARCH_CLIENT_DISPOSED: "SEARCH_CLIENT_DISPOSED",
   UNKNOWN: "UNKNOWN",
 } as const;

@@ -1,6 +1,6 @@
 import { escapeHtml } from "./gallery-shared.js";
 
-export type GalleryMode = "lexical" | "vector" | "hybrid";
+export type GalleryMode = "lexical";
 
 export interface QuickExample {
   id: string;
@@ -136,15 +136,6 @@ export const QUICK_EXAMPLES: readonly QuickExample[] = [
     fuzzy: true,
   },
   {
-    id: "vector",
-    title: "Vector & hybrid mode",
-    description: "Swap lexical, vector, and RRF-hybrid retrieval on one query.",
-    guideHref: "../docs/guides/vector-search.html#api-surface",
-    indexPath: "gallery/products/search-index/manifest.json",
-    initialQuery: "desk",
-    modes: ["hybrid", "lexical", "vector"],
-  },
-  {
     id: "browse",
     title: "Browse before you type",
     description: "Filter a facet-only panel with no query text at all.",
@@ -182,9 +173,6 @@ export function renderRuntimeAttributes(example: QuickExample): string {
   if (example.highlight) attributes.push('data-highlight="true"');
   if (example.operator !== undefined) {
     attributes.push(`data-operator="${example.operator}"`);
-  }
-  if (example.modes?.length) {
-    attributes.push(`data-modes="${escapeHtml(example.modes.join(","))}"`);
   }
   if (example.boostFields && Object.keys(example.boostFields).length > 0) {
     attributes.push(
@@ -241,9 +229,6 @@ for (const value of facets.values) {
   if (example.highlight) searchOptions.push("highlight: true,");
   if (example.operator !== undefined) {
     searchOptions.push(`operator: ${JSON.stringify(example.operator)},`);
-  }
-  if (example.modes?.[0]) {
-    searchOptions.push(`mode: ${JSON.stringify(example.modes[0])},`);
   }
   const boostKinds: Array<[label: string, boosts: Record<string, number>]> = [];
   if (example.boostFields && Object.keys(example.boostFields).length > 0) {

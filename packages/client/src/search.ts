@@ -21,18 +21,11 @@ import type { ShardCache } from "./fetch-json.js";
 import { fuzzyMatchesFor, loadFuzzyLookup, nearestTermsFor } from "./fuzzy.js";
 import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
-import {
-  fuseHybridResult,
-  fusionCandidateLimit,
-  vectorHitsForLanguage,
-  vectorOnlySearch,
-} from "./hybrid.js";
 import { parseQuery } from "./parse-query.js";
 import { containsPhrase, hasConsecutivePositions } from "./phrase.js";
 import { scoreTermForDoc } from "./score.js";
 import { multiWordVariantsFor, synonymVariantsFor } from "./synonyms.js";
 import { resolve } from "./url.js";
-import { VectorSearchNotConfiguredError } from "./vector-search.js";
 
 export interface Hit {
   id: number;
@@ -209,35 +202,6 @@ export interface SearchOptions {
    * normally, it just won't be delivered to the caller who aborted.
    */
   signal?: AbortSignal;
-  /**
-   * Retrieval strategy (docs/guides/vector-search.md#api-surface).
-   * `"lexical"` (default) is today's BM25F + boosts + synonyms/fuzzy
-   * pipeline above, entirely unaffected by vector search. `"vector"`
-   * embeds the query (via `SearchClientOptions.embedQuery`) and ranks
-   * purely by cosine similarity against the manifest's vector shard for
-   * the resolved language — a deliberate scope boundary for this first
-   * slice: filters/facets/pins/highlighting are lexical-only features
-   * and are not applied in this mode. `"hybrid"` runs the full lexical
-   * pipeline (filters/facets/pins intact) and vector search
-   * independently, then merges them (see `vectorWeight`). `"vector"`/
-   * `"hybrid"` without a configured query-embedding source throws
-   * `VectorSearchNotConfiguredError` rather than silently degrading to
-   * lexical-only. Not supported in combination with `searchStream()`
-   * (which never supplies a query embedding) — that combination also
-   * throws `VectorSearchNotConfiguredError`.
-   */
-  mode?: "lexical" | "vector" | "hybrid";
-  /**
-   * Only meaningful for `mode: "hybrid"`. Omitted (the default) combines
-   * the lexical and vector result lists via Reciprocal Rank Fusion
-   * (docs/guides/vector-search.md#hybrid-search-combining-lexical-and-vector-scores) —
-   * rank-based, so it needs no calibration between BM25F and cosine
-   * similarity's incomparable scales. Passing a number in `[0, 1]`
-   * switches to a min-max-normalized weighted-score combination instead
-   * (`0` = lexical only, `1` = vector only) for callers who want to
-   * hand-tune the tradeoff rather than accept RRF's rank-based default.
-   */
-  vectorWeight?: number;
 }
 
 /** docs/guides/synonyms.md#scoring-impact. */
@@ -834,66 +798,14 @@ async function lexicalSearch(
   };
 }
 
-/**
- * Public entry point dispatching on `options.mode`
- * (docs/guides/vector-search.md#api-surface). `"lexical"`
- * (default) delegates entirely to `lexicalSearch` above, unchanged from
- * before vector search existed. `"vector"`/`"hybrid"` require a
- * `queryVector` — computed by `SearchClient` from its configured
- * `embedQuery` before this function is ever called, since embedding is
- * an arbitrary caller-supplied function that can't cross the Worker
- * postMessage boundary, only its plain-array *result* can. A direct
- * caller of this module (bypassing `SearchClient`) who requests
- * vector/hybrid mode without supplying one gets the same
- * `VectorSearchNotConfiguredError` a misconfigured `SearchClient` would
- * throw, rather than a confusing type error deeper in the call stack.
- */
 export async function search(
   query: string,
   manifest: Manifest,
   cache: ShardCache,
   baseUrl: string,
   options: SearchOptions = {},
-  queryVector?: number[],
 ): Promise<SearchResult> {
-  const mode = options.mode ?? "lexical";
-  if (mode === "lexical") {
-    return lexicalSearch(query, manifest, cache, baseUrl, options);
-  }
-  if (!queryVector) {
-    throw new VectorSearchNotConfiguredError(
-      `search: mode "${mode}" requires a query embedding, but none was supplied — configure SearchClientOptions.embedQuery (docs/guides/vector-search.md#the-hard-constraint-where-does-the-query-embedding-come-from)`,
-    );
-  }
-
-  if (mode === "vector") {
-    return vectorOnlySearch(manifest, cache, baseUrl, queryVector, options);
-  }
-
-  const language = options.language ?? manifest.defaultLanguage;
-  const wideLimit = fusionCandidateLimit(options.limit ?? 10);
-  const [lexicalResult, vectorHits] = await Promise.all([
-    lexicalSearch(query, manifest, cache, baseUrl, {
-      ...options,
-      limit: wideLimit,
-    }),
-    vectorHitsForLanguage(
-      manifest,
-      cache,
-      baseUrl,
-      language,
-      queryVector,
-      wideLimit,
-    ),
-  ]);
-  return fuseHybridResult(
-    manifest,
-    cache,
-    baseUrl,
-    lexicalResult,
-    vectorHits,
-    options,
-  );
+  return lexicalSearch(query, manifest, cache, baseUrl, options);
 }
 
 /**

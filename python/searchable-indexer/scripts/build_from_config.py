@@ -8,17 +8,6 @@ from searchable_indexer.types import SourceDocument
 from searchable_indexer.write_index import write_index
 
 
-def _deterministic_embed(texts: list[str]) -> list[list[float]]:
-    """Fully deterministic, non-semantic stand-in embedder for tests: a
-    Python callable can't cross the JSON config boundary this script reads
-    from, so build config selects this by name (`"embed": "deterministic"`)
-    rather than passing a real function."""
-    return [[float(len(t)), float(sum(ord(c) for c in t) % 97)] for t in texts]
-
-
-_EMBEDDERS = {"deterministic": _deterministic_embed}
-
-
 def main() -> None:
     if len(sys.argv) != 4:
         print(
@@ -33,10 +22,6 @@ def main() -> None:
 
     build_kwargs = dict(config.get("build", {}))
     write_kwargs = config.get("write", {})
-
-    embed_name = build_kwargs.pop("embed", None)
-    if embed_name is not None:
-        build_kwargs["embed"] = _EMBEDDERS[embed_name]
 
     if raw_sources and "indexedFields" in raw_sources[0]:
         field_definitions = {

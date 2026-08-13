@@ -59,105 +59,6 @@ def test_doc_store_file_is_written_and_readable(tmp_path: Path):
     assert doc_store["1"]["url"] == "/a"
 
 
-def test_write_index_rejects_vector_shards_with_mismatched_dims_across_languages(
-    tmp_path: Path,
-):
-    # Bypasses build_vector_shards' own dims check to prove write_index has
-    # an independent, defense-in-depth assertion of its own.
-    built = BuiltIndex(
-        manifest={
-            "version": 1,
-            "buildId": "test",
-            "format": "json",
-            "languages": ["en", "de"],
-            "defaultLanguage": "en",
-            "fields": {},
-            "docCount": {},
-            "avgFieldLength": {},
-            "shards": {"terms": [], "docs": []},
-        },
-        term_shards={},
-        doc_store={},
-        id_range=(1, 2),
-        vector_shards={
-            "en": {
-                "dims": 2,
-                "quantization": "float32",
-                "entries": [{"passageId": "1-0", "docId": 1, "vector": [1.0, 2.0]}],
-            },
-            "de": {
-                "dims": 3,
-                "quantization": "float32",
-                "entries": [{"passageId": "2-0", "docId": 2, "vector": [1.0, 2.0, 3.0]}],
-            },
-        },
-        embedding_provider={"type": "custom"},
-    )
-    with pytest.raises(ValueError, match="dimension"):
-        write_index(built, str(tmp_path))
-
-
-def test_vector_shards_are_written_and_manifest_records_them(tmp_path: Path):
-    def embed(texts: list[str]) -> list[list[float]]:
-        return [[float(len(t)), 0.0] for t in texts]
-
-    built = build_index(
-        [_doc(1, "/a", "Widgets", "widgets are great")],
-        embed=embed,
-        embedding_provider={"type": "custom"},
-        vector_quantization="float32",
-    )
-    write_index(built, str(tmp_path))
-    manifest = json.loads((tmp_path / "manifest.json").read_text())
-
-    assert manifest["vectors"]["dims"] == 2
-    assert manifest["vectors"]["quantization"] == "float32"
-    assert manifest["vectors"]["embeddingProvider"] == {"type": "custom"}
-    shard_file = manifest["vectors"]["shards"]["en"]
-    shard = json.loads((tmp_path / shard_file).read_text())
-    assert shard["entries"][0]["docId"] == 1
-
-
-def test_structured_vectors_preserve_document_store_fields(tmp_path: Path):
-    def embed(texts: list[str]) -> list[list[float]]:
-        return [[float(len(texts[0])), 0.0]]
-
-    built = build_index_documents(
-        [
-            IndexDocument(
-                id=7,
-                external_id="chunk-7",
-                url="/chunks/7",
-                indexed_fields={"body": "structured chunk"},
-                stored_fields={"title": "Chunk 7"},
-                metadata={"chunkIndex": 7},
-            )
-        ],
-        field_definitions={
-            "body": FieldDefinition(indexed=True),
-            "title": FieldDefinition(indexed=False, stored=True),
-        },
-        embed=embed,
-        embedding_provider={"type": "test"},
-        vector_field="body",
-        vector_quantization="float32",
-    )
-    write_index(built, str(tmp_path))
-    manifest = json.loads((tmp_path / "manifest.json").read_text())
-
-    assert manifest["vectors"]["dims"] == 2
-    assert manifest["vectors"]["quantization"] == "float32"
-    assert manifest["vectors"]["embeddingProvider"] == {"type": "test"}
-    vector_shard = json.loads((tmp_path / manifest["vectors"]["shards"]["en"]).read_text())
-    assert vector_shard["entries"][0]["docId"] == 7
-
-    doc_shard = json.loads((tmp_path / manifest["shards"]["docs"][0]["file"]).read_text())
-    entry = doc_shard["7"]
-    assert entry["externalId"] == "chunk-7"
-    assert entry["metadata"] == {"chunkIndex": 7}
-    assert entry["contentHash"].startswith("sha256:")
-
-
 def test_structured_doc_store_can_be_written_as_binary(tmp_path: Path):
     built = build_index_documents(
         [
@@ -183,32 +84,6 @@ def test_structured_doc_store_can_be_written_as_binary(tmp_path: Path):
     assert docs_entry["format"] == "binary"
     assert docs_entry["binaryVersion"] == 2
     assert (tmp_path / docs_entry["file"]).read_bytes().startswith(b"SDOC\x02")
-
-
-def test_legacy_html_vectors_still_use_sliding_windows():
-    words = " ".join(f"word{i}" for i in range(25))
-
-    built = build_index(
-        [_doc(1, "/long", "Long document", words)],
-        embed=lambda texts: [[float(len(texts[0])), 0.0] for _ in texts],
-        embedding_provider={"type": "test"},
-        vector_quantization="float32",
-        vector_window=10,
-        vector_overlap=2,
-    )
-
-    assert [entry["passageId"] for entry in built.vector_shards["en"]["entries"]] == [
-        "1-0",
-        "1-1",
-        "1-2",
-    ]
-
-
-def test_no_embed_means_no_vectors_key_in_manifest(tmp_path: Path):
-    built = build_index([_doc(1, "/a", "Widgets", "widgets are great")])
-    write_index(built, str(tmp_path))
-    manifest = json.loads((tmp_path / "manifest.json").read_text())
-    assert "vectors" not in manifest
 
 
 def test_shard_by_prefix_false_writes_one_shard_named_all(tmp_path: Path):

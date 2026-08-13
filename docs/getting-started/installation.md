@@ -31,8 +31,6 @@ PyPI publication uses the `PYPI_API_TOKEN` secret in this repository's `pypi`
 environment. See
 [Indexing content](../guides/indexing.md).
 
-If vector embeddings use the built-in Transformers adapter, install its optional peer dependency in the consuming project. Lexical, facet, synonym, fuzzy, and pin searches do not require it.
-
 See the [live feature gallery](https://ktjn.github.io/searchable/gallery/) to
 evaluate generated indexes without a local build. The [First search](first-search.md)
 page documents the package API.

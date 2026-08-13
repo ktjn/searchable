@@ -13,7 +13,7 @@ const unsubscribe = client.on("result", ({ result }) => {});
 client.dispose();
 ```
 
-`SearchClientOptions` contains `indexUrl`, `worker`, `workerUrl`, `allowCrossOriginShards`, `strict`, `embedQuery`, and `validateVectorProvider`. `indexUrl` is required. Worker mode requires a `workerUrl`; otherwise calls execute directly.
+`SearchClientOptions` contains `indexUrl`, `worker`, `workerUrl`, `allowCrossOriginShards`, and `strict`. `indexUrl` is required. Worker mode requires a `workerUrl`; otherwise calls execute directly.
 
 ## Search options and results
 
@@ -24,7 +24,7 @@ client.dispose();
 - `synonyms` / `synonymWeight`
 - `fuzzy` / `fuzzyWeight`
 - `highlight` and `signal`
-- `mode: "lexical" | "vector" | "hybrid"` and `vectorWeight`
+- `mode: "lexical"`
 
 `SearchResult` contains `hits`, `totalHits`, and `language`, plus requested `facets` and optional `didYouMean`. Every `Hit` has `id`, `score`, `url`, and stored `fields`; it may include `pinned` and `highlights`.
 
@@ -44,7 +44,7 @@ Both event payloads carry an *isolated mutable snapshot* of the search options: 
 
 ### Abort semantics
 
-`SearchOptions.signal` rejects the caller's `search()`/`searchStream()`/`facetValues()` promise with an `AbortError` as soon as it fires — including while the client is still initializing (worker `init` or the direct-mode manifest load) or while `embedQuery()` is computing. Cancelling *waits*, never the shared work itself: shared shard fetches, the shared init, and a shared embedding keep running for other callers, and nothing is delivered (no `result` event, no `onPartial`) to a caller who already aborted.
+`SearchOptions.signal` rejects the caller's `search()`/`searchStream()`/`facetValues()` promise with an `AbortError` as soon as it fires — including while the client is still initializing (worker `init` or the direct-mode manifest load). Cancelling *waits*, never the shared work itself: shared shard fetches and the shared init keep running for other callers, and nothing is delivered (no `result` event, no `onPartial`) to a caller who already aborted.
 
 ### Worker deployment compatibility
 
@@ -61,4 +61,4 @@ A temporarily mixed deployment (a freshly deployed bundle against a stale cached
 
 ## Other exports
 
-The package exports highlighting types, manifest validation (`validateManifest`, `InvalidManifestError`), offline caching (`registerOfflineCaching`), RTL detection, vector helpers and errors, and the optional Transformers query adapter. The complete type declarations shipped with the package are the normative API. Designs for warm-up, suggestions, federation, and broader diagnostics are archived and linked from the [roadmap](../project/roadmap.md).
+The package exports highlighting types, manifest validation (`validateManifest`, `InvalidManifestError`), offline caching (`registerOfflineCaching`), and RTL detection. The complete type declarations shipped with the package are the normative API. Designs for warm-up, suggestions, federation, and broader diagnostics are archived and linked from the [roadmap](../project/roadmap.md).

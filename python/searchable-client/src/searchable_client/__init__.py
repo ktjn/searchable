@@ -1,12 +1,5 @@
 from searchable_client.client import SearchClient
-from searchable_client.errors import (
-    InvalidVectorShardError,
-    SearchClientError,
-    VectorDimensionMismatchError,
-    VectorProviderMismatchError,
-    VectorSearchNotConfiguredError,
-    VectorUnavailableError,
-)
+from searchable_client.errors import SearchClientError
 from searchable_client.highlight import HighlightSpan
 from searchable_client.search import (
     FacetResult,
@@ -28,10 +21,5 @@ __all__ = [
     "FacetResultValue",
     "FacetValuesOptions",
     "InvalidManifestError",
-    "InvalidVectorShardError",
     "SearchClientError",
-    "VectorDimensionMismatchError",
-    "VectorProviderMismatchError",
-    "VectorSearchNotConfiguredError",
-    "VectorUnavailableError",
 ]

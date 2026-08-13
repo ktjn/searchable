@@ -1,5 +1,4 @@
 export { isRtlLanguage } from "@ktjn/searchable-analysis";
-export type { EmbeddingProviderConfig } from "@ktjn/searchable-format";
 export type {
   SearchClientEventMap,
   SearchClientOptions,
@@ -18,22 +17,5 @@ export type {
   SearchOptions,
   SearchResult,
 } from "./search.js";
-export type {
-  TransformersDtype,
-  TransformersEmbedQuery,
-  TransformersEmbedQueryOptions,
-} from "./transformers-embed.js";
-export {
-  createTransformersEmbedQuery,
-  DEFAULT_TRANSFORMERS_MODEL,
-} from "./transformers-embed.js";
 export type { ValidateManifestOptions } from "./validate-manifest.js";
 export { InvalidManifestError, validateManifest } from "./validate-manifest.js";
-export type { VectorHit } from "./vector-search.js";
-export {
-  cosineSimilarity,
-  dequantizeVector,
-  reciprocalRankFusion,
-  VectorProviderMismatchError,
-  VectorSearchNotConfiguredError,
-} from "./vector-search.js";

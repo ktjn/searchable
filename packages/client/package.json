@@ -38,19 +38,10 @@
     "@ktjn/searchable-format": "workspace:*"
   },
   "devDependencies": {
-    "@huggingface/transformers": "^4.2.0",
     "@ktjn/searchable-fixtures": "workspace:*",
     "@types/node": "^26.1.2",
     "typescript": "catalog:",
     "vite": "^8.2.0",
     "vitest": "^4.1.10"
-  },
-  "peerDependencies": {
-    "@huggingface/transformers": "^4.2.0"
-  },
-  "peerDependenciesMeta": {
-    "@huggingface/transformers": {
-      "optional": true
-    }
   }
 }

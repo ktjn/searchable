@@ -11,7 +11,6 @@ const SEARCHABLE_DOCS_TOPICS = [
   "internationalization",
   "offline-worker",
   "relevance",
-  "vector-hybrid",
 ] as const;
 
 const domainFixtureDirectory = fileURLToPath(
@@ -37,7 +36,7 @@ describe("committed documentation relevance fixture", () => {
     expect(suite.corpus.kind).toBe("generated-index");
     if (suite.corpus.kind !== "generated-index") throw new Error("unreachable");
     expect(suite.corpus.pages).toHaveLength(29);
-    expect(suite.queries).toHaveLength(20);
+    expect(suite.queries).toHaveLength(18);
     expect(new Set(suite.queries.map((query) => query.topic))).toEqual(
       new Set(SEARCHABLE_DOCS_TOPICS),
     );
@@ -53,7 +52,7 @@ describe("committed documentation relevance fixture", () => {
     );
     expect(
       queryWordCounts.filter((count) => count >= 2 && count <= 5),
-    ).toHaveLength(17);
+    ).toHaveLength(15);
     expect(
       queryWordCounts.filter((count) => count >= 6 && count <= 7),
     ).toHaveLength(3);

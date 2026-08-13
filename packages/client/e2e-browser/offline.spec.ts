@@ -496,7 +496,6 @@ function manifestFileRefs(manifest: {
   pins?: Record<string, string>;
   synonyms?: Record<string, string>;
   fuzzy?: Record<string, { file: string }>;
-  vectors?: { shards?: Record<string, string> };
 }): string[] {
   const refs: string[] = [];
   const push = (file: unknown): void => {
@@ -508,7 +507,6 @@ function manifestFileRefs(manifest: {
   for (const e of Object.values(manifest.pins ?? {})) push(e);
   for (const e of Object.values(manifest.synonyms ?? {})) push(e);
   for (const e of Object.values(manifest.fuzzy ?? {})) push(e.file);
-  for (const e of Object.values(manifest.vectors?.shards ?? {})) push(e);
   return refs;
 }
 

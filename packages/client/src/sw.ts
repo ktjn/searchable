@@ -67,9 +67,7 @@ function parseConfig(): {
  * `pins`/`synonyms` below because its value is `{file, format?}`, not a
  * bare file string like those two -- iterating all three the same way
  * would push the whole descriptor object through `resolve()` instead of
- * its `.file` string. `vectors.shards` is included too, so
- * `mode: "vector"`/`"hybrid"` are actually offline-capable, not just
- * `mode: "lexical"`.
+ * its `.file` string.
  */
 function shardUrlsFor(
   manifest: Manifest,
@@ -94,9 +92,6 @@ function shardUrlsFor(
   }
   for (const [lang, descriptor] of Object.entries(manifest.fuzzy ?? {})) {
     if (includesLang(lang)) urls.push(resolve(indexUrl, descriptor.file));
-  }
-  for (const [lang, file] of Object.entries(manifest.vectors?.shards ?? {})) {
-    if (includesLang(lang)) urls.push(resolve(indexUrl, file));
   }
   return urls;
 }

@@ -26,6 +26,6 @@ The format is little-endian and uses explicit bounds checks. Term postings use d
 
 JSON remains the default because it is easy for independent producers to emit and
 native parsing is competitive when the whole object is needed. Binary is justified
-only for large maps where a query touches few keys. Facets, pins, synonyms, and
-vectors therefore stay JSON. The original benchmark investigation and binary
+only for large maps where a query touches few keys. Facets, pins, and synonyms
+therefore stay JSON. The original benchmark investigation and binary
 specification are retained under `docs/archive/`.

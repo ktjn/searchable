@@ -8,7 +8,7 @@ This reference distinguishes package-version promises from index-format compatib
 
 The index generator, `searchable-indexer` (`python/searchable-indexer`), is a Python project versioned and released independently of the npm packages above; see its own project for its compatibility posture.
 
-The planned public package API is the export surface in each package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered. Binary storage and vector/hybrid functionality are implemented but identified as experimental in the prepared `1.0.0` changelog, so they may evolve in a minor release with explicit notes after publication.
+The planned public package API is the export surface in each package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered. Binary storage is implemented but identified as experimental in the prepared `1.0.0` changelog, so it may evolve in a minor release with explicit notes after publication.
 
 ## Index format compatibility
 

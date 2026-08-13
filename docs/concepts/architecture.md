@@ -4,7 +4,7 @@ This page describes the shipped build-time and browser-runtime components, their
 
 ## Build time
 
-The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis (`python/searchable-analysis`), and builds postings, facets, pins, synonyms, fuzzy dictionaries, stored documents, and optional vectors. It writes an immutable manifest and content-hashed shards. It is a build-time tool, not a runtime dependency of the TypeScript packages, which only read its output.
+The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis (`python/searchable-analysis`), and builds postings, facets, pins, synonyms, fuzzy dictionaries, and stored documents. It writes an immutable manifest and content-hashed shards. It is a build-time tool, not a runtime dependency of the TypeScript packages, which only read its output.
 
 ## Query time
 
@@ -13,9 +13,7 @@ The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered
 A second, independent client implementation, `searchable-client` (Python,
 `python/searchable-client/`), reads the exact same manifest/shard contract
 for CLI and backend-service use — synchronous, no Worker/browser
-concepts. It supports vector and hybrid queries when an application injects
-an `embed_query` callable; it intentionally does not bundle a model runtime.
-Feature work on search behavior
+concepts. Feature work on search behavior
 (ranking, filtering, synonyms, fuzzy matching, etc.) should consider both
 clients, not just the TypeScript one — see
 [Python client API](../reference/python-client-api.md).
@@ -27,7 +25,7 @@ rendered HTML -> indexer -> manifest + content-hashed shards -> static host
                                                                |
                                                                +-- query -> SearchClient (TypeScript) -> analysis -> lazy shard fetch -> ranking -> hits
                                                                |
-                                                               +-- query -> SearchClient (Python) -> analysis -> lazy shard fetch -> lexical/vector ranking -> hits
+                                                               +-- query -> SearchClient (Python) -> analysis -> lazy shard fetch -> lexical ranking -> hits
 ```
 
 ## Deployment topology
@@ -36,6 +34,6 @@ The generated directory lives beside the static site or on an allowed CDN. The b
 
 The core uses TypeScript, Vite, Vitest, and Playwright and has no application-framework dependency. Analysis and format shapes are shared workspace packages. The client performs plain HTTP GETs and never requires a query-time write path or backend.
 
-The public API stays small while optional costs are gated by use. Facets, synonyms, pins, and fuzzy logic are bundled but inert until requested; large embedding support is a lazy optional dependency. Dynamic third-party plugin registration is not implemented and is tracked only in the [roadmap](../project/roadmap.md).
+The public API stays small while optional costs are gated by use. Facets, synonyms, pins, and fuzzy logic are bundled but inert until requested. Dynamic third-party plugin registration is not implemented and is tracked only in the [roadmap](../project/roadmap.md).
 
 The five accepted decisions are summarized in [Architecture decisions](../project/architecture-decisions.md).

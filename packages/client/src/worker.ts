@@ -4,10 +4,6 @@ import { ShardCache } from "./fetch-json.js";
 import { facetValues, search, searchStream } from "./search.js";
 import { InvalidManifestError, validateManifest } from "./validate-manifest.js";
 import {
-  VectorProviderMismatchError,
-  VectorSearchNotConfiguredError,
-} from "./vector-search.js";
-import {
   type SerializedWorkerError,
   WORKER_PROTOCOL_VERSION,
   type WorkerRequest,
@@ -31,20 +27,6 @@ function serializeError(err: unknown): SerializedWorkerError {
   if (err instanceof InvalidManifestError) {
     return {
       code: "INVALID_MANIFEST",
-      name: err.name,
-      message: err.message,
-    };
-  }
-  if (err instanceof VectorSearchNotConfiguredError) {
-    return {
-      code: "VECTOR_SEARCH_NOT_CONFIGURED",
-      name: err.name,
-      message: err.message,
-    };
-  }
-  if (err instanceof VectorProviderMismatchError) {
-    return {
-      code: "VECTOR_PROVIDER_MISMATCH",
       name: err.name,
       message: err.message,
     };
@@ -113,7 +95,6 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         cache,
         indexUrl,
         msg.options,
-        msg.queryVector,
       );
       post({ type: "result", id: msg.id, result });
     }

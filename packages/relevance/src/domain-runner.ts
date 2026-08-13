@@ -193,10 +193,7 @@ export async function runGeneratedDomainSuite(
     return await evaluateSuite(
       toEvaluationSuite(suite),
       async (query, options) => {
-        const result = await client?.search(query, {
-          ...options,
-          mode: "lexical",
-        });
+        const result = await client?.search(query, options);
         return (result?.hits ?? []).map((hit) => normalizePageId(hit.url));
       },
       k,

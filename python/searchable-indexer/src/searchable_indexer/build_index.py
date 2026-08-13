@@ -39,8 +39,6 @@ from searchable_indexer.types import (
     SectionIndexingConfig,
     SourceDocument,
 )
-from searchable_indexer.vectors import build_vector_shards
-
 _DEFAULT_FIELD_BOOSTS = {"title": 3.0, "body": 1.0}
 _EXCERPT_LENGTH = 200
 
@@ -238,7 +236,6 @@ class _PreparedDocument:
     facets: dict[str, list[str]] = field(default_factory=dict)
     range_facets: dict[str, float] = field(default_factory=dict)
     pins: list[PinDeclaration] = field(default_factory=list)
-    vector_text: str | None = None
 
 
 def _copy_document(document: IndexDocument) -> IndexDocument:
@@ -283,12 +280,6 @@ class BuildConfig:
     fuzzy_max_edits: int = 1
     content_hash: bool = False
     structured: bool = False
-    embed: Callable[[list[str]], list[list[float]]] | None = None
-    embedding_provider: dict[str, Any] | None = None
-    vector_quantization: str = "int8"
-    vector_window: int = 200
-    vector_overlap: int = 20
-    vector_chunking: bool = True
 
 
 def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildConfig) -> BuiltIndex:
@@ -297,35 +288,6 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
     _validate_range_facet_buckets(range_facet_buckets)
     if config.fuzzy_max_edits not in (1, 2):
         raise ValueError(f"invalid fuzzy_max_edits {config.fuzzy_max_edits!r} -- must be 1 or 2")
-    if config.embed is not None and config.embedding_provider is None:
-        raise ValueError(
-            "embedding_provider is required when embed is set -- "
-            "query-time provider compatibility (SearchClientOptions.embedQuery) "
-            "can't be established without it"
-        )
-    if config.vector_quantization not in ("int8", "float32"):
-        raise ValueError(
-            f"invalid vector_quantization {config.vector_quantization!r} "
-            f'-- must be "int8" or "float32"'
-        )
-    if (
-        not isinstance(config.vector_window, int)
-        or isinstance(config.vector_window, bool)
-        or config.vector_window <= 0
-    ):
-        raise ValueError(
-            f"invalid vector_window {config.vector_window!r} -- must be a positive integer"
-        )
-    if (
-        not isinstance(config.vector_overlap, int)
-        or isinstance(config.vector_overlap, bool)
-        or config.vector_overlap < 0
-        or config.vector_overlap >= config.vector_window
-    ):
-        raise ValueError(
-            f"invalid vector_overlap {config.vector_overlap!r} -- must be "
-            f">= 0 and < vector_window ({config.vector_window!r})"
-        )
 
     seen_ids: set[int] = set()
     seen_external_ids: set[str] = set()
@@ -344,7 +306,6 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
     facet_shards: dict[str, dict[str, Any]] = {}
     pins_acc_by_language: dict[str, dict[str, dict[str, Any]]] = {}
     stats_by_language: dict[str, dict[str, int]] = {}
-    vector_documents: list[tuple[int, str, str]] = []
     indexed_count = 0
     min_id: int | None = None
     max_id: int | None = None
@@ -398,9 +359,6 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
         if config.content_hash:
             entry["contentHash"] = compute_content_hash(document)
         doc_store[str(document.id)] = entry
-
-        if item.vector_text is not None:
-            vector_documents.append((document.id, language, item.vector_text))
 
         indexed_count += 1
         min_id = document.id if min_id is None else min(min_id, document.id)
@@ -474,17 +432,6 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
     else:
         id_range = (0, 0)
 
-    vector_shards: dict[str, dict[str, Any]] = {}
-    if config.embed is not None and vector_documents:
-        vector_shards = build_vector_shards(
-            vector_documents,
-            config.embed,
-            quantization=config.vector_quantization,
-            window=config.vector_window,
-            overlap=config.vector_overlap,
-            chunk=config.vector_chunking,
-        )
-
     return BuiltIndex(
         manifest=manifest,
         term_shards=term_shards,
@@ -494,8 +441,6 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
         pins_shards=pins_shards,
         synonym_shards=build_synonym_shards(config.synonyms),
         fuzzy_shards=fuzzy_shards,
-        vector_shards=vector_shards,
-        embedding_provider=config.embedding_provider if config.embed is not None else None,
         structured=config.structured,
         pin_warnings=pin_warnings,
     )
@@ -509,33 +454,13 @@ def build_index_documents(
     synonyms: dict[str, dict[str, Any]] | None = None,
     fuzzy: bool = False,
     fuzzy_max_edits: int = 1,
-    embed: Callable[[list[str]], list[list[float]]] | None = None,
-    embedding_provider: dict[str, Any] | None = None,
-    vector_quantization: str = "int8",
-    vector_window: int = 200,
-    vector_overlap: int = 20,
-    vector_field: str | None = None,
 ) -> BuiltIndex:
     _validate_field_definitions(field_definitions)
     copied_definitions = _copy_field_definitions(field_definitions)
-    if embed is not None:
-        if vector_field is None:
-            raise ValueError("vector_field is required when embed is set")
-        if vector_field not in copied_definitions or not copied_definitions[vector_field].indexed:
-            raise ValueError(
-                f'vector_field "{vector_field}" must reference a declared indexed field'
-            )
     prepared = []
     for document in documents:
         copied_document = _copy_document(document)
-        vector_text = None
-        if embed is not None:
-            if vector_field not in copied_document.indexed_fields:
-                raise ValueError(
-                    f'document {copied_document.id} is missing vector_field "{vector_field}"'
-                )
-            vector_text = copied_document.indexed_fields[vector_field]
-        prepared.append(_PreparedDocument(document=copied_document, vector_text=vector_text))
+        prepared.append(_PreparedDocument(document=copied_document))
     return _build_prepared_documents(
         prepared,
         BuildConfig(
@@ -546,12 +471,6 @@ def build_index_documents(
             fuzzy_max_edits=fuzzy_max_edits,
             content_hash=True,
             structured=True,
-            embed=embed,
-            embedding_provider=embedding_provider,
-            vector_quantization=vector_quantization,
-            vector_window=vector_window,
-            vector_overlap=vector_overlap,
-            vector_chunking=False,
         ),
     )
 
@@ -630,7 +549,6 @@ def _page_prepared_document(
         facets=extracted.facets,
         range_facets=extracted.range_facets,
         pins=extracted.pins,
-        vector_text=body,
     )
 
 
@@ -674,7 +592,6 @@ def _section_prepared_document(
         facets=dict(facets),
         range_facets=dict(range_facets),
         pins=[],
-        vector_text=section.body,
     )
 
 
@@ -739,12 +656,7 @@ def build_index(
     synonyms: dict[str, dict[str, Any]] | None = None,
     fuzzy: bool = False,
     fuzzy_max_edits: int = 1,
-    embed: Callable[[list[str]], list[list[float]]] | None = None,
-    embedding_provider: dict[str, Any] | None = None,
-    vector_quantization: str = "int8",
-    vector_window: int = 200,
     section_indexing: SectionIndexingConfig | dict[str, Any] | None = None,
-    vector_overlap: int = 20,
 ) -> BuiltIndex:
     _validate_source_ids(sources)
 
@@ -778,10 +690,5 @@ def build_index(
             fuzzy_max_edits=fuzzy_max_edits,
             content_hash=False,
             structured=False,
-            embed=embed,
-            embedding_provider=embedding_provider,
-            vector_quantization=vector_quantization,
-            vector_window=vector_window,
-            vector_overlap=vector_overlap,
         ),
     )

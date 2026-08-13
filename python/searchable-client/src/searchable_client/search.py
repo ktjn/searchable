@@ -16,7 +16,6 @@ from searchable_client.fuzzy import (
     _nearest_terms_for,
 )
 from searchable_client.highlight import HighlightTerm, highlight_text
-from searchable_client.hybrid import _vector_or_hybrid_search
 from searchable_client.parse_query import parse_query
 from searchable_client.phrase import _contains_phrase, _has_consecutive_positions
 from searchable_client.score import score_term_for_doc
@@ -119,20 +118,13 @@ def search(
     cache: ShardCache,
     base_url: str,
     options: SearchOptions | None = None,
-    query_vector: list[float] | None = None,
 ) -> SearchResult:
     options = options or SearchOptions()
     language = options.language or manifest.default_language
     profile = get_language_profile(language)
 
-    if options.mode not in ("lexical", "vector", "hybrid"):
-        raise ValueError(f"unsupported search mode {options.mode!r}")
     if options.operator not in ("and", "or"):
         raise ValueError(f"unsupported operator {options.operator!r}")
-    if options.mode != "lexical":
-        return _vector_or_hybrid_search(
-            query, manifest, cache, base_url, options, query_vector, language
-        )
 
     parsed_query = parse_query(query, profile)
     query_terms = parsed_query.terms

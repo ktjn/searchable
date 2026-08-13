@@ -4,7 +4,7 @@ This page defines the implemented JSON-first manifest and shard contract that in
 
 ## Manifest
 
-`manifest.json` has `version: 1`, a content-derived `buildId`, languages and a default language, field configuration, per-language BM25 statistics, and references to physical shards. Optional sections advertise facets, pins, synonyms, fuzzy dictionaries, and vectors. The authoritative machine-readable shapes are in [`spec/schema/`](../../spec/schema/).
+`manifest.json` has `version: 1`, a content-derived `buildId`, languages and a default language, field configuration, per-language BM25 statistics, and references to physical shards. Optional sections advertise facets, pins, synonyms, and fuzzy dictionaries. The authoritative machine-readable shapes are in [`spec/schema/`](../../spec/schema/).
 
 Typical output:
 
@@ -16,12 +16,11 @@ facets/<field>.<hash>.json
 pins/<language>.<hash>.json
 synonyms/<language>.<hash>.json
 fuzzy/<language>.<hash>.json|bin
-vectors/<language>.<hash>.json
 ```
 
 ## Term shard (inverted index)
 
-Term postings contain document IDs, per-field frequency and positions, field length, and an optional document boost. Document-store entries contain the URL, stored display fields, and the boost for inspection. Facet shards contain document sets and aggregate data; pin, synonym, fuzzy, and vector shapes match their exported `@ktjn/searchable-format` types.
+Term postings contain document IDs, per-field frequency and positions, field length, and an optional document boost. Document-store entries contain the URL, stored display fields, and the boost for inspection. Facet shards contain document sets and aggregate data; pin, synonym, and fuzzy shapes match their exported `@ktjn/searchable-format` types.
 
 ## Doc store
 
@@ -31,7 +30,7 @@ Document-store entries contain the result URL and stored fields. Physical shards
 
 Each manifest doc-store entry records its shard number, file, ID range, and optional binary format. Structured binary shards also declare `binaryVersion: 2`; JSON shards and legacy binary v1 shards omit that field.
 
-JSON is supported for every logical shard family. Term, fuzzy, and document-store entries may instead declare `format: "binary"` per manifest entry; a deployment can mix encodings. Facets, pins, synonyms, and vectors remain JSON.
+JSON is supported for every logical shard family. Term, fuzzy, and document-store entries may instead declare `format: "binary"` per manifest entry; a deployment can mix encodings. Facets, pins, and synonyms remain JSON.
 
 ## Versioning and cache strategy
 

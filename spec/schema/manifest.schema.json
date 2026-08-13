@@ -140,43 +140,9 @@
       }
     },
     "vectors": {
-      "description": "Vector/hybrid search (docs/guides/vector-search.md), only present for a corpus built with a vectors option. See vector-shard.schema.json for the shard files themselves.",
+      "description": "Deprecated — removed in a prior version. Retained only to reject old indexes that still carry this property.",
       "type": "object",
-      "additionalProperties": false,
-      "required": ["dims", "quantization", "embeddingProvider", "shards"],
-      "properties": {
-        "dims": { "type": "integer", "minimum": 1 },
-        "quantization": { "type": "string", "enum": ["float32", "int8"] },
-        "embeddingProvider": {
-          "type": "object",
-          "oneOf": [
-            {
-              "additionalProperties": false,
-              "required": ["type", "model"],
-              "properties": {
-                "type": { "const": "local-model" },
-                "model": { "type": "string" }
-              }
-            },
-            {
-              "additionalProperties": false,
-              "required": ["type"],
-              "properties": { "type": { "const": "remote-api" } }
-            },
-            {
-              "additionalProperties": false,
-              "required": ["type"],
-              "properties": { "type": { "const": "custom" } }
-            }
-          ]
-        },
-        "shards": {
-          "description": "lang -> vector-shard file.",
-          "type": "object",
-          "propertyNames": { "type": "string" },
-          "additionalProperties": { "type": "string" }
-        }
-      }
+      "additionalProperties": true
     }
   }
 }

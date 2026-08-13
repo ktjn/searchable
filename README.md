@@ -19,7 +19,6 @@ Searchable builds a static search index ahead of time and searches it in the bro
 - Web Worker execution, cancellation, streaming partial results, highlighting, and lifecycle events
 - Service Worker caching for offline search
 - Optional binary term, fuzzy, and document-store shards
-- Vector and hybrid search with injectable embeddings or the optional Transformers integration
 
 ## Public preview
 
@@ -31,9 +30,8 @@ implemented search surfaces in the [live feature gallery](https://ktjn.github.io
 Before releasing, add the PyPI API token as the `PYPI_API_TOKEN` secret for the
 `pypi` GitHub environment.
 
-The Python `searchable-client` also supports injected vector and hybrid query
-embeddings without bundling a model runtime; see the [Python client API
-reference](docs/reference/python-client-api.md).
+See the [Python client API
+reference](docs/reference/python-client-api.md) for usage.
 
 ```bash
 git clone https://github.com/ktjn/searchable.git
@@ -105,7 +103,7 @@ security issues through the private process in [Security](SECURITY.md).
 
 The implemented package surface is released from `v*` tags to GitHub Packages.
 The lexical, facet, synonym, fuzzy,
-pinning, worker, offline, binary-storage, and vector/hybrid surfaces described
+pinning, worker, offline, and binary-storage surfaces described
 in these docs are implemented. Planned work is collected only in the
 [roadmap](docs/project/roadmap.md); historical investigations and superseded
 specifications live under `docs/archive/`.

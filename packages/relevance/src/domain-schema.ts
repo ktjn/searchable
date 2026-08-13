@@ -12,7 +12,6 @@ const EXISTING_DOMAIN_QUERY_TOPICS = [
   "internationalization",
   "offline-worker",
   "relevance",
-  "vector-hybrid",
 ] as const;
 
 export const GOVUK_DOMAIN_QUERY_TOPICS = [

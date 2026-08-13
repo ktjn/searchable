@@ -16,7 +16,6 @@ client = SearchClient(
     index_url,
     allow_cross_origin_shards=False,
     strict=False,
-    embed_query=embed_query,
 )
 result = client.search(query, options)
 for partial in client.search_stream(query, options):
@@ -25,37 +24,24 @@ facet = client.facet_values(field, facet_options)
 documents = client.get_documents([42, 43])
 ```
 
-`SearchClient(index_url, *, allow_cross_origin_shards=False, strict=False,
-embed_query=None, validate_vector_provider=True)`
+`SearchClient(index_url, *, allow_cross_origin_shards=False, strict=False)`
 validates the manifest at construction time (relative paths and `file:` URLs
 are resolved to an absolute URL first) and raises on an unsupported manifest
 version or shard origin. There is no `worker`/`workerUrl` option — the client
 always runs synchronously in the calling process.
-
-`embed_query` is either a callable accepting the query string and returning a
-list of floats, or a mapping with an `embed` callable and an optional
-JSON-compatible `provider` descriptor. The provider is compared structurally
-with the index's `vectors.embeddingProvider` by default. Searchable does not
-load or manage embedding models.
 
 ## Search options and results
 
 `SearchOptions` contains:
 
 - `language`, `limit`
-- `mode`: `"lexical"`, `"vector"`, or `"hybrid"`
-- `vector_weight` (optional; RRF is used when omitted)
+- `mode`: `"lexical"`
 - `boosts` (a dict with `"fields"` and/or `"terms"` keys)
 - `filters` and `facets`
 - `synonyms` / `synonym_weight`
 - `fuzzy` / `fuzzy_weight`
 - `highlight`
 
-Vector mode ranks by cosine similarity after int8 dequantization and keeps one
-best passage per document. Hybrid mode combines lexical and vector ranked
-lists with Reciprocal Rank Fusion (`k=60`) unless `vector_weight` is supplied.
-Vector and hybrid requests raise explicit errors when no embedder, vector
-shard, compatible provider, or correctly sized query vector is available.
 There is no `signal` — there is no cancellation support.
 
 `SearchResult` contains `hits`, `total_hits`, and `language`, plus requested
@@ -118,8 +104,7 @@ human-readable summary.
 
 - No Worker or browser execution — the Python client only runs directly, synchronously, in the host process.
 - No Service Worker offline caching.
-- No built-in embedding model or CLI semantic mode; applications inject the
-  `embed_query` callable through the library API.
+- No built-in embedding model or CLI semantic mode.
 - No `AbortSignal`/cancellation support.
 - No `on()` lifecycle events — there is no query/result event API to subscribe to.
 - `search_stream()` is a Python generator (`Iterator[SearchResult]`) that the caller iterates, rather than a callback (`onPartial`) passed into the options.

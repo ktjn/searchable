@@ -36,4 +36,4 @@ Quoted phrases require their analyzed terms at consecutive positions in the same
 
 When fuzzy matching is enabled and still returns no hits, `SearchResult.didYouMean` can contain nearest real corpus terms.
 
-Pins remain editorial ordering rather than relevance scoring, and vector/hybrid ranking uses reciprocal-rank fusion. See [Pinning](pinning.md) and [Vector search](vector-search.md).
+Pins remain editorial ordering rather than relevance scoring. See [Pinning](pinning.md).

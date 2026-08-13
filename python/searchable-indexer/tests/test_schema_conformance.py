@@ -117,27 +117,6 @@ def test_synonym_shard_validates_against_synonym_shard_schema(tmp_path):
         jsonschema.validate(instance=synonym_shard, schema=schema)
 
 
-def test_vector_shard_validates_against_vector_shard_schema(tmp_path):
-    def embed(texts: list[str]) -> list[list[float]]:
-        return [[float(len(t)), float(i)] for i, t in enumerate(texts)]
-
-    docs = [
-        _doc(1, "/a", "Widgets", "widgets are great and useful", lang="en"),
-        _doc(2, "/b", "Sofas", "Unsere Sofas sind sehr bequem.", lang="de"),
-    ]
-    built = build_index(docs, embed=embed, embedding_provider={"type": "custom"})
-    write_index(built, str(tmp_path))
-    manifest = json.loads((tmp_path / "manifest.json").read_text())
-
-    manifest_schema = _load_schema("manifest.schema.json")
-    jsonschema.validate(instance=manifest, schema=manifest_schema)
-
-    vector_schema = _load_schema("vector-shard.schema.json")
-    for _language, file in manifest["vectors"]["shards"].items():
-        vector_shard = json.loads((tmp_path / file).read_text())
-        jsonschema.validate(instance=vector_shard, schema=vector_schema)
-
-
 def test_fuzzy_shard_validates_against_fuzzy_shard_schema(tmp_path):
     docs = [_doc(1, "/a", "Widgets", "widgets are great")]
     built = build_index(docs, fuzzy=True)

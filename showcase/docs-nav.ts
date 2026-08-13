@@ -41,7 +41,6 @@ export const DOC_SECTIONS: readonly DocSection[] = [
         ["pinning", "Pinned results"],
         ["internationalization", "Internationalization"],
         ["offline-search", "Offline search"],
-        ["vector-search", "Vector and hybrid search"],
       ] as const
     ).map(([name, title]) => ({
       source: `docs/guides/${name}.md`,

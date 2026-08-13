@@ -299,36 +299,6 @@
       }
     },
     {
-      "id": "semantic-search",
-      "text": "semantic vector search",
-      "topic": "vector-hybrid",
-      "judgments": {
-        "/docs/guides/vector-search.html": 3,
-        "/docs/reference/client-api.html": 2,
-        "/docs/adr/0005-plugin-opt-in-boundary.html": 1
-      },
-      "rationales": {
-        "/docs/guides/vector-search.html": "Directly explains local embeddings, vector shards, and semantic similarity search.",
-        "/docs/reference/client-api.html": "Documents vector mode and the query embedding interface.",
-        "/docs/adr/0005-plugin-opt-in-boundary.html": "Provides supporting rationale for keeping vector costs optional."
-      }
-    },
-    {
-      "id": "hybrid-search",
-      "text": "hybrid keyword vector search",
-      "topic": "vector-hybrid",
-      "judgments": {
-        "/docs/guides/vector-search.html": 3,
-        "/docs/guides/ranking-and-boosts.html": 2,
-        "/docs/adr/0003-bm25f-ranking-model.html": 1
-      },
-      "rationales": {
-        "/docs/guides/vector-search.html": "Directly explains hybrid mode and reciprocal-rank fusion of lexical and vector results.",
-        "/docs/guides/ranking-and-boosts.html": "Explains the lexical ranking side that contributes to hybrid results.",
-        "/docs/adr/0003-bm25f-ranking-model.html": "Provides supporting detail about the lexical BM25F model being combined."
-      }
-    },
-    {
       "id": "index-shards",
       "text": "manifest shard files",
       "topic": "indexing-deployment",

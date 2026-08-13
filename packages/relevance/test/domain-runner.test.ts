@@ -169,16 +169,6 @@ describe("runGeneratedDomainSuite", () => {
               "Directly documents offline search.",
           },
         },
-        {
-          id: "vector",
-          text: "vector hybrid search",
-          topic: "vector-hybrid",
-          judgments: { "/docs/guides/vector-search.html": 3 },
-          rationales: {
-            "/docs/guides/vector-search.html":
-              "Directly documents vector and hybrid search.",
-          },
-        },
       ],
     };
   }
@@ -188,9 +178,6 @@ describe("runGeneratedDomainSuite", () => {
     expect(
       report.queries.find((query) => query.id === "offline")?.returnedIds[0],
     ).toBe("/docs/guides/offline-search.html");
-    expect(
-      report.queries.find((query) => query.id === "vector")?.returnedIds[0],
-    ).toBe("/docs/guides/vector-search.html");
   });
 
   it("reports exact fixture and generated inventory drift", async () => {
