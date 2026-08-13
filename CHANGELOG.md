@@ -1,11 +1,7 @@
 # Changelog
 
-All notable changes to `@ktjn/searchable-client`, `@ktjn/searchable-format`, and
-`@ktjn/searchable-analysis` are documented here. These three packages are versioned
-in lockstep (see [Compatibility](docs/reference/compatibility.md)) — one
-version number covers all of them.
-`@ktjn/searchable-fixtures` is internal test tooling and is never published, so it
-isn't covered by this changelog.
+All notable changes to `@ktjn/searchable` (TypeScript) and `searchable` (Python)
+are documented here. The two packages are versioned in lockstep.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semantic Versioning](https://semver.org/), scoped to
@@ -14,11 +10,11 @@ the "stable" API surface in
 the binary storage tier surface
 is explicitly marked experimental and may change in a minor release.
 
-## [2.0.0] - 2026-08-13
+## [Unreleased]
 
 ### Summary
 
-Searchable 2.0 is a major simplification release. The 1.x packages (`@ktjn/searchable-client`, `@ktjn/searchable-format`, `@ktjn/searchable-analysis`, `searchable-binary`, `searchable-client`) are consolidated into two packages: `@ktjn/searchable` (TypeScript) and `searchable` (Python). Web Worker execution, Service Worker offline caching, vector/hybrid search, and binary shard codecs are removed. The index format version is bumped to `2` with JSON-only shards.
+The 1.x packages (`@ktjn/searchable-client`, `@ktjn/searchable-format`, `@ktjn/searchable-analysis`, `searchable-binary`, `searchable-client`) are consolidated into two packages: `@ktjn/searchable` (TypeScript) and `searchable` (Python). Web Worker execution, Service Worker offline caching, vector/hybrid search, and binary shard codecs are removed. The index format version is bumped to `2` with JSON-only shards.
 
 ### Added
 

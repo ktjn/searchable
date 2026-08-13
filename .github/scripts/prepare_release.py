@@ -4,12 +4,11 @@ This mirrors the manual release steps but applies a single aligned ``version``
 to *all* packages at once (npm and Python are released in step at the same
 number):
 
-* ``packages/{analysis,format,client}/package.json``,
-* ``python/{searchable-analysis,searchable-binary,searchable-indexer,searchable-client}``
-  ``pyproject.toml`` files,
+* ``packages/searchable/package.json``,
+* ``python/searchable/pyproject.toml``,
 * the two hardcoded-version tests
   (``showcase/test/public-readiness-policy.test.ts`` and
-  ``python/searchable-client/tests/test_package_metadata.py``),
+  ``python/searchable/tests/test_package_metadata.py``),
 * freezes ``## [Unreleased]`` in ``CHANGELOG.md`` into a dated release section
   and leaves a fresh, empty ``## [Unreleased]`` section above it.
 
@@ -41,16 +40,11 @@ CHANGELOG_SECTION_RE = re.compile(r"^## \[(?P<version>[^\]]+)\]")
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 
 NPM_MANIFESTS = [
-    REPO_ROOT / "packages/analysis/package.json",
-    REPO_ROOT / "packages/format/package.json",
-    REPO_ROOT / "packages/client/package.json",
+    REPO_ROOT / "packages/searchable/package.json",
 ]
 
 PYPROJECTS = [
-    REPO_ROOT / "python/searchable-analysis/pyproject.toml",
-    REPO_ROOT / "python/searchable-binary/pyproject.toml",
-    REPO_ROOT / "python/searchable-indexer/pyproject.toml",
-    REPO_ROOT / "python/searchable-client/pyproject.toml",
+    REPO_ROOT / "python/searchable/pyproject.toml",
 ]
 
 
@@ -155,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
         + PYPROJECTS
         + [
             REPO_ROOT / "showcase/test/public-readiness-policy.test.ts",
-            REPO_ROOT / "python/searchable-client/tests/test_package_metadata.py",
+            REPO_ROOT / "python/searchable/tests/test_package_metadata.py",
             REPO_ROOT / "CHANGELOG.md",
         ]
     )
@@ -171,7 +165,7 @@ def main(argv: list[str] | None = None) -> int:
             bump_pyproject(path, version)
         bump_typescript_test(REPO_ROOT / "showcase/test/public-readiness-policy.test.ts", version)
         bump_python_metadata_test(
-            REPO_ROOT / "python/searchable-client/tests/test_package_metadata.py", version
+            REPO_ROOT / "python/searchable/tests/test_package_metadata.py", version
         )
         rewrite_changelog(REPO_ROOT / "CHANGELOG.md", version, args.release_date)
     except ValueError as exc:
