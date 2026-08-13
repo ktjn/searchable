@@ -22,7 +22,7 @@ CI gates include build, Vitest, Python tests, TypeScript type checking, Biome, b
 
 Measure before changing storage or loading architecture. Benchmarks must state corpus, query set, browser/runtime, cold or warm state, output size, timing method, and repeat count. Keep correctness coupled to performance work: an optimization is not accepted if it changes results without an explicit product decision.
 
-The core client, worker, and Service Worker share a 15 KB gzip budget enforced by `pnpm size`. Large optional dependencies must stay lazy and external to that core budget.
+The core client and Service Worker share a 15 KB gzip budget enforced by `pnpm size`. Large optional dependencies must stay lazy and external to that core budget.
 
 ## Release checklist
 

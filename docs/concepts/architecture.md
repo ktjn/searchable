@@ -8,7 +8,7 @@ The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered
 
 ## Query time
 
-`@ktjn/searchable-client` validates the manifest, resolves all shard files relative to it, analyzes the query, fetches only the required data, evaluates filters and ranking, and loads stored fields for the final hits. The same search code runs directly or behind `@ktjn/searchable-client/worker`. Optional Service Worker support caches the manifest and shards.
+`@ktjn/searchable-client` validates the manifest, resolves all shard files relative to it, analyzes the query, fetches only the required data, evaluates filters and ranking, and loads stored fields for the final hits.
 
 A second, independent client implementation, `searchable-client` (Python,
 `python/searchable-client/`), reads the exact same manifest/shard contract
@@ -30,7 +30,7 @@ rendered HTML -> indexer -> manifest + content-hashed shards -> static host
 
 ## Deployment topology
 
-The generated directory lives beside the static site or on an allowed CDN. The browser needs only the manifest URL plus optional worker and Service Worker script URLs.
+The generated directory lives beside the static site or on an allowed CDN. The browser needs only the manifest URL.
 
 The core uses TypeScript, Vite, Vitest, and Playwright and has no application-framework dependency. Analysis and format shapes are shared workspace packages. The client performs plain HTTP GETs and never requires a query-time write path or backend.
 

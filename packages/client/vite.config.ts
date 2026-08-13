@@ -6,7 +6,6 @@ export default defineConfig({
     lib: {
       entry: {
         index: resolve(__dirname, "src/index.ts"),
-        worker: resolve(__dirname, "src/worker.ts"),
         sw: resolve(__dirname, "src/sw.ts"),
       },
       formats: ["es"],
@@ -14,13 +13,12 @@ export default defineConfig({
     },
     target: "es2022",
     // @ktjn/searchable-analysis and @ktjn/searchable-format are bundled in (not external) here,
-    // unlike the indexer's Node-only build — worker.js and sw.js in
-    // particular are loaded via a raw `new Worker(url)` /
-    // `navigator.serviceWorker.register(url)` reference that a
-    // consumer's bundler may never re-process, so each has to be a
-    // fully self-contained file, not one with unresolved bare
-    // specifiers. Both packages are well under 1KB gzipped, so inlining
-    // costs nothing meaningful against the bundle-size budget.
+    // unlike the indexer's Node-only build — sw.js is loaded via a raw
+    // `navigator.serviceWorker.register(url)` reference that a consumer's
+    // bundler may never re-process, so it has to be a fully self-contained
+    // file, not one with unresolved bare specifiers. Both packages are
+    // well under 1KB gzipped, so inlining costs nothing meaningful against
+    // the bundle-size budget.
     rollupOptions: {},
   },
 });

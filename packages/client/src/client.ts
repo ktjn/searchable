@@ -7,14 +7,7 @@ import type {
   SearchResult,
 } from "./search.js";
 import { facetValues, search, searchStream } from "./search.js";
-import { InvalidManifestError, validateManifest } from "./validate-manifest.js";
-import {
-  type SerializedWorkerError,
-  WORKER_PROTOCOL_VERSION,
-  type WorkerInitResult,
-  type WorkerRequestPayload,
-  type WorkerResponse,
-} from "./worker-protocol.js";
+import { validateManifest } from "./validate-manifest.js";
 
 /**
  * Resolves indexUrl to an absolute URL up front. Every later shard/doc
@@ -24,9 +17,9 @@ import {
  * page's own location transparently), but `new URL(relPath, baseUrl)`
  * does not accept a relative baseUrl, so a relative indexUrl has to be
  * made absolute exactly once, here, rather than failing deep inside
- * shard resolution. `self.location` covers both the main thread and a
- * Worker (both have a `location`); Node has neither, but Node callers
- * are always expected to pass an already-absolute indexUrl anyway.
+ * shard resolution. `self.location` covers the main thread (it has a
+ * `location`); Node has neither, but Node callers are always expected
+ * to pass an already-absolute indexUrl anyway.
  */
 function toAbsoluteUrl(url: string): string {
   try {
@@ -94,44 +87,6 @@ function snapshotSearchOptions<T extends SearchOptions>(options: T): T {
   };
 }
 
-/**
- * Normalizes a Worker response's `"error"` payload so both the current
- * (version 2, `error: { code, name, message }`) and legacy (version 1,
- * `message: string`) shapes settle the pending request instead of
- * hanging it. A stale cached Worker script from the previous release
- * still speaks the legacy shape (docs/reference/compatibility.md).
- */
-function normalizeWorkerError(
-  message: Extract<WorkerResponse, { type: "error" }>,
-): SerializedWorkerError {
-  if (message.error) return message.error;
-  return {
-    code: "UNKNOWN",
-    name: "Error",
-    message: message.message ?? "Unknown Worker error",
-  };
-}
-
-/**
- * Reconstructs a serialized Worker error (worker-protocol.ts) into the same
- * public error contract direct execution would produce: the exported domain
- * error classes come back as real `instanceof`-compatible instances (keyed by
- * the stable code, not by any embedded class reference), and every other
- * error becomes a plain `Error` keeping its `name`/`message` but not its
- * stack trace.
- */
-function deserializeWorkerError(error: SerializedWorkerError): Error {
-  switch (error.code) {
-    case "INVALID_MANIFEST":
-      return new InvalidManifestError(error.message);
-    default: {
-      const err = new Error(error.message);
-      err.name = error.name;
-      return err;
-    }
-  }
-}
-
 function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) throw abortError();
 }
@@ -139,8 +94,8 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 /**
  * Rejects with an AbortError as soon as `signal` fires, without
  * cancelling `work` itself -- `work` may be a shared, memoized shard
- * fetch (ShardCache) or an in-flight worker computation that other,
- * still-active callers depend on, so aborting the underlying operation
+ * fetch (ShardCache) that other, still-active callers depend on, so
+ * aborting the underlying operation
  * out from under them would be wrong. This only cancels *waiting* on
  * the result for the caller who aborted; `work` still runs to
  * completion and populates the cache normally either way.
@@ -174,26 +129,6 @@ function raceAbort<T>(
 export interface SearchClientOptions {
   indexUrl: string;
   /**
-   * Run analysis/scoring in a Web Worker so keystroke-driven queries
-   * never block the main thread (docs/concepts/architecture.md).
-   * Defaults to true, but only takes effect when `workerUrl` is also
-   * given — see its docs below for why. Falls back to direct,
-   * same-thread execution otherwise — same public API either way.
-   */
-  worker?: boolean;
-  /**
-   * URL of this package's built worker.js (its dist/worker.js).
-   * Deliberately not auto-resolved: every bundler (Vite, webpack,
-   * esbuild...) has its own incompatible convention for referencing a
-   * sibling worker file from a library, and guessing one would silently
-   * break under the others. Pass whatever URL your build/CDN serves
-   * worker.js at — e.g. `new URL("@ktjn/searchable-client/dist/worker.js", import.meta.url)`
-   * if your bundler resolves bare specifiers there, or a plain string
-   * pointing at wherever you've copied/deployed it. Omit to run on the
-   * main thread regardless of `worker`.
-   */
-  workerUrl?: string | URL;
-  /**
    * Allow the manifest to reference shard files on a different origin
    * than the manifest itself. Off by default — a compromised or
    * misconfigured manifest shouldn't be able to make the client fetch
@@ -210,13 +145,6 @@ export interface SearchClientOptions {
    * validation cost on every page view.
    */
   strict?: boolean;
-}
-
-interface PendingRequest {
-  resolve: (result: SearchResult | FacetResult | WorkerInitResult) => void;
-  reject: (err: Error) => void;
-  /** Only set for a searchStream() request -- see #handleWorkerMessage. */
-  onPartial?: (result: SearchResult) => void;
 }
 
 export interface SearchStreamOptions extends SearchOptions {
@@ -244,7 +172,7 @@ export interface SearchStreamOptions extends SearchOptions {
  * larger spec (archive/specs/diagnostics.md), not this first slice.
  */
 export interface SearchClientEventMap {
-  /** Fired synchronously the moment search() is called, before any fetch/worker round trip. */
+  /** Fired synchronously the moment search() is called, before any fetch round trip. */
   query: { query: string; options: SearchOptions };
   /** Fired once search() resolves, with the same query/options plus the result. */
   result: { query: string; options: SearchOptions; result: SearchResult };
@@ -256,36 +184,27 @@ type AnyListener = (payload: any) => void;
 
 /**
  * Manifest + shard fetch over plain HTTP, boolean AND + BM25F scoring
- * with field/term/document boosts and prefix matching. Executes in a
- * Worker by default; the direct-execution path below is not a
- * secondary/legacy mode, it's the same code the Worker itself calls
- * (see worker.ts), just invoked in-process when a Worker isn't used.
+ * with field/term/document boosts and prefix matching. Executes
+ * directly on the calling thread.
  */
 export class SearchClient {
   #indexUrl: string;
   #cache = new ShardCache();
   #ready: Promise<void>;
   #manifest?: Promise<Manifest>;
-  #worker: Worker | undefined;
-  #nextRequestId = 0;
-  #pendingRequests = new Map<number, PendingRequest>();
   /**
-   * Set once the client is disposed, or the worker hits a fatal
-   * (not per-request) error — every future call rejects immediately
-   * with this instead of hanging on a dead worker (or, in main-thread
-   * mode, silently continuing to work after `dispose()`).
+   * Set once the client is disposed — every future call rejects
+   * immediately with this instead of silently continuing to work.
    */
   #fatalError?: Error;
   /**
    * Rejected the moment the client first enters its fatal state
-   * (`dispose()` or a fatal worker failure). Every caller-visible public
-   * operation races its work against this promise -- so a disposed client
-   * promptly rejects *direct-mode* in-flight work (manifest loading, shard
-   * fetches, search, facets, embeddings) too, not just the Worker requests
-   * tracked in `#pendingRequests`. The rejected promise is always consumed
-   * by an operation race; a permanent no-op catch keeps it from ever
-   * surfacing as an unhandled rejection in the window before the first
-   * race subscribes.
+   * (`dispose()`). Every caller-visible public operation races its work
+   * against this promise -- so a disposed client promptly rejects
+   * in-flight work (manifest loading, shard fetches, search, facets,
+   * embeddings). The rejected promise is always consumed by an operation
+   * race; a permanent no-op catch keeps it from ever surfacing as an
+   * unhandled rejection in the window before the first race subscribes.
    */
   #lifecycleFailure: Promise<never>;
   #listeners = new Map<SearchClientEvent, Set<AnyListener>>();
@@ -298,63 +217,15 @@ export class SearchClient {
     this.#indexUrl = toAbsoluteUrl(options.indexUrl);
     this.#allowCrossOriginShards = options.allowCrossOriginShards ?? false;
     this.#strict = options.strict ?? false;
-    const wantsWorker =
-      options.worker !== false &&
-      options.workerUrl !== undefined &&
-      typeof Worker !== "undefined";
-
-    if (wantsWorker) {
-      this.#worker = new Worker(options.workerUrl as string | URL, {
-        type: "module",
-      });
-      this.#worker.addEventListener("message", (event: MessageEvent) => {
-        this.#handleWorkerMessage(event.data);
-      });
-      this.#worker.addEventListener("error", (event: ErrorEvent) => {
-        this.#handleWorkerFatalError(
-          new Error(event.message || "worker encountered a fatal error"),
-        );
-      });
-      this.#worker.addEventListener("messageerror", () => {
-        this.#handleWorkerFatalError(
-          new Error("worker message could not be deserialized"),
-        );
-      });
-      this.#ready = this.#sendToWorker<WorkerInitResult>({
-        type: "init",
-        protocolVersion: WORKER_PROTOCOL_VERSION,
-        indexUrl: this.#indexUrl,
-        ...(options.allowCrossOriginShards !== undefined
-          ? { allowCrossOriginShards: options.allowCrossOriginShards }
-          : {}),
-        ...(options.strict !== undefined ? { strict: options.strict } : {}),
-      })
-        .then((initResult) => {
-          this.#assertProtocolCompatible(initResult.protocolVersion);
-        })
-        .catch((error: unknown) => {
-          // A Worker whose initiation failed (invalid manifest, unknown
-          // domain error, protocol mismatch, ...) can never become usable:
-          // terminate and dereference it so the client can't keep a
-          // reference to a doomed worker, and record the original error as
-          // the client's fatal error so future calls fail immediately with
-          // the same type/message (docs/reference/compatibility.md).
-          const normalized =
-            error instanceof Error ? error : new Error(String(error));
-          this.#fail(normalized);
-          throw normalized;
-        });
-    } else {
-      this.#manifest = this.#cache
-        .fetchJson<Manifest>(this.#indexUrl)
-        .then((manifest) =>
-          validateManifest(manifest, this.#indexUrl, {
-            allowCrossOriginShards: options.allowCrossOriginShards ?? false,
-            strict: this.#strict,
-          }),
-        );
-      this.#ready = this.#manifest.then(() => undefined);
-    }
+    this.#manifest = this.#cache
+      .fetchJson<Manifest>(this.#indexUrl)
+      .then((manifest) =>
+        validateManifest(manifest, this.#indexUrl, {
+          allowCrossOriginShards: options.allowCrossOriginShards ?? false,
+          strict: this.#strict,
+        }),
+      );
+    this.#ready = this.#manifest.then(() => undefined);
   }
 
   async ready(): Promise<void> {
@@ -363,12 +234,12 @@ export class SearchClient {
 
   /**
    * Shared precondition for every public query method: a fatal init error
-   * always wins, the caller's `signal` aborts waiting, the manifest (or
-   * worker `init`) must be resolved, and a fatal error that only surfaces
-   * *during* that resolution (rather than before it) is still surfaced.
-   * Readiness is raced against `signal` (an abort while initializing
-   * rejects promptly without cancelling the shared init) and against the
-   * lifecycle failure (a disposal while initializing does the same).
+   * always wins, the caller's `signal` aborts waiting, the manifest must
+   * be resolved, and a fatal error that only surfaces *during* that
+   * resolution (rather than before it) is still surfaced. Readiness is
+   * raced against `signal` (an abort while initializing rejects promptly
+   * without cancelling the shared init) and against the lifecycle failure
+   * (a disposal while initializing does the same).
    */
   async #assertUsable(signal: AbortSignal | undefined): Promise<void> {
     if (this.#fatalError) throw this.#fatalError;
@@ -382,11 +253,10 @@ export class SearchClient {
 
   /**
    * Races every caller-visible await against the client lifecycle and the
-   * caller's AbortSignal: on `dispose()` (or a fatal worker failure) the
-   * in-flight direct-mode operation rejects promptly with the fatal error,
-   * like the Worker requests `#fail()` already settles. The shared
-   * underlying work (manifest/shards/embeddings) may still complete in the
-   * background but is no longer delivered to this caller.
+   * caller's AbortSignal: on `dispose()` the in-flight operation rejects
+   * promptly with the fatal error. The shared underlying work
+   * (manifest/shards/embeddings) may still complete in the background but
+   * is no longer delivered to this caller.
    */
   #raceOperation<T>(
     work: Promise<T>,
@@ -409,22 +279,16 @@ export class SearchClient {
     const effectiveOptions = snapshotSearchOptions(options);
     const listenerOptions = snapshotSearchOptions(options);
     this.#emit("query", { query, options: listenerOptions });
-    // `signal` is stripped before the options cross into the worker
-    // message or the direct-execution search() call -- neither needs
-    // to know about it (see SearchOptions.signal's doc comment for why
-    // cancellation is handled entirely here).
+    // `signal` is stripped before the options cross into the
+    // direct-execution search() call -- it doesn't need to know about it
+    // (see SearchOptions.signal's doc comment for why cancellation is
+    // handled entirely here).
     const { signal, ...rest } = effectiveOptions;
-    const work = this.#worker
-      ? this.#sendToWorker<SearchResult>({
-          type: "search",
-          query,
-          options: rest,
-        })
-      : (async () => {
-          // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
-          const manifest = await this.#manifest!;
-          return search(query, manifest, this.#cache, this.#indexUrl, rest);
-        })();
+    const work = (async () => {
+      // biome-ignore lint/style/noNonNullAssertion: set in the constructor, always resolved once #ready resolves
+      const manifest = await this.#manifest!;
+      return search(query, manifest, this.#cache, this.#indexUrl, rest);
+    })();
     const result = await this.#raceOperation(work, signal);
     // The lifecycle race above normally prevents reaching this point after
     // disposal, but make the invariant explicit: nothing is delivered to a
@@ -465,23 +329,18 @@ export class SearchClient {
           }
         }
       : undefined;
-    const work = this.#worker
-      ? this.#sendToWorker<SearchResult>(
-          { type: "searchStream", query, options: rest },
-          guardedOnPartial,
-        )
-      : (async () => {
-          // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
-          const manifest = await this.#manifest!;
-          return searchStream(
-            query,
-            manifest,
-            this.#cache,
-            this.#indexUrl,
-            rest,
-            guardedOnPartial,
-          );
-        })();
+    const work = (async () => {
+      // biome-ignore lint/style/noNonNullAssertion: set in the constructor, always resolved once #ready resolves
+      const manifest = await this.#manifest!;
+      return searchStream(
+        query,
+        manifest,
+        this.#cache,
+        this.#indexUrl,
+        rest,
+        guardedOnPartial,
+      );
+    })();
     const result = await this.#raceOperation(work, signal);
     if (this.#fatalError) throw this.#fatalError;
     this.#emit("result", { query, options: effectiveOptions, result });
@@ -489,10 +348,10 @@ export class SearchClient {
   }
 
   /**
-   * Subscribe to a lifecycle event (docs/reference/client-api.md#events-and-lifecycle).
-   * Returns an unsubscribe function rather than requiring a separate
-   * `off()` call — the caller already has the one reference it needs to
-   * stop listening, so a second method just for that would be redundant.
+   * Subscribe to a lifecycle event. Returns an unsubscribe function
+   * rather than requiring a separate `off()` call — the caller already
+   * has the one reference it needs to stop listening, so a second method
+   * just for that would be redundant.
    */
   on<K extends SearchClientEvent>(
     event: K,
@@ -538,136 +397,31 @@ export class SearchClient {
   ): Promise<FacetResult> {
     await this.#assertUsable(options.signal);
     const { signal, ...rest } = options;
-    const work = this.#worker
-      ? this.#sendToWorker<FacetResult>({
-          type: "facetValues",
-          field,
-          options: rest,
-        })
-      : (async () => {
-          // biome-ignore lint/style/noNonNullAssertion: set in the non-worker branch of the constructor, always resolved once #ready resolves
-          const manifest = await this.#manifest!;
-          return facetValues(
-            field,
-            manifest,
-            this.#cache,
-            this.#indexUrl,
-            rest,
-          );
-        })();
+    const work = (async () => {
+      // biome-ignore lint/style/noNonNullAssertion: set in the constructor, always resolved once #ready resolves
+      const manifest = await this.#manifest!;
+      return facetValues(field, manifest, this.#cache, this.#indexUrl, rest);
+    })();
     return raceAbort(work, signal);
   }
 
   /**
-   * Terminates the underlying worker (if any) and rejects every
-   * in-flight request. Always call this when a client is no longer
-   * needed — an undisposed worker keeps running, and any request still
-   * pending against it would otherwise never settle. Idempotent, and
-   * also disables further use in main-thread (non-worker) mode, so
-   * `dispose()` means the same thing regardless of which mode the
-   * client happens to be running in. Delegates all of that to the same
-   * internal `#fail()` cleanup a fatal worker error triggers, so every
-   * path that retires a client converges on one operation.
+   * Disables further use of the client. Always call this when a client
+   * is no longer needed so in-flight operations reject promptly.
    */
   dispose(): void {
     this.#fail(new Error("SearchClient disposed"));
   }
 
-  #handleWorkerFatalError(err: Error): void {
-    this.#fail(err);
-  }
-
   /**
-   * The one cleanup operation for every way a worker/client becomes
-   * permanently unusable — `dispose()`, a worker `error` event, a
-   * `messageerror` (a message that can't be deserialized even though the
-   * worker script itself is fine — which is *not* guaranteed to
-   * terminate the worker, so the reference must be dropped explicitly),
-   * and fatal initialization failures.
-   *
-   * Terminates and dereferences the worker, records the first failure as
-   * `#fatalError` (never overwriting an earlier, more specific one),
-   * and settles every still-pending request exactly once with it. Safe
-   * to call repeatedly and in any order: after the first call the worker
-   * is gone, `#pendingRequests` is empty, and future calls fail
-   * immediately from `#assertUsable()`/`#sendToWorker()` with the stored
-   * `#fatalError`.
+   * The one cleanup operation for every way a client becomes permanently
+   * unusable — `dispose()` or a fatal initialization failure. Records
+   * the first failure as `#fatalError` (never overwriting an earlier,
+   * more specific one). Safe to call repeatedly.
    */
   #fail(error: Error): void {
-    this.#worker?.terminate();
-    this.#worker = undefined;
-
     if (!this.#fatalError) {
       this.#fatalError = error;
-    }
-
-    for (const pending of this.#pendingRequests.values()) {
-      pending.reject(this.#fatalError);
-    }
-    this.#pendingRequests.clear();
-  }
-
-  #assertProtocolCompatible(version: number | undefined): void {
-    // A missing version means the Worker predates the protocol handshake
-    // (version 1, legacy `{ message }` error payloads), which the
-    // normalization layer still accepts during the transition period -- so
-    // only a *known* foreign version is a hard incompatibility.
-    if (version === undefined || version === WORKER_PROTOCOL_VERSION) return;
-    throw new Error(
-      `SearchClient: worker protocol version ${version} is not supported (expected ${WORKER_PROTOCOL_VERSION}) — deploy index.js and worker.js from the same package version (docs/reference/compatibility.md)`,
-    );
-  }
-
-  #sendToWorker<T extends SearchResult | FacetResult | WorkerInitResult>(
-    message: WorkerRequestPayload,
-    onPartial?: (result: SearchResult) => void,
-  ): Promise<T> {
-    if (this.#fatalError) {
-      return Promise.reject(this.#fatalError);
-    }
-    const id = this.#nextRequestId++;
-    return new Promise<T>((resolve, reject) => {
-      this.#pendingRequests.set(id, {
-        resolve: resolve as (
-          result: SearchResult | FacetResult | WorkerInitResult,
-        ) => void,
-        reject,
-        ...(onPartial ? { onPartial } : {}),
-      });
-      // biome-ignore lint/style/noNonNullAssertion: only called when #worker was constructed and not yet disposed
-      this.#worker!.postMessage({ ...message, id });
-    });
-  }
-
-  #handleWorkerMessage(message: WorkerResponse): void {
-    try {
-      const pending = this.#pendingRequests.get(message.id);
-      if (!pending) return;
-      // A "partial" message doesn't settle the request -- the final
-      // "result"/"error" message for the same id still follows.
-      if (message.type === "partial") {
-        pending.onPartial?.(message.result);
-        return;
-      }
-      // Normalize and deserialize *before* peeling the pending request
-      // off the map: if this throws (malformed message), the request must
-      // still settle -- via the fatal path below -- rather than being left
-      // to hang after its entry was already removed.
-      if (message.type === "error") {
-        const error = deserializeWorkerError(normalizeWorkerError(message));
-        this.#pendingRequests.delete(message.id);
-        pending.reject(error);
-        return;
-      }
-      this.#pendingRequests.delete(message.id);
-      pending.resolve(message.result);
-    } catch (error) {
-      // A malformed Worker message must never leave pending requests
-      // unresolved -- retire the whole client so every pending request
-      // settles with the stored fatal error and future calls fail fast.
-      this.#fail(
-        error instanceof Error ? error : new Error("Invalid Worker response"),
-      );
     }
   }
 }

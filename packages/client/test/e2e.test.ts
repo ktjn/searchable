@@ -276,7 +276,7 @@ describe("cancellation (options.signal)", () => {
   });
 });
 
-describe("SearchClient.dispose() in main-thread mode", () => {
+describe("SearchClient.dispose()", () => {
   let baseUrl: string;
   let closeServer: () => Promise<void>;
   let outDir: string;
@@ -301,7 +301,7 @@ describe("SearchClient.dispose() in main-thread mode", () => {
     expect(() => client.dispose()).not.toThrow();
   });
 
-  it("rejects search() after dispose(), even without a worker", async () => {
+  it("rejects search() after dispose()", async () => {
     const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
     await client.ready();
     client.dispose();

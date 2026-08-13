@@ -13,7 +13,7 @@ const unsubscribe = client.on("result", ({ result }) => {});
 client.dispose();
 ```
 
-`SearchClientOptions` contains `indexUrl`, `worker`, `workerUrl`, `allowCrossOriginShards`, and `strict`. `indexUrl` is required. Worker mode requires a `workerUrl`; otherwise calls execute directly.
+`SearchClientOptions` contains `indexUrl`, `allowCrossOriginShards`, and `strict`. `indexUrl` is required.
 
 ## Search options and results
 
@@ -38,26 +38,13 @@ client.dispose();
 
 ## Events and lifecycle
 
-`on("query", listener)` and `on("result", listener)` return unsubscribe functions. Events are local observation hooks; the library sends no analytics. `dispose()` is idempotent, terminates the worker, rejects pending work, and prevents future use.
+`on("query", listener)` and `on("result", listener)` return unsubscribe functions. Events are local observation hooks; the library sends no analytics. `dispose()` is idempotent, rejects pending work, and prevents future use.
 
 Both event payloads carry an *isolated mutable snapshot* of the search options: the `query` event fires with a copy (including copied nested filter arrays and range objects, boost maps, and the facet list), so a listener can read or mutate what it receives without changing the query that executes or what the later `result` event reports. The `result` event always reports the options the query actually ran with.
 
 ### Abort semantics
 
-`SearchOptions.signal` rejects the caller's `search()`/`searchStream()`/`facetValues()` promise with an `AbortError` as soon as it fires — including while the client is still initializing (worker `init` or the direct-mode manifest load). Cancelling *waits*, never the shared work itself: shared shard fetches and the shared init keep running for other callers, and nothing is delivered (no `result` event, no `onPartial`) to a caller who already aborted.
-
-### Worker deployment compatibility
-
-`index.js` (main thread) and `worker.js` (the worker script) speak a versioned wire protocol, carried from `init` to the worker and echoed back (docs/reference/compatibility.md#worker-protocol-versions). Deploy both from the same package version where possible — content-hashed worker URLs are the recommended pattern:
-
-```ts
-new SearchClient({
-  indexUrl,
-  workerUrl: new URL("./worker.<content-hash>.js", import.meta.url),
-});
-```
-
-A temporarily mixed deployment (a freshly deployed bundle against a stale cached worker script, or vice versa) still fails safely: legacy `{ message }` worker errors are accepted during the transition, and a genuinely incompatible protocol version makes `ready()` reject with a clear error instead of hanging a request.
+`SearchOptions.signal` rejects the caller's `search()`/`searchStream()`/`facetValues()` promise with an `AbortError` as soon as it fires — including while the client is still initializing (the direct-mode manifest load). Cancelling *waits*, never the shared work itself: shared shard fetches and the shared init keep running for other callers, and nothing is delivered (no `result` event, no `onPartial`) to a caller who already aborted.
 
 ## Other exports
 

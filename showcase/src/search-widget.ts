@@ -42,8 +42,6 @@ async function initSearch(root: HTMLDivElement): Promise<void> {
 
   const client: SearchClientLike = new SearchClient({
     indexUrl: new URL("search-index/manifest.json", siteRoot).href,
-    worker: true,
-    workerUrl: new URL("assets/worker.js", siteRoot),
   });
 
   const input = document.createElement("input");

@@ -22,37 +22,7 @@ Content hashes and `buildId` identify a build, not a compatibility level. The pr
 
 `searchable-client` (Python) is a second consumer of this contract, alongside
 `@ktjn/searchable-client` (TypeScript). The structured binary v2 tests exercise
-the real Python indexer output in both clients, while the browser Worker and
-Service Worker suites verify the TypeScript path over HTTP and offline cache.
-
-## Worker protocol versions
-
-`@ktjn/searchable-client`'s `index.js` (the `SearchClient` main thread) and its
-`worker.js` script speak a versioned postMessage protocol. The main thread
-sends the protocol version in `init`; the Worker echoes it back in its `init`
-result, and `SearchClient` treats a *known foreign* version as a hard
-incompatibility: `ready()` rejects with a clear error rather than leaving a
-request hanging.
-
-| Protocol version | Main-thread client | Worker script | Error payloads |
-|---|---|---|---|
-| 1 (legacy) | — (pre-handshake) | — | `{ message }` |
-| 2 (current) | `1.1.3`+ | `1.1.3`+ | `{ error: { code, name, message } }` |
-
-During the transition the current client still accepts a version-1 Worker's
-`{ message }` error responses and version-1 `init` results, so a stale cached
-Worker next to a freshly deployed bundle settles requests instead of hanging.
-The reverse (an old client against a current Worker) is safest handled by
-avoiding mixed deploys — deploy `index.js` and `worker.js` from the same
-package version. Content-hashed Worker URLs are the recommended pattern so a
-new bundle naturally fetches the matching script:
-
-```ts
-new SearchClient({
-  indexUrl,
-  workerUrl: new URL("./worker.<content-hash>.js", import.meta.url),
-});
-```
+the real Python indexer output in both clients.
 
 ## Language codes
 

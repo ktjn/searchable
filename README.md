@@ -16,7 +16,7 @@ Searchable builds a static search index ahead of time and searches it in the bro
 - Terms, range, and hierarchical facets with contextual counts
 - Query-time synonyms and editorial term-to-page pins
 - English, German, Swedish, Dutch, Bokmål, and Nynorsk analysis plus fallback segmenters for CJK and Southeast Asian scripts
-- Web Worker execution, cancellation, streaming partial results, highlighting, and lifecycle events
+- Cancellation, streaming partial results, highlighting, and lifecycle events
 - Service Worker caching for offline search
 - Optional binary term, fuzzy, and document-store shards
 
@@ -60,8 +60,6 @@ import { SearchClient } from "@ktjn/searchable-client";
 
 const search = new SearchClient({
   indexUrl: "/search-index/manifest.json",
-  worker: true,
-  workerUrl: new URL("/assets/worker.js", location.href),
 });
 
 const result = await search.search("getting started");

@@ -30,12 +30,6 @@ describe("package.json exports (consumer-fixture)", () => {
     expect(typeof mod.SearchClient).toBe("function");
   });
 
-  it("resolves the ./worker subpath to a real, existing file", () => {
-    const resolved = require.resolve("@ktjn/searchable-client/worker");
-    expect(resolved.endsWith(join("dist", "worker.js"))).toBe(true);
-    expect(existsSync(resolved)).toBe(true);
-  });
-
   it("resolves the ./sw subpath to a real, existing file", () => {
     const resolved = require.resolve("@ktjn/searchable-client/sw");
     expect(resolved.endsWith(join("dist", "sw.js"))).toBe(true);

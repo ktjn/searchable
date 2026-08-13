@@ -24,7 +24,6 @@ All three format options default to `"json"`; prefix sharding defaults on.
 ## SearchClientOptions
 
 - required `indexUrl`
-- `worker` and `workerUrl`
 - `allowCrossOriginShards` and `strict`
 
 ## Query and offline options

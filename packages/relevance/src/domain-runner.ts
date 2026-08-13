@@ -186,7 +186,6 @@ export async function runGeneratedDomainSuite(
     server = await serveDirectory(showcaseDistDirectory);
     client = new SearchClient({
       indexUrl: `${server.baseUrl}search-index/manifest.json`,
-      worker: false,
       strict: true,
     });
     await client.ready();

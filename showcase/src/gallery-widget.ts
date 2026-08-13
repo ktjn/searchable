@@ -193,8 +193,6 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
 
   const client: SearchClientLike = new SearchClient({
     indexUrl: new URL(indexPath, siteRoot).href,
-    worker: true,
-    workerUrl: new URL("assets/worker.js", siteRoot),
   });
 
   const controls = document.createElement("div");

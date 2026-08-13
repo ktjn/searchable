@@ -59,7 +59,6 @@ export async function runSearchableSuite(
     server = await serveDirectory(outDirectory);
     client = new SearchClient({
       indexUrl: `${server.baseUrl}manifest.json`,
-      worker: false,
       strict: true,
     });
     await client.ready();

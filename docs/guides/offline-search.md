@@ -1,8 +1,6 @@
 # Offline search
 
-This guide covers the implemented worker and Service Worker paths and the current resource-loading behavior.
-
-Pass both `worker: true` and `workerUrl` to move analysis and scoring off the main thread. The client uses the same manifest, shard cache, options, events, cancellation semantics, and result shapes in worker and direct modes.
+This guide covers the implemented Service Worker path and the current resource-loading behavior.
 
 Register static search assets for offline use with `registerOfflineCaching`:
 
