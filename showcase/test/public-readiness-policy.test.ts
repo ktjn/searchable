@@ -41,7 +41,7 @@ test("public npm manifests use the current patch release", () => {
       engines?: { node?: string };
       repository?: { url?: string };
     };
-    expect(pkg.version, directory).toBe("2.0.0");
+    expect(pkg.version, directory).toBe("2.0.1");
     expect(pkg.engines?.node, directory).toBe(">=24");
     expect(pkg.repository?.url, directory).toBe(
       "git+https://github.com/ktjn/searchable.git",
