@@ -22,10 +22,6 @@ is explicitly marked experimental and may change in a minor release.
 
 Searchable 2.0 is a major simplification release. The 1.x packages (`@ktjn/searchable-client`, `@ktjn/searchable-format`, `@ktjn/searchable-analysis`, `searchable-binary`, `searchable-client`) are consolidated into two packages: `@ktjn/searchable` (TypeScript) and `searchable` (Python). Web Worker execution, Service Worker offline caching, vector/hybrid search, and binary shard codecs are removed. The index format version is bumped to `2` with JSON-only shards.
 
-### Removed
-
-- Service Worker offline caching (`registerOfflineCaching`, `@ktjn/searchable-client/sw`) — removed in 2.0.
-
 ### Added
 
 - `@ktjn/searchable` — single TypeScript package replacing `@ktjn/searchable-client`, `@ktjn/searchable-format`, and `@ktjn/searchable-analysis`.
