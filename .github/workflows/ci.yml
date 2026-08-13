@@ -124,5 +124,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
       - name: Build packages + showcase once
-        run: pnpm build && pnpm --filter showcase build
+        run: |
+          pnpm build
+          pnpm --filter showcase build
       - run: pnpm test:browser

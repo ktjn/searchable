@@ -45,7 +45,7 @@ a GitHub token with `read:packages`. Python packages are installed from the
 standard PyPI index:
 
 ```bash
-uv add searchable-indexer searchable-analysis searchable
+uv add searchable
 ```
 
 ### API shape

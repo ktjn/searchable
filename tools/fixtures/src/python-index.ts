@@ -55,7 +55,7 @@ const repoRoot = join(
   "..",
   "..",
 );
-const pythonIndexerDir = join(repoRoot, "python", "searchable-indexer");
+const pythonIndexerDir = join(repoRoot, "python", "searchable");
 const scriptPath = join(pythonIndexerDir, "scripts", "build_from_config.py");
 
 function toSnakeCase(key: string): string {
