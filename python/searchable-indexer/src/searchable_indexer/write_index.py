@@ -4,13 +4,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-from searchable_binary import (
-    encode_doc_store_binary,
-    encode_fuzzy_shard_binary,
-    encode_structured_doc_store_binary,
-    encode_term_shard_binary,
-)
-
 from searchable_indexer.hash import content_hash
 from searchable_indexer.types import BuiltIndex
 
@@ -39,15 +32,6 @@ def _write_json(out_dir: str, rel_path: str, data: object) -> str:
     abs_path = Path(out_dir) / hashed_rel_path
     abs_path.parent.mkdir(parents=True, exist_ok=True)
     abs_path.write_text(content, encoding="utf-8")
-    return hashed_rel_path
-
-
-def _write_binary(out_dir: str, rel_path: str, data: bytes) -> str:
-    digest = content_hash(data)
-    hashed_rel_path = re.sub(r"\.bin$", f".{digest}.bin", rel_path)
-    abs_path = Path(out_dir) / hashed_rel_path
-    abs_path.parent.mkdir(parents=True, exist_ok=True)
-    abs_path.write_bytes(data)
     return hashed_rel_path
 
 
@@ -122,9 +106,6 @@ def write_index(
     max_shard_gzip_bytes: int = DEFAULT_MAX_TERM_SHARD_GZIP_BYTES,
     shard_by_prefix: bool = True,
     doc_store_shard_size: float = float("inf"),
-    term_shard_format: str = "json",
-    doc_store_format: str = "json",
-    fuzzy_shard_format: str = "json",
 ) -> None:
     languages = sorted(built.term_shards.keys())
     terms: list[dict[str, Any]] = []
@@ -137,60 +118,23 @@ def write_index(
         else:
             buckets = [("all", term_shard)]
         for prefix, group in buckets:
-            if term_shard_format == "binary":
-                file = _write_binary(
-                    out_dir,
-                    f"terms/{language}/{prefix}.bin",
-                    encode_term_shard_binary(group),
-                )
-                terms.append(
-                    {
-                        "lang": language,
-                        "prefix": prefix,
-                        "file": file,
-                        "termCount": len(group),
-                        "format": "binary",
-                    }
-                )
-            else:
-                file = _write_json(out_dir, f"terms/{language}/{prefix}.json", group)
-                terms.append(
-                    {
-                        "lang": language,
-                        "prefix": prefix,
-                        "file": file,
-                        "termCount": len(group),
-                    }
-                )
+            file = _write_json(out_dir, f"terms/{language}/{prefix}.json", group)
+            terms.append(
+                {
+                    "lang": language,
+                    "prefix": prefix,
+                    "file": file,
+                    "termCount": len(group),
+                }
+            )
 
     doc_store_chunks = _chunk_doc_store_by_id_range(built.doc_store, doc_store_shard_size)
     if not doc_store_chunks:
         doc_store_chunks = [{"idRange": built.id_range, "shard": {}}]
     docs: list[dict[str, Any]] = []
     for shard_index, chunk in enumerate(doc_store_chunks):
-        if doc_store_format == "binary":
-            encoded_doc_store = (
-                encode_structured_doc_store_binary(chunk["shard"])
-                if built.structured
-                else encode_doc_store_binary(chunk["shard"])
-            )
-            file = _write_binary(
-                out_dir,
-                f"docs/{shard_index}.bin",
-                encoded_doc_store,
-            )
-            entry = {
-                "shard": shard_index,
-                "file": file,
-                "idRange": list(chunk["idRange"]),
-                "format": "binary",
-            }
-            if built.structured:
-                entry["binaryVersion"] = 2
-            docs.append(entry)
-        else:
-            file = _write_json(out_dir, f"docs/{shard_index}.json", chunk["shard"])
-            docs.append({"shard": shard_index, "file": file, "idRange": list(chunk["idRange"])})
+        file = _write_json(out_dir, f"docs/{shard_index}.json", chunk["shard"])
+        docs.append({"shard": shard_index, "file": file, "idRange": list(chunk["idRange"])})
 
     facet_fields = sorted(built.facet_shards.keys())
     facets = None
@@ -232,16 +176,8 @@ def write_index(
     if fuzzy_languages:
         fuzzy = {}
         for language in fuzzy_languages:
-            if fuzzy_shard_format == "binary":
-                file = _write_binary(
-                    out_dir,
-                    f"fuzzy/{language}.bin",
-                    encode_fuzzy_shard_binary(built.fuzzy_shards[language]),
-                )
-                fuzzy[language] = {"file": file, "format": "binary"}
-            else:
-                file = _write_json(out_dir, f"fuzzy/{language}.json", built.fuzzy_shards[language])
-                fuzzy[language] = {"file": file}
+            file = _write_json(out_dir, f"fuzzy/{language}.json", built.fuzzy_shards[language])
+            fuzzy[language] = {"file": file}
 
     manifest = {
         **built.manifest,
@@ -254,6 +190,7 @@ def write_index(
         **({"synonyms": synonyms} if synonyms else {}),
         **({"fuzzy": fuzzy} if fuzzy else {}),
     }
+    manifest.pop("format", None)
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)

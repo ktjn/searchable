@@ -54,7 +54,6 @@ describe("readGeneratedPageInventory", () => {
   it("reads stored page URLs and normalizes Windows separators", async () => {
     const root = await temporaryIndex(
       {
-        format: "json",
         shards: { docs: [{ file: "docs/0.json" }] },
       },
       {
@@ -75,20 +74,16 @@ describe("readGeneratedPageInventory", () => {
     ]);
   });
 
-  it("rejects non-JSON documentation indexes", async () => {
+  it("accepts documentation indexes without a format field", async () => {
     const root = await temporaryIndex({
-      format: "binary",
       shards: { docs: [] },
     });
-    await expect(readGeneratedPageInventory(root)).rejects.toThrow(
-      /must use JSON document shards/,
-    );
+    await expect(readGeneratedPageInventory(root)).resolves.toEqual([]);
   });
 
   it("rejects duplicate normalized page URLs", async () => {
     const root = await temporaryIndex(
       {
-        format: "json",
         shards: { docs: [{ file: "docs/0.json" }] },
       },
       {
@@ -104,7 +99,6 @@ describe("readGeneratedPageInventory", () => {
   it("rejects malformed stored page entries", async () => {
     const root = await temporaryIndex(
       {
-        format: "json",
         shards: { docs: [{ file: "docs/0.json" }] },
       },
       { 0: { url: "/index.html", fields: {} } },
@@ -160,13 +154,13 @@ describe("runGeneratedDomainSuite", () => {
       corpus: { kind: "generated-index", pages: inventory },
       queries: [
         {
-          id: "offline",
-          text: "offline search",
-          topic: "offline-worker",
-          judgments: { "/docs/guides/offline-search.html": 3 },
+          id: "ranking",
+          text: "ranking and boosts",
+          topic: "lexical-features",
+          judgments: { "/docs/guides/ranking-and-boosts.html": 3 },
           rationales: {
-            "/docs/guides/offline-search.html":
-              "Directly documents offline search.",
+            "/docs/guides/ranking-and-boosts.html":
+              "Directly documents ranking and boosts.",
           },
         },
       ],
@@ -176,8 +170,8 @@ describe("runGeneratedDomainSuite", () => {
   it("evaluates the real generated documentation index", async () => {
     const report = await runGeneratedDomainSuite(suite(), showcaseDist, 5);
     expect(
-      report.queries.find((query) => query.id === "offline")?.returnedIds[0],
-    ).toBe("/docs/guides/offline-search.html");
+      report.queries.find((query) => query.id === "ranking")?.returnedIds[0],
+    ).toBe("/docs/guides/ranking-and-boosts.html");
   });
 
   it("reports exact fixture and generated inventory drift", async () => {

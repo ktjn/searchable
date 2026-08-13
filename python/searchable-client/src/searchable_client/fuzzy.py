@@ -5,7 +5,6 @@ client (mirrors packages/client/src/fuzzy.ts).
 import sys
 
 from searchable_analysis import generate_deletes
-from searchable_binary import decode_binary_fuzzy_entry, decode_binary_fuzzy_shard_directory
 
 from searchable_client.fetch import ShardCache, resolve_url
 from searchable_client.types import Manifest, fuzzy_shard_from_dict
@@ -36,24 +35,6 @@ class _FuzzyLookup:
 
     def get(self, variant: str) -> list[str]:
         return self._deletions.get(variant, [])
-
-
-class _BinaryFuzzyLookup(_FuzzyLookup):
-    """Lazy binary-shard lookup: decodes just the requested deletion
-    variant's entry from an already-fetched byte buffer (previously a
-    nested class inside `_load_fuzzy_lookup`)."""
-
-    def __init__(
-        self, max_edits: int, data: bytes, index: dict[str, tuple[int, int]], dir_len: int
-    ) -> None:
-        self.max_edits = max_edits
-        self._data = data
-        self._index = index
-        self._dir_len = dir_len
-
-    def get(self, variant: str) -> list[str]:
-        location = self._index.get(variant)
-        return decode_binary_fuzzy_entry(self._data, self._dir_len, location[0]) if location else []
 
 
 def _fuzzy_candidates_for(term: str, lookup: "_FuzzyLookup | None") -> list[tuple[str, int]]:
@@ -103,10 +84,5 @@ def _load_fuzzy_lookup(
     entry = (manifest.fuzzy or {}).get(language)
     if entry is None:
         return None
-    if entry.format == "binary":
-        data = cache.fetch_bytes(resolve_url(base_url, entry.file))
-        max_edits, _, index, dir_len = decode_binary_fuzzy_shard_directory(data)
-
-        return _BinaryFuzzyLookup(max_edits, data, index, dir_len)
     shard = fuzzy_shard_from_dict(cache.fetch_json(resolve_url(base_url, entry.file)))
     return _FuzzyLookup(shard.max_edits, shard.deletions)

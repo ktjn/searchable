@@ -8,13 +8,6 @@ job).
 import json
 from pathlib import Path
 
-from searchable_binary import (
-    encode_doc_store_binary,
-    encode_fuzzy_shard_binary,
-    encode_structured_doc_store_binary,
-    encode_term_shard_binary,
-)
-
 
 def write_basic_index(out_dir: Path) -> str:
     """Two docs, one field 'title', language 'en'. Returns the manifest file:// URL."""
@@ -44,9 +37,8 @@ def write_basic_index(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
 
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -95,9 +87,8 @@ def write_index_with_doc_boost(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
 
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -170,9 +161,8 @@ def write_index_with_two_facets(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
 
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -380,9 +370,8 @@ def write_index_with_phrase_fixture(out_dir: Path) -> str:
     }
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -445,9 +434,8 @@ def write_index_with_phrase_across_fields_fixture(out_dir: Path) -> str:
     }
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}, "body": {"boost": 1.0, "stored": True}},
@@ -513,9 +501,8 @@ def write_index_with_multi_doc_phrase_fixture(out_dir: Path) -> str:
     }
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -554,9 +541,8 @@ def write_index_with_synonyms(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["sofa", "couch"]]}))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -601,9 +587,8 @@ def write_index_with_directional_synonym(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     (out_dir / "synonyms.json").write_text(json.dumps({"directional": {"tv": ["televis"]}}))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -650,9 +635,8 @@ def write_index_with_synonym_double_match(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["sofa", "couch"]]}))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {
@@ -708,9 +692,8 @@ def write_index_with_synonym_fuzzy_overlap(out_dir: Path) -> str:
     fuzzy_shard = {"maxEdits": 2, "deletions": {"widget": ["gadget"]}}
     (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -721,7 +704,7 @@ def write_index_with_synonym_fuzzy_overlap(out_dir: Path) -> str:
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
         },
         "synonyms": {"en": "synonyms.json"},
-        "fuzzy": {"en": {"file": "fuzzy.json", "format": "json"}},
+        "fuzzy": {"en": {"file": "fuzzy.json"}},
     }
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest))
@@ -754,7 +737,7 @@ def write_index_with_fuzzy(out_dir: Path) -> str:
     (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
     manifest_path = out_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
-    manifest["fuzzy"] = {"en": {"file": "fuzzy.json", "format": "json"}}
+    manifest["fuzzy"] = {"en": {"file": "fuzzy.json"}}
     manifest_path.write_text(json.dumps(manifest))
     return manifest_url
 
@@ -792,9 +775,8 @@ def write_index_with_fuzzy_literal_and_typo(out_dir: Path) -> str:
     fuzzy_shard = {"maxEdits": 1, "deletions": {"wdget": ["widget"]}}
     (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -804,7 +786,7 @@ def write_index_with_fuzzy_literal_and_typo(out_dir: Path) -> str:
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
         },
-        "fuzzy": {"en": {"file": "fuzzy.json", "format": "json"}},
+        "fuzzy": {"en": {"file": "fuzzy.json"}},
     }
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest))
@@ -843,9 +825,8 @@ def write_index_with_fuzzy_distance_variants(out_dir: Path) -> str:
     fuzzy_shard = {"maxEdits": 2, "deletions": {"wdgxyz": ["wdgxy", "wdgx"]}}
     (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -855,7 +836,7 @@ def write_index_with_fuzzy_distance_variants(out_dir: Path) -> str:
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
         },
-        "fuzzy": {"en": {"file": "fuzzy.json", "format": "json"}},
+        "fuzzy": {"en": {"file": "fuzzy.json"}},
     }
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest))
@@ -893,9 +874,8 @@ def write_index_with_fuzzy_length_cap(out_dir: Path) -> str:
     fuzzy_shard = {"maxEdits": 2, "deletions": {"cx": ["cxy", "cxyz"]}}
     (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -905,7 +885,7 @@ def write_index_with_fuzzy_length_cap(out_dir: Path) -> str:
             "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
             "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
         },
-        "fuzzy": {"en": {"file": "fuzzy.json", "format": "json"}},
+        "fuzzy": {"en": {"file": "fuzzy.json"}},
     }
     manifest_path = out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest))
@@ -958,105 +938,6 @@ def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     manifest_path = out_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["shards"]["facets"] = [{"field": "category", "file": "facets/category.json"}]
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_url
-
-
-def write_binary_format_index(out_dir: Path) -> str:
-    """Same three-way shape as write_basic_index/write_index_with_fuzzy, but every shard
-    (term shard, doc-store shard, fuzzy shard) is encoded in the *binary* format via the
-    hand-rolled encoders above, and the manifest's shards.terms[*].format /
-    shards.docs[*].format / fuzzy.<lang>.format are all set to "binary". This exercises
-    search.py's three `if entry.format == "binary"` branches end-to-end through
-    search()/SearchClient, not just the decoders in isolation against hand-built bytes
-    (test_binary_shards.py covers that, but never through search() itself).
-
-    Docs: doc 1 = 'Red Widget', doc 2 = 'Blue Widget'. Terms: 'widget' (both docs, so
-    exact-term and prefix ('wid*') queries both exercise the binary term-shard branch),
-    'red' (doc 1 only). Fuzzy: 'wdget' (missing the 'i') deletes to 'widget' at distance 1,
-    same as write_index_with_fuzzy, so a fuzzy query exercises the binary fuzzy-shard
-    branch too.
-    """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-
-    term_shard = {
-        "widget": {
-            "df": 2,
-            "postings": [
-                {"doc": 1, "fields": {"title": {"tf": 1, "pos": [1], "len": 2}}},
-                {"doc": 2, "fields": {"title": {"tf": 1, "pos": [1], "len": 2}}},
-            ],
-        },
-        "red": {
-            "df": 1,
-            "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 2}}}],
-        },
-    }
-    (out_dir / "terms" / "all.bin").write_bytes(encode_term_shard_binary(term_shard))
-
-    doc_shard = {
-        "1": {"url": "https://example.com/1", "fields": {"title": "Red Widget"}},
-        "2": {"url": "https://example.com/2", "fields": {"title": "Blue Widget"}},
-    }
-    (out_dir / "docs" / "0.bin").write_bytes(encode_doc_store_binary(doc_shard))
-
-    fuzzy_shard = {"maxEdits": 1, "deletions": {"wdget": ["widget"]}}
-    (out_dir / "fuzzy.bin").write_bytes(encode_fuzzy_shard_binary(fuzzy_shard))
-
-    manifest = {
-        "version": 1,
-        "buildId": "test",
-        "format": "binary",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 2.0}},
-        "shards": {
-            "terms": [
-                {
-                    "lang": "en",
-                    "prefix": "all",
-                    "file": "terms/all.bin",
-                    "termCount": 2,
-                    "format": "binary",
-                }
-            ],
-            "docs": [{"shard": 0, "file": "docs/0.bin", "idRange": [1, 2], "format": "binary"}],
-        },
-        "fuzzy": {"en": {"file": "fuzzy.bin", "format": "binary"}},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
-
-
-def write_structured_binary_format_index(out_dir: Path) -> str:
-    """Binary-format search fixture whose doc store uses structured v2 records."""
-    manifest_url = write_binary_format_index(out_dir)
-    doc_shard = {
-        "1": {
-            "url": "https://example.com/1",
-            "externalId": "docs/widgets.md#red",
-            "contentHash": "sha256:red",
-            "metadata": {"headingPath": ["Widgets"], "chunkIndex": 0},
-            "fields": {"title": "Red Widget"},
-        },
-        "2": {
-            "url": "https://example.com/2",
-            "externalId": "docs/widgets.md#blue",
-            "contentHash": "sha256:blue",
-            "metadata": {"headingPath": ["Widgets"], "chunkIndex": 1},
-            "fields": {"title": "Blue Widget"},
-        },
-    }
-    out_dir.joinpath("docs", "0.bin").write_bytes(encode_structured_doc_store_binary(doc_shard))
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["shards"]["docs"][0]["binaryVersion"] = 2
-    manifest["shards"]["docs"][0]["idRange"] = [1, 2]
     manifest_path.write_text(json.dumps(manifest))
     return manifest_url
 
@@ -1128,9 +1009,8 @@ def write_index_with_multi_word_synonym(out_dir: Path) -> str:
         json.dumps({"multiWord": [["new york", "nyc", "big appl"]]})
     )
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},
@@ -1175,9 +1055,8 @@ def write_index_with_multi_word_synonym_literal_absent(out_dir: Path) -> str:
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
     (out_dir / "synonyms.json").write_text(json.dumps({"multiWord": [["new york", "nyc"]]}))
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 1.0, "stored": True}},

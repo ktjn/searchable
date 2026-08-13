@@ -30,8 +30,8 @@ def test_extracted_document_fields():
 
 
 def test_built_index_fields():
-    built = BuiltIndex(manifest={"version": 1}, term_shards={}, doc_store={}, id_range=(0, 0))
-    assert built.manifest["version"] == 1
+    built = BuiltIndex(manifest={"version": 2}, term_shards={}, doc_store={}, id_range=(0, 0))
+    assert built.manifest["version"] == 2
     assert built.id_range == (0, 0)
 
 

@@ -4,9 +4,8 @@ from searchable_client.types import FieldConfig, FieldPosting, Manifest, Posting
 
 def _manifest() -> Manifest:
     return Manifest(
-        version=1,
+        version=2,
         build_id="x",
-        format="json",
         languages=["en"],
         default_language="en",
         fields={"title": FieldConfig(boost=2.0, stored=True)},
@@ -65,9 +64,8 @@ def test_avg_field_length_zero_is_respected():
     """Test that an avg_field_length value of 0.0 (not None) is used, matching TS ?? semantics."""
     # Manifest with title avg_field_length set to 0.0 explicitly
     manifest_with_zero_avg = Manifest(
-        version=1,
+        version=2,
         build_id="x",
-        format="json",
         languages=["en"],
         default_language="en",
         fields={"title": FieldConfig(boost=2.0, stored=True)},
@@ -78,9 +76,8 @@ def test_avg_field_length_zero_is_respected():
     )
     # Manifest without title in avg_field_length (will fall back to field_posting.len)
     manifest_no_avg = Manifest(
-        version=1,
+        version=2,
         build_id="x",
-        format="json",
         languages=["en"],
         default_language="en",
         fields={"title": FieldConfig(boost=2.0, stored=True)},

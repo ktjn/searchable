@@ -5,8 +5,7 @@
     "ignoreUnknown": false,
     "includes": [
       "**",
-      "!benchmark-results",
-      "!spec/fixtures/structured-binary-doc-store"
+      "!benchmark-results"
     ]
   },
   "formatter": {

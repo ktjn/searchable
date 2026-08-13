@@ -47,9 +47,6 @@ export interface PythonWriteOptions {
   maxShardGzipBytes?: number;
   shardByPrefix?: boolean;
   docStoreShardSize?: number;
-  termShardFormat?: "json" | "binary";
-  docStoreFormat?: "json" | "binary";
-  fuzzyShardFormat?: "json" | "binary";
 }
 
 const repoRoot = join(

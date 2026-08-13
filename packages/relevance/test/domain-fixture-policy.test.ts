@@ -35,8 +35,8 @@ describe("committed documentation relevance fixture", () => {
     expect(suite.id).toBe("searchable-docs");
     expect(suite.corpus.kind).toBe("generated-index");
     if (suite.corpus.kind !== "generated-index") throw new Error("unreachable");
-    expect(suite.corpus.pages).toHaveLength(28);
-    expect(suite.queries).toHaveLength(18);
+    expect(suite.corpus.pages).toHaveLength(26);
+    expect(suite.queries).toHaveLength(17);
     expect(new Set(suite.queries.map((query) => query.topic))).toEqual(
       new Set(SEARCHABLE_DOCS_TOPICS),
     );
@@ -52,7 +52,7 @@ describe("committed documentation relevance fixture", () => {
     );
     expect(
       queryWordCounts.filter((count) => count >= 2 && count <= 5),
-    ).toHaveLength(15);
+    ).toHaveLength(14);
     expect(
       queryWordCounts.filter((count) => count >= 6 && count <= 7),
     ).toHaveLength(3);

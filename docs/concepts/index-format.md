@@ -4,18 +4,18 @@ This page defines the implemented JSON-first manifest and shard contract that in
 
 ## Manifest
 
-`manifest.json` has `version: 1`, a content-derived `buildId`, languages and a default language, field configuration, per-language BM25 statistics, and references to physical shards. Optional sections advertise facets, pins, synonyms, and fuzzy dictionaries. The authoritative machine-readable shapes are in [`spec/schema/`](../../spec/schema/).
+`manifest.json` has `version: 2`, a content-derived `buildId`, languages and a default language, field configuration, per-language BM25 statistics, and references to physical shards. Optional sections advertise facets, pins, synonyms, and fuzzy dictionaries. The authoritative machine-readable shapes are in [`spec/schema/`](../../spec/schema/).
 
 Typical output:
 
 ```text
 manifest.json
-terms/<language>/<prefix>.<hash>.json|bin
-docs/<shard>.<hash>.json|bin
+terms/<language>/<prefix>.<hash>.json
+docs/<shard>.<hash>.json
 facets/<field>.<hash>.json
 pins/<language>.<hash>.json
 synonyms/<language>.<hash>.json
-fuzzy/<language>.<hash>.json|bin
+fuzzy/<language>.<hash>.json
 ```
 
 ## Term shard (inverted index)
@@ -28,13 +28,11 @@ Document-store entries contain the result URL and stored fields. Physical shards
 
 ### Doc store shard
 
-Each manifest doc-store entry records its shard number, file, ID range, and optional binary format. Structured binary shards also declare `binaryVersion: 2`; JSON shards and legacy binary v1 shards omit that field.
-
-JSON is supported for every logical shard family. Term, fuzzy, and document-store entries may instead declare `format: "binary"` per manifest entry; a deployment can mix encodings. Facets, pins, and synonyms remain JSON.
+Each manifest doc-store entry records its shard number, file, and ID range.
 
 ## Versioning and cache strategy
 
-All output is deterministic and shard filenames are content hashed. Clients must resolve filenames relative to the manifest, validate `version` before use, reject unsafe shard origins by default, and treat referenced files as immutable. See [Compatibility](../reference/compatibility.md) and [Binary storage](binary-storage.md).
+All output is deterministic and shard filenames are content hashed. Clients must resolve filenames relative to the manifest, validate `version` before use, reject unsafe shard origins by default, and treat referenced files as immutable. See [Compatibility](../reference/compatibility.md).
 
 ## Size targets and sharding tuning
 

@@ -6,5 +6,5 @@
     "rootDir": "src"
   },
   "include": ["src"],
-  "exclude": ["src/sw.ts"]
+  "exclude": []
 }

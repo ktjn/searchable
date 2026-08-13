@@ -96,22 +96,6 @@ def _shard_entries_for_query(
     return result
 
 
-def terms_with_binary_prefix(sorted_terms: list[str], prefix: str) -> list[str]:
-    lo, hi = 0, len(sorted_terms)
-    while lo < hi:
-        mid = (lo + hi) // 2
-        if sorted_terms[mid] < prefix:
-            lo = mid + 1
-        else:
-            hi = mid
-    result: list[str] = []
-    for i in range(lo, len(sorted_terms)):
-        if not sorted_terms[i].startswith(prefix):
-            break
-        result.append(sorted_terms[i])
-    return result
-
-
 def search(
     query: str,
     manifest: Manifest,
@@ -170,24 +154,8 @@ def search(
     )
     term_lookup: dict[str, TermEntry] = {}
     for entry in needed_shard_entries:
-        if entry.format == "binary":
-            from searchable_binary import (
-                decode_binary_term_entry,
-                decode_binary_term_shard_directory,
-            )
-
-            data = cache.fetch_bytes(resolve_url(base_url, entry.file))
-            sorted_terms, index, dir_len = decode_binary_term_shard_directory(data)
-            terms_to_decode: set[str] = {t for t in exact_terms_needed if t in index}
-            for p in prefixes_needed:
-                terms_to_decode.update(terms_with_binary_prefix(sorted_terms, p))
-            for term in terms_to_decode:
-                location = index.get(term)
-                if location:
-                    term_lookup[term] = decode_binary_term_entry(data, dir_len, location[0])
-        else:
-            shard = term_shard_from_dict(cache.fetch_json(resolve_url(base_url, entry.file)))
-            term_lookup.update(shard)
+        shard = term_shard_from_dict(cache.fetch_json(resolve_url(base_url, entry.file)))
+        term_lookup.update(shard)
 
     # Matching is over *distinct query term slots*: build one doc-id set per
     # query term, merging all prefix-matched entries for that slot with OR

@@ -22,7 +22,7 @@ describe("writePythonIndex", () => {
     }
   });
 
-  it("passes build/write options through (fuzzy + binary doc store)", async () => {
+  it("passes build/write options through (fuzzy)", async () => {
     const { outDir, cleanup } = await writePythonIndex(
       [
         {
@@ -32,14 +32,12 @@ describe("writePythonIndex", () => {
         },
       ],
       { fuzzy: true },
-      { docStoreFormat: "binary" },
     );
     try {
       const manifest = JSON.parse(
         await readFile(join(outDir, "manifest.json"), "utf8"),
       );
       expect(manifest.fuzzy).toBeDefined();
-      expect(manifest.shards.docs[0].format).toBe("binary");
     } finally {
       await cleanup();
     }

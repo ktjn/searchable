@@ -16,6 +16,10 @@ is explicitly marked experimental and may change in a minor release.
 
 ## [Unreleased]
 
+### Removed
+
+- Service Worker offline caching (`registerOfflineCaching`, `@ktjn/searchable-client/sw`) — removed in 2.0.
+
 ### Added
 
 ### Changed

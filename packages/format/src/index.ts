@@ -15,9 +15,8 @@ export interface FieldConfig {
 }
 
 export interface Manifest {
-  version: 1;
+  version: 2;
   buildId: string;
-  format: "json" | "binary";
   languages: string[];
   defaultLanguage: string;
   fields: Record<string, FieldConfig>;
@@ -39,58 +38,20 @@ export interface Manifest {
       prefix: string;
       file: string;
       termCount: number;
-      /**
-       * Per-shard physical encoding (docs/archive/specs/binary-format.md#manifest-integration):
-       * `"binary"` for the directory-based delta+varint encoding
-       * (docs/concepts/binary-storage.md's validated design), absent or
-       * `"json"` for the plain JSON shape every other shard type uses.
-       * Declared per shard, not globally, so a deployment can mix both
-       * during migration — a client must check this per entry, not
-       * assume every term shard in a manifest shares one format.
-       */
-      format?: "json" | "binary";
     }>;
     facets?: Array<{ field: string; file: string }>;
     docs: Array<{
       shard: number;
       file: string;
       idRange: [number, number];
-      /**
-       * Per-shard physical encoding, same allowance and same meaning as
-       * the term shard entry's `format` field above
-       * (docs/archive/specs/binary-format.md#manifest-integration) — a
-       * directory-based `docId -> (byte offset, byte length)` encoding
-       * (`python/searchable-binary/src/searchable_binary/doc_store.py`,
-       * `packages/client/src/binary-doc-store.ts`) in place of the plain
-       * JSON `Record<docId, DocStoreEntry>` shape, so a query only ever
-       * decodes the specific hit ids it needs instead of the whole doc
-       * store.
-       */
-      format?: "json" | "binary";
-      /** Structured binary document-store wire version; absent for JSON and v1 shards. */
-      binaryVersion?: number;
     }>;
   };
   /** lang -> pins shard file, only present for languages with at least one searchable-pin. */
   pins?: Record<string, string>;
   /** lang -> synonyms shard file, only present for languages with an authored synonym set. */
   synonyms?: Record<string, string>;
-  /**
-   * lang -> fuzzy shard, only present for languages with a built deletion
-   * dictionary. An object (not a bare file-string like `pins`/`synonyms`
-   * above) because `format` needs somewhere to live: a directory-based
-   * `deletionVariant -> (byte offset, byte length)` encoding
-   * (`python/searchable-binary/src/searchable_binary/fuzzy_shard.py`,
-   * `packages/client/src/binary-fuzzy-shard.ts`) is available here, since
-   * a fuzzy dictionary can be as large as the term vocabulary itself
-   * (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching) but a query
-   * only ever looks up a handful of specific deletion-variant keys —
-   * the same "large dictionary, few keys touched per query" shape that
-   * already justified the term shard's binary tier. `pins`/`synonyms`
-   * stay plain file-strings above: both are small, author-curated data
-   * with no binary encoding built (or currently justified) for them.
-   */
-  fuzzy?: Record<string, { file: string; format?: "json" | "binary" }>;
+  /** lang -> fuzzy shard, only present for languages with a built deletion dictionary. */
+  fuzzy?: Record<string, { file: string }>;
 }
 
 export interface FieldPosting {

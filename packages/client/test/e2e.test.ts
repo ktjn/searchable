@@ -323,7 +323,7 @@ describe("manifest validation (real HTTP)", () => {
     await Promise.all([
       writeFile(
         join(outDir, "bad-manifest.json"),
-        JSON.stringify({ version: 2, format: "json" }),
+        JSON.stringify({ version: 1 }),
         "utf8",
       ),
       writeFile(

@@ -42,8 +42,7 @@ when backporting is trivial, at the maintainer's discretion.
 
 ## Scope
 
-- **Browser runtime**: the TypeScript client, its Web Worker, and the offline
-  Service Worker (`packages/client`) — manifest validation, cancellation,
+- **Browser runtime**: the TypeScript client and its Web Worker (`packages/client`) — manifest validation, cancellation,
   worker lifecycle, and cache handling.
 - **Index format**: the over-HTTP `Manifest` contract and the JSON/binary
   shard codecs (`Manifest.version` `1`).

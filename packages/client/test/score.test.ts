@@ -3,9 +3,8 @@ import { describe, expect, it } from "vitest";
 import { scoreTermForDoc } from "../src/score.js";
 
 const manifest: Manifest = {
-  version: 1,
+  version: 2,
   buildId: "test",
-  format: "json",
   languages: ["en"],
   defaultLanguage: "en",
   fields: {

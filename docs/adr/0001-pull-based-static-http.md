@@ -19,8 +19,7 @@ The indexer runs offline and emits an immutable, content-hashed set of
 static files (manifest + shards, [concepts/index-format.md](../concepts/index-format.md)).
 The browser runtime (`@ktjn/searchable-client`) only ever issues plain `fetch()` GET
 requests against whatever static host serves those files, lazily
-fetching just the shards a given query touches
-([guides/offline-search.md](../guides/offline-search.md)). There
+fetching just the shards a given query touches. There
 is no query-time write path, no server-side logic, and no protocol
 beyond HTTP GET + standard cache headers.
 

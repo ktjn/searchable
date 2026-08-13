@@ -10,7 +10,6 @@ Core properties:
 
 - search data is open, deterministic, and independently producible;
 - network and computation costs are paid by the static build and browser, not a search service;
-- JSON is the default storage format, with binary encodings available for measured hot paths;
 - the same public API works on the main thread or in a Web Worker;
 - optional feature data is loaded only when needed.
 

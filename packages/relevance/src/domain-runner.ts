@@ -26,10 +26,6 @@ export async function readGeneratedPageInventory(
     JSON.parse(await readFile(join(indexDirectory, "manifest.json"), "utf8")),
     "generated manifest",
   );
-  if (manifest.format !== "json")
-    throw new Error(
-      "Generated documentation index must use JSON document shards",
-    );
   const shards = record(manifest.shards, "generated manifest.shards");
   if (!Array.isArray(shards.docs))
     throw new Error("generated manifest.shards.docs must be an array");

@@ -47,10 +47,6 @@
         "title": "Architecture"
       },
       {
-        "id": "/docs/concepts/binary-storage.html",
-        "title": "Binary storage"
-      },
-      {
         "id": "/docs/concepts/index-format.html",
         "title": "Index format"
       },
@@ -77,10 +73,6 @@
       {
         "id": "/docs/guides/internationalization.html",
         "title": "Internationalization"
-      },
-      {
-        "id": "/docs/guides/offline-search.html",
-        "title": "Offline search"
       },
       {
         "id": "/docs/guides/pinning.html",
@@ -269,12 +261,10 @@
       "text": "offline search caching",
       "topic": "offline-worker",
       "judgments": {
-        "/docs/guides/offline-search.html": 3,
         "/docs/reference/client-api.html": 2,
         "/docs/concepts/architecture.html": 1
       },
       "rationales": {
-        "/docs/guides/offline-search.html": "Directly explains Service Worker registration, precaching, and offline cache modes.",
         "/docs/reference/client-api.html": "Documents the offline caching registration API and its options.",
         "/docs/concepts/architecture.html": "Provides supporting context for immutable index files and browser-side execution."
       }
@@ -307,19 +297,6 @@
         "/docs/concepts/index-format.html": "Directly describes the manifest and each shard family.",
         "/docs/concepts/architecture.html": "Shows how the index artifacts move between indexer, host, and client.",
         "/docs/adr/0002-json-first-index-format.html": "Explains the design decision behind the default JSON shard format."
-      }
-    },
-    {
-      "id": "binary-download-size",
-      "text": "binary index download size",
-      "topic": "indexing-deployment",
-      "judgments": {
-        "/docs/concepts/binary-storage.html": 3,
-        "/docs/concepts/index-format.html": 2
-      },
-      "rationales": {
-        "/docs/concepts/binary-storage.html": "Directly explains supported binary codecs, trade-offs, and measured size evidence.",
-        "/docs/concepts/index-format.html": "Shows which manifest and shard entries select binary storage."
       }
     },
     {

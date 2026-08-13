@@ -1,24 +1,37 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-# The binary container types live with the shared codec
-# (python/searchable-binary) so the reader, the writer, and this JSON-side
-# parser all agree on one shape; re-exported here so the public names are
-# unchanged.
-from searchable_binary.types import (
-    DocStoreEntry as DocStoreEntry,
-)
-from searchable_binary.types import (
-    FieldPosting as FieldPosting,
-)
-from searchable_binary.types import (
-    Posting as Posting,
-)
-from searchable_binary.types import (
-    TermEntry as TermEntry,
-)
-
 from searchable_client.highlight import HighlightSpan
+
+
+@dataclass(frozen=True)
+class FieldPosting:
+    tf: int
+    pos: list[int]
+    len: int
+
+
+@dataclass(frozen=True)
+class Posting:
+    doc: int
+    fields: dict[str, FieldPosting]
+    boost: float | None = None
+
+
+@dataclass(frozen=True)
+class TermEntry:
+    df: int
+    postings: list[Posting]
+
+
+@dataclass(frozen=True)
+class DocStoreEntry:
+    url: str
+    fields: dict[str, str]
+    boost: float | None = None
+    external_id: str | None = None
+    metadata: dict[str, Any] | None = None
+    content_hash: str | None = None
 
 DEFAULT_SYNONYM_WEIGHT = 0.5
 DEFAULT_FUZZY_WEIGHT = 0.5
@@ -37,7 +50,6 @@ class TermShardEntry:
     prefix: str
     file: str
     term_count: int
-    format: str | None = None
 
 
 @dataclass(frozen=True)
@@ -45,8 +57,6 @@ class DocsShardEntry:
     shard: int
     file: str
     id_range: tuple[int, int]
-    format: str | None = None
-    binary_version: int | None = None
 
 
 @dataclass(frozen=True)
@@ -58,14 +68,12 @@ class FacetShardEntry:
 @dataclass(frozen=True)
 class FuzzyManifestEntry:
     file: str
-    format: str | None = None
 
 
 @dataclass(frozen=True)
 class Manifest:
     version: int
     build_id: str
-    format: str
     languages: list[str]
     default_language: str
     fields: dict[str, FieldConfig]
@@ -82,7 +90,6 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
     return Manifest(
         version=data["version"],
         build_id=data["buildId"],
-        format=data["format"],
         languages=list(data["languages"]),
         default_language=data["defaultLanguage"],
         fields={
@@ -101,7 +108,6 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
                 prefix=t["prefix"],
                 file=t["file"],
                 term_count=t.get("termCount", 0),
-                format=t.get("format"),
             )
             for t in shards.get("terms", [])
         ],
@@ -110,8 +116,6 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
                 shard=d["shard"],
                 file=d["file"],
                 id_range=(d["idRange"][0], d["idRange"][1]),
-                format=d.get("format"),
-                binary_version=d.get("binaryVersion"),
             )
             for d in shards.get("docs", [])
         ],
@@ -122,7 +126,7 @@ def manifest_from_dict(data: dict[str, Any]) -> Manifest:
         synonyms=dict(data["synonyms"]) if data.get("synonyms") is not None else None,
         fuzzy=(
             {
-                lang: FuzzyManifestEntry(file=v["file"], format=v.get("format"))
+                lang: FuzzyManifestEntry(file=v["file"])
                 for lang, v in data["fuzzy"].items()
             }
             if data.get("fuzzy") is not None

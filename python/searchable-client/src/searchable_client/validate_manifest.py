@@ -60,8 +60,8 @@ def _check_term_shards_strict(terms: object, languages: list[str]) -> None:
             _fail(f"{context}: duplicate (lang, prefix) pair ({lang}, {prefix!r})")
         seen.add(key)
         fmt = entry.get("format")
-        if fmt is not None and fmt not in ("json", "binary"):
-            _fail(f'{context}.format must be absent, "json", or "binary"')
+        if fmt is not None:
+            _fail(f"{context}.format is no longer supported in v2 manifests")
 
 
 def _check_id_range(id_range: object, context: str) -> None:
@@ -102,10 +102,8 @@ def validate_manifest(
 ) -> Manifest:
     if not isinstance(data, dict):
         _fail("must be a JSON object")
-    if data.get("version") != 1:
-        _fail(f"unsupported version {data.get('version')!r} (expected 1)")
-    if data.get("format") not in ("json", "binary"):
-        _fail(f'format must be "json" or "binary", got {data.get("format")!r}')
+    if data.get("version") != 2:
+        _fail(f"unsupported version {data.get('version')!r} (expected 2)")
     languages = data.get("languages")
     if not (
         isinstance(languages, list)

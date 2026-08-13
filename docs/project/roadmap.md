@@ -11,7 +11,6 @@ This page is the single current list of shipped capability and remaining work; d
 | Facets, synonyms, fuzzy search, and pins | Stable; a reviewed domain corpus (`gutenberg-fiction-facets`) now exercises terms and range facet filtering under judged relevance | No required 1.0 work; facet counts (`facetValues()`) remain outside judged relevance coverage |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
 | Offline and worker execution | Removed in 2.0 | Searchable 2.0 removes Worker execution; main-thread only. Service Worker support is also removed. See [2.0 simplification plan](../plans/2026-08-13-searchable-2.0-simplification.md) |
-| Binary storage | Removed in 2.0 | Searchable 2.0 removes general binary index formats; JSON is the only supported index representation. See [2.0 simplification plan](../plans/2026-08-13-searchable-2.0-simplification.md) |
 | Vector and hybrid search | Removed in 2.0 | Searchable 2.0 removes vector indexing, hybrid fusion, and embedding integration. See [2.0 simplification plan](../plans/2026-08-13-searchable-2.0-simplification.md) |
 | Performance and scale | One reviewed CMS-2k Chromium main-thread lexical vertical baseline with raw JSON evidence | Broader sizes, browsers, execution modes, query classes, operating guidance, and CI comparison |
 | Extensibility and diagnostics | Draft designs archived | Implement only with a concrete consumer |
@@ -20,7 +19,7 @@ This page is the single current list of shipped capability and remaining work; d
 
 - Expand relevance coverage beyond the documentation, learner-driving, German driving-license-law, and Gutenberg faceted-fiction domains — now spanning English and German, and now including judged-relevance coverage of terms and range facet filtering — with broader judged sets and real query evidence before defining thresholds or making production-scale claims. Real query evidence is now partially addressed for one suite: `govuk-learn-to-drive@1.1.0` adds 8 queries sourced from Google's public autocomplete suggestion endpoint as a real-search-language proxy (see [Relevance baselines](relevance-baselines.md)). This is not full production query-log evidence — GOV.UK does not publish query logs, and no equivalent source is currently available — and it remains open for the documentation, German, and Gutenberg suites, and for a more rigorous real-log source if one ever becomes available.
 - Expand full language profiles only with representative corpora, analyzer fixtures, relevance queries, and cross-implementation conformance tests.
-- Modelable's static Playground is an active consumer: it uses JSON document shards. The structured binary v2 plan is superseded by 2.0; see [`docs/plans/2026-07-31-structured-binary-document-store.md`](../plans/2026-07-31-structured-binary-document-store.md) for history.
+- Modelable's static Playground is an active consumer: it uses JSON document shards.
 - Make ranking parameters configurable only with stable defaults and manifest-recorded configuration so results remain reproducible.
 - Add prominent guidance that every generated index artifact is public data and must not contain restricted content.
 

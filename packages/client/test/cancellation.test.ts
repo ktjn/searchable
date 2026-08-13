@@ -4,8 +4,7 @@ import { SearchClient } from "../src/client.js";
 const INDEX_URL = "https://example.com/index/manifest.json";
 
 const VALID_MANIFEST = {
-  version: 1,
-  format: "json",
+  version: 2,
   languages: ["en"],
   defaultLanguage: "en",
   fields: {},

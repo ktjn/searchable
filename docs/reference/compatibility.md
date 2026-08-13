@@ -8,7 +8,7 @@ This reference distinguishes package-version promises from index-format compatib
 
 The index generator, `searchable-indexer` (`python/searchable-indexer`), is a Python project versioned and released independently of the npm packages above; see its own project for its compatibility posture.
 
-The planned public package API is the export surface in each package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered. Binary storage is implemented but identified as experimental in the prepared `1.0.0` changelog, so it may evolve in a minor release with explicit notes after publication.
+The planned public package API is the export surface in each package's root entry point. `@ktjn/searchable-fixtures` is internal test tooling and is not covered.
 
 ## Index format compatibility
 
@@ -21,8 +21,7 @@ The over-HTTP index has an independent integer `Manifest.version`, currently `1`
 Content hashes and `buildId` identify a build, not a compatibility level. The producer should validate output against `spec/schema/` and the reference examples in `spec/examples/`. See ADR-0004 through [Architecture decisions](../project/architecture-decisions.md).
 
 `searchable-client` (Python) is a second consumer of this contract, alongside
-`@ktjn/searchable-client` (TypeScript). The structured binary v2 tests exercise
-the real Python indexer output in both clients.
+`@ktjn/searchable-client` (TypeScript).
 
 ## Language codes
 

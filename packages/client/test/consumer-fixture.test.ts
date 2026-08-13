@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -28,11 +27,5 @@ describe("package.json exports (consumer-fixture)", () => {
     expect(existsSync(resolved)).toBe(true);
     const mod = await import("@ktjn/searchable-client");
     expect(typeof mod.SearchClient).toBe("function");
-  });
-
-  it("resolves the ./sw subpath to a real, existing file", () => {
-    const resolved = require.resolve("@ktjn/searchable-client/sw");
-    expect(resolved.endsWith(join("dist", "sw.js"))).toBe(true);
-    expect(existsSync(resolved)).toBe(true);
   });
 });

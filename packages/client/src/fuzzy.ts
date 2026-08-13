@@ -1,9 +1,5 @@
 import { generateDeletes, ownProp } from "@ktjn/searchable-analysis";
 import type { FuzzyShard, Manifest } from "@ktjn/searchable-format";
-import {
-  decodeBinaryFuzzyEntry,
-  decodeBinaryFuzzyShardDirectory,
-} from "./binary-fuzzy-shard.js";
 import type { ShardCache } from "./fetch-json.js";
 import { resolve } from "./url.js";
 
@@ -32,13 +28,7 @@ function levenshteinDistance(a: string, b: string): number {
 /**
  * A fuzzy dictionary lookup, abstracting over whether the shard behind
  * it is a plain JSON `FuzzyShard` (already fully in memory, `get()` is a
- * direct property read) or a binary shard (`./binary-fuzzy-shard.js`,
- * `get()` lazily decodes just the requested deletion-variant's entry
- * from an already-fetched byte buffer) — every caller below only ever
- * needs a handful of specific variant keys per query
- * (`generateDeletes()`'s expansion of the query terms actually typed),
- * never the whole dictionary, so this is the same "decode only what a
- * query touches" property the binary term shard tier already relies on.
+ * direct property read).
  */
 interface FuzzyLookup {
   maxEdits: 1 | 2;
@@ -157,11 +147,7 @@ export function nearestTermsFor(
 
 /**
  * Resolves `language`'s fuzzy shard, if the manifest has one, into a
- * `FuzzyLookup` -- a JSON shard is fetched and fully parsed up front (as
- * before), a binary shard fetches+decodes only its directory here, then
- * decodes individual deletion-variant entries lazily as `get()` is
- * called during clause resolution below, from the same already-fetched
- * byte buffer (`ShardCache` memoizes the fetch itself).
+ * `FuzzyLookup`.
  */
 export async function loadFuzzyLookup(
   manifest: Manifest,
@@ -171,23 +157,6 @@ export async function loadFuzzyLookup(
 ): Promise<FuzzyLookup | undefined> {
   const entry = manifest.fuzzy && ownProp(manifest.fuzzy, language);
   if (!entry) return undefined;
-  if (entry.format === "binary") {
-    const bytes = await cache.fetchArrayBuffer(resolve(baseUrl, entry.file));
-    const directory = decodeBinaryFuzzyShardDirectory(bytes);
-    return {
-      maxEdits: directory.maxEdits,
-      get: (variant) => {
-        const location = directory.index.get(variant);
-        return location
-          ? decodeBinaryFuzzyEntry(
-              bytes,
-              directory.directoryByteLength,
-              location.offset,
-            )
-          : [];
-      },
-    };
-  }
   const shard = await cache.fetchJson<FuzzyShard>(resolve(baseUrl, entry.file));
   return {
     maxEdits: shard.maxEdits,

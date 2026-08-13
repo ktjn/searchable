@@ -103,7 +103,7 @@ human-readable summary.
 ## Differences from the TypeScript client
 
 - No Worker or browser execution — the Python client only runs directly, synchronously, in the host process.
-- No Service Worker offline caching.
+- No offline caching support.
 - No built-in embedding model or CLI semantic mode.
 - No `AbortSignal`/cancellation support.
 - No `on()` lifecycle events — there is no query/result event API to subscribe to.

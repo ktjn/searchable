@@ -6,10 +6,8 @@ import { gzipSync } from "node:zlib";
 
 /**
  * Bundle-size CI gate for @ktjn/searchable-client (docs/project/governance.md#performance-policy,
- * docs/project/roadmap.md Phase 6). Checks the entry points a consumer
- * actually loads -- the main-thread bundle and the opt-in offline
- * Service Worker bundle -- against a fixed
- * gzipped-size budget, so a dependency creep or an
+ * docs/project/roadmap.md Phase 6). Checks the main-thread entry point
+ * against a fixed gzipped-size budget, so a dependency creep or an
  * accidentally-unshaken import shows up as a failing CI check, not a
  * bundle-size regression nobody notices until a user complains.
  *
@@ -25,7 +23,7 @@ const distDir = join(__dirname, "..", "dist");
 
 const BUDGET_BYTES = 15 * 1024; // 15 KB gzipped, matching the "@ktjn/searchable-client core" row in docs/reference/client-api.md
 
-const ARTIFACTS = ["index.js", "sw.js"];
+const ARTIFACTS = ["index.js"];
 
 let failed = false;
 for (const name of ARTIFACTS) {

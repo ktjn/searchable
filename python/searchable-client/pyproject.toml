@@ -5,7 +5,6 @@ description = "Dependency-light Python search client for Searchable with lexical
 requires-python = ">=3.10"
 dependencies = [
     "searchable-analysis",
-    "searchable-binary",
 ]
 
 [project.scripts]
@@ -20,7 +19,6 @@ packages = ["src/searchable_client"]
 
 [tool.uv.sources]
 searchable-analysis = { path = "../searchable-analysis", editable = true }
-searchable-binary = { path = "../searchable-binary", editable = true }
 
 [dependency-groups]
 dev = ["pytest>=8.0.0", "ruff>=0.8.0", "mypy>=1.13.0"]

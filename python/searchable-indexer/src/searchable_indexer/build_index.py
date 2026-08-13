@@ -414,9 +414,8 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
     }
 
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "format": "json",
         "languages": languages,
         "defaultLanguage": config.default_language,
         "fields": manifest_fields,

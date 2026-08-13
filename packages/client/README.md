@@ -2,8 +2,7 @@
 
 Browser runtime for Searchable. It fetches a static index manifest and its
 content-addressed shards over HTTP, evaluates queries locally, and returns
-ranked hits. The package also provides dedicated Web Worker and Service Worker
-entry points.
+ranked hits. The package also provides a dedicated Web Worker entry point.
 
 > Published to GitHub Packages from `v*` release tags. Configure
 > `@ktjn:registry=https://npm.pkg.github.com` before installing.

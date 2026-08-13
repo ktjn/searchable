@@ -62,13 +62,6 @@ function checkTermShardsStrict(
       );
     }
     seen.add(key);
-    if (
-      e.format !== undefined &&
-      e.format !== "json" &&
-      e.format !== "binary"
-    ) {
-      fail(`${context}.format must be absent, "json", or "binary"`);
-    }
   });
 }
 
@@ -166,11 +159,8 @@ export function validateManifest(
   }
   const m = data as Record<string, unknown>;
 
-  if (m.version !== 1) {
-    fail(`unsupported version ${JSON.stringify(m.version)} (expected 1)`);
-  }
-  if (m.format !== "json" && m.format !== "binary") {
-    fail(`format must be "json" or "binary", got ${JSON.stringify(m.format)}`);
+  if (m.version !== 2) {
+    fail(`unsupported version ${JSON.stringify(m.version)} (expected 2)`);
   }
   if (
     !Array.isArray(m.languages) ||

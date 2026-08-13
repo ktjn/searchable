@@ -8,9 +8,8 @@ const MANIFEST_URL = "https://cdn.example.com/search-index/manifest.json";
 
 function validManifest(): Record<string, unknown> {
   return {
-    version: 1,
+    version: 2,
     buildId: "test",
-    format: "json",
     languages: ["en"],
     defaultLanguage: "en",
     fields: { title: { boost: 3, stored: true } },
@@ -41,15 +40,10 @@ describe("validateManifest", () => {
   });
 
   it("rejects an unsupported version", () => {
-    const manifest = { ...validManifest(), version: 2 };
+    const manifest = { ...validManifest(), version: 1 };
     expect(() => validateManifest(manifest, MANIFEST_URL)).toThrow(
       /unsupported version/,
     );
-  });
-
-  it("rejects an invalid format", () => {
-    const manifest = { ...validManifest(), format: "xml" };
-    expect(() => validateManifest(manifest, MANIFEST_URL)).toThrow(/format/);
   });
 
   it("rejects an empty languages array", () => {
@@ -219,14 +213,14 @@ describe("validateManifest: strict mode", () => {
     ).toThrow(/duplicate \(lang, prefix\) pair/);
   });
 
-  it("rejects an unrecognized term shard format value", () => {
+  it("accepts a term shard without a format field in strict mode", () => {
     const manifest = validManifest();
     (manifest.shards as { terms: Array<Record<string, unknown>> }).terms = [
-      { lang: "en", prefix: "all", file: "terms/en/all.json", format: "xml" },
+      { lang: "en", prefix: "all", file: "terms/en/all.json" },
     ];
     expect(() =>
       validateManifest(manifest, MANIFEST_URL, { strict: true }),
-    ).toThrow(/format must be absent, "json", or "binary"/);
+    ).not.toThrow();
   });
 
   it("rejects a docs shard idRange that isn't a two-number tuple", () => {

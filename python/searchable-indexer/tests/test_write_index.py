@@ -23,7 +23,7 @@ def test_writes_manifest_json_and_it_is_valid_json(tmp_path: Path):
     manifest_path = tmp_path / "manifest.json"
     assert manifest_path.exists()
     manifest = json.loads(manifest_path.read_text())
-    assert manifest["version"] == 1
+    assert manifest["version"] == 2
     assert manifest["shards"]["terms"]
     assert manifest["shards"]["docs"]
 
@@ -81,8 +81,6 @@ def test_structured_doc_store_can_be_written_as_binary(tmp_path: Path):
 
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     docs_entry = manifest["shards"]["docs"][0]
-    assert docs_entry["format"] == "binary"
-    assert docs_entry["binaryVersion"] == 2
     assert (tmp_path / docs_entry["file"]).read_bytes().startswith(b"SDOC\x02")
 
 
@@ -195,7 +193,6 @@ def test_term_shard_format_binary_writes_bin_files_and_marks_manifest(tmp_path):
     write_index(built, str(tmp_path), term_shard_format="binary")
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     term_entry = manifest["shards"]["terms"][0]
-    assert term_entry["format"] == "binary"
     assert term_entry["file"].endswith(".bin")
     term_file = tmp_path / term_entry["file"]
     assert term_file.exists()
@@ -213,7 +210,6 @@ def test_doc_store_format_binary_writes_bin_files_and_marks_manifest(tmp_path):
     write_index(built, str(tmp_path), doc_store_format="binary")
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     docs_entry = manifest["shards"]["docs"][0]
-    assert docs_entry["format"] == "binary"
     assert docs_entry["file"].endswith(".bin")
     assert (tmp_path / docs_entry["file"]).exists()
 
@@ -223,7 +219,6 @@ def test_fuzzy_shard_format_binary_writes_bin_files_and_marks_manifest(tmp_path)
     write_index(built, str(tmp_path), fuzzy_shard_format="binary")
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     fuzzy_entry = manifest["fuzzy"]["en"]
-    assert fuzzy_entry["format"] == "binary"
     assert fuzzy_entry["file"].endswith(".bin")
     assert (tmp_path / fuzzy_entry["file"]).exists()
 
@@ -259,8 +254,7 @@ def test_binary_doc_store_is_supported_for_structured_index(tmp_path):
     write_index(built, str(tmp_path), doc_store_format="binary")
     manifest = json.loads((tmp_path / "manifest.json").read_text())
     docs_entry = manifest["shards"]["docs"][0]
-    assert docs_entry["format"] == "binary"
-    assert docs_entry["binaryVersion"] == 2
+    assert (tmp_path / docs_entry["file"]).read_bytes().startswith(b"SDOC\x02")
 
 
 def test_binary_doc_store_still_allowed_for_legacy_index(tmp_path):

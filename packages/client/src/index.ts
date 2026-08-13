@@ -6,8 +6,6 @@ export type {
 } from "./client.js";
 export { SearchClient } from "./client.js";
 export type { HighlightSpan, HighlightTerm } from "./highlight.js";
-export type { OfflineCacheOptions } from "./offline.js";
-export { registerOfflineCaching } from "./offline.js";
 export type {
   FacetResult,
   FacetResultValue,

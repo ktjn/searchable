@@ -77,9 +77,8 @@ def main():
     ids = [d["id"] for d in docs]
 
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": datetime.now(timezone.utc).isoformat(),
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {

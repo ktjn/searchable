@@ -25,9 +25,8 @@ def _write_structured_index(out_dir: Path) -> str:
         '"contentHash": "sha256:two"}}'
     )
     manifest = {
-        "version": 1,
+        "version": 2,
         "buildId": "structured-test",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"body": {"indexed": True, "stored": True, "boost": 1.0}},

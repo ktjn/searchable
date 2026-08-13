@@ -3,9 +3,8 @@ from searchable_client.types import manifest_from_dict
 
 def test_manifest_from_dict_maps_camel_case_to_snake_case():
     data = {
-        "version": 1,
+        "version": 2,
         "buildId": "abc123",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {"title": {"boost": 2.0, "stored": True}},
@@ -32,9 +31,8 @@ def test_manifest_from_dict_maps_camel_case_to_snake_case():
 
 def test_manifest_from_dict_reads_optional_pins_synonyms_fuzzy():
     data = {
-        "version": 1,
+        "version": 2,
         "buildId": "x",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {},
@@ -43,21 +41,19 @@ def test_manifest_from_dict_reads_optional_pins_synonyms_fuzzy():
         "shards": {"terms": [], "docs": []},
         "pins": {"en": "pins/en.json"},
         "synonyms": {"en": "synonyms/en.json"},
-        "fuzzy": {"en": {"file": "fuzzy/en.json", "format": "json"}},
+        "fuzzy": {"en": {"file": "fuzzy/en.json"}},
     }
     manifest = manifest_from_dict(data)
     assert manifest.pins == {"en": "pins/en.json"}
     assert manifest.synonyms == {"en": "synonyms/en.json"}
     assert manifest.fuzzy is not None
     assert manifest.fuzzy["en"].file == "fuzzy/en.json"
-    assert manifest.fuzzy["en"].format == "json"
 
 
 def _base_manifest(fields: dict) -> dict:
     return {
-        "version": 1,
+        "version": 2,
         "buildId": "2026-01-01T00:00:00Z",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": fields,

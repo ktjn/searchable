@@ -17,7 +17,6 @@ Searchable builds a static search index ahead of time and searches it in the bro
 - Query-time synonyms and editorial term-to-page pins
 - English, German, Swedish, Dutch, Bokmål, and Nynorsk analysis plus fallback segmenters for CJK and Southeast Asian scripts
 - Cancellation, streaming partial results, highlighting, and lifecycle events
-- Service Worker caching for offline search
 - Optional binary term, fuzzy, and document-store shards
 
 ## Public preview

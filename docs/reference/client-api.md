@@ -48,4 +48,4 @@ Both event payloads carry an *isolated mutable snapshot* of the search options: 
 
 ## Other exports
 
-The package exports highlighting types, manifest validation (`validateManifest`, `InvalidManifestError`), offline caching (`registerOfflineCaching`), and RTL detection. The complete type declarations shipped with the package are the normative API. Designs for warm-up, suggestions, federation, and broader diagnostics are archived and linked from the [roadmap](../project/roadmap.md).
+The package exports highlighting types, manifest validation (`validateManifest`, `InvalidManifestError`), and RTL detection. The complete type declarations shipped with the package are the normative API. Designs for warm-up, suggestions, federation, and broader diagnostics are archived and linked from the [roadmap](../project/roadmap.md).

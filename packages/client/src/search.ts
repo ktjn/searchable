@@ -10,11 +10,6 @@ import type {
   TermEntry,
   TermShard,
 } from "@ktjn/searchable-format";
-import {
-  decodeBinaryTermEntry,
-  decodeBinaryTermShardDirectory,
-  termsWithBinaryPrefix,
-} from "./binary-term-shard.js";
 import { fetchDocStoreEntriesByIds } from "./doc-store.js";
 import { fetchFacetShards, unionDocsForField, valuesFor } from "./facets.js";
 import type { ShardCache } from "./fetch-json.js";
@@ -239,7 +234,7 @@ const UNSHARDED_TERM_SHARD_PREFIX = "all";
  * (rather than every shard for the language, regardless of which terms
  * a query actually mentions) is the whole point of prefix sharding:
  * first-query cost stays flat as the corpus grows instead of scaling
- * with total vocabulary size (docs/concepts/binary-storage.md).
+ * with total vocabulary size.
  */
 function shardEntriesForQuery(
   shardEntries: Manifest["shards"]["terms"],
@@ -348,37 +343,11 @@ async function lexicalSearch(
   const termLookup = new Map<string, TermEntry>();
   await Promise.all(
     neededShardEntries.map(async (entry) => {
-      if (entry.format === "binary") {
-        // Binary directories expose per-term offsets, so decode only matched entries.
-        const bytes = await cache.fetchArrayBuffer(
-          resolve(baseUrl, entry.file),
-        );
-        const { sortedTerms, index, directoryByteLength } =
-          decodeBinaryTermShardDirectory(bytes);
-        const termsToDecode = new Set<string>();
-        for (const term of exactTermsNeeded) {
-          if (index.has(term)) termsToDecode.add(term);
-        }
-        for (const p of prefixesNeeded) {
-          for (const term of termsWithBinaryPrefix(sortedTerms, p)) {
-            termsToDecode.add(term);
-          }
-        }
-        for (const term of termsToDecode) {
-          const location = index.get(term);
-          if (!location) continue;
-          termLookup.set(
-            term,
-            decodeBinaryTermEntry(bytes, directoryByteLength, location.offset),
-          );
-        }
-      } else {
-        const shard = await cache.fetchJson<TermShard>(
-          resolve(baseUrl, entry.file),
-        );
-        for (const [term, e] of Object.entries(shard)) {
-          termLookup.set(term, e);
-        }
+      const shard = await cache.fetchJson<TermShard>(
+        resolve(baseUrl, entry.file),
+      );
+      for (const [term, e] of Object.entries(shard)) {
+        termLookup.set(term, e);
       }
     }),
   );

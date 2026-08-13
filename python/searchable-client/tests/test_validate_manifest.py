@@ -7,9 +7,8 @@ BASE = "http://example.com/idx/manifest.json"
 
 def _valid_manifest(**overrides) -> dict:
     data = {
-        "version": 1,
+        "version": 2,
         "buildId": "x",
-        "format": "json",
         "languages": ["en"],
         "defaultLanguage": "en",
         "fields": {},
@@ -31,7 +30,7 @@ def test_valid_manifest_passes():
 
 def test_rejects_wrong_version():
     with pytest.raises(InvalidManifestError, match="unsupported version"):
-        validate_manifest(_valid_manifest(version=2), BASE)
+        validate_manifest(_valid_manifest(version=1), BASE)
 
 
 def test_rejects_default_language_not_in_languages():

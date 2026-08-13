@@ -24,7 +24,7 @@ describe("documentation navigation", () => {
 
   test("contains no archived or internal source", () => {
     const pages = flattenNavigation(DOC_SECTIONS);
-    expect(pages).toHaveLength(27);
+    expect(pages).toHaveLength(25);
     expect(pages).toContainEqual({
       source: "docs/project/relevance-baselines.md",
       route: "docs/project/relevance-baselines",

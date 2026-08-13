@@ -40,7 +40,6 @@ export const DOC_SECTIONS: readonly DocSection[] = [
         ["synonyms", "Synonyms"],
         ["pinning", "Pinned results"],
         ["internationalization", "Internationalization"],
-        ["offline-search", "Offline search"],
       ] as const
     ).map(([name, title]) => ({
       source: `docs/guides/${name}.md`,
@@ -54,7 +53,6 @@ export const DOC_SECTIONS: readonly DocSection[] = [
       [
         ["architecture", "Architecture"],
         ["index-format", "Index format"],
-        ["binary-storage", "Binary storage"],
       ] as const
     ).map(([name, title]) => ({
       source: `docs/concepts/${name}.md`,
