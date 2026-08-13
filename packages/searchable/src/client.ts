@@ -6,7 +6,7 @@ import type {
   SearchOptions,
   SearchResult,
 } from "./search.js";
-import { facetValues, search, searchStream } from "./search.js";
+import { facetValues, search } from "./search.js";
 import { validateManifest } from "./validate-manifest.js";
 
 /**
@@ -32,59 +32,6 @@ function toAbsoluteUrl(url: string): string {
 
 function abortError(): DOMException {
   return new DOMException("The operation was aborted.", "AbortError");
-}
-
-/**
- * Clones a `SearchOptions.filters` record plus every nested mutable value:
- * a filter value can be a string, a mutable string array, or a mutable
- * `{ min?, max? }` range object, and all three must be copied so a
- * listener mutating a received snapshot (`filters.category.push(...)`,
- * `filters.price.min = ...`) can't reach the executing query.
- */
-function snapshotFilters(
-  filters: NonNullable<SearchOptions["filters"]>,
-): NonNullable<SearchOptions["filters"]> {
-  return Object.fromEntries(
-    Object.entries(filters).map(([field, value]) => [
-      field,
-      Array.isArray(value)
-        ? [...value]
-        : typeof value === "object"
-          ? { ...(value as { min?: number; max?: number }) }
-          : value,
-    ]),
-  );
-}
-
-/**
- * Copies the root `SearchOptions` object plus every nested mutable value
- * the query actually reads (`boosts.fields`/`boosts.terms`, `filters`
- * including nested arrays/range objects, `facets`) into a stable
- * snapshot. Event listeners receive this snapshot, not the caller's live
- * object -- so a synchronous 'query' listener that mutates what it
- * receives can never silently change the query that actually runs.
- * `onPartial`/`signal` keep their references (functions and signals aren't
- * clone targets). Cost is negligible relative to shard loading and
- * scoring.
- */
-function snapshotSearchOptions<T extends SearchOptions>(options: T): T {
-  return {
-    ...options,
-    ...(options.boosts
-      ? {
-          boosts: {
-            ...(options.boosts.fields
-              ? { fields: { ...options.boosts.fields } }
-              : {}),
-            ...(options.boosts.terms
-              ? { terms: { ...options.boosts.terms } }
-              : {}),
-          },
-        }
-      : {}),
-    ...(options.filters ? { filters: snapshotFilters(options.filters) } : {}),
-    ...(options.facets ? { facets: [...options.facets] } : {}),
-  };
 }
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
@@ -147,41 +94,6 @@ export interface SearchClientOptions {
   strict?: boolean;
 }
 
-export interface SearchStreamOptions extends SearchOptions {
-  /**
-   * Invoked once with the fast literal/prefix-only pass's result,
-   * before the returned promise resolves to the final,
-   * synonym/fuzzy-expanded result (docs/reference/client-api.md#streamingincremental-results).
-   * Only fires when `synonyms` and/or `fuzzy` was requested -- see
-   * `searchStream()` in packages/client/src/search.ts. Never invoked
-   * once `signal` has already fired, matching `search()`'s "nothing is
-   * delivered to a caller who already aborted" cancellation semantics.
-   */
-  onPartial?: (partial: SearchResult) => void;
-}
-
-/**
- * Lifecycle events a consumer can observe without the library phoning
- * home itself (docs/reference/client-api.md#events-and-lifecycle) —
- * click-through tracking or zero-result-query logging are consuming-app
- * concerns built on top of these, not something this library bundles.
- * Scoped to `search()` only, not `facetValues()`: "a query was issued"
- * is naturally about free-text search, and a facet-only browsing call
- * has no query text for a "query" event to carry. A fuller diagnostics
- * surface (phase timings, per-plugin attribution) is a separate,
- * larger spec (archive/specs/diagnostics.md), not this first slice.
- */
-export interface SearchClientEventMap {
-  /** Fired synchronously the moment search() is called, before any fetch round trip. */
-  query: { query: string; options: SearchOptions };
-  /** Fired once search() resolves, with the same query/options plus the result. */
-  result: { query: string; options: SearchOptions; result: SearchResult };
-}
-
-type SearchClientEvent = keyof SearchClientEventMap;
-// biome-ignore lint/suspicious/noExplicitAny: a listener map keyed by event name can't stay precisely typed per-key without an event-specific overload set this hand-rolled emitter doesn't need; on()/#emit() re-establish the precise type at their public boundary.
-type AnyListener = (payload: any) => void;
-
 /**
  * Manifest + shard fetch over plain HTTP, boolean AND + BM25F scoring
  * with field/term/document boosts and prefix matching. Executes
@@ -207,7 +119,6 @@ export class SearchClient {
    * unhandled rejection in the window before the first race subscribes.
    */
   #lifecycleFailure: Promise<never>;
-  #listeners = new Map<SearchClientEvent, Set<AnyListener>>();
   #allowCrossOriginShards: boolean;
   #strict: boolean;
 
@@ -270,20 +181,11 @@ export class SearchClient {
     options: SearchOptions = {},
   ): Promise<SearchResult> {
     await this.#assertUsable(options.signal);
-    // Snapshot the options before the query event fires: a synchronous
-    // listener may abort (honored by raceAbort's aborted-first check) or
-    // mutate the object it receives (`listenerOptions`) -- a deliberately
-    // separate snapshot, so mutation can never change the query that
-    // actually runs (`effectiveOptions`) or what the 'result' event
-    // later reports.
-    const effectiveOptions = snapshotSearchOptions(options);
-    const listenerOptions = snapshotSearchOptions(options);
-    this.#emit("query", { query, options: listenerOptions });
     // `signal` is stripped before the options cross into the
     // direct-execution search() call -- it doesn't need to know about it
     // (see SearchOptions.signal's doc comment for why cancellation is
     // handled entirely here).
-    const { signal, ...rest } = effectiveOptions;
+    const { signal, ...rest } = options;
     const work = (async () => {
       // biome-ignore lint/style/noNonNullAssertion: set in the constructor, always resolved once #ready resolves
       const manifest = await this.#manifest!;
@@ -294,96 +196,7 @@ export class SearchClient {
     // disposal, but make the invariant explicit: nothing is delivered to a
     // client that has entered its fatal state.
     if (this.#fatalError) throw this.#fatalError;
-    this.#emit("result", { query, options: effectiveOptions, result });
     return result;
-  }
-
-  /**
-   * Streaming/incremental variant of search()
-   * (docs/reference/client-api.md#streamingincremental-results): resolves to
-   * the same final `SearchResult` `search()` would, but -- whenever
-   * `synonyms`/`fuzzy` was requested -- calls `options.onPartial` with
-   * the fast literal/prefix-only pass first, so a keystroke-driven UI
-   * can render exact matches before the (potentially slower)
-   * synonym/fuzzy-expanded pass lands. `onPartial` is guarded against
-   * firing after `signal` has already aborted, matching `search()`'s
-   * "nothing is delivered to an aborted caller" cancellation semantics
-   * -- the underlying passes still run to completion regardless (same
-   * "abort only cancels waiting, not the work itself" rule as
-   * `search()`).
-   */
-  async searchStream(
-    query: string,
-    options: SearchStreamOptions = {},
-  ): Promise<SearchResult> {
-    await this.#assertUsable(options.signal);
-    // Same independent-snapshot-before-emit discipline as search().
-    const effectiveOptions = snapshotSearchOptions(options);
-    const listenerOptions = snapshotSearchOptions(options);
-    this.#emit("query", { query, options: listenerOptions });
-    const { signal, onPartial, ...rest } = effectiveOptions;
-    const guardedOnPartial = onPartial
-      ? (partial: SearchResult) => {
-          if (!signal?.aborted && !this.#fatalError) {
-            onPartial(partial);
-          }
-        }
-      : undefined;
-    const work = (async () => {
-      // biome-ignore lint/style/noNonNullAssertion: set in the constructor, always resolved once #ready resolves
-      const manifest = await this.#manifest!;
-      return searchStream(
-        query,
-        manifest,
-        this.#cache,
-        this.#indexUrl,
-        rest,
-        guardedOnPartial,
-      );
-    })();
-    const result = await this.#raceOperation(work, signal);
-    if (this.#fatalError) throw this.#fatalError;
-    this.#emit("result", { query, options: effectiveOptions, result });
-    return result;
-  }
-
-  /**
-   * Subscribe to a lifecycle event. Returns an unsubscribe function
-   * rather than requiring a separate `off()` call — the caller already
-   * has the one reference it needs to stop listening, so a second method
-   * just for that would be redundant.
-   */
-  on<K extends SearchClientEvent>(
-    event: K,
-    listener: (payload: SearchClientEventMap[K]) => void,
-  ): () => void {
-    let set = this.#listeners.get(event);
-    if (!set) {
-      set = new Set();
-      this.#listeners.set(event, set);
-    }
-    set.add(listener as AnyListener);
-    return () => {
-      set?.delete(listener as AnyListener);
-    };
-  }
-
-  #emit<K extends SearchClientEvent>(
-    event: K,
-    payload: SearchClientEventMap[K],
-  ): void {
-    const set = this.#listeners.get(event);
-    if (!set) return;
-    for (const listener of set) {
-      try {
-        listener(payload);
-      } catch {
-        // A listener throwing (e.g. a broken analytics integration)
-        // must not break the search() call it's observing -- this is
-        // a side-channel notification, not part of the query's own
-        // control flow.
-      }
-    }
   }
 
   /**
