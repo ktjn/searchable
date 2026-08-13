@@ -27,7 +27,7 @@ jobs:
       - uses: ./.github/actions/setup-node
       - uses: ./.github/actions/setup-python
         with:
-          working-directory: python/searchable-indexer
+          working-directory: python/searchable
       - run: pnpm docs:build
       - run: pnpm --filter showcase validate
       - uses: actions/configure-pages@v6

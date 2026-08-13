@@ -588,7 +588,6 @@ test.describe("feature gallery: synonym playground demo (real browser)", () => {
     await expect(page.locator(".gallery-hit-list li")).toHaveCount(1);
     await expect(page.locator(".gallery-badge")).toHaveCount(0);
   });
-
 });
 
 test.describe("feature gallery: multi-language corpus demo (real browser)", () => {

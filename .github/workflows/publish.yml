@@ -50,11 +50,9 @@ jobs:
           scope: '@ktjn'
       - name: Build npm packages
         run: pnpm build
-      - name: Publish npm packages to GitHub Packages
+      - name: Publish npm package to GitHub Packages
         run: |
-          pnpm --filter @ktjn/searchable-analysis publish --access public --no-git-checks
-          pnpm --filter @ktjn/searchable-format publish --access public --no-git-checks
-          pnpm --filter @ktjn/searchable-client publish --access public --no-git-checks
+          pnpm --filter @ktjn/searchable publish --access public --no-git-checks
 
   publish-python:
     needs: checks
@@ -65,17 +63,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-python
-      - name: Build Python packages
+      - name: Build Python package
         shell: bash
         run: |
-          for project in python/searchable-analysis python/searchable-binary python/searchable-indexer python/searchable-client; do
-            uv build --project "$project"
-          done
+          uv build --project python/searchable
       - name: Collect Python distributions
         shell: bash
         run: |
           mkdir -p dist
-          cp python/*/dist/* dist/
+          cp python/searchable/dist/* dist/
       - name: Smoke test release artifacts in an isolated environment
         shell: bash
         run: |
@@ -83,20 +79,11 @@ jobs:
 
           uv venv /tmp/searchable-release-smoke
 
-          # searchable-client's transitive searchable dependencies (analysis +
-          # binary) form a closed set that must resolve from dist/ alone -- this
-          # is the check that catches a sibling searchable package omitted from
-          # the release (e.g. searchable-binary) or a stale version leaking into
-          # a clean install. Kept strictly offline/--no-index so it can never
-          # silently pick up a workspace editable package or an already-published
-          # version from PyPI.
           uv pip install \
             --python /tmp/searchable-release-smoke/bin/python \
             --no-index \
             --find-links dist \
-            searchable-client
-
-          # searchable-indexer additionally depends on selectolax, a third-party
+            searchable
           # C-extension library that is not part of the searchable release set.
           # Stage that one external runtime dependency from PyPI, then install the
           # indexer offline from dist/ to prove every *searchable* dependency it
@@ -106,10 +93,10 @@ jobs:
             --python /tmp/searchable-release-smoke/bin/python \
             --no-index \
             --find-links dist \
-            searchable-indexer
+            searchable
 
           /tmp/searchable-release-smoke/bin/python -c \
-            "import searchable_analysis, searchable_binary, searchable_indexer, searchable_client"
+            "import searchable"
 
           # Minimal index-build + client-read scenario against a fresh HTML doc.
           WORKDIR=$(mktemp -d)
@@ -122,9 +109,9 @@ jobs:
             <body><main><p>Our widgets are wonderful. Buy widgets today.</p></main></body>
           </html>
           EOF
-          /tmp/searchable-release-smoke/bin/searchable-indexer \
+          /tmp/searchable-release-smoke/bin/searchable \
             "$WORKDIR/docs" "$WORKDIR/index"
-          /tmp/searchable-release-smoke/bin/searchable-client query \
+          /tmp/searchable-release-smoke/bin/searchable search \
             "$WORKDIR/index/manifest.json" widgets --json \
             | /tmp/searchable-release-smoke/bin/python -c \
               "import json, sys; data = json.load(sys.stdin); assert data['totalHits'] == 1, data; assert data['hits'][0]['fields']['title'] == 'Widgets', data; print('release artifact smoke test: ok')"
@@ -134,3 +121,4 @@ jobs:
           packages-dir: dist/
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
+

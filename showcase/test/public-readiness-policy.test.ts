@@ -64,4 +64,3 @@ test("post-public security gates are recorded", () => {
     expect(checklist).toContain(gate);
   }
 });
-
