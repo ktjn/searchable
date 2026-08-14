@@ -8,8 +8,8 @@ opening a pull request. CI runs `pnpm lint` (biome) as an early, fast-failing
 step — catching formatting/lint issues locally avoids a red CI run and a
 follow-up fix-and-repush cycle.
 
-Before creating a PR, also run the Python client gates from
-`python/searchable-client/`. The Ruff checks are mandatory and must not be
+Before creating a PR, also run the Python gates from
+`python/searchable/`. The Ruff checks are mandatory and must not be
 skipped:
 
 ```bash

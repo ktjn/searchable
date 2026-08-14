@@ -7,7 +7,7 @@ Searchable builds a static search index ahead of time and searches it in the bro
 - Deploy the index beside any static site or CMS export.
 - Keep user queries in the browser.
 - Fetch immutable, content-hashed shards only when a query needs them.
-- Use an open JSON-first index format built by the Python `searchable-indexer` and read by the `@ktjn/searchable` TypeScript client, or by the `searchable` Python client (`python/searchable-client/`) for CLI and backend-service use — see its [README](python/searchable-client/README.md) and the [Python client API reference](docs/reference/python-client-api.md).
+- Use an open JSON-first index format built by the Python `searchable-indexer` and read by the `@ktjn/searchable` TypeScript client, or by the `searchable` Python client (`python/searchable/`) for CLI and backend-service use — see the [Python client API reference](docs/reference/python-client-api.md).
 - Add richer search without adopting an application framework.
 
 ## What it supports
@@ -90,7 +90,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-The index generator (`python/searchable-indexer`, which discovers and analyzes source documents and writes the manifest and shards) and its shared analysis library (`python/searchable-analysis`) are Python projects that use `uv` for development. Contributions should preserve deterministic output; see [Project governance](docs/project/governance.md).
+The index generator (`searchable.indexer`, which discovers and analyzes source documents and writes the manifest and shards) and its shared analysis library (`searchable.analysis`) live in the consolidated Python project at `python/searchable`, which uses `uv` for development. Contributions should preserve deterministic output; see [Project governance](docs/project/governance.md).
 
 See [Contributing](CONTRIBUTING.md) before opening a pull request and report
 security issues through the private process in [Security](SECURITY.md).
