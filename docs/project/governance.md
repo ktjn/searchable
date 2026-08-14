@@ -28,7 +28,9 @@ The core client has a 15 KB gzip budget enforced by `pnpm size`. Large optional 
 
 Repository visibility and its post-public security settings are tracked in the
 [Public launch checklist](public-launch-checklist.md). Package publication is a
-separate release operation.
+separate release operation; the mechanics of that operation, and a known
+silent-failure mode in the tag-push → publish handoff, are documented in
+[Release process](release-process.md).
 
 - public exports and docs agree;
 - package and format compatibility are explicit;

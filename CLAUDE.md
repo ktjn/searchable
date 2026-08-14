@@ -19,6 +19,22 @@ tracked as follow-up work, not yet implemented — the original TS index
 generator this repo's client tests once used for that purpose was removed
 in an earlier, unrelated change (#61).
 
+## Release flow
+
+Cutting a release is a three-workflow chain (`release-prep.yml` →
+`release-tag.yml` → `publish.yml`) where each step's trigger depends on the
+previous step producing a specific event, not a checked state — see
+[docs/project/release-process.md](docs/project/release-process.md) for the
+full mechanics. **A tag existing, or a `Release X.Y.Z` PR being merged, is
+not proof a release actually published.** The tag-push → `publish.yml`
+handoff has silently failed before (tag pushed fine, zero downstream
+workflow run, no GitHub Release, nothing published) with no visible error.
+Before treating a release as done, or before starting a new one, check
+`gh release list` and `gh run list --workflow=publish.yml` — don't infer
+success from the tag or PR alone. If the chain stalls after tagging,
+`publish.yml` has a `workflow_dispatch` fallback: `gh workflow run
+publish.yml --ref vX.Y.Z`.
+
 ## Before pushing or opening a PR
 
 Always run `npx biome check .` (or at minimum `npx biome check <changed files>`)

@@ -4,6 +4,16 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch: {}
+
+# Manual fallback for when a tag push itself doesn't trigger this workflow
+# (see docs/project/release-process.md — this has happened even when tagging
+# used a PAT specifically to dodge GITHUB_TOKEN's push-event suppression).
+# To recover: run this workflow manually against the existing tag, e.g.
+#   gh workflow run publish.yml --ref v2.0.1
+# `--ref` sets `github.ref`/`github.ref_name` to the tag, so every step below
+# (checkout, release notes, package builds) behaves exactly as it would for a
+# real tag-push trigger — no separate input or resolution step needed.
 
 jobs:
   checks:
