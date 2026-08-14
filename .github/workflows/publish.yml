@@ -89,11 +89,6 @@ jobs:
 
           uv venv /tmp/searchable-release-smoke
 
-          uv pip install \
-            --python /tmp/searchable-release-smoke/bin/python \
-            --no-index \
-            --find-links dist \
-            searchable
           # C-extension library that is not part of the searchable release set.
           # Stage that one external runtime dependency from PyPI, then install the
           # indexer offline from dist/ to prove every *searchable* dependency it
