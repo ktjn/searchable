@@ -3,7 +3,7 @@
 This reference lists the implemented `searchable` (Python) surface — a
 second, independent client implementation for CLI and backend-service use
 that reads the same manifest/shard contract as `@ktjn/searchable`. The
-package lives at `python/searchable-client/` and is published to PyPI from
+package lives at `python/searchable/` and is published to PyPI from
 `v*` release tags.
 
 ## SearchClient
@@ -83,14 +83,18 @@ hierarchical facets.
 
 ## CLI
 
-The package installs a `searchable` command with two subcommands:
+The `searchable` console script installs only the indexer
+(`searchable <inputDir> <outDir>`; see
+[Indexing content](../guides/indexing.md)). Querying and facets from the
+command line are not exposed as a console script — invoke the client CLI
+module directly instead:
 
 ```bash
-searchable query <index_url> <query> \
+python -m searchable.client.cli query <index_url> <query> \
   [--limit N] [--language LANG] [--filter FIELD=VALUE ...] \
   [--facets field1,field2] [--synonyms] [--fuzzy] [--highlight] [--json]
 
-searchable facet <index_url> <field> \
+python -m searchable.client.cli facet <index_url> <field> \
   [--filter FIELD=VALUE ...] [--json]
 ```
 
