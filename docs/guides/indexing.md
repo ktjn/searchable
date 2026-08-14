@@ -2,10 +2,10 @@
 
 This guide turns rendered HTML into the static manifest and shards consumed by `SearchClient`.
 
-The Python `searchable-indexer` (`python/searchable-indexer`) is the index generator: it discovers HTML files, extracts searchable documents, builds the in-memory index, and writes content-hashed files. Run it with its default options via the CLI:
+The Python `searchable-indexer` (`python/searchable`) is the index generator: it discovers HTML files, extracts searchable documents, builds the in-memory index, and writes content-hashed files. Run it with its default options via the CLI:
 
 ```bash
-uv run --project python/searchable-indexer searchable-indexer ./dist/site ./dist/site/search-index
+uv run --project python/searchable searchable ./dist/site ./dist/site/search-index
 ```
 
 That command refers to this repository project. Release artifacts for
@@ -14,7 +14,7 @@ That command refers to this repository project. Release artifacts for
 For build/write options beyond the CLI's defaults (field boosts, facets, synonyms, fuzzy matching, shard formats, and so on), drive `build_index`/`write_index` directly — either from your own Python script or via the repository's `scripts/build_from_config.py`, which reads a source list and a JSON config of `build`/`write` keyword arguments:
 
 ```bash
-uv run --project python/searchable-indexer python python/searchable-indexer/scripts/build_from_config.py sources.json config.json ./dist/site/search-index
+uv run --project python/searchable python python/searchable/scripts/build_from_config.py sources.json config.json ./dist/site/search-index
 ```
 
 See [Configuration](../reference/configuration.md) for the available `build_index`/`write_index` options.

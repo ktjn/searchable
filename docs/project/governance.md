@@ -14,7 +14,7 @@ When published, the four public npm packages follow semver and move in lockstep.
 
 ## Testing
 
-Behavior changes require unit or integration coverage at the narrowest useful level, plus cross-package or browser coverage when they cross a boundary. Index-format changes require schema validation, cross-implementation conformance (the real `python/searchable-indexer` against the independent reference generator in `spec/examples/python/`), malformed-input tests, and JSON/binary parity where applicable. Ranking changes require snapshot review against the configuration testbed.
+Behavior changes require unit or integration coverage at the narrowest useful level, plus cross-package or browser coverage when they cross a boundary. Index-format changes require schema validation, cross-implementation conformance (the real `searchable-indexer`, `python/searchable`, against the independent reference generator in `spec/examples/python/`), and malformed-input tests. Ranking changes require snapshot review against the configuration testbed.
 
 CI gates include build, Vitest, Python tests, TypeScript type checking, Biome, browser tests, bundle size, and package consumer fixtures. Documentation examples must use exported symbols and current option names.
 

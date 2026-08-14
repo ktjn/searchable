@@ -4,14 +4,14 @@ This page describes the shipped build-time and browser-runtime components, their
 
 ## Build time
 
-The Python `searchable-indexer` (`python/searchable-indexer`) discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis (`python/searchable-analysis`), and builds postings, facets, pins, synonyms, fuzzy dictionaries, and stored documents. It writes an immutable manifest and content-hashed shards. It is a build-time tool, not a runtime dependency of the TypeScript packages, which only read its output.
+The Python `searchable-indexer` (`python/searchable`, module `searchable.indexer`) discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis (`searchable.analysis`, same package), and builds postings, facets, pins, synonyms, fuzzy dictionaries, and stored documents. It writes an immutable manifest and content-hashed shards. It is a build-time tool, not a runtime dependency of the TypeScript package, which only reads its output.
 
 ## Query time
 
 `@ktjn/searchable` validates the manifest, resolves all shard files relative to it, analyzes the query, fetches only the required data, evaluates filters and ranking, and loads stored fields for the final hits.
 
 A second, independent client implementation, `searchable` (Python,
-`python/searchable-client/`), reads the exact same manifest/shard contract
+`python/searchable/`, module `searchable.client`), reads the exact same manifest/shard contract
 for CLI and backend-service use. Feature work on search behavior
 (ranking, filtering, synonyms, fuzzy matching, etc.) should consider both
 clients, not just the TypeScript one — see

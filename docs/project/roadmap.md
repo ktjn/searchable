@@ -81,8 +81,8 @@ Add a full language profile only when it includes:
 - stemming or lemmatization tests where applicable
 - relevance queries with expected ordering
 - end-to-end conformance tests proving the language's build-time (Python
-  `searchable-indexer`/`searchable-analysis`) and query-time (TypeScript
-  `@ktjn/searchable-client`/`@ktjn/searchable-analysis`) stemming agree,
+  `searchable.indexer`/`searchable.analysis`) and query-time (TypeScript
+  `@ktjn/searchable`) stemming agree,
   via `SearchClient` queries against a real Python-built index
 
 Fallback segmentation must remain explicit and must not silently apply an unrelated language analyzer.

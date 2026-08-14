@@ -28,8 +28,8 @@ Regional tags such as `sv-SE`, `nl-NL`, and `nb-NO` remain outside this change. 
 
 The existing `LanguageProfile` boundary remains unchanged. Four canonical profiles and one compatibility profile are provided by both analysis packages:
 
-- TypeScript exports the profiles and stemmer functions from `@ktjn/searchable-analysis`.
-- Python exports equivalent profiles and stemmer functions from `searchable_analysis`.
+- TypeScript exports the profiles and stemmer functions from `@ktjn/searchable`'s `analysis` module.
+- Python exports equivalent profiles and stemmer functions from `searchable.analysis`, part of the consolidated `python/searchable` package.
 - Both registries recognize all five tags.
 - Latin word segmentation remains `Intl.Segmenter` in TypeScript and the existing Unicode word segmenter in Python.
 - Diacritic folding remains disabled. Swedish `å`, `ä`, and `ö`, Norwegian `æ`, `ø`, and `å`, and Dutch accented forms enter the appropriate stemmer unchanged.

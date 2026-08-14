@@ -2,7 +2,7 @@
 
 `@ktjn/searchable` 2.0 is published to GitHub Packages. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
 
-The index generator, `searchable-indexer` (`python/searchable-indexer`), and the Python client, `searchable` (`python/searchable-client`), are versioned and released independently of the npm package.
+The index generator, `searchable-indexer`, and the Python client, `searchable` — both part of the consolidated `python/searchable` package — are versioned and released independently of the npm package.
 
 ## Index format compatibility
 

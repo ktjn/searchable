@@ -35,8 +35,8 @@ uv add searchable
 `@ktjn/searchable` targets modern browsers with `fetch` and `URL`.
 
 The repository also contains the Python `searchable-indexer`, which generates
-the index (`python/searchable-indexer`), and its shared analysis library
-(`python/searchable-analysis`). Use the explicit project path for repository
+the index, and its shared analysis library — both part of the consolidated
+project at `python/searchable`. Use the explicit project path for repository
 development; the release artifacts are available from GitHub Packages and PyPI.
 PyPI publication uses the `PYPI_API_TOKEN` secret in this repository's `pypi`
 environment. See
