@@ -116,7 +116,7 @@ jobs:
           EOF
           /tmp/searchable-release-smoke/bin/searchable \
             "$WORKDIR/docs" "$WORKDIR/index"
-          /tmp/searchable-release-smoke/bin/searchable search \
+          /tmp/searchable-release-smoke/bin/python -m searchable.client.cli query \
             "$WORKDIR/index/manifest.json" widgets --json \
             | /tmp/searchable-release-smoke/bin/python -c \
               "import json, sys; data = json.load(sys.stdin); assert data['totalHits'] == 1, data; assert data['hits'][0]['fields']['title'] == 'Widgets', data; print('release artifact smoke test: ok')"
