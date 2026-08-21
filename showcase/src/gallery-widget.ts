@@ -36,7 +36,9 @@
  *
  * Same import.meta.url-anchored site-root resolution as search-widget.ts
  * -- this script is deployed once at the site root regardless of how
- * deeply nested the page that loads it is.
+ * deeply nested the page that loads it is. Also bundled and
+ * content-hashed by Vite the same way, for the same reason -- see
+ * search-widget.ts's doc comment for the full rationale.
  */
 
 interface Hit {
@@ -202,9 +204,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   const fuzzyWeight = Number(root.dataset.fuzzyWeight);
   const synonymWeight = Number(root.dataset.synonymWeight);
 
-  const { SearchClient } = await import(
-    new URL("assets/index.js", siteRoot).href
-  );
+  const { SearchClient } = await import("@ktjn/searchable");
 
   const client: SearchClientLike = new SearchClient({
     indexUrl: new URL(indexPath, siteRoot).href,

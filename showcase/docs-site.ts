@@ -225,6 +225,8 @@ export function renderSitePage(
   current: SitePage,
   previous: DocPage | undefined,
   next: DocPage | undefined,
+  /** Real, content-hashed filename for the "search-widget" entry, resolved via vite-manifest.ts against vite.widget.config.ts's build output. */
+  searchWidgetScript: string,
 ): string {
   const root = depthPrefix(current.route);
   return `<!doctype html>
@@ -255,7 +257,7 @@ export function renderSitePage(
         </nav>
       </main>
     </div>
-    <script type="module" src="${root}search-widget.js"></script>
+    <script type="module" src="${root}${searchWidgetScript}"></script>
   </body>
 </html>
 `;

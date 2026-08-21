@@ -8,6 +8,7 @@ import {
   renderExampleCode,
   renderRuntimeAttributes,
 } from "./quick-examples.js";
+import { resolveWidgetScript } from "./vite-manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -52,7 +53,9 @@ const DEMOS: DemoLink[] = [
   },
 ];
 
-export function renderHubPage(): string {
+export function renderHubPage(
+  galleryWidgetScript = "gallery-widget.js",
+): string {
   const demoLinks = DEMOS.map(
     (demo) => `
         <li>
@@ -103,11 +106,20 @@ export function renderHubPage(): string {
     root: "../",
     bodyHtml,
     withWidget: true,
+    galleryWidgetScript,
   });
 }
 
 async function main() {
-  await writeFile(join(galleryDir, "index.html"), renderHubPage(), "utf8");
+  const galleryWidgetScript = await resolveWidgetScript(
+    distDir,
+    "gallery-widget",
+  );
+  await writeFile(
+    join(galleryDir, "index.html"),
+    renderHubPage(galleryWidgetScript),
+    "utf8",
+  );
   console.log(`built gallery hub page -> ${join(galleryDir, "index.html")}`);
 }
 

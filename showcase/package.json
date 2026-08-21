@@ -8,13 +8,13 @@
   "scripts": {
     "test": "vitest run",
     "build:docs": "tsx build-docs.ts",
-    "build:widget": "tsc -p tsconfig.widget.json",
+    "build:widget": "vite build --config vite.widget.config.ts",
     "build:search": "tsx build-search.ts",
     "build:gallery": "tsx build-gallery.ts",
     "build:gallery-synonyms": "tsx build-gallery-synonyms.ts",
     "build:gallery-i18n": "tsx build-gallery-i18n.ts",
     "build:gallery-index": "tsx build-gallery-index.ts",
-    "build": "pnpm build:docs && pnpm build:widget && pnpm build:search && pnpm build:gallery && pnpm build:gallery-synonyms && pnpm build:gallery-i18n && pnpm build:gallery-index",
+    "build": "pnpm build:widget && pnpm build:docs && pnpm build:search && pnpm build:gallery && pnpm build:gallery-synonyms && pnpm build:gallery-i18n && pnpm build:gallery-index",
     "validate": "tsx validate-dist.ts",
     "check": "pnpm build && pnpm validate && pnpm test",
     "typecheck": "tsc --noEmit"
@@ -24,9 +24,11 @@
     "marked": "^18.0.7"
   },
   "devDependencies": {
+    "@ktjn/searchable": "workspace:*",
     "@ktjn/searchable-fixtures": "workspace:*",
     "@types/node": "^26.1.2",
     "tsx": "^4.23.1",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite": "^8.2.0"
   }
 }
