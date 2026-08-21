@@ -13,12 +13,13 @@ This reference defines the implemented HTML authoring controls consumed by the r
 | `<meta name="searchable-boost" content="2.0">` | Document score multiplier | `1.0` |
 | `<meta name="searchable-facet-<field>" content="…">` | Repeatable terms/hierarchy facet value | No value |
 | `<meta name="searchable-facet-range-<field>" content="…">` | Numeric range-facet value | No value |
+| `<meta name="searchable-facet-geo-<field>" content="lat,lon">` | Geo-facet coordinate (`lat` in [-90, 90], `lon` in [-180, 180]) | No value |
 | `<meta name="searchable-pin" content="…">` | Repeatable pin phrase | No pin |
 | `<meta name="searchable-pin-priority" content="10">` | Pin tie-break priority | `0` |
 | `<meta name="searchable-pin-mode" content="contains">` | `exact` or `contains` matching | `exact` |
 | `<meta name="searchable-pin-exclusive">` | Suppress organic results for a matching pin | Non-exclusive |
 
-Repeat a meta element for multiple values. Invalid numeric boosts fall back to `1.0`; malformed range values are ignored. Canonical URLs permit only HTTP(S), and `allowedUrlOrigins` can restrict them further. `canonicalBaseUrl` is required to resolve non-root-relative references safely.
+Repeat a meta element for multiple values. Invalid numeric boosts fall back to `1.0`; malformed range values are ignored; a malformed or out-of-range `searchable-facet-geo-<field>` value is also ignored, with a build-time warning. Canonical URLs permit only HTTP(S), and `allowedUrlOrigins` can restrict them further. `canonicalBaseUrl` is required to resolve non-root-relative references safely.
 
 ## Canonical URL
 

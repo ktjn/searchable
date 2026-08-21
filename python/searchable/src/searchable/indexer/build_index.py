@@ -23,6 +23,7 @@ from searchable.indexer.extract import _extract, extract_pre_section_body, extra
 from searchable.indexer.facets import (
     RANGE_FACET_BUCKET_COUNT,
     add_facet_values,
+    add_geo_facet_values,
     add_range_facet_values,
     compute_range_facet_buckets_equal_width,
     compute_range_facet_buckets_explicit,
@@ -236,6 +237,7 @@ class _PreparedDocument:
     document: IndexDocument
     facets: dict[str, list[str]] = field(default_factory=dict)
     range_facets: dict[str, float] = field(default_factory=dict)
+    geo_facets: dict[str, tuple[float, float]] = field(default_factory=dict)
     pins: list[PinDeclaration] = field(default_factory=list)
 
 
@@ -333,6 +335,7 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
 
         add_facet_values(facet_shards, item.facets, document.id, hierarchical_facets)
         add_range_facet_values(facet_shards, item.range_facets, document.id)
+        add_geo_facet_values(facet_shards, item.geo_facets, document.id)
 
         if item.pins:
             pins_acc = pins_acc_by_language.setdefault(language, {})
@@ -376,6 +379,8 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
     for field_name, shard in facet_shards.items():
         if shard.get("sorted") is not None:
             shard["sorted"].sort(key=lambda e: (e["value"], e["doc"]))
+        if shard.get("points") is not None:
+            shard["points"].sort(key=lambda p: (p["lat"], p["lon"], p["doc"]))
         if shard["type"] == "range":
             bucket_config = range_facet_buckets.get(field_name, RANGE_FACET_BUCKET_COUNT)
             if isinstance(bucket_config, list):
@@ -548,6 +553,7 @@ def _page_prepared_document(
         document=document,
         facets=extracted.facets,
         range_facets=extracted.range_facets,
+        geo_facets=extracted.geo_facets,
         pins=extracted.pins,
     )
 
@@ -560,6 +566,7 @@ def _section_prepared_document(
     boost: float,
     facets: dict[str, list[str]],
     range_facets: dict[str, float],
+    geo_facets: dict[str, tuple[float, float]],
     page_metadata: dict[str, str],
 ) -> _PreparedDocument:
     metadata: dict[str, JsonValue] = {
@@ -591,6 +598,7 @@ def _section_prepared_document(
         document=document,
         facets=dict(facets),
         range_facets=dict(range_facets),
+        geo_facets=dict(geo_facets),
         pins=[],
     )
 
@@ -637,6 +645,7 @@ def _prepare_html_items(
             boost=extracted.boost,
             facets=extracted.facets,
             range_facets=extracted.range_facets,
+            geo_facets=extracted.geo_facets,
             page_metadata=extracted.metadata,
         )
 

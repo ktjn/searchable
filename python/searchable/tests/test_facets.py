@@ -1,6 +1,7 @@
 from searchable.indexer.facets import (
     RANGE_FACET_BUCKET_COUNT,
     add_facet_values,
+    add_geo_facet_values,
     add_range_facet_values,
     compute_range_facet_buckets_equal_width,
     compute_range_facet_buckets_explicit,
@@ -70,6 +71,26 @@ def test_add_range_facet_values_appends_to_sorted():
         {"value": 19.99, "doc": 1},
         {"value": 5.0, "doc": 2},
     ]
+
+
+def test_add_geo_facet_values_appends_to_points():
+    shards: dict[str, dict] = {}
+    add_geo_facet_values(shards, {"location": (51.5, -0.12)}, 1)
+    add_geo_facet_values(shards, {"location": (40.7, -74.0)}, 2)
+    assert shards["location"]["type"] == "geo"
+    assert shards["location"]["values"] == {}
+    assert shards["location"]["points"] == [
+        {"lat": 51.5, "lon": -0.12, "doc": 1},
+        {"lat": 40.7, "lon": -74.0, "doc": 2},
+    ]
+
+
+def test_add_geo_facet_values_first_declaration_wins_over_terms_conflict():
+    shards: dict[str, dict] = {"place": {"type": "terms", "values": {}}}
+    add_geo_facet_values(shards, {"place": (1.0, 2.0)}, 1)
+    # Already declared as a terms facet -- geo declaration is ignored.
+    assert shards["place"]["type"] == "terms"
+    assert "points" not in shards["place"]
 
 
 def test_compute_range_facet_buckets_equal_width_single_distinct_value():

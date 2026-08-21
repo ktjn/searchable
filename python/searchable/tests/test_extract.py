@@ -216,6 +216,54 @@ def test_range_facet_prefix_does_not_get_misparsed_as_a_terms_facet():
     assert doc.range_facets["price"] == 10.0
 
 
+def test_geo_facet_meta_tag_parses_a_lat_lon_pair():
+    html = """
+    <html lang="en">
+      <head><title>T</title>
+      <meta name="searchable-facet-geo-location" content="51.5074,-0.1278"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.geo_facets["location"] == (51.5074, -0.1278)
+    assert "geo-location" not in doc.facets
+
+
+def test_geo_facet_prefix_does_not_get_misparsed_as_a_terms_or_range_facet():
+    html = """
+    <html lang="en">
+      <head><title>T</title><meta name="searchable-facet-geo-location" content="10,20"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.geo_facets["location"] == (10.0, 20.0)
+    assert "location" not in doc.range_facets
+    assert "location" not in doc.facets
+
+
+def test_geo_facet_out_of_range_latitude_is_ignored():
+    html = """
+    <html lang="en">
+      <head><title>T</title><meta name="searchable-facet-geo-location" content="200,20"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert "location" not in doc.geo_facets
+
+
+def test_geo_facet_malformed_content_is_ignored():
+    html = """
+    <html lang="en">
+      <head><title>T</title><meta name="searchable-facet-geo-location" content="not-a-point"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert "location" not in doc.geo_facets
+
+
 def test_pin_meta_tags_produce_pin_declarations():
     html = """
     <html lang="en">

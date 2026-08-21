@@ -24,9 +24,12 @@ client.dispose();
 - `synonyms` / `synonymWeight`
 - `fuzzy` / `fuzzyWeight`
 - `highlight` and `signal`
+- `sortByDistance` (docs/guides/facets.md#geo-facets)
 - `mode: "lexical"`
 
-`SearchResult` contains `hits`, `totalHits`, and `language`, plus requested `facets` and optional `didYouMean`. Every `Hit` has `id`, `score`, `url`, and stored `fields`; it may include `pinned` and `highlights`.
+`filters` values are a `string`/`string[]` (terms facet, or a fallback exact match against a stored-but-unfaceted field, docs/guides/facets.md#exact-match-on-stored-fields), a `{min?, max?}` `RangeFilter`, or a `{lat, lon, radiusKm}` `GeoFilter` (docs/guides/facets.md#geo-facets).
+
+`SearchResult` contains `hits`, `totalHits`, and `language`, plus requested `facets` and optional `didYouMean`. Every `Hit` has `id`, `score`, `url`, and stored `fields`; it may include `pinned`, `highlights`, and `distanceKm` (only when exactly one geo filter is active).
 
 ## Streaming/incremental results
 

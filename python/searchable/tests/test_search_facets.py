@@ -1,13 +1,17 @@
 from pathlib import Path
 
+import pytest
+
 from searchable.client.fetch import ShardCache
 from searchable.client.search import FacetValuesOptions, SearchOptions, facet_values, search
 from searchable.client.validate_manifest import validate_manifest
 from tests.fixtures.build_index import (
     write_index_with_category_facet,
+    write_index_with_geo_facet,
     write_index_with_hierarchy_facet,
     write_index_with_range_facet,
     write_index_with_two_facets,
+    write_index_with_undeclared_stored_field,
 )
 
 
@@ -99,3 +103,69 @@ def test_hierarchy_facet_reports_separator(tmp_path: Path):
     result = search("widget", manifest, cache, url, SearchOptions(facets=["category"]))
     assert result.facets is not None
     assert result.facets["category"].separator == "/"
+
+
+def test_geo_facet_filter_excludes_docs_outside_radius(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_geo_facet)
+    # 50 km around London -- only doc 1 (London) should match; doc 2 (New York,
+    # ~5570 km away) must be excluded.
+    options = SearchOptions(filters={"location": {"lat": 51.5, "lon": -0.12, "radius_km": 50}})
+    result = search("widget", manifest, cache, url, options)
+    assert [h.id for h in result.hits] == [1]
+
+
+def test_geo_facet_filter_includes_both_docs_at_large_radius(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_geo_facet)
+    options = SearchOptions(filters={"location": {"lat": 51.5, "lon": -0.12, "radius_km": 10000}})
+    result = search("widget", manifest, cache, url, options)
+    assert result.total_hits == 2
+
+
+def test_geo_facet_populates_distance_km_on_hits(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_geo_facet)
+    options = SearchOptions(
+        filters={"location": {"lat": 51.5074, "lon": -0.1278, "radius_km": 10000}}
+    )
+    result = search("widget", manifest, cache, url, options)
+    distances = {h.id: h.distance_km for h in result.hits}
+    assert distances[1] == pytest.approx(0.0, abs=0.01)
+    assert distances[2] == pytest.approx(5570, rel=0.05)
+
+
+def test_geo_facet_sort_by_distance_orders_nearest_first(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_geo_facet)
+    # Center near New York -- doc 2 (New York) should now rank before doc 1
+    # (London) once sort_by_distance overrides BM25F ranking.
+    options = SearchOptions(
+        filters={"location": {"lat": 40.7, "lon": -74.0, "radius_km": 10000}},
+        sort_by_distance=True,
+    )
+    result = search("widget", manifest, cache, url, options)
+    assert [h.id for h in result.hits] == [2, 1]
+
+
+def test_geo_facet_without_active_filter_leaves_distance_km_unset(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_geo_facet)
+    result = search("widget", manifest, cache, url, SearchOptions())
+    assert all(h.distance_km is None for h in result.hits)
+
+
+def test_exact_match_filter_on_undeclared_stored_field(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_undeclared_stored_field)
+    result = search("widget", manifest, cache, url, SearchOptions(filters={"sku": "ABC-123"}))
+    assert [h.id for h in result.hits] == [1]
+
+
+def test_exact_match_filter_with_multiple_values_is_or(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_undeclared_stored_field)
+    options = SearchOptions(filters={"sku": ["ABC-123", "XYZ-999"]})
+    result = search("widget", manifest, cache, url, options)
+    assert result.total_hits == 2
+
+
+def test_exact_match_filter_on_unknown_field_is_ignored(tmp_path: Path):
+    manifest, cache, url = _setup(tmp_path, write_index_with_undeclared_stored_field)
+    result = search(
+        "widget", manifest, cache, url, SearchOptions(filters={"nonexistent": "whatever"})
+    )
+    assert result.total_hits == 2

@@ -72,6 +72,7 @@ def test_facet_shard_validates_against_facet_shard_schema(tmp_path):
             html='<html lang="en"><head><title>T</title>'
             '<meta name="searchable-facet-category" content="a>b">'
             '<meta name="searchable-facet-range-price" content="19.99">'
+            '<meta name="searchable-facet-geo-location" content="51.5074,-0.1278">'
             "</head><body><main>widgets are great</main></body></html>",
         ),
     ]

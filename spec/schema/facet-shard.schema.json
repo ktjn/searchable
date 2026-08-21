@@ -7,7 +7,10 @@
   "additionalProperties": false,
   "required": ["type", "values"],
   "properties": {
-    "type": { "type": "string", "enum": ["terms", "range", "hierarchy"] },
+    "type": {
+      "type": "string",
+      "enum": ["terms", "range", "hierarchy", "geo"]
+    },
     "separator": {
       "type": "string",
       "description": "Path separator for type: hierarchy, e.g. '>'"
@@ -37,6 +40,20 @@
         "required": ["value", "doc"],
         "properties": {
           "value": { "type": "number" },
+          "doc": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "points": {
+      "description": "Only present for type: geo -- one (lat, lon, doc) coordinate per document declared with searchable-facet-geo-<field>, unsorted (unlike 'sorted' for range, a radius filter has no single-axis ordering to exploit, so this is a plain scan list). 'values' is always {} for a geo shard -- there are no discrete facet values or precomputed aggregate buckets, only radius filtering (docs/guides/facets.md#geo-facets).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lat", "lon", "doc"],
+        "properties": {
+          "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+          "lon": { "type": "number", "minimum": -180, "maximum": 180 },
           "doc": { "type": "integer", "minimum": 0 }
         }
       }

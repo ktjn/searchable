@@ -75,6 +75,23 @@ def add_range_facet_values(
         shard["sorted"].append({"value": value, "doc": doc_id})
 
 
+def add_geo_facet_values(
+    facet_shards: dict[str, dict[str, Any]],
+    geo_facets: dict[str, tuple[float, float]],
+    doc_id: int,
+) -> None:
+    for field_name, (lat, lon) in geo_facets.items():
+        shard = facet_shards.get(field_name)
+        if shard is None:
+            shard = {"type": "geo", "values": {}, "points": []}
+            facet_shards[field_name] = shard
+        elif shard["type"] != "geo":
+            # Same field also declared as a terms/range facet elsewhere --
+            # first declaration wins.
+            continue
+        shard["points"].append({"lat": lat, "lon": lon, "doc": doc_id})
+
+
 def _format_bucket_bound(n: float) -> str:
     rounded = round(n, 2)
     if rounded == int(rounded):

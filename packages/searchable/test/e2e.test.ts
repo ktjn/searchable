@@ -2,7 +2,10 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
-import type { PythonSourceDocument as SourceDocument } from "../test-support/python-index.js";
+import type {
+  PythonStructuredDocument,
+  PythonSourceDocument as SourceDocument,
+} from "../test-support/python-index.js";
 import { writePythonIndex } from "../test-support/python-index.js";
 import { serveStatic } from "./static-server.js";
 
@@ -1420,6 +1423,157 @@ describe("range facet filtering", () => {
     // shard.values aggregation terms facets already use.
     expect(priceValues.length).toBeGreaterThan(0);
     expect(priceValues.reduce((sum, v) => sum + v.count, 0)).toBe(3); // every priced widget, excluding the unpriced one
+  });
+});
+
+describe("geo facet filtering and distance sort (docs/guides/facets.md#geo-facets)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  // All three organically match "widget"; London and New York are ~5570 km
+  // apart, so a radius filter can cleanly separate them.
+  const geoSources: SourceDocument[] = [
+    {
+      id: 1,
+      url: "/london",
+      html: `<html lang="en"><head><title>London Widget</title>
+        <meta name="searchable-facet-geo-location" content="51.5074,-0.1278"></head>
+        <body><main><p>A widget shop in London.</p></main></body></html>`,
+    },
+    {
+      id: 2,
+      url: "/new-york",
+      html: `<html lang="en"><head><title>New York Widget</title>
+        <meta name="searchable-facet-geo-location" content="40.7128,-74.0060"></head>
+        <body><main><p>A widget shop in New York.</p></main></body></html>`,
+    },
+    {
+      id: 3,
+      url: "/no-location",
+      html: `<html lang="en"><head><title>Mail-order Widget</title></head>
+        <body><main><p>A widget shop with no listed location.</p></main></body></html>`,
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(geoSources));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("filters to documents within the radius", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { location: { lat: 51.5, lon: -0.12, radiusKm: 50 } },
+    });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("excludes documents with no declared point for the geo field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { location: { lat: 51.5, lon: -0.12, radiusKm: 10000 } },
+    });
+    expect(hits.map((h) => h.id)).not.toContain(3);
+  });
+
+  it("populates Hit.distanceKm when exactly one geo filter is active", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { location: { lat: 51.5074, lon: -0.1278, radiusKm: 10000 } },
+    });
+    const distances = new Map(hits.map((h) => [h.id, h.distanceKm]));
+    expect(distances.get(1)).toBeCloseTo(0, 1);
+    expect(distances.get(2)).toBeGreaterThan(5000);
+    expect(distances.get(2)).toBeLessThan(6000);
+  });
+
+  it("leaves Hit.distanceKm unset when no geo filter is active", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget");
+    expect(hits.every((h) => h.distanceKm === undefined)).toBe(true);
+  });
+
+  it("sortByDistance ranks the nearest match first instead of by BM25F score", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { location: { lat: 40.7, lon: -74.0, radiusKm: 10000 } },
+      sortByDistance: true,
+    });
+    expect(hits.map((h) => h.id)).toEqual([2, 1]);
+  });
+});
+
+describe("exact-match filtering on undeclared stored fields (docs/guides/facets.md#exact-match-on-stored-fields)", () => {
+  let baseUrl: string;
+  let closeServer: () => Promise<void>;
+  let outDir: string;
+  let cleanup: () => Promise<void>;
+
+  // "sku" is stored but never declared via a searchable-facet-<field> meta
+  // tag/fieldDefinitions facet -- no facets/ shard exists for it at all.
+  const structuredSources: PythonStructuredDocument[] = [
+    {
+      id: 1,
+      url: "/red",
+      indexedFields: { title: "Red Widget" },
+      storedFields: { title: "Red Widget", sku: "ABC-123" },
+    },
+    {
+      id: 2,
+      url: "/blue",
+      indexedFields: { title: "Blue Widget" },
+      storedFields: { title: "Blue Widget", sku: "XYZ-999" },
+    },
+  ];
+
+  beforeAll(async () => {
+    ({ outDir, cleanup } = await writePythonIndex(structuredSources, {
+      fieldDefinitions: {
+        title: { indexed: true, stored: true, boost: 1 },
+        sku: { indexed: false, stored: true },
+      },
+    }));
+    const server = await serveStatic(outDir);
+    baseUrl = server.baseUrl;
+    closeServer = server.close;
+  });
+
+  afterAll(async () => {
+    await closeServer();
+    await cleanup();
+  });
+
+  it("matches a stored field's exact value with no facet declaration", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { hits } = await client.search("widget", {
+      filters: { sku: "ABC-123" },
+    });
+    expect(hits.map((h) => h.id)).toEqual([1]);
+  });
+
+  it("ORs multiple values within the field", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { totalHits } = await client.search("widget", {
+      filters: { sku: ["ABC-123", "XYZ-999"] },
+    });
+    expect(totalHits).toBe(2);
+  });
+
+  it("ignores a filter field with neither a facet shard nor a stored declaration", async () => {
+    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const { totalHits } = await client.search("widget", {
+      filters: { nonexistentField: "whatever" },
+    });
+    expect(totalHits).toBe(2);
   });
 });
 

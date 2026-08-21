@@ -5,6 +5,7 @@ narrowing for the search client (mirrors packages/client/src/facets.ts).
 from typing import Any
 
 from searchable.client.fetch import ShardCache, resolve_url
+from searchable.client.geo import haversine_distance_km
 from searchable.client.types import FacetShard, Manifest, facet_shard_from_dict
 
 
@@ -12,9 +13,13 @@ def _is_range_filter(value: Any) -> bool:
     return isinstance(value, dict) and ("min" in value or "max" in value)
 
 
+def _is_geo_filter(value: Any) -> bool:
+    return isinstance(value, dict) and "radius_km" in value
+
+
 def _values_for(filters: dict[str, Any] | None, field_name: str) -> list[str]:
     raw = (filters or {}).get(field_name)
-    if raw is None or _is_range_filter(raw):
+    if raw is None or _is_range_filter(raw) or _is_geo_filter(raw):
         return []
     return raw if isinstance(raw, list) else [raw]
 
@@ -22,6 +27,13 @@ def _values_for(filters: dict[str, Any] | None, field_name: str) -> list[str]:
 def _range_filter_for(filters: dict[str, Any] | None, field_name: str) -> dict[str, Any] | None:
     raw = (filters or {}).get(field_name)
     return raw if _is_range_filter(raw) else None
+
+
+def _geo_filter_for(filters: dict[str, Any] | None, field_name: str) -> dict[str, Any] | None:
+    """Exported for search.py's distance/sort logic, which needs the raw GeoFilter
+    dict, not just the doc-id set _union_docs_for_field returns."""
+    raw = (filters or {}).get(field_name)
+    return raw if _is_geo_filter(raw) else None
 
 
 def _fetch_facet_shards(
@@ -60,6 +72,19 @@ def _union_docs_for_field(
             ):
                 continue
             ids.add(range_entry.doc)
+        return ids
+    if shard.type == "geo":
+        geo_filter = _geo_filter_for(filters, field_name)
+        if not geo_filter:
+            return ids
+        # Full scan of every declared point -- same "negligible at this
+        # scale" tradeoff as the range scan above, no spatial index.
+        for point in shard.points or []:
+            distance = haversine_distance_km(
+                geo_filter["lat"], geo_filter["lon"], point.lat, point.lon
+            )
+            if distance <= geo_filter["radius_km"]:
+                ids.add(point.doc)
         return ids
     for value in _values_for(filters, field_name):
         value_entry = shard.values.get(value)

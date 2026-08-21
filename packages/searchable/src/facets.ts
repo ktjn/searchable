@@ -1,6 +1,7 @@
 import type { ShardCache } from "./fetch-json.js";
 import type { FacetShard, Manifest } from "./format/index.js";
-import type { RangeFilter } from "./search.js";
+import { haversineDistanceKm } from "./geo.js";
+import type { GeoFilter, RangeFilter } from "./search.js";
 import { resolve } from "./url.js";
 
 function isRangeFilter(value: unknown): value is RangeFilter {
@@ -12,21 +13,45 @@ function isRangeFilter(value: unknown): value is RangeFilter {
   );
 }
 
+function isGeoFilter(value: unknown): value is GeoFilter {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "radiusKm" in value
+  );
+}
+
 export function valuesFor(
-  filters: Record<string, string | string[] | RangeFilter> | undefined,
+  filters:
+    | Record<string, string | string[] | RangeFilter | GeoFilter>
+    | undefined,
   field: string,
 ): string[] {
   const raw = filters?.[field];
-  if (raw === undefined || isRangeFilter(raw)) return [];
+  if (raw === undefined || isRangeFilter(raw) || isGeoFilter(raw)) return [];
   return Array.isArray(raw) ? raw : [raw];
 }
 
 function rangeFilterFor(
-  filters: Record<string, string | string[] | RangeFilter> | undefined,
+  filters:
+    | Record<string, string | string[] | RangeFilter | GeoFilter>
+    | undefined,
   field: string,
 ): RangeFilter | undefined {
   const raw = filters?.[field];
   return isRangeFilter(raw) ? raw : undefined;
+}
+
+/** Exported for search.ts's distance/sort logic, which needs the raw GeoFilter, not just the doc-id set unionDocsForField returns. */
+export function geoFilterFor(
+  filters:
+    | Record<string, string | string[] | RangeFilter | GeoFilter>
+    | undefined,
+  field: string,
+): GeoFilter | undefined {
+  const raw = filters?.[field];
+  return isGeoFilter(raw) ? raw : undefined;
 }
 
 /** Fetches every facet shard in `fields` that actually exists in the manifest, keyed by field name. Shared by search() and facetValues() so they resolve facet shards identically. */
@@ -53,13 +78,16 @@ export async function fetchFacetShards(
 
 /**
  * Every doc id matching the active filter on `field` (terms: OR across
- * selected values; range: min/max scan of the sorted array). Shared by
- * search() (candidate narrowing) and facetValues() (contextual counts
+ * selected values; range: min/max scan of the sorted array; geo:
+ * haversine distance scan of the points array against a radius). Shared
+ * by search() (candidate narrowing) and facetValues() (contextual counts
  * against every *other* active filter).
  */
 export function unionDocsForField(
   facetShardsByField: Map<string, FacetShard>,
-  filters: Record<string, string | string[] | RangeFilter> | undefined,
+  filters:
+    | Record<string, string | string[] | RangeFilter | GeoFilter>
+    | undefined,
   field: string,
 ): Set<number> {
   const shard = facetShardsByField.get(field);
@@ -78,6 +106,21 @@ export function unionDocsForField(
       if (range.min !== undefined && entry.value < range.min) continue;
       if (range.max !== undefined && entry.value > range.max) continue;
       ids.add(entry.doc);
+    }
+    return ids;
+  }
+  if (shard.type === "geo") {
+    const geo = geoFilterFor(filters, field);
+    if (!geo) return ids;
+    // Full scan of every declared point -- same "negligible at this
+    // scale" tradeoff as the range scan above, no spatial index.
+    for (const point of shard.points ?? []) {
+      if (
+        haversineDistanceKm(geo.lat, geo.lon, point.lat, point.lon) <=
+        geo.radiusKm
+      ) {
+        ids.add(point.doc);
+      }
     }
     return ids;
   }

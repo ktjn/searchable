@@ -148,11 +148,19 @@ class RangeFacetValue:
 
 
 @dataclass(frozen=True)
+class GeoFacetPoint:
+    lat: float
+    lon: float
+    doc: int
+
+
+@dataclass(frozen=True)
 class FacetShard:
-    type: str  # "terms" | "range" | "hierarchy"
+    type: str  # "terms" | "range" | "hierarchy" | "geo"
     values: dict[str, FacetValueEntry]
     separator: str | None = None
     sorted: list[RangeFacetValue] | None = None
+    points: list[GeoFacetPoint] | None = None
 
 
 @dataclass(frozen=True)
@@ -233,6 +241,11 @@ def facet_shard_from_dict(data: dict[str, Any]) -> FacetShard:
             if data.get("sorted") is not None
             else None
         ),
+        points=(
+            [GeoFacetPoint(lat=p["lat"], lon=p["lon"], doc=p["doc"]) for p in data["points"]]
+            if data.get("points") is not None
+            else None
+        ),
     )
 
 
@@ -275,6 +288,10 @@ class Hit:
     external_id: str | None = None
     metadata: dict[str, Any] | None = None
     content_hash: str | None = None
+    # Great-circle distance in km from the active geo filter's (lat, lon),
+    # only populated when exactly one geo filter is active (search.py's
+    # `_geo_filter_fields`) -- see docs/guides/facets.md#geo-facets.
+    distance_km: float | None = None
 
 
 @dataclass
@@ -299,6 +316,11 @@ class SearchOptions:
     fuzzy: bool = False
     fuzzy_weight: float = DEFAULT_FUZZY_WEIGHT
     highlight: bool = False
+    # Sort organic hits by ascending distance from the active geo filter's
+    # (lat, lon) instead of BM25F score. Only takes effect when exactly one
+    # geo filter is active in `filters` -- see docs/guides/facets.md#geo-facets.
+    # Pinned hits are unaffected -- pins always lead, per existing pin semantics.
+    sort_by_distance: bool = False
 
 
 @dataclass

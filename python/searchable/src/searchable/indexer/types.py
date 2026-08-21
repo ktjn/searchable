@@ -45,6 +45,7 @@ class ExtractedDocument:
     boost: float
     facets: dict[str, list[str]] = field(default_factory=dict)
     range_facets: dict[str, float] = field(default_factory=dict)
+    geo_facets: dict[str, tuple[float, float]] = field(default_factory=dict)
     pins: list[PinDeclaration] = field(default_factory=list)
     metadata: dict[str, str] = field(default_factory=dict)
 
