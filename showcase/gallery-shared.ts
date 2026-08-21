@@ -25,6 +25,8 @@ export function pageShell(opts: {
   root: string;
   bodyHtml: string;
   withWidget?: boolean;
+  /** Real, content-hashed filename for the "gallery-widget" entry (vite-manifest.ts against vite.widget.config.ts's build output). Required when withWidget is true. */
+  galleryWidgetScript?: string;
   /** Extra `<meta>` lines for the head, emitted right after the description (e.g. per-doc facet/boost/pin tags). */
   meta?: string[];
   /** `<html lang>` value, defaulting to "en" (used by the i18n gallery to partition pages per language). */
@@ -34,8 +36,13 @@ export function pageShell(opts: {
     /<main(?=[\s>])(?:(?!\bid=)[^>])*?>/,
     (main) => main.replace("<main", '<main id="main-content"'),
   );
+  if (opts.withWidget && !opts.galleryWidgetScript) {
+    throw new Error(
+      "pageShell({ withWidget: true }) requires galleryWidgetScript",
+    );
+  }
   const widgetScript = opts.withWidget
-    ? `\n    <script type="module" src="${opts.root}gallery-widget.js"></script>`
+    ? `\n    <script type="module" src="${opts.root}${opts.galleryWidgetScript}"></script>`
     : "";
   const metaLines = opts.meta?.length
     ? `\n    ${opts.meta.join("\n    ")}`

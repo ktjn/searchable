@@ -5,6 +5,7 @@ import { I18N_DOCS } from "./gallery-i18n-data.js";
 import { buildGalleryDemo, escapeHtml, pageShell } from "./gallery-shared.js";
 import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
 import { writePythonIndex } from "./python-index.js";
+import { resolveWidgetScript } from "./vite-manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -29,7 +30,7 @@ function renderDocPage(doc: I18nDoc): string {
   });
 }
 
-function renderI18nIndexPage(): string {
+function renderI18nIndexPage(galleryWidgetScript: string): string {
   const bodyHtml = `
       <main>
         <p><a href="../../index.html">&larr; Back to docs</a></p>
@@ -59,6 +60,7 @@ function renderI18nIndexPage(): string {
     root: "../../",
     bodyHtml,
     withWidget: true,
+    galleryWidgetScript,
   });
 }
 
@@ -71,13 +73,17 @@ function docToSource(doc: I18nDoc, id: number): SourceDocument {
 }
 
 async function main() {
+  const galleryWidgetScript = await resolveWidgetScript(
+    distDir,
+    "gallery-widget",
+  );
   const sources = I18N_DOCS.map((doc, i) => docToSource(doc, i + 1));
 
   await buildGalleryDemo({
     galleryDir,
     distDir,
     pages: sources,
-    indexHtml: renderI18nIndexPage(),
+    indexHtml: renderI18nIndexPage(galleryWidgetScript),
     buildIndex: () =>
       writePythonIndex(sources, {
         defaultLanguage: "en",

@@ -67,6 +67,9 @@ importers:
         specifier: ^18.0.7
         version: 18.0.9
     devDependencies:
+      '@ktjn/searchable':
+        specifier: workspace:*
+        version: link:../packages/searchable
       '@ktjn/searchable-fixtures':
         specifier: workspace:*
         version: link:../tools/fixtures
@@ -79,6 +82,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      vite:
+        specifier: ^8.2.0
+        version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(tsx@4.23.11)
 
   tools/fixtures:
     devDependencies:

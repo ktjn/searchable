@@ -5,6 +5,7 @@ import { generateProducts } from "./gallery-data.js";
 import { buildGalleryDemo, escapeHtml, pageShell } from "./gallery-shared.js";
 import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
 import { writePythonIndex } from "./python-index.js";
+import { resolveWidgetScript } from "./vite-manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -69,7 +70,10 @@ function renderReturnsPolicyPage(): string {
   });
 }
 
-function renderGalleryIndexPage(products: Product[]): string {
+function renderGalleryIndexPage(
+  products: Product[],
+  galleryWidgetScript: string,
+): string {
   const categories = [...new Set(products.map((p) => p.category))].sort();
   const bodyHtml = `
       <main>
@@ -110,6 +114,7 @@ function renderGalleryIndexPage(products: Product[]): string {
     root: "../../",
     bodyHtml,
     withWidget: true,
+    galleryWidgetScript,
   });
 }
 
@@ -122,6 +127,10 @@ function productToSource(product: Product): SourceDocument {
 }
 
 async function main() {
+  const galleryWidgetScript = await resolveWidgetScript(
+    distDir,
+    "gallery-widget",
+  );
   const products = generateProducts();
   const productSources = products.map(productToSource);
   const returnsPolicySource: SourceDocument = {
@@ -135,7 +144,7 @@ async function main() {
     galleryDir,
     distDir,
     pages: [...productSources, returnsPolicySource],
-    indexHtml: renderGalleryIndexPage(products),
+    indexHtml: renderGalleryIndexPage(products, galleryWidgetScript),
     buildIndex: () =>
       writePythonIndex(sources, {
         defaultLanguage: "en",

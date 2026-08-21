@@ -1,4 +1,4 @@
-import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { marked, type Tokens } from "marked";
@@ -11,6 +11,7 @@ import {
   type SitePage,
   validateNavigation,
 } from "./docs-site.js";
+import { resolveWidgetScript } from "./vite-manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, "..");
@@ -56,10 +57,12 @@ async function renderPage(page: DocPage): Promise<SitePage> {
 }
 
 async function main() {
-  // Always the first build step, so it's responsible for starting from
-  // a clean dist/ (build-search.ts adds to it afterwards).
-  await rm(outDir, { recursive: true, force: true });
+  // build:widget (vite.widget.config.ts) now runs first and is
+  // responsible for starting from a clean dist/ (emptyOutDir: true) --
+  // this step needs its manifest already on disk to resolve the
+  // search-widget script's real hashed filename below.
   await mkdir(outDir, { recursive: true });
+  const searchWidgetScript = await resolveWidgetScript(outDir, "search-widget");
 
   validateNavigation(DOC_SECTIONS);
   const navigation = flattenNavigation(DOC_SECTIONS);
@@ -100,7 +103,7 @@ async function main() {
       navigationIndex >= 0 ? navigation[navigationIndex + 1] : undefined;
     await writeFile(
       outPath,
-      renderSitePage(DOC_SECTIONS, page, previous, next),
+      renderSitePage(DOC_SECTIONS, page, previous, next, searchWidgetScript),
       "utf8",
     );
   }

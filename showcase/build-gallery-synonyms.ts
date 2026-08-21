@@ -5,6 +5,7 @@ import type { SynonymDoc } from "./gallery-synonyms-data.js";
 import { SYNONYM_CONFIG, SYNONYM_DOCS } from "./gallery-synonyms-data.js";
 import type { PythonSourceDocument as SourceDocument } from "./python-index.js";
 import { writePythonIndex } from "./python-index.js";
+import { resolveWidgetScript } from "./vite-manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = join(__dirname, "dist");
@@ -25,7 +26,7 @@ function renderDocPage(doc: SynonymDoc): string {
   });
 }
 
-function renderPlaygroundIndexPage(): string {
+function renderPlaygroundIndexPage(galleryWidgetScript: string): string {
   const bodyHtml = `
       <main>
         <p><a href="../../index.html">&larr; Back to docs</a></p>
@@ -55,6 +56,7 @@ function renderPlaygroundIndexPage(): string {
     root: "../../",
     bodyHtml,
     withWidget: true,
+    galleryWidgetScript,
   });
 }
 
@@ -67,13 +69,17 @@ function docToSource(doc: SynonymDoc, id: number): SourceDocument {
 }
 
 async function main() {
+  const galleryWidgetScript = await resolveWidgetScript(
+    distDir,
+    "gallery-widget",
+  );
   const sources = SYNONYM_DOCS.map((doc, i) => docToSource(doc, i + 1));
 
   await buildGalleryDemo({
     galleryDir,
     distDir,
     pages: sources,
-    indexHtml: renderPlaygroundIndexPage(),
+    indexHtml: renderPlaygroundIndexPage(galleryWidgetScript),
     buildIndex: () =>
       writePythonIndex(sources, {
         defaultLanguage: "en",

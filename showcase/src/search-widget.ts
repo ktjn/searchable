@@ -1,20 +1,31 @@
 /**
- * Loaded on every showcase page via <script type="module">. Not
- * bundled — plain TypeScript compiled to plain ES modules (see
- * ../tsconfig.widget.json) — this glue code has nothing to bundle, just
- * a dynamic import of the already-built @ktjn/searchable from a path
- * computed at runtime.
+ * Loaded on every showcase page via <script type="module">. Bundled and
+ * content-hashed by Vite (../vite.widget.config.ts) rather than plain
+ * `tsc`, so a redeploy that changes this file's compiled output gets a
+ * new filename and forces browsers to fetch it instead of serving a
+ * stale cached copy under the old, unchanged name -- the pages that
+ * load it (docs-site.ts's renderSitePage) reference whichever hashed
+ * filename ../vite-manifest.ts resolves for the "search-widget" entry
+ * at build time, not a literal "search-widget.js".
  *
- * `import.meta.url` (not the page's own location) is the anchor for
- * every site-root-relative path here — this file is always deployed as
- * a single copy at the site root (dist/search-widget.js), so its own
- * URL is a stable reference point regardless of which page loaded it
- * or how deep that page is nested. This matters because a relative
- * dynamic `import()` specifier resolves against *this module's* URL,
- * not the loading page's URL — using a page-depth-relative prefix here
- * (as an earlier version of this file did) breaks for every page except
- * ones at the same depth as this file, since the import would resolve
- * relative to search-widget.js's fixed location either way.
+ * `import("@ktjn/searchable")` is a literal specifier so Vite can
+ * resolve and code-split it at build time (a dynamic `new URL(...).href`
+ * computed at runtime, as an earlier version of this file used, isn't
+ * statically analyzable and can't be bundled) -- Vite pins that shared
+ * dependency to a stable `assets/index.js` chunk (see
+ * vite.widget.config.ts's `manualChunks`), so its own site-root-relative
+ * fetch URL doesn't change just because this file's hash does.
+ *
+ * `import.meta.url` (not the page's own location) is still the anchor
+ * for the site-root-relative data paths below (the search index isn't
+ * part of Vite's module graph) — this file is always deployed as a
+ * single copy at the site root, so its own URL is a stable reference
+ * point regardless of which page loaded it or how deep that page is
+ * nested. A relative fetch built from a page-depth-relative prefix (as
+ * an even earlier version of this file did) breaks for every page
+ * except ones at the same depth as this file, since resolution against
+ * this module's own URL is what actually anchors it correctly either
+ * way.
  */
 
 interface Hit {
@@ -36,9 +47,7 @@ if (root) {
 }
 
 async function initSearch(root: HTMLDivElement): Promise<void> {
-  const { SearchClient } = await import(
-    new URL("assets/index.js", siteRoot).href
-  );
+  const { SearchClient } = await import("@ktjn/searchable");
 
   const client: SearchClientLike = new SearchClient({
     indexUrl: new URL("search-index/manifest.json", siteRoot).href,
