@@ -131,6 +131,28 @@ def test_terms_facets_are_indexed_from_searchable_facet_meta_tags():
     assert built.facet_shards["color"]["values"]["red"]["docs"] == [1]
 
 
+def test_stored_meta_tag_adds_a_custom_stored_field_no_facet_shard():
+    doc = _doc_with_meta(
+        1,
+        "/a",
+        "Widgets",
+        "widgets",
+        extra_head='<meta name="searchable-stored-sku" content="ABC-123">',
+    )
+    built = build_index([doc])
+    assert built.manifest["fields"]["sku"] == {"stored": True, "indexed": False}
+    assert built.doc_store["1"]["fields"]["sku"] == "ABC-123"
+    # No facet shard for "sku" -- this is the exact-match-on-stored-fields
+    # fallback path (docs/guides/facets.md#exact-match-on-stored-fields), not
+    # a facet.
+    assert "sku" not in built.facet_shards
+
+
+def test_stored_meta_tag_only_extends_field_definitions_when_declared():
+    built = build_index([_doc(1, "/a", "Widgets", "widgets")])
+    assert "sku" not in built.manifest["fields"]
+
+
 def test_hierarchical_facets_option_produces_hierarchy_shard():
     doc = _doc_with_meta(
         1,

@@ -228,6 +228,55 @@ def write_index_with_range_facet(out_dir: Path) -> str:
     return manifest_url
 
 
+def write_index_with_geo_facet(out_dir: Path) -> str:
+    """Same two docs as write_basic_index, plus a 'location' geo facet: doc 1 is
+    London (51.5074, -0.1278), doc 2 is New York (40.7128, -74.0060) -- about
+    5570 km apart, so a radius filter can cleanly separate them."""
+    manifest_url = write_basic_index(out_dir)
+    (out_dir / "facets").mkdir(exist_ok=True)
+
+    location_shard = {
+        "type": "geo",
+        "values": {},
+        "points": [
+            {"lat": 51.5074, "lon": -0.1278, "doc": 1},
+            {"lat": 40.7128, "lon": -74.0060, "doc": 2},
+        ],
+    }
+    (out_dir / "facets" / "location.json").write_text(json.dumps(location_shard))
+
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["shards"]["facets"] = [{"field": "location", "file": "facets/location.json"}]
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_url
+
+
+def write_index_with_undeclared_stored_field(out_dir: Path) -> str:
+    """Same two docs as write_basic_index, plus a stored (but not facet-declared)
+    'sku' field: doc 1 = 'ABC-123', doc 2 = 'XYZ-999'. No facets/ shard exists for
+    'sku' at all -- used to verify SearchOptions.filters falls back to exact
+    doc-store matching for a stored field with no facet declaration."""
+    manifest_url = write_basic_index(out_dir)
+    doc_shard = {
+        "1": {
+            "url": "https://example.com/1",
+            "fields": {"title": "Red Widget", "sku": "ABC-123"},
+        },
+        "2": {
+            "url": "https://example.com/2",
+            "fields": {"title": "Blue Widget", "sku": "XYZ-999"},
+        },
+    }
+    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
+
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["fields"]["sku"] = {"boost": 1.0, "stored": True, "indexed": False}
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_url
+
+
 def _add_pins(out_dir: Path, manifest_url: str, pins_shard: dict) -> str:
     """Writes pins.json into an already-built index directory and wires it into the
     manifest's "pins" map for the "en" language. Shared by all pin fixtures below."""

@@ -4,7 +4,12 @@ import {
   ownProp,
 } from "./analysis/index.js";
 import { fetchDocStoreEntriesByIds } from "./doc-store.js";
-import { fetchFacetShards, unionDocsForField, valuesFor } from "./facets.js";
+import {
+  fetchFacetShards,
+  geoFilterFor,
+  unionDocsForField,
+  valuesFor,
+} from "./facets.js";
 import type { ShardCache } from "./fetch-json.js";
 import type {
   Manifest,
@@ -14,6 +19,7 @@ import type {
   TermShard,
 } from "./format/index.js";
 import { fuzzyMatchesFor, loadFuzzyLookup, nearestTermsFor } from "./fuzzy.js";
+import { haversineDistanceKm } from "./geo.js";
 import type { HighlightSpan, HighlightTerm } from "./highlight.js";
 import { highlightText } from "./highlight.js";
 import { parseQuery } from "./parse-query.js";
@@ -37,6 +43,14 @@ export interface Hit {
    * is not highlighted — see packages/client/src/highlight.ts for why.
    */
   highlights?: Record<string, HighlightSpan[]>;
+  /**
+   * Great-circle distance in km from the active geo filter's `(lat,
+   * lon)` (docs/guides/facets.md#geo-facets), only present when exactly
+   * one geo filter is active in `options.filters` — with two or more
+   * active geo filters simultaneously, which one a hit's distance
+   * should be measured against is ambiguous, so neither is reported.
+   */
+  distanceKm?: number;
 }
 
 export interface FacetResultValue {
@@ -62,6 +76,13 @@ export interface FacetResult {
 export interface RangeFilter {
   min?: number;
   max?: number;
+}
+
+/** Radius filter for a geo facet (docs/guides/facets.md#geo-facets): matches every document whose declared (lat, lon) is within `radiusKm` great-circle distance of (lat, lon). */
+export interface GeoFilter {
+  lat: number;
+  lon: number;
+  radiusKm: number;
 }
 
 export interface SearchResult {
@@ -112,14 +133,22 @@ export interface SearchOptions {
    * Facet filters (docs/guides/facets.md#filtering): a string or
    * string[] for a terms facet (OR across an array of values within
    * one field, AND across different fields); a `{min?, max?}` range
-   * for a range facet (docs/guides/facets.md#facet-index-structure) —
-   * which shape applies is determined by the field's own facet shard
-   * `type`, not declared here. A field with no matching facet shard in
-   * the manifest is ignored rather than zeroing out the whole query —
-   * a typo'd/unknown filter field is a build-time linting concern
-   * elsewhere, not something a single query should hard-fail on.
+   * for a range facet (docs/guides/facets.md#facet-index-structure); a
+   * `{lat, lon, radiusKm}` GeoFilter for a geo facet
+   * (docs/guides/facets.md#geo-facets) — which shape applies is
+   * determined by the field's own facet shard `type`, not declared
+   * here. A field with no matching facet shard in the manifest but
+   * declared `stored: true` in `Manifest.fields` instead falls back to
+   * exact string-equality matching against that field's raw doc-store
+   * value (docs/guides/facets.md#exact-match-on-stored-fields) — a
+   * string/string[] filter on an *undeclared* field works without the
+   * author also emitting a `searchable-facet-<field>` meta tag for it.
+   * A field matching neither is ignored rather than zeroing out the
+   * whole query — a typo'd/unknown filter field is a build-time
+   * linting concern elsewhere, not something a single query should
+   * hard-fail on.
    */
-  filters?: Record<string, string | string[] | RangeFilter>;
+  filters?: Record<string, string | string[] | RangeFilter | GeoFilter>;
   /**
    * Facet fields to compute contextual counts for and include in
    * `SearchResult.facets`. Counts are computed against the candidate
@@ -197,6 +226,16 @@ export interface SearchOptions {
    * normally, it just won't be delivered to the caller who aborted.
    */
   signal?: AbortSignal;
+  /**
+   * Sort organic hits by ascending distance from the active geo
+   * filter's `(lat, lon)` instead of BM25F score
+   * (docs/guides/facets.md#geo-facets). Only takes effect when exactly
+   * one geo filter is active in `options.filters` — the same
+   * single-active-filter condition `Hit.distanceKm` requires. Pinned
+   * hits are unaffected: pins still lead every result, per existing pin
+   * semantics (docs/guides/pinning.md).
+   */
+  sortByDistance?: boolean;
 }
 
 /** docs/guides/synonyms.md#scoring-impact. */
@@ -562,12 +601,71 @@ async function lexicalSearch(
     ]),
   );
 
-  // Organic candidates after applying every active filter (AND across fields).
+  // --- exact-match filtering against undeclared stored fields
+  // (docs/guides/facets.md#exact-match-on-stored-fields): a filter field
+  // with no facet shard at all, but declared `stored: true` in the
+  // manifest, falls back to fetching doc-store data for the organic
+  // candidate set and matching that field's raw value exactly (OR
+  // across a string[] filter, same shape as a terms-facet filter).
+  // Unlike facet filters, this doesn't gate pins (`activeFilterFields`
+  // below stays facet-only) -- checking a pin's stored-field value would
+  // require an extra doc-store fetch for every matched pin on every
+  // query regardless of whether pins matched the organic query, an
+  // unnecessary cost for what's already an edge-case fallback path.
+  const exactFieldFilterFields = filterFields.filter(
+    (f) => !facetShardsByField.has(f) && manifest.fields[f]?.stored,
+  );
+  const exactFieldUnionSets = new Map<string, Set<number>>();
+  if (exactFieldFilterFields.length > 0 && organicCandidateIds.length > 0) {
+    const docLookupForFilters = await fetchDocStoreEntriesByIds(
+      manifest,
+      cache,
+      baseUrl,
+      organicCandidateIds,
+    );
+    for (const field of exactFieldFilterFields) {
+      const wanted = new Set(valuesFor(options.filters, field));
+      const ids = new Set<number>();
+      for (const id of organicCandidateIds) {
+        const value = docLookupForFilters.get(id)?.fields[field];
+        if (value !== undefined && wanted.has(value)) ids.add(id);
+      }
+      exactFieldUnionSets.set(field, ids);
+    }
+  }
+
+  // Organic candidates after applying every active filter (AND across
+  // fields, both facet-backed and exact-stored-field fallback).
   let candidateIds = organicCandidateIds;
   for (const unionSet of filterUnionSets.values()) {
     candidateIds = candidateIds.filter((id) => unionSet.has(id));
   }
+  for (const unionSet of exactFieldUnionSets.values()) {
+    candidateIds = candidateIds.filter((id) => unionSet.has(id));
+  }
   const candidateSet = new Set(candidateIds);
+
+  // --- geo distance (docs/guides/facets.md#geo-facets): only computed
+  // when exactly one geo filter is active, since with two or more it's
+  // ambiguous which one a hit's reported distance should measure against.
+  const geoFilterFields = activeFilterFields.filter(
+    (f) => facetShardsByField.get(f)?.type === "geo",
+  );
+  let distanceById: Map<number, number> | undefined;
+  const [geoField] = geoFilterFields;
+  if (geoFilterFields.length === 1 && geoField !== undefined) {
+    const geoShard = facetShardsByField.get(geoField);
+    const geo = geoFilterFor(options.filters, geoField);
+    if (geoShard?.type === "geo" && geo) {
+      distanceById = new Map();
+      for (const point of geoShard.points ?? []) {
+        distanceById.set(
+          point.doc,
+          haversineDistanceKm(geo.lat, geo.lon, point.lat, point.lon),
+        );
+      }
+    }
+  }
 
   // Every clause's postings for candidateSet members get scored up
   // front regardless of pin/exclusive status — cheap, and lets a
@@ -642,12 +740,18 @@ async function lexicalSearch(
 
   // A matching exclusive pin skips the organic query entirely
   // (docs/guides/pinning.md#what-happens-at-query-time) — pinned hits are the whole result.
+  const sortByDistance = options.sortByDistance && distanceById !== undefined;
   const rankedOrganic = isExclusive
     ? []
     : candidateIds
         .filter((id) => !pinnedIdSet.has(id))
         .map((id) => ({ id, score: scoreOf(id) }))
-        .sort((a, b) => b.score - a.score)
+        .sort((a, b) =>
+          sortByDistance
+            ? (distanceById?.get(a.id) ?? Number.POSITIVE_INFINITY) -
+              (distanceById?.get(b.id) ?? Number.POSITIVE_INFINITY)
+            : b.score - a.score,
+        )
         .slice(0, Math.max(0, limit - pinnedForDisplay.length));
 
   const allResultIds = [
@@ -683,6 +787,7 @@ async function lexicalSearch(
           ]),
         )
       : undefined;
+    const distanceKm = distanceById?.get(id);
     return {
       id,
       score,
@@ -690,6 +795,7 @@ async function lexicalSearch(
       fields,
       ...(pinned ? { pinned: true } : {}),
       ...(highlights ? { highlights } : {}),
+      ...(distanceKm !== undefined ? { distanceKm } : {}),
     };
   }
 
@@ -786,7 +892,7 @@ export interface FacetValuesOptions {
    * between its own values shows real per-value counts rather than the
    * post-filter count for all of them.
    */
-  filters?: Record<string, string | string[] | RangeFilter>;
+  filters?: Record<string, string | string[] | RangeFilter | GeoFilter>;
   /** Same cancellation semantics as SearchOptions.signal above. */
   signal?: AbortSignal;
 }

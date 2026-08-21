@@ -13,12 +13,14 @@ This reference defines the implemented HTML authoring controls consumed by the r
 | `<meta name="searchable-boost" content="2.0">` | Document score multiplier | `1.0` |
 | `<meta name="searchable-facet-<field>" content="…">` | Repeatable terms/hierarchy facet value | No value |
 | `<meta name="searchable-facet-range-<field>" content="…">` | Numeric range-facet value | No value |
+| `<meta name="searchable-facet-geo-<field>" content="lat,lon">` | Geo-facet coordinate (`lat` in [-90, 90], `lon` in [-180, 180]) | No value |
+| `<meta name="searchable-stored-<field>" content="…">` | Custom stored (not indexed, no facet) field value | No value |
 | `<meta name="searchable-pin" content="…">` | Repeatable pin phrase | No pin |
 | `<meta name="searchable-pin-priority" content="10">` | Pin tie-break priority | `0` |
 | `<meta name="searchable-pin-mode" content="contains">` | `exact` or `contains` matching | `exact` |
 | `<meta name="searchable-pin-exclusive">` | Suppress organic results for a matching pin | Non-exclusive |
 
-Repeat a meta element for multiple values. Invalid numeric boosts fall back to `1.0`; malformed range values are ignored. Canonical URLs permit only HTTP(S), and `allowedUrlOrigins` can restrict them further. `canonicalBaseUrl` is required to resolve non-root-relative references safely.
+Repeat a meta element for multiple values. Invalid numeric boosts fall back to `1.0`; malformed range values are ignored; a malformed or out-of-range `searchable-facet-geo-<field>` value is also ignored, with a build-time warning. `searchable-stored-<field>` adds `field` to `Manifest.fields` as `stored: true, indexed: false` and populates it in the doc-store, without declaring a facet shard -- it's the authoring-side way to make a field reachable by [`SearchOptions.filters`' exact-match-on-stored-fields fallback](../guides/facets.md#exact-match-on-stored-fields) or simply for display, without also making it a facet or full-text-searchable; the first tag per field wins, and `title`/`excerpt`/`pageTitle` are reserved (the indexer already populates those) and are silently ignored. Canonical URLs permit only HTTP(S), and `allowedUrlOrigins` can restrict them further. `canonicalBaseUrl` is required to resolve non-root-relative references safely.
 
 ## Canonical URL
 

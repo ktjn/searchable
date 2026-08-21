@@ -26,6 +26,7 @@ Template (per project/governance.md):
 | [0003](0003-bm25f-ranking-model.md) | BM25F with configurable field/doc/term boosts as the ranking model |
 | [0004](0004-compatibility-policy.md) | Semver for the public API; a manifest `version` integer for the index format, checked independently |
 | [0005](0005-plugin-opt-in-boundary.md) | What's core (always bundled) vs. opt-in (a separate capability gated by its own bundle cost) |
+| [0006](0006-geo-facets-and-stored-field-exact-match.md) | Geo facets as a fourth facet-shard type; exact match on stored fields without a facet declaration |
 
 New ADRs after 1.0 should be numbered `000N` sequentially and added to
 this table.

@@ -1,3 +1,4 @@
+import math
 from collections.abc import Iterable, Iterator
 from dataclasses import replace
 
@@ -5,6 +6,7 @@ from searchable.analysis import get_language_profile, normalize_phrase
 from searchable.client.doc_store import _fetch_doc_store_entries_by_ids
 from searchable.client.facets import (
     _fetch_facet_shards,
+    _geo_filter_for,
     _union_docs_for_field,
     _values_for,
 )
@@ -14,6 +16,7 @@ from searchable.client.fuzzy import (
     _load_fuzzy_lookup,
     _nearest_terms_for,
 )
+from searchable.client.geo import haversine_distance_km
 from searchable.client.highlight import HighlightTerm, highlight_text
 from searchable.client.parse_query import parse_query
 from searchable.client.phrase import _contains_phrase, _has_consecutive_positions
@@ -271,9 +274,64 @@ def search(
         for f in active_filter_fields
     }
 
+    # --- exact-match filtering against undeclared stored fields
+    # (docs/guides/facets.md#exact-match-on-stored-fields): a filter field
+    # with no facet shard at all, but declared stored=True in the
+    # manifest, falls back to fetching doc-store data for the organic
+    # candidate set and matching that field's raw value exactly (OR
+    # across a string[] filter, same shape as a terms-facet filter).
+    # Unlike facet filters, this doesn't gate pins (active_filter_fields
+    # below stays facet-only) -- checking a pin's stored-field value
+    # would require an extra doc-store fetch for every matched pin on
+    # every query regardless of whether pins matched the organic query,
+    # an unnecessary cost for what's already an edge-case fallback path.
+    exact_field_filter_fields = [
+        f
+        for f in filter_fields
+        if f not in facet_shards_by_field
+        and manifest.fields.get(f) is not None
+        and manifest.fields[f].stored
+    ]
+    exact_field_union_sets: dict[str, set[int]] = {}
+    if exact_field_filter_fields and organic_candidate_ids:
+        doc_lookup_for_filters = _fetch_doc_store_entries_by_ids(
+            manifest, cache, base_url, organic_candidate_ids
+        )
+        for f in exact_field_filter_fields:
+            wanted = set(_values_for(options.filters, f))
+            ids: set[int] = set()
+            for doc_id in organic_candidate_ids:
+                doc = doc_lookup_for_filters.get(doc_id)
+                value = doc.fields.get(f) if doc else None
+                if value is not None and value in wanted:
+                    ids.add(doc_id)
+            exact_field_union_sets[f] = ids
+
     candidate_ids = organic_candidate_ids
     for union_set in filter_union_sets.values():
         candidate_ids = [i for i in candidate_ids if i in union_set]
+    for union_set in exact_field_union_sets.values():
+        candidate_ids = [i for i in candidate_ids if i in union_set]
+
+    # --- geo distance (docs/guides/facets.md#geo-facets): only computed
+    # when exactly one geo filter is active, since with two or more it's
+    # ambiguous which one a hit's reported distance should measure against.
+    geo_filter_fields = [
+        f
+        for f in active_filter_fields
+        if facet_shards_by_field.get(f) is not None and facet_shards_by_field[f].type == "geo"
+    ]
+    distance_by_id: dict[int, float] | None = None
+    if len(geo_filter_fields) == 1:
+        geo_field = geo_filter_fields[0]
+        geo_shard = facet_shards_by_field.get(geo_field)
+        geo_filter = _geo_filter_for(options.filters, geo_field)
+        if geo_shard is not None and geo_shard.type == "geo" and geo_filter:
+            distance_by_id = {}
+            for point in geo_shard.points or []:
+                distance_by_id[point.doc] = haversine_distance_km(
+                    geo_filter["lat"], geo_filter["lon"], point.lat, point.lon
+                )
 
     limit = options.limit
     field_boosts = (options.boosts or {}).get("fields")
@@ -329,6 +387,13 @@ def search(
         )
         return base_score * doc_boosts.get(doc_id, 1.0)
 
+    sort_by_distance = options.sort_by_distance and distance_by_id is not None
+
+    def _sort_key(pair: tuple[int, float]) -> float:
+        if sort_by_distance and distance_by_id is not None:
+            return distance_by_id.get(pair[0], math.inf)
+        return -pair[1]
+
     ranked_organic = (
         []
         if is_exclusive
@@ -338,7 +403,7 @@ def search(
                 for doc_id in candidate_ids
                 if doc_id not in pinned_id_set
             ),
-            key=lambda pair: -pair[1],
+            key=_sort_key,
         )[: max(0, limit - len(pinned_for_display))]
     )
 
@@ -363,6 +428,7 @@ def search(
             content_hash=doc.content_hash if doc else None,
             pinned=pinned,
             highlights=highlights,
+            distance_km=(distance_by_id or {}).get(doc_id),
         )
 
     hits = [_to_hit(p[0], _score_of(p[0]), True) for p in pinned_for_display] + [

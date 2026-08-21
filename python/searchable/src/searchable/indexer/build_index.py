@@ -23,6 +23,7 @@ from searchable.indexer.extract import _extract, extract_pre_section_body, extra
 from searchable.indexer.facets import (
     RANGE_FACET_BUCKET_COUNT,
     add_facet_values,
+    add_geo_facet_values,
     add_range_facet_values,
     compute_range_facet_buckets_equal_width,
     compute_range_facet_buckets_explicit,
@@ -236,6 +237,7 @@ class _PreparedDocument:
     document: IndexDocument
     facets: dict[str, list[str]] = field(default_factory=dict)
     range_facets: dict[str, float] = field(default_factory=dict)
+    geo_facets: dict[str, tuple[float, float]] = field(default_factory=dict)
     pins: list[PinDeclaration] = field(default_factory=list)
 
 
@@ -333,6 +335,7 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
 
         add_facet_values(facet_shards, item.facets, document.id, hierarchical_facets)
         add_range_facet_values(facet_shards, item.range_facets, document.id)
+        add_geo_facet_values(facet_shards, item.geo_facets, document.id)
 
         if item.pins:
             pins_acc = pins_acc_by_language.setdefault(language, {})
@@ -376,6 +379,8 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
     for field_name, shard in facet_shards.items():
         if shard.get("sorted") is not None:
             shard["sorted"].sort(key=lambda e: (e["value"], e["doc"]))
+        if shard.get("points") is not None:
+            shard["points"].sort(key=lambda p: (p["lat"], p["lon"], p["doc"]))
         if shard["type"] == "range":
             bucket_config = range_facet_buckets.get(field_name, RANGE_FACET_BUCKET_COUNT)
             if isinstance(bucket_config, list):
@@ -540,6 +545,7 @@ def _page_prepared_document(
         stored_fields={
             "title": extracted.title,
             "excerpt": extracted.excerpt or _derive_excerpt(body),
+            **extracted.stored_facets,
         },
         metadata=metadata,
         boost=extracted.boost,
@@ -548,6 +554,7 @@ def _page_prepared_document(
         document=document,
         facets=extracted.facets,
         range_facets=extracted.range_facets,
+        geo_facets=extracted.geo_facets,
         pins=extracted.pins,
     )
 
@@ -560,6 +567,8 @@ def _section_prepared_document(
     boost: float,
     facets: dict[str, list[str]],
     range_facets: dict[str, float],
+    geo_facets: dict[str, tuple[float, float]],
+    stored_facets: dict[str, str],
     page_metadata: dict[str, str],
 ) -> _PreparedDocument:
     metadata: dict[str, JsonValue] = {
@@ -583,6 +592,7 @@ def _section_prepared_document(
             "title": section.title,
             "excerpt": _derive_excerpt(section.body),
             "pageTitle": section.page_title,
+            **stored_facets,
         },
         metadata=metadata,
         boost=boost,
@@ -591,6 +601,7 @@ def _section_prepared_document(
         document=document,
         facets=dict(facets),
         range_facets=dict(range_facets),
+        geo_facets=dict(geo_facets),
         pins=[],
     )
 
@@ -637,6 +648,8 @@ def _prepare_html_items(
             boost=extracted.boost,
             facets=extracted.facets,
             range_facets=extracted.range_facets,
+            geo_facets=extracted.geo_facets,
+            stored_facets=extracted.stored_facets,
             page_metadata=extracted.metadata,
         )
 
@@ -677,6 +690,21 @@ def build_index(
             next_section_id,
         )
         prepared.extend(items)
+
+    # A searchable-stored-<field> tag (extract.py) can declare a field name
+    # field_definitions above doesn't know about yet -- unlike the fixed
+    # title/excerpt/pageTitle set, custom stored fields are discovered from
+    # what documents actually declared, so field_definitions is extended
+    # here, after preparation but before _build_prepared_documents'
+    # validation requires every stored_fields key to already be declared.
+    custom_stored_field_names = {
+        name
+        for item in prepared
+        for name in item.document.stored_fields
+        if name not in field_definitions
+    }
+    for name in custom_stored_field_names:
+        field_definitions[name] = FieldDefinition(indexed=False, stored=True, boost=1.0)
 
     return _build_prepared_documents(
         prepared,

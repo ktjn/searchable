@@ -11,7 +11,15 @@ from searchable.indexer.types import ExtractedDocument, ExtractedSection, PinDec
 
 _FACET_TAG_PREFIX = "searchable-facet-"
 _RANGE_FACET_TAG_PREFIX = "searchable-facet-range-"
+_GEO_FACET_TAG_PREFIX = "searchable-facet-geo-"
+_STORED_TAG_PREFIX = "searchable-stored-"
 _META_META_PREFIX = "searchable-meta-"
+# Field names build_index() always populates itself (title/excerpt directly,
+# pageTitle only in section-indexing mode) -- a searchable-stored-<field> tag
+# using one of these would silently clobber or be clobbered by the real
+# value, so it's rejected instead (docs/guides/facets.md#exact-match-on-stored-fields
+# relies on a custom stored field being genuinely author-controlled).
+_RESERVED_STORED_FIELD_NAMES = {"title", "excerpt", "pageTitle"}
 _BOILERPLATE_SELECTORS = ["nav", "header", "footer", "aside", "script", "style"]
 _SAFE_URL_PROTOCOLS = {"http", "https"}
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -30,6 +38,30 @@ def _parse_float_or_nan(raw: str | None) -> float:
         return float(raw)
     except ValueError:
         return float("nan")
+
+
+def _parse_geo_point(raw: str, field_name: str, source_url: str) -> tuple[float, float] | None:
+    parts = raw.split(",")
+    if len(parts) != 2:
+        _warn(
+            f'searchable-facet-geo-{field_name} content "{raw}" for {source_url} is not '
+            'a "lat,lon" pair -- ignoring'
+        )
+        return None
+    lat = _parse_float_or_nan(parts[0].strip())
+    lon = _parse_float_or_nan(parts[1].strip())
+    if (
+        not math.isfinite(lat)
+        or not math.isfinite(lon)
+        or not (-90 <= lat <= 90)
+        or not (-180 <= lon <= 180)
+    ):
+        _warn(
+            f'searchable-facet-geo-{field_name} content "{raw}" for {source_url} is not a '
+            "valid (lat, lon) pair -- lat must be in [-90, 90] and lon in [-180, 180] -- ignoring"
+        )
+        return None
+    return (lat, lon)
 
 
 def _warn(message: str) -> None:
@@ -130,14 +162,35 @@ def _extract(
 
     facets: dict[str, list[str]] = {}
     range_facets: dict[str, float] = {}
+    geo_facets: dict[str, tuple[float, float]] = {}
+    stored_facets: dict[str, str] = {}
     for meta in tree.css("meta"):
         name = meta.attributes.get("name") or ""
+        if name.startswith(_STORED_TAG_PREFIX):
+            field_name = name[len(_STORED_TAG_PREFIX) :]
+            value = (meta.attributes.get("content") or "").strip()
+            if field_name in _RESERVED_STORED_FIELD_NAMES:
+                _warn(
+                    f"searchable-stored-{field_name} for {source_url} reuses a "
+                    "reserved field name -- ignoring"
+                )
+            elif field_name and value and field_name not in stored_facets:
+                stored_facets[field_name] = value
+            continue
         if name.startswith(_RANGE_FACET_TAG_PREFIX):
             field_name = name[len(_RANGE_FACET_TAG_PREFIX) :]
             raw = (meta.attributes.get("content") or "").strip()
             parsed = _parse_float_or_nan(raw)
             if field_name and math.isfinite(parsed) and field_name not in range_facets:
                 range_facets[field_name] = parsed
+            continue
+        if name.startswith(_GEO_FACET_TAG_PREFIX):
+            field_name = name[len(_GEO_FACET_TAG_PREFIX) :]
+            raw = (meta.attributes.get("content") or "").strip()
+            if field_name and raw and field_name not in geo_facets:
+                point = _parse_geo_point(raw, field_name, source_url)
+                if point is not None:
+                    geo_facets[field_name] = point
             continue
         if not name.startswith(_FACET_TAG_PREFIX):
             continue
@@ -192,6 +245,8 @@ def _extract(
         boost=boost,
         facets=facets,
         range_facets=range_facets,
+        geo_facets=geo_facets,
+        stored_facets=stored_facets,
         pins=pins,
         metadata=metadata,
     )

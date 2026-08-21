@@ -41,14 +41,25 @@ process.
 - `synonyms` / `synonym_weight`
 - `fuzzy` / `fuzzy_weight`
 - `highlight`
+- `sort_by_distance` (docs/guides/facets.md#geo-facets)
 
 There is no `signal` — there is no cancellation support.
+
+`filters` values are a `str`/`list[str]` (terms facet, or a fallback exact
+match against a stored-but-unfaceted field,
+docs/guides/facets.md#exact-match-on-stored-fields), a `{"min": ..., "max":
+...}` range dict, or a `{"lat": ..., "lon": ..., "radius_km": ...}` geo dict
+(docs/guides/facets.md#geo-facets) — note the Python dict uses snake_case
+`radius_km` where the TS `GeoFilter` uses `radiusKm`, since this dict is a
+pure in-language query parameter that's never serialized to the shared index
+format, so each client follows its own naming convention.
 
 `SearchResult` contains `hits`, `total_hits`, and `language`, plus requested
 `facets` and optional `did_you_mean`. Every `Hit` has `id`, `score`, `url`,
 and stored `fields`; structured indexes may additionally provide
-`external_id`, `metadata`, and `content_hash`. A hit may also include `pinned`
-and `highlights`.
+`external_id`, `metadata`, and `content_hash`. A hit may also include
+`pinned`, `highlights`, and `distance_km` (only when exactly one geo filter
+is active).
 
 ## Structured document retrieval
 

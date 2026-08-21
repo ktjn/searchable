@@ -112,13 +112,21 @@ export interface RangeFacetValue {
   doc: number;
 }
 
+export interface GeoFacetPoint {
+  lat: number;
+  lon: number;
+  doc: number;
+}
+
 export interface FacetShard {
-  type: "terms" | "range" | "hierarchy";
+  type: "terms" | "range" | "hierarchy" | "geo";
   separator?: string;
-  /** Precomputed values for "terms"/"hierarchy" (per-value doc set + count); for "range", 5 equal-width buckets spanning the corpus's observed [min, max], keyed by a label like "10-20" or "80+" for the open-ended last bucket (docs/guides/facets.md#facet-index-structure). */
+  /** Precomputed values for "terms"/"hierarchy" (per-value doc set + count); for "range", 5 equal-width buckets spanning the corpus's observed [min, max], keyed by a label like "10-20" or "80+" for the open-ended last bucket (docs/guides/facets.md#facet-index-structure); always {} for "geo" -- there are no discrete facet values, only radius filtering. */
   values: Record<string, FacetValueEntry>;
   /** Only present for type: "range" -- every (value, doc) pair sorted ascending by value, so an arbitrary min/max filter can be resolved directly. */
   sorted?: RangeFacetValue[];
+  /** Only present for type: "geo" -- one (lat, lon, doc) coordinate per document, unsorted (docs/guides/facets.md#geo-facets). */
+  points?: GeoFacetPoint[];
 }
 
 export interface PinDoc {
