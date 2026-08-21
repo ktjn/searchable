@@ -12,6 +12,8 @@
  *        data-default-query="..."      (shown/used before the visitor types)
  *        data-facets="field1,field2"   (comma list of facet fields to render as checkboxes)
  *        data-range-facets="field"     (comma list of numeric range-facet fields -> min/max filter inputs)
+ *        data-geo-facet="field"        (one geo-facet field -> lat/lon/radius inputs + a sort-by-distance toggle)
+ *        data-exact-fields="field1,f2" (comma list of stored-but-unfaceted fields -> exact-match text inputs, docs/guides/facets.md#exact-match-on-stored-fields)
  *        data-fuzzy-toggle="true"      (omit to hide the fuzzy on/off control)
  *        data-synonyms-toggle="true"   (omit to hide the synonym-expansion on/off control)
  *        data-languages="en,de">       (comma list -> a language <select>; omit to use manifest.defaultLanguage)
@@ -44,6 +46,7 @@ interface Hit {
   fields: Record<string, string>;
   pinned?: boolean;
   highlights?: Record<string, HighlightSpan[]>;
+  distanceKm?: number;
 }
 
 interface HighlightSpan {
@@ -73,10 +76,16 @@ interface RangeFilter {
   max?: number;
 }
 
+interface GeoFilter {
+  lat: number;
+  lon: number;
+  radiusKm: number;
+}
+
 interface SearchOptions {
   language?: string;
   limit?: number;
-  filters?: Record<string, string | string[] | RangeFilter>;
+  filters?: Record<string, string | string[] | RangeFilter | GeoFilter>;
   facets?: string[];
   fuzzy?: boolean;
   fuzzyWeight?: number;
@@ -85,6 +94,7 @@ interface SearchOptions {
   operator?: "and" | "or";
   highlight?: boolean;
   mode?: "lexical";
+  sortByDistance?: boolean;
   boosts?: {
     fields?: Record<string, number>;
     terms?: Record<string, number>;
@@ -169,6 +179,11 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     .map((f) => f.trim())
     .filter(Boolean);
   const rangeFacetFields = (root.dataset.rangeFacets ?? "")
+    .split(",")
+    .map((f) => f.trim())
+    .filter(Boolean);
+  const geoFacetField = root.dataset.geoFacet?.trim() || undefined;
+  const exactFields = (root.dataset.exactFields ?? "")
     .split(",")
     .map((f) => f.trim())
     .filter(Boolean);
@@ -363,11 +378,14 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   resultsPane.className = "gallery-results";
   body.append(resultsPane);
 
-  // Range filters live in persistent inputs, so re-rendering the checkbox
-  // facet groups on every search must not clobber them (nor steal focus).
+  // Range/geo/exact-match filters live in persistent inputs, so
+  // re-rendering the checkbox facet groups on every search must not
+  // clobber them (nor steal focus).
   const rangeSection = document.createElement("div");
+  const geoSection = document.createElement("div");
+  const exactSection = document.createElement("div");
   const checkboxSection = document.createElement("div");
-  facetsPane.append(rangeSection, checkboxSection);
+  facetsPane.append(rangeSection, geoSection, exactSection, checkboxSection);
 
   const rangeStates = new Map<
     string,
@@ -412,6 +430,103 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     rangeSection.append(group);
   }
 
+  // --- geo filter (docs/guides/facets.md#geo-facets): lat/lon/radius
+  // inputs plus a sort-by-distance toggle, active only once all three
+  // numeric inputs have a value (mirroring the range facet's "both ends
+  // optional but a filter only applies once meaningful" behavior, except
+  // a geo filter needs all three to mean anything at all).
+  let geoState: {
+    lat: number | undefined;
+    lon: number | undefined;
+    radiusKm: number | undefined;
+  } = { lat: undefined, lon: undefined, radiusKm: undefined };
+  let sortByDistanceEnabled = false;
+  if (geoFacetField) {
+    const group = document.createElement("fieldset");
+    group.className = "gallery-facet-group gallery-geo-facet";
+    const legend = document.createElement("legend");
+    legend.textContent = `${geoFacetField} (near me)`;
+    group.append(legend);
+
+    const latInput = document.createElement("input");
+    latInput.type = "number";
+    latInput.step = "any";
+    latInput.className = "gallery-range-input";
+    latInput.placeholder = "Latitude";
+    latInput.setAttribute("aria-label", `${geoFacetField} latitude`);
+    const lonInput = document.createElement("input");
+    lonInput.type = "number";
+    lonInput.step = "any";
+    lonInput.className = "gallery-range-input";
+    lonInput.placeholder = "Longitude";
+    lonInput.setAttribute("aria-label", `${geoFacetField} longitude`);
+    const radiusInput = document.createElement("input");
+    radiusInput.type = "number";
+    radiusInput.min = "0";
+    radiusInput.className = "gallery-range-input";
+    radiusInput.placeholder = "Radius (km)";
+    radiusInput.setAttribute(
+      "aria-label",
+      `${geoFacetField} radius in kilometers`,
+    );
+    group.append(latInput, lonInput, radiusInput);
+
+    const sortLabel = document.createElement("label");
+    sortLabel.className = "gallery-toggle";
+    const sortCheckbox = document.createElement("input");
+    sortCheckbox.type = "checkbox";
+    sortCheckbox.setAttribute("aria-label", "Sort by distance");
+    sortCheckbox.addEventListener("change", () => {
+      sortByDistanceEnabled = sortCheckbox.checked;
+      void runSearch();
+    });
+    sortLabel.append(
+      sortCheckbox,
+      document.createTextNode(" Sort by distance"),
+    );
+    group.append(sortLabel);
+
+    const readGeo = (): void => {
+      geoState = {
+        lat: parseNumberInput(latInput.value),
+        lon: parseNumberInput(lonInput.value),
+        radiusKm: parseNumberInput(radiusInput.value),
+      };
+      void runSearch();
+    };
+    latInput.addEventListener("input", readGeo);
+    lonInput.addEventListener("input", readGeo);
+    radiusInput.addEventListener("input", readGeo);
+    geoSection.append(group);
+  }
+
+  // --- exact-match filter on a stored (not faceted) field
+  // (docs/guides/facets.md#exact-match-on-stored-fields): a plain text
+  // input per field, active only once it holds the field's exact stored
+  // value -- unlike the checkbox facets above, there's no discrete value
+  // list to offer, so a partial/typo'd value simply matches nothing.
+  const exactStates = new Map<string, string>();
+  for (const field of exactFields) {
+    const group = document.createElement("fieldset");
+    group.className = "gallery-facet-group gallery-exact-facet";
+    const legend = document.createElement("legend");
+    legend.textContent = `${field} (exact match)`;
+    group.append(legend);
+    const exactInput = document.createElement("input");
+    exactInput.type = "text";
+    exactInput.className = "gallery-range-input";
+    exactInput.placeholder = `Exact ${field}`;
+    exactInput.setAttribute("aria-label", `${field} exact match`);
+    exactInput.addEventListener("input", () => {
+      const value = exactInput.value.trim();
+      if (value) exactStates.set(field, value);
+      else exactStates.delete(field);
+      void runSearch();
+    });
+    group.append(exactInput);
+    exactSection.append(group);
+  }
+
   root.replaceChildren(controls, body);
 
   // field -> set of selected values, OR'd within a field (docs/guides/facets.md#filtering)
@@ -424,9 +539,9 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   });
 
   function currentFilters():
-    | Record<string, string | string[] | RangeFilter>
+    | Record<string, string | string[] | RangeFilter | GeoFilter>
     | undefined {
-    const out: Record<string, string | string[] | RangeFilter> = {};
+    const out: Record<string, string | string[] | RangeFilter | GeoFilter> = {};
     for (const [field, values] of selectedFilters) {
       if (values.size > 0) out[field] = [...values];
     }
@@ -438,6 +553,21 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       if (range.min !== undefined) filter.min = range.min;
       if (range.max !== undefined) filter.max = range.max;
       out[field] = filter;
+    }
+    if (
+      geoFacetField &&
+      geoState.lat !== undefined &&
+      geoState.lon !== undefined &&
+      geoState.radiusKm !== undefined
+    ) {
+      out[geoFacetField] = {
+        lat: geoState.lat,
+        lon: geoState.lon,
+        radiusKm: geoState.radiusKm,
+      };
+    }
+    for (const [field, value] of exactStates) {
+      out[field] = value;
     }
     return Object.keys(out).length ? out : undefined;
   }
@@ -554,6 +684,12 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
         badge.textContent = expansionLabel;
         title.append(" ", badge);
       }
+      if (hit.distanceKm !== undefined) {
+        const badge = document.createElement("span");
+        badge.className = "gallery-badge gallery-badge-distance";
+        badge.textContent = `${hit.distanceKm.toFixed(0)} km away`;
+        title.append(" ", badge);
+      }
       const excerpt = document.createElement("div");
       excerpt.className = "gallery-hit-excerpt";
       appendFieldText(
@@ -633,6 +769,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
         ...(synonymsEnabled && synonymWeightKnob
           ? { synonymWeight: Number(synonymWeightKnob.value) }
           : {}),
+        ...(sortByDistanceEnabled ? { sortByDistance: true } : {}),
       };
       if (activeFieldBoosts.size > 0 || activeTermBoosts.size > 0) {
         options.boosts = {

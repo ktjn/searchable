@@ -298,6 +298,10 @@
   background: var(--muted);
 }
 
+.gallery-badge-distance {
+  background: var(--muted);
+}
+
 .gallery-hit-highlight {
   background: var(--accent);
   color: var(--bg);

@@ -62,7 +62,11 @@ A geo field has no discrete facet values, so it can't be requested via `SearchOp
 
 ## Exact match on stored fields
 
-A facet filter normally only works on a field with a declared facet shard (`searchable-facet-<field>`/`searchable-facet-range-<field>`/`searchable-facet-geo-<field>`). A filter targeting a field with *no* facet shard, but declared `stored: true` in the manifest (any indexed-and-stored or stored-only field), instead falls back to exact string-equality matching against that field's raw doc-store value — the author doesn't need to also emit a facet meta tag just to make a field filterable:
+A facet filter normally only works on a field with a declared facet shard (`searchable-facet-<field>`/`searchable-facet-range-<field>`/`searchable-facet-geo-<field>`). A filter targeting a field with *no* facet shard, but declared `stored: true` in the manifest (any indexed-and-stored or stored-only field), instead falls back to exact string-equality matching against that field's raw doc-store value — the author doesn't need to also emit a facet meta tag just to make a field filterable. `title`/`excerpt`/`pageTitle` are already stored this way for every document; declare an arbitrary additional stored-only field with one `searchable-stored-<field>` meta tag per document ([CMS meta tags](../reference/cms-meta-tags.md)) when you want exact-match filtering (or just display) on a field that shouldn't also be full-text-searched or turned into a facet — a SKU or product code is a typical case:
+
+```html
+<meta name="searchable-stored-sku" content="ABC-123">
+```
 
 ```ts
 const result = await search.search("widget", {

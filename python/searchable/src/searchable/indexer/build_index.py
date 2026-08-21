@@ -545,6 +545,7 @@ def _page_prepared_document(
         stored_fields={
             "title": extracted.title,
             "excerpt": extracted.excerpt or _derive_excerpt(body),
+            **extracted.stored_facets,
         },
         metadata=metadata,
         boost=extracted.boost,
@@ -567,6 +568,7 @@ def _section_prepared_document(
     facets: dict[str, list[str]],
     range_facets: dict[str, float],
     geo_facets: dict[str, tuple[float, float]],
+    stored_facets: dict[str, str],
     page_metadata: dict[str, str],
 ) -> _PreparedDocument:
     metadata: dict[str, JsonValue] = {
@@ -590,6 +592,7 @@ def _section_prepared_document(
             "title": section.title,
             "excerpt": _derive_excerpt(section.body),
             "pageTitle": section.page_title,
+            **stored_facets,
         },
         metadata=metadata,
         boost=boost,
@@ -646,6 +649,7 @@ def _prepare_html_items(
             facets=extracted.facets,
             range_facets=extracted.range_facets,
             geo_facets=extracted.geo_facets,
+            stored_facets=extracted.stored_facets,
             page_metadata=extracted.metadata,
         )
 
@@ -686,6 +690,21 @@ def build_index(
             next_section_id,
         )
         prepared.extend(items)
+
+    # A searchable-stored-<field> tag (extract.py) can declare a field name
+    # field_definitions above doesn't know about yet -- unlike the fixed
+    # title/excerpt/pageTitle set, custom stored fields are discovered from
+    # what documents actually declared, so field_definitions is extended
+    # here, after preparation but before _build_prepared_documents'
+    # validation requires every stored_fields key to already be declared.
+    custom_stored_field_names = {
+        name
+        for item in prepared
+        for name in item.document.stored_fields
+        if name not in field_definitions
+    }
+    for name in custom_stored_field_names:
+        field_definitions[name] = FieldDefinition(indexed=False, stored=True, boost=1.0)
 
     return _build_prepared_documents(
         prepared,

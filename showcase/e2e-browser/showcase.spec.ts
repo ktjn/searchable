@@ -518,6 +518,78 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     await page.waitForLoadState("load");
     await expect(page.locator("main h1")).toHaveText((title ?? "").trim());
   });
+
+  test("a geo facet filters results within a radius and shows distance", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/products/index.html`);
+    const hits = page.locator(".gallery-hit-list li");
+    await expect(hits.first()).toBeVisible();
+
+    // New York (40.7128, -74.0060) plus a small radius should only ever
+    // surface products whose pickup store is New York itself, never one of
+    // the other four pickup cities (each thousands of km away).
+    await page.getByLabel("storeLocation latitude").fill("40.7128");
+    await page.getByLabel("storeLocation longitude").fill("-74.006");
+    await page.getByLabel("storeLocation radius in kilometers").fill("50");
+
+    await expect(async () => {
+      expect(await hits.count()).toBeGreaterThan(0);
+      expect(await hits.count()).toBeLessThanOrEqual(4);
+    }).toPass();
+    await expect(page.locator(".gallery-error")).toHaveCount(0);
+    for (const badge of await page
+      .locator(".gallery-badge-distance")
+      .allTextContents()) {
+      expect(badge).toMatch(/km away/);
+    }
+
+    // Clearing the geo inputs restores the full default result set.
+    await page.getByLabel("storeLocation latitude").fill("");
+    await page.getByLabel("storeLocation longitude").fill("");
+    await page.getByLabel("storeLocation radius in kilometers").fill("");
+    await expect(hits).toHaveCount(4);
+  });
+
+  test("sort by distance reorders results nearest-first", async ({ page }) => {
+    await page.goto(`${baseUrl}gallery/products/index.html`);
+    await page.getByLabel("storeLocation latitude").fill("40.7128");
+    await page.getByLabel("storeLocation longitude").fill("-74.006");
+    await page.getByLabel("storeLocation radius in kilometers").fill("20000");
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+
+    await page.getByLabel("Sort by distance").check();
+
+    await expect(async () => {
+      const badges = await page
+        .locator(".gallery-badge-distance")
+        .allTextContents();
+      expect(badges.length).toBeGreaterThan(0);
+      const distances = badges.map((b) => Number.parseFloat(b));
+      const sorted = [...distances].sort((a, b) => a - b);
+      expect(distances).toEqual(sorted);
+    }).toPass();
+  });
+
+  test("exact-match filter on the stored (not faceted) sku field finds one product", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/products/index.html`);
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+
+    await page.getByLabel("sku exact match").fill("SKU-00001");
+
+    await expect(async () => {
+      expect(await page.locator(".gallery-hit-list li").count()).toBe(1);
+    }).toPass();
+    await expect(page.locator(".gallery-hit-title").first()).toContainText(
+      "Walnut Accent Table",
+    );
+
+    // Clearing the field restores the full default result set.
+    await page.getByLabel("sku exact match").fill("");
+    await expect(page.locator(".gallery-hit-list li")).toHaveCount(4);
+  });
 });
 
 test.describe("feature gallery: synonym playground demo (real browser)", () => {

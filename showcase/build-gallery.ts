@@ -20,7 +20,9 @@ function renderProductPage(product: Product): string {
         <p class="gallery-meta">
           <span>${escapeHtml(product.category)}</span> ·
           <span>$${product.price}</span> ·
-          <span>${escapeHtml(product.priceBucket)}</span>
+          <span>${escapeHtml(product.priceBucket)}</span> ·
+          <span>Pickup: ${escapeHtml(product.storeName)}</span> ·
+          <span>SKU: ${escapeHtml(product.sku)}</span>
         </p>
         <p>${escapeHtml(product.description)}</p>
         <p class="gallery-tags">
@@ -36,6 +38,8 @@ function renderProductPage(product: Product): string {
       `<meta name="searchable-facet-category" content="${escapeHtml(product.category)}">`,
       `<meta name="searchable-facet-price" content="${escapeHtml(product.priceBucket)}">`,
       `<meta name="searchable-facet-range-priceRange" content="${product.price}">`,
+      `<meta name="searchable-facet-geo-storeLocation" content="${product.storeLocation.lat},${product.storeLocation.lon}">`,
+      `<meta name="searchable-stored-sku" content="${escapeHtml(product.sku)}">`,
       ...product.tags.map(
         (t) => `<meta name="searchable-facet-tags" content="${escapeHtml(t)}">`,
       ),
@@ -74,10 +78,15 @@ function renderGalleryIndexPage(products: Product[]): string {
         <p>${products.length} synthetic products across ${categories.join(
           ", ",
         )}, indexed with the Python <code>searchable-indexer</code> and searched with
-        <code>@ktjn/searchable</code> -- real terms and numeric range
+        <code>@ktjn/searchable</code> -- real terms, numeric range, and geo
         facets, boosts, a pinned best-bet ("returns policy"), typo-tolerant
-        fuzzy matching.
-        See <a href="../../docs/guides/facets.html">faceted search</a>,
+        fuzzy matching, and exact-match filtering on a stored (not faceted)
+        SKU field.
+        See <a href="../../docs/guides/facets.html">faceted search</a>
+        (including <a href="../../docs/guides/facets.html#geo-facets">geo
+        facets</a> and
+        <a href="../../docs/guides/facets.html#exact-match-on-stored-fields">
+        exact match on stored fields</a>),
         <a href="../../docs/guides/ranking-and-boosts.html">ranking &amp;
         boosts</a>, and <a href="../../docs/guides/pinning.html">
         term-to-page pinning</a> for how each mechanism works.</p>
@@ -87,6 +96,8 @@ function renderGalleryIndexPage(products: Product[]): string {
           data-default-query="product"
           data-facets="category,price,tags"
           data-range-facets="priceRange"
+          data-geo-facet="storeLocation"
+          data-exact-fields="sku"
           data-fuzzy-toggle="true"
           data-fuzzy-weight="0.5"
            data-modes="lexical"
@@ -95,7 +106,7 @@ function renderGalleryIndexPage(products: Product[]): string {
   return pageShell({
     title: "Product catalog demo",
     description:
-      "A synthetic product catalog demonstrating facets, boosts, and pinning.",
+      "A synthetic product catalog demonstrating facets (including geo and exact-match), boosts, and pinning.",
     root: "../../",
     bodyHtml,
     withWidget: true,

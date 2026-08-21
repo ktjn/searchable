@@ -17,7 +17,31 @@ export interface Product {
   tags: string[];
   featured: boolean;
   description: string;
+  /** Pickup-store name, indexed via searchable-facet-geo-storeLocation (docs/guides/facets.md#geo-facets). */
+  storeName: string;
+  storeLocation: { lat: number; lon: number };
+  /** Stored (not indexed, not faceted) via searchable-stored-sku (docs/guides/facets.md#exact-match-on-stored-fields). */
+  sku: string;
 }
+
+interface StoreDef {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+/**
+ * One pickup location per product, assigned deterministically below --
+ * enough geographic spread (~5500-9700 km between any two) that a modest
+ * search radius cleanly separates them for the "near me" demo.
+ */
+const STORES: StoreDef[] = [
+  { name: "London", lat: 51.5074, lon: -0.1278 },
+  { name: "New York", lat: 40.7128, lon: -74.006 },
+  { name: "Tokyo", lat: 35.6762, lon: 139.6503 },
+  { name: "Sydney", lat: -33.8688, lon: 151.2093 },
+  { name: "Berlin", lat: 52.52, lon: 13.405 },
+];
 
 interface CategoryDef {
   nouns: string[];
@@ -176,6 +200,7 @@ export function generateProducts(): Product[] {
         const tag2 = tags[(id + 2) % tags.length] as string;
         const itemTags = [...new Set([tag1, tag2])];
         const featured = id % 9 === 0;
+        const store = STORES[id % STORES.length] as StoreDef;
         products.push({
           id,
           slug: slugify(`${category}-${name}-${id}`),
@@ -185,9 +210,12 @@ export function generateProducts(): Product[] {
           priceBucket: priceBucketFor(price),
           tags: itemTags,
           featured,
+          storeName: store.name,
+          storeLocation: { lat: store.lat, lon: store.lon },
+          sku: `SKU-${String(id).padStart(5, "0")}`,
           description:
             `${featured ? "Featured pick. " : ""}The ${name} is a ${itemTags.join(" and ")} product ` +
-            `in our ${category} catalog, priced at $${price}.`,
+            `in our ${category} catalog, priced at $${price}. Available for pickup at our ${store.name} store.`,
         });
         id++;
       }

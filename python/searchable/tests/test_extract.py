@@ -264,6 +264,43 @@ def test_geo_facet_malformed_content_is_ignored():
     assert "location" not in doc.geo_facets
 
 
+def test_stored_meta_tag_adds_a_custom_stored_field():
+    html = """
+    <html lang="en">
+      <head><title>T</title><meta name="searchable-stored-sku" content="ABC-123"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.stored_facets["sku"] == "ABC-123"
+    assert "stored-sku" not in doc.facets
+
+
+def test_stored_meta_tag_first_declaration_wins():
+    html = """
+    <html lang="en">
+      <head><title>T</title>
+      <meta name="searchable-stored-sku" content="first">
+      <meta name="searchable-stored-sku" content="second"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert doc.stored_facets["sku"] == "first"
+
+
+def test_stored_meta_tag_rejects_reserved_field_names():
+    html = """
+    <html lang="en">
+      <head><title>T</title><meta name="searchable-stored-title" content="Overridden"></head>
+      <body><main>Content</main></body>
+    </html>
+    """
+    doc = extract_document(html, "/page")
+    assert "title" not in doc.stored_facets
+    assert doc.title == "T"
+
+
 def test_pin_meta_tags_produce_pin_declarations():
     html = """
     <html lang="en">
