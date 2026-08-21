@@ -13,7 +13,12 @@
  *        data-facets="field1,field2"   (comma list of facet fields to render as checkboxes)
  *        data-range-facets="field"     (comma list of numeric range-facet fields -> min/max filter inputs)
  *        data-geo-facet="field"        (one geo-facet field -> lat/lon/radius inputs + a sort-by-distance toggle)
+ *        data-geo-lat="51.5074"        (optional preset for the latitude input, so the effect is visible without typing first)
+ *        data-geo-lon="-0.1278"        (optional preset for the longitude input)
+ *        data-geo-radius="6500"        (optional preset for the radius (km) input)
+ *        data-sort-by-distance="true"  (optional -> pre-check the sort-by-distance toggle)
  *        data-exact-fields="field1,f2" (comma list of stored-but-unfaceted fields -> exact-match text inputs, docs/guides/facets.md#exact-match-on-stored-fields)
+ *        data-exact-values="f1=v1,f2=v2" (optional presets for those exact-match inputs)
  *        data-fuzzy-toggle="true"      (omit to hide the fuzzy on/off control)
  *        data-synonyms-toggle="true"   (omit to hide the synonym-expansion on/off control)
  *        data-languages="en,de">       (comma list -> a language <select>; omit to use manifest.defaultLanguage)
@@ -145,6 +150,21 @@ function parseBoostSpec(spec: string | undefined): BoostSpecEntry[] {
     });
 }
 
+/** Parses "field1=value1,field2=value2" into a field -> preset-value map, for prefilling exact-match inputs (data-exact-values). */
+function parseExactValueSpec(spec: string | undefined): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!spec) return out;
+  for (const part of spec
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean)) {
+    const eq = part.indexOf("=");
+    if (eq <= 0) continue;
+    out.set(part.slice(0, eq), part.slice(eq + 1));
+  }
+  return out;
+}
+
 const siteRoot = new URL(".", import.meta.url);
 const RESULT_LIMIT = 4;
 
@@ -185,10 +205,15 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     .map((f) => f.trim())
     .filter(Boolean);
   const geoFacetField = root.dataset.geoFacet?.trim() || undefined;
+  const geoLatPreset = parseNumberInput(root.dataset.geoLat ?? "");
+  const geoLonPreset = parseNumberInput(root.dataset.geoLon ?? "");
+  const geoRadiusPreset = parseNumberInput(root.dataset.geoRadius ?? "");
+  const sortByDistancePreset = root.dataset.sortByDistance === "true";
   const exactFields = (root.dataset.exactFields ?? "")
     .split(",")
     .map((f) => f.trim())
     .filter(Boolean);
+  const exactValuePresets = parseExactValueSpec(root.dataset.exactValues);
   const showFuzzyToggle = root.dataset.fuzzyToggle === "true";
   const showSynonymsToggle = root.dataset.synonymsToggle === "true";
   const languageCodes = (root.dataset.languages ?? "")
@@ -439,8 +464,12 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     lat: number | undefined;
     lon: number | undefined;
     radiusKm: number | undefined;
-  } = { lat: undefined, lon: undefined, radiusKm: undefined };
-  let sortByDistanceEnabled = false;
+  } = {
+    lat: geoLatPreset,
+    lon: geoLonPreset,
+    radiusKm: geoRadiusPreset,
+  };
+  let sortByDistanceEnabled = sortByDistancePreset;
   if (geoFacetField) {
     const group = document.createElement("fieldset");
     group.className = "gallery-facet-group gallery-geo-facet";
@@ -454,12 +483,14 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     latInput.className = "gallery-range-input";
     latInput.placeholder = "Latitude";
     latInput.setAttribute("aria-label", `${geoFacetField} latitude`);
+    if (geoLatPreset !== undefined) latInput.value = String(geoLatPreset);
     const lonInput = document.createElement("input");
     lonInput.type = "number";
     lonInput.step = "any";
     lonInput.className = "gallery-range-input";
     lonInput.placeholder = "Longitude";
     lonInput.setAttribute("aria-label", `${geoFacetField} longitude`);
+    if (geoLonPreset !== undefined) lonInput.value = String(geoLonPreset);
     const radiusInput = document.createElement("input");
     radiusInput.type = "number";
     radiusInput.min = "0";
@@ -469,12 +500,16 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
       "aria-label",
       `${geoFacetField} radius in kilometers`,
     );
+    if (geoRadiusPreset !== undefined) {
+      radiusInput.value = String(geoRadiusPreset);
+    }
     group.append(latInput, lonInput, radiusInput);
 
     const sortLabel = document.createElement("label");
     sortLabel.className = "gallery-toggle";
     const sortCheckbox = document.createElement("input");
     sortCheckbox.type = "checkbox";
+    sortCheckbox.checked = sortByDistancePreset;
     sortCheckbox.setAttribute("aria-label", "Sort by distance");
     sortCheckbox.addEventListener("change", () => {
       sortByDistanceEnabled = sortCheckbox.checked;
@@ -505,7 +540,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   // input per field, active only once it holds the field's exact stored
   // value -- unlike the checkbox facets above, there's no discrete value
   // list to offer, so a partial/typo'd value simply matches nothing.
-  const exactStates = new Map<string, string>();
+  const exactStates = new Map<string, string>(exactValuePresets);
   for (const field of exactFields) {
     const group = document.createElement("fieldset");
     group.className = "gallery-facet-group gallery-exact-facet";
@@ -517,6 +552,8 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     exactInput.className = "gallery-range-input";
     exactInput.placeholder = `Exact ${field}`;
     exactInput.setAttribute("aria-label", `${field} exact match`);
+    const presetValue = exactValuePresets.get(field);
+    if (presetValue !== undefined) exactInput.value = presetValue;
     exactInput.addEventListener("input", () => {
       const value = exactInput.value.trim();
       if (value) exactStates.set(field, value);
