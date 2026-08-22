@@ -156,7 +156,7 @@ export const QUICK_EXAMPLES: readonly QuickExample[] = [
     id: "geo",
     title: "Geo search",
     description:
-      'Filter by radius from a point and sort by distance -- centered on Stockholm, a 1000km radius reaches the Berlin store (~811km away) but not London (~1448km); widen it or hit "Use my location" to see the set change.',
+      'Filter by radius from a point and sort by distance -- centered on Stockholm, narrow the radius below ~811km and the result count drops to just the Stockholm store; widen past ~1448km and London\'s matches join too. Try "Use my location" to search from wherever you actually are (everyone nearest one store will show the same distance -- there are only 6 pickup points in this demo).',
     guideHref: "../docs/guides/facets.html#geo-facets",
     indexPath: "gallery/products/search-index/manifest.json",
     initialQuery: "product",

@@ -238,6 +238,18 @@ function renderGeoMapSvg(
     "Schematic map of the search origin, its radius, and the current results' locations, plotted by straight-line distance",
   );
 
+  // A visible frame behind everything else -- without it, a sparse point
+  // set with no active radius filter renders as a couple of small dots
+  // adrift on a transparent background, easy to miss entirely rather than
+  // read as a map.
+  const frame = document.createElementNS(SVG_NS, "rect");
+  frame.setAttribute("x", String(offsetX));
+  frame.setAttribute("y", String(offsetY));
+  frame.setAttribute("width", String(viewW));
+  frame.setAttribute("height", String(viewH));
+  frame.setAttribute("class", "gallery-geo-map-frame");
+  svg.append(frame);
+
   if (originXY && radiusKm !== undefined) {
     const circle = document.createElementNS(SVG_NS, "circle");
     circle.setAttribute("cx", String(originXY.x));
@@ -254,6 +266,7 @@ function renderGeoMapSvg(
     marker.setAttribute("cy", String(point.y));
     marker.setAttribute("r", String(scale / 45));
     marker.setAttribute("class", "gallery-geo-map-point");
+    marker.setAttribute("stroke-width", String(scale / 300));
     const title = document.createElementNS(SVG_NS, "title");
     title.textContent = point.label;
     marker.append(title);
@@ -266,6 +279,7 @@ function renderGeoMapSvg(
     marker.setAttribute("cy", String(originXY.y));
     marker.setAttribute("r", String(scale / 35));
     marker.setAttribute("class", "gallery-geo-map-origin");
+    marker.setAttribute("stroke-width", String(scale / 300));
     const title = document.createElementNS(SVG_NS, "title");
     title.textContent = "Search origin";
     marker.append(title);
@@ -713,8 +727,14 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     }
     const caption = document.createElement("figcaption");
     caption.className = "gallery-geo-map-caption";
-    caption.textContent =
-      "Schematic plot (straight-line distance, not real coastlines).";
+    // Several results sharing one pickup point collapse to a single dot
+    // (docs/guides/facets.md#geo-facets) -- called out explicitly so that
+    // doesn't read as the map only having plotted one of several results.
+    const locationNote =
+      points.length === 1 && hits.length > 1
+        ? ` All ${hits.length} shown results share this one location.`
+        : "";
+    caption.textContent = `Schematic plot (straight-line distance, not real coastlines).${locationNote}`;
     geoMapFigure.hidden = false;
     geoMapFigure.replaceChildren(svg, caption);
   }
