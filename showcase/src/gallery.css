@@ -347,6 +347,12 @@
   display: block;
   width: 100%;
   max-height: 220px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.gallery-geo-map-frame {
+  fill: var(--code-bg);
 }
 
 .gallery-geo-map-radius {
@@ -358,6 +364,11 @@
 
 .gallery-geo-map-point {
   fill: var(--muted);
+  stroke: var(--code-bg);
+}
+
+.gallery-geo-map-origin {
+  stroke: var(--code-bg);
 }
 
 .gallery-geo-map-origin {
