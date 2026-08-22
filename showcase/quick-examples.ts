@@ -21,6 +21,13 @@ export interface QuickExample {
   fuzzyWeight?: number;
   synonymWeight?: number;
   browse?: boolean;
+  geoFacet?: string;
+  geoLat?: number;
+  geoLon?: number;
+  geoRadiusKm?: number;
+  sortByDistance?: boolean;
+  exactFields?: readonly string[];
+  exactValues?: Record<string, string>;
 }
 
 export const QUICK_EXAMPLES: readonly QuickExample[] = [
@@ -145,6 +152,31 @@ export const QUICK_EXAMPLES: readonly QuickExample[] = [
     facets: ["category"],
     browse: true,
   },
+  {
+    id: "geo",
+    title: "Geo search",
+    description:
+      "Filter by radius from a point and sort by distance -- results outside 6500km of New York drop out, the rest rank nearest-first.",
+    guideHref: "../docs/guides/facets.html#geo-facets",
+    indexPath: "gallery/products/search-index/manifest.json",
+    initialQuery: "product",
+    geoFacet: "storeLocation",
+    geoLat: 40.7128,
+    geoLon: -74.006,
+    geoRadiusKm: 6500,
+    sortByDistance: true,
+  },
+  {
+    id: "exact-match",
+    title: "Exact-match filtering",
+    description:
+      "Filter on a stored SKU field with no facet declared for it at all.",
+    guideHref: "../docs/guides/facets.html#exact-match-on-stored-fields",
+    indexPath: "gallery/products/search-index/manifest.json",
+    initialQuery: "product",
+    exactFields: ["sku"],
+    exactValues: { sku: "SKU-00001" },
+  },
 ];
 
 export function renderRuntimeAttributes(example: QuickExample): string {
@@ -193,6 +225,33 @@ export function renderRuntimeAttributes(example: QuickExample): string {
     );
   }
   if (example.browse) attributes.push('data-browse="true"');
+  if (example.geoFacet) {
+    attributes.push(`data-geo-facet="${escapeHtml(example.geoFacet)}"`);
+  }
+  if (example.geoLat !== undefined) {
+    attributes.push(`data-geo-lat="${example.geoLat}"`);
+  }
+  if (example.geoLon !== undefined) {
+    attributes.push(`data-geo-lon="${example.geoLon}"`);
+  }
+  if (example.geoRadiusKm !== undefined) {
+    attributes.push(`data-geo-radius="${example.geoRadiusKm}"`);
+  }
+  if (example.sortByDistance) attributes.push('data-sort-by-distance="true"');
+  if (example.exactFields?.length) {
+    attributes.push(
+      `data-exact-fields="${escapeHtml(example.exactFields.join(","))}"`,
+    );
+  }
+  if (example.exactValues && Object.keys(example.exactValues).length > 0) {
+    attributes.push(
+      `data-exact-values="${escapeHtml(
+        Object.entries(example.exactValues)
+          .map(([field, value]) => `${field}=${value}`)
+          .join(","),
+      )}"`,
+    );
+  }
   return attributes.join("\n");
 }
 
@@ -209,6 +268,35 @@ const facets = await client.facetValues("category");
 for (const value of facets.values) {
   console.log(value.value, value.count);
 }`;
+  }
+
+  if (example.geoFacet) {
+    return `import { SearchClient } from "@ktjn/searchable";
+
+const client = new SearchClient({
+  indexUrl: ${JSON.stringify(example.indexPath)},
+});
+
+const result = await client.search(${JSON.stringify(example.initialQuery)}, {
+  filters: {
+    ${JSON.stringify(example.geoFacet)}: { lat: ${example.geoLat}, lon: ${example.geoLon}, radiusKm: ${example.geoRadiusKm} },
+  },
+  sortByDistance: ${example.sortByDistance ? "true" : "false"},
+});`;
+  }
+
+  const [field] = example.exactFields ?? [];
+  if (field !== undefined) {
+    const value = example.exactValues?.[field] ?? "";
+    return `import { SearchClient } from "@ktjn/searchable";
+
+const client = new SearchClient({
+  indexUrl: ${JSON.stringify(example.indexPath)},
+});
+
+const result = await client.search(${JSON.stringify(example.initialQuery)}, {
+  filters: { ${JSON.stringify(field)}: ${JSON.stringify(value)} },
+});`;
   }
 
   const searchOptions: string[] = [];

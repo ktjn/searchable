@@ -120,8 +120,8 @@ test.describe("showcase (docs site + real search, real browser)", () => {
     ).toBe(true);
 
     await page.goto(`${baseUrl}gallery/index.html`);
-    await expect(page.locator(".quick-example-card")).toHaveCount(13);
-    await expect(page.locator(".gallery-results-summary")).toHaveCount(13);
+    await expect(page.locator(".quick-example-card")).toHaveCount(15);
+    await expect(page.locator(".gallery-results-summary")).toHaveCount(15);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -158,7 +158,7 @@ test.describe("feature gallery: quick examples (real browser)", () => {
 
     await page.goto(`${baseUrl}gallery/index.html`);
     await expect(page.locator('.gallery-loading[role="status"]')).toHaveCount(
-      13,
+      15,
     );
 
     releaseClient?.();
@@ -211,6 +211,8 @@ test.describe("feature gallery: quick examples (real browser)", () => {
     "boosts",
     "did-you-mean",
     "browse",
+    "geo",
+    "exact-match",
   ]) {
     test(`quick example ${id} loads real results`, async ({ page }) => {
       await page.goto(`${baseUrl}gallery/index.html`);

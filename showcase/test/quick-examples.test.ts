@@ -22,6 +22,8 @@ test("contains one unique example for every approved behavior", () => {
     "boosts",
     "did-you-mean",
     "browse",
+    "geo",
+    "exact-match",
   ]);
 });
 
@@ -105,6 +107,24 @@ test("renders every optional behavior in attributes and displayed source", () =>
   );
   expect(renderExampleCode(byId.get("browse") as QuickExample)).toContain(
     "facetValues",
+  );
+  expect(renderRuntimeAttributes(byId.get("geo") as QuickExample)).toContain(
+    'data-geo-facet="storeLocation"',
+  );
+  expect(renderRuntimeAttributes(byId.get("geo") as QuickExample)).toContain(
+    'data-sort-by-distance="true"',
+  );
+  expect(renderExampleCode(byId.get("geo") as QuickExample)).toContain(
+    "sortByDistance: true",
+  );
+  expect(
+    renderRuntimeAttributes(byId.get("exact-match") as QuickExample),
+  ).toContain('data-exact-fields="sku"');
+  expect(
+    renderRuntimeAttributes(byId.get("exact-match") as QuickExample),
+  ).toContain('data-exact-values="sku=SKU-00001"');
+  expect(renderExampleCode(byId.get("exact-match") as QuickExample)).toContain(
+    'filters: { "sku": "SKU-00001" }',
   );
 });
 
