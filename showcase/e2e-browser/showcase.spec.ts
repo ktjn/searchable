@@ -553,6 +553,52 @@ test.describe("feature gallery: product catalog demo (real browser)", () => {
     await expect(hits).toHaveCount(4);
   });
 
+  test("the geo minimap plots result locations and grows a radius ring once a filter is active", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/products/index.html`);
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+
+    // No geo filter yet, but the default result set's own stored locations
+    // still plot -- the map fills from results whenever the field is
+    // present, not only once a radius filter narrows things.
+    await expect(page.locator(".gallery-geo-map")).toHaveCount(1);
+    await expect(page.locator(".gallery-geo-map-radius")).toHaveCount(0);
+
+    await page.getByLabel("storeLocation latitude").fill("40.7128");
+    await page.getByLabel("storeLocation longitude").fill("-74.006");
+    await page.getByLabel("storeLocation radius in kilometers").fill("50");
+
+    await expect(page.locator(".gallery-geo-map-radius")).toHaveCount(1);
+    await expect(page.locator(".gallery-geo-map-origin")).toHaveCount(1);
+  });
+
+  test('"Use my location" fills the coordinates from the device location and searches', async ({
+    page,
+    context,
+  }) => {
+    const origin = new URL(baseUrl).origin;
+    await context.grantPermissions(["geolocation"], { origin });
+    await context.setGeolocation({ latitude: 59.3293, longitude: 18.0686 });
+
+    await page.goto(`${baseUrl}gallery/products/index.html`);
+    await expect(page.locator(".gallery-hit-list li").first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Use my location" }).click();
+
+    await expect(async () => {
+      const lat = await page.getByLabel("storeLocation latitude").inputValue();
+      const lon = await page.getByLabel("storeLocation longitude").inputValue();
+      expect(Number(lat)).toBeCloseTo(59.3293, 3);
+      expect(Number(lon)).toBeCloseTo(18.0686, 3);
+    }).toPass();
+    await expect(
+      page.getByLabel("storeLocation radius in kilometers"),
+    ).toHaveValue("500");
+    await expect(page.locator(".gallery-error")).toHaveCount(0);
+    await expect(page.locator(".gallery-geo-map-origin")).toHaveCount(1);
+  });
+
   test("sort by distance reorders results nearest-first", async ({ page }) => {
     await page.goto(`${baseUrl}gallery/products/index.html`);
     await page.getByLabel("storeLocation latitude").fill("40.7128");

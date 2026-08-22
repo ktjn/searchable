@@ -40,6 +40,11 @@ function renderProductPage(product: Product): string {
       `<meta name="searchable-facet-price" content="${escapeHtml(product.priceBucket)}">`,
       `<meta name="searchable-facet-range-priceRange" content="${product.price}">`,
       `<meta name="searchable-facet-geo-storeLocation" content="${product.storeLocation.lat},${product.storeLocation.lon}">`,
+      // Stored in addition to geo-faceted (independent meta tag prefixes,
+      // same field name) so each hit carries its own raw "lat,lon" back to
+      // the client -- the geo demo's minimap plots real store markers from
+      // this, not just the query origin.
+      `<meta name="searchable-stored-storeLocation" content="${product.storeLocation.lat},${product.storeLocation.lon}">`,
       `<meta name="searchable-stored-sku" content="${escapeHtml(product.sku)}">`,
       ...product.tags.map(
         (t) => `<meta name="searchable-facet-tags" content="${escapeHtml(t)}">`,

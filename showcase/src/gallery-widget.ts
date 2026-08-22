@@ -12,7 +12,9 @@
  *        data-default-query="..."      (shown/used before the visitor types)
  *        data-facets="field1,field2"   (comma list of facet fields to render as checkboxes)
  *        data-range-facets="field"     (comma list of numeric range-facet fields -> min/max filter inputs)
- *        data-geo-facet="field"        (one geo-facet field -> lat/lon/radius inputs + a sort-by-distance toggle)
+ *        data-geo-facet="field"        (one geo-facet field -> lat/lon/radius inputs, a sort-by-distance toggle,
+ *                                        a "Use my location" button (navigator.geolocation), and a schematic
+ *                                        straight-line-distance map of the origin + result locations)
  *        data-geo-lat="51.5074"        (optional preset for the latitude input, so the effect is visible without typing first)
  *        data-geo-lon="-0.1278"        (optional preset for the longitude input)
  *        data-geo-radius="6500"        (optional preset for the radius (km) input)
@@ -163,6 +165,114 @@ function parseExactValueSpec(spec: string | undefined): Map<string, string> {
     out.set(part.slice(0, eq), part.slice(eq + 1));
   }
   return out;
+}
+
+/** Parses a stored "lat,lon" field value (docs/guides/facets.md#geo-facets) for the geo minimap. */
+function parseStoredPoint(
+  raw: string | undefined,
+): { lat: number; lon: number } | undefined {
+  if (!raw) return undefined;
+  const [rawLat, rawLon] = raw.split(",");
+  const lat = Number(rawLat);
+  const lon = Number(rawLon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return undefined;
+  return { lat, lon };
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * Builds a schematic (not real-cartography) plot of a geo search: the query
+ * origin, its radius, and where the current result set's own geo-faceted
+ * field puts each hit -- flat-earth-projected in kilometers around the
+ * origin (or the first point, if there's no origin yet) so distances stay
+ * roughly to scale close in, without pulling in map tiles or an API key.
+ * Returns undefined when there's nothing to plot.
+ */
+function renderGeoMapSvg(
+  origin: { lat: number; lon: number } | undefined,
+  radiusKm: number | undefined,
+  points: Array<{ lat: number; lon: number; label: string }>,
+): SVGSVGElement | undefined {
+  const anchor = origin ?? points[0];
+  if (!anchor) return undefined;
+
+  const kmPerDegLat = 111;
+  const kmPerDegLon = 111 * Math.cos((anchor.lat * Math.PI) / 180);
+  const project = (lat: number, lon: number): { x: number; y: number } => ({
+    x: (lon - anchor.lon) * kmPerDegLon,
+    y: -(lat - anchor.lat) * kmPerDegLat, // flip so north is up
+  });
+
+  const originXY = origin ? project(origin.lat, origin.lon) : undefined;
+  const plotted = points.map((point) => ({
+    ...project(point.lat, point.lon),
+    label: point.label,
+  }));
+
+  const xs = plotted.map((p) => p.x);
+  const ys = plotted.map((p) => p.y);
+  if (originXY) {
+    xs.push(originXY.x);
+    ys.push(originXY.y);
+  }
+  if (originXY && radiusKm !== undefined) {
+    xs.push(originXY.x - radiusKm, originXY.x + radiusKm);
+    ys.push(originXY.y - radiusKm, originXY.y + radiusKm);
+  }
+  const spanX = Math.max(Math.max(...xs) - Math.min(...xs), 1);
+  const spanY = Math.max(Math.max(...ys) - Math.min(...ys), 1);
+  const padding = 0.2;
+  const viewW = spanX * (1 + padding * 2);
+  const viewH = spanY * (1 + padding * 2);
+  const offsetX = Math.min(...xs) - spanX * padding;
+  const offsetY = Math.min(...ys) - spanY * padding;
+  const scale = Math.max(spanX, spanY);
+
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", `${offsetX} ${offsetY} ${viewW} ${viewH}`);
+  svg.setAttribute("class", "gallery-geo-map");
+  svg.setAttribute("role", "img");
+  svg.setAttribute(
+    "aria-label",
+    "Schematic map of the search origin, its radius, and the current results' locations, plotted by straight-line distance",
+  );
+
+  if (originXY && radiusKm !== undefined) {
+    const circle = document.createElementNS(SVG_NS, "circle");
+    circle.setAttribute("cx", String(originXY.x));
+    circle.setAttribute("cy", String(originXY.y));
+    circle.setAttribute("r", String(radiusKm));
+    circle.setAttribute("class", "gallery-geo-map-radius");
+    circle.setAttribute("stroke-width", String(scale / 200));
+    svg.append(circle);
+  }
+
+  for (const point of plotted) {
+    const marker = document.createElementNS(SVG_NS, "circle");
+    marker.setAttribute("cx", String(point.x));
+    marker.setAttribute("cy", String(point.y));
+    marker.setAttribute("r", String(scale / 45));
+    marker.setAttribute("class", "gallery-geo-map-point");
+    const title = document.createElementNS(SVG_NS, "title");
+    title.textContent = point.label;
+    marker.append(title);
+    svg.append(marker);
+  }
+
+  if (originXY) {
+    const marker = document.createElementNS(SVG_NS, "circle");
+    marker.setAttribute("cx", String(originXY.x));
+    marker.setAttribute("cy", String(originXY.y));
+    marker.setAttribute("r", String(scale / 35));
+    marker.setAttribute("class", "gallery-geo-map-origin");
+    const title = document.createElementNS(SVG_NS, "title");
+    title.textContent = "Search origin";
+    marker.append(title);
+    svg.append(marker);
+  }
+
+  return svg;
 }
 
 const siteRoot = new URL(".", import.meta.url);
@@ -470,6 +580,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     radiusKm: geoRadiusPreset,
   };
   let sortByDistanceEnabled = sortByDistancePreset;
+  let geoMapFigure: HTMLElement | undefined;
   if (geoFacetField) {
     const group = document.createElement("fieldset");
     group.className = "gallery-facet-group gallery-geo-facet";
@@ -505,6 +616,39 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     }
     group.append(latInput, lonInput, radiusInput);
 
+    const locateButton = document.createElement("button");
+    locateButton.type = "button";
+    locateButton.className = "gallery-geo-locate";
+    locateButton.textContent = "Use my location";
+    const locateStatus = document.createElement("span");
+    locateStatus.className = "gallery-geo-locate-status";
+    locateStatus.setAttribute("role", "status");
+    locateButton.addEventListener("click", () => {
+      if (!("geolocation" in navigator)) {
+        locateStatus.textContent =
+          "Geolocation isn't available in this browser.";
+        return;
+      }
+      locateStatus.textContent = "Locating…";
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          latInput.value = position.coords.latitude.toFixed(4);
+          lonInput.value = position.coords.longitude.toFixed(4);
+          if (!radiusInput.value) radiusInput.value = "500";
+          locateStatus.textContent = "";
+          readGeo();
+        },
+        (error) => {
+          locateStatus.textContent =
+            error.code === error.PERMISSION_DENIED
+              ? "Location access denied — enter coordinates manually."
+              : "Couldn't get your location — enter coordinates manually.";
+        },
+        { timeout: 10_000 },
+      );
+    });
+    group.append(locateButton, locateStatus);
+
     const sortLabel = document.createElement("label");
     sortLabel.className = "gallery-toggle";
     const sortCheckbox = document.createElement("input");
@@ -532,7 +676,47 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     latInput.addEventListener("input", readGeo);
     lonInput.addEventListener("input", readGeo);
     radiusInput.addEventListener("input", readGeo);
+
+    const mapFigure = document.createElement("figure");
+    mapFigure.className = "gallery-geo-map-figure";
+    mapFigure.hidden = true;
+    group.append(mapFigure);
+    geoMapFigure = mapFigure;
+
     geoSection.append(group);
+  }
+
+  // Rebuilds the geo minimap from the current origin/radius plus whichever
+  // of the just-fetched hits carry a parseable geoFacetField value in their
+  // stored fields -- a no-op when there's no geo facet configured at all.
+  function updateGeoMap(hits: Hit[]): void {
+    if (!geoFacetField || !geoMapFigure) return;
+    const origin =
+      geoState.lat !== undefined && geoState.lon !== undefined
+        ? { lat: geoState.lat, lon: geoState.lon }
+        : undefined;
+    const seen = new Set<string>();
+    const points: Array<{ lat: number; lon: number; label: string }> = [];
+    for (const hit of hits) {
+      const point = parseStoredPoint(hit.fields[geoFacetField]);
+      if (!point) continue;
+      const key = `${point.lat},${point.lon}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      points.push({ ...point, label: hit.fields.title ?? hit.url });
+    }
+    const svg = renderGeoMapSvg(origin, geoState.radiusKm, points);
+    if (!svg) {
+      geoMapFigure.hidden = true;
+      geoMapFigure.replaceChildren();
+      return;
+    }
+    const caption = document.createElement("figcaption");
+    caption.className = "gallery-geo-map-caption";
+    caption.textContent =
+      "Schematic plot (straight-line distance, not real coastlines).";
+    geoMapFigure.hidden = false;
+    geoMapFigure.replaceChildren(svg, caption);
   }
 
   // --- exact-match filter on a stored (not faceted) field
@@ -788,6 +972,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
         if (queryId !== latestQueryId) return;
         renderFacets(facetResults);
         renderHint("Type a query to see matching products.");
+        updateGeoMap([]);
         return;
       }
 
@@ -847,6 +1032,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
 
       renderFacets(result.facets);
       renderResults(result, expandedOnlyIds, expansionLabel);
+      updateGeoMap(result.hits);
     } catch (error: unknown) {
       if (queryId === latestQueryId) renderSearchError();
       console.error("Failed to search showcase example", error);
