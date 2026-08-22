@@ -31,9 +31,12 @@ interface StoreDef {
 }
 
 /**
- * One pickup location per product, assigned deterministically below --
- * enough geographic spread (~5500-9700 km between any two) that a modest
- * search radius cleanly separates them for the "near me" demo.
+ * One pickup location per product, assigned deterministically below.
+ * London/New York/Tokyo/Sydney/Berlin stay ~5500-9700 km apart so a modest
+ * search radius cleanly separates them for the "near me" demo. Stockholm is
+ * the deliberate exception -- only ~811 km from Berlin -- so the geo quick
+ * example (centered on Stockholm) has a near neighbor that a widened radius
+ * pulls in, not just an all-or-nothing radius toggle.
  */
 const STORES: StoreDef[] = [
   { name: "London", lat: 51.5074, lon: -0.1278 },
@@ -41,6 +44,7 @@ const STORES: StoreDef[] = [
   { name: "Tokyo", lat: 35.6762, lon: 139.6503 },
   { name: "Sydney", lat: -33.8688, lon: 151.2093 },
   { name: "Berlin", lat: 52.52, lon: 13.405 },
+  { name: "Stockholm", lat: 59.3293, lon: 18.0686 },
 ];
 
 interface CategoryDef {

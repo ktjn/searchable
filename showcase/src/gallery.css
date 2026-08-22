@@ -314,3 +314,58 @@
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+.gallery-geo-locate {
+  display: block;
+  margin: 0.3rem 0.45rem 0.3rem 0;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--fg);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.gallery-geo-locate:hover,
+.gallery-geo-locate:focus-visible {
+  border-color: var(--accent);
+}
+
+.gallery-geo-locate-status {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-height: 1.2em;
+}
+
+.gallery-geo-map-figure {
+  margin: 0.6rem 0 0;
+}
+
+.gallery-geo-map {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+}
+
+.gallery-geo-map-radius {
+  fill: var(--accent);
+  fill-opacity: 0.12;
+  stroke: var(--accent);
+  stroke-dasharray: 4 3;
+}
+
+.gallery-geo-map-point {
+  fill: var(--muted);
+}
+
+.gallery-geo-map-origin {
+  fill: var(--accent);
+}
+
+.gallery-geo-map-caption {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+}
