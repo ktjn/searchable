@@ -14,15 +14,26 @@ is explicitly marked experimental and may change in a minor release.
 
 ### Added
 
+- Geo facets with radius filtering, per-hit distances, and optional
+  distance-first sorting in both TypeScript and Python clients. HTML indexing
+  accepts `searchable-facet-geo-<field>` metadata, and TypeScript publicly
+  exports the corresponding `GeoFilter` type.
+- Exact-match filters for declared stored fields that do not need a separate
+  facet shard, plus `searchable-stored-<field>` metadata for HTML sources.
 - Shared TypeScript/Python client-conformance fixtures covering ranking,
   operators, terms/range/geo filters, facets, highlighting, synonyms, fuzzy
   matching, distance sorting, and zero-result queries.
 - A consolidated `searchable build|query|facet` Python CLI and matching
   `python -m searchable` entry point; the previous positional build invocation
   remains supported.
+- Dedicated geo-search and exact-match showcase examples, including a
+  12-location store-locator corpus, device-location input, and a schematic
+  minimap.
 
 ### Changed
 
+- Showcase widget scripts are bundled by Vite with content-hashed entry names
+  so deployments cannot retain stale widget code under fixed asset URLs.
 - The showcase now consumes public `@ktjn/searchable` types directly instead
   of maintaining a duplicate search contract.
 - Public documentation, security policy, contributor setup, package names, and
@@ -32,6 +43,9 @@ is explicitly marked experimental and may change in a minor release.
 
 ### Fixed
 
+- The geo showcase now renders a visible minimap before a filter is active and
+  displays distinct, ascending location distances instead of several products
+  sharing one store coordinate.
 - `SearchClient.dispose()` now promptly rejects pending readiness, search, and
   facet operations, including work already waiting on manifest or shard
   fetches.
