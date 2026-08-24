@@ -328,6 +328,23 @@ test.describe("feature gallery: quick examples (real browser)", () => {
     );
     await browse.locator(".gallery-search-input").fill("desk");
     await expect(browse.locator(".gallery-hit-list li").first()).toBeVisible();
+
+    const geo = page.locator('[data-example-card="geo"]');
+    const distanceBadges = geo.locator(".gallery-badge-distance");
+    await expect(distanceBadges).toHaveCount(4);
+    const distances = (await distanceBadges.allTextContents()).map((badge) =>
+      Number.parseFloat(badge),
+    );
+    expect(new Set(distances).size).toBe(distances.length);
+    expect(distances).toEqual([...distances].sort((a, b) => a - b));
+    await expect(geo.locator(".gallery-geo-map-point")).toHaveCount(4);
+
+    const latitude = geo.getByLabel("location latitude");
+    await expect(latitude).toHaveAttribute("min", "-90");
+    await expect(latitude).toHaveAttribute("max", "90");
+    await latitude.fill("91");
+    await expect(distanceBadges).toHaveCount(0);
+    await expect(geo.locator(".gallery-error")).toHaveCount(0);
   });
 
   test("inline source is keyboard-operable and links to its guide", async ({
