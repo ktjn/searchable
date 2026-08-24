@@ -4,7 +4,12 @@ This page describes the shipped build-time and browser-runtime components, their
 
 ## Build time
 
-The Python `searchable-indexer` (`python/searchable`, module `searchable.indexer`) discovers rendered HTML, extracts title/body/language/CMS controls, runs shared analysis (`searchable.analysis`, same package), and builds postings, facets, pins, synonyms, fuzzy dictionaries, and stored documents. It writes an immutable manifest and content-hashed shards. It is a build-time tool, not a runtime dependency of the TypeScript package, which only reads its output.
+The Python `searchable` package (`python/searchable`, module
+`searchable.indexer`) discovers rendered HTML, extracts
+title/body/language/CMS controls, runs shared analysis, and builds postings,
+facets, pins, synonyms, fuzzy dictionaries, and stored documents. It writes an
+immutable manifest and content-hashed shards. It is a build-time tool, not a
+runtime dependency of the TypeScript package, which only reads its output.
 
 ## Query time
 
@@ -16,6 +21,10 @@ for CLI and backend-service use. Feature work on search behavior
 (ranking, filtering, synonyms, fuzzy matching, etc.) should consider both
 clients, not just the TypeScript one — see
 [Python client API](../reference/python-client-api.md).
+
+The shared cases in `spec/fixtures/client-conformance/` run against one
+Python-built index through both clients. Their normalized observable results
+must agree.
 
 ## Data flow for a query
 
@@ -31,8 +40,11 @@ rendered HTML -> indexer -> manifest + content-hashed shards -> static host
 
 The generated directory lives beside the static site or on an allowed CDN. The browser needs only the manifest URL.
 
-The core uses TypeScript, Vite, Vitest, and Playwright and has no application-framework dependency. Analysis and format shapes are shared workspace packages. The client performs plain HTTP GETs and never requires a query-time write path or backend.
+The browser client uses TypeScript, Vite, Vitest, and Playwright and has no
+application-framework dependency. The client performs plain HTTP GETs and
+never requires a query-time write path or backend.
 
 The public API stays small while optional costs are gated by use. Facets, synonyms, pins, and fuzzy logic are bundled but inert until requested. Dynamic third-party plugin registration is not implemented and is tracked only in the [roadmap](../project/roadmap.md).
 
-The five accepted decisions are summarized in [Architecture decisions](../project/architecture-decisions.md).
+Accepted decisions are summarized in
+[Architecture decisions](../project/architecture-decisions.md).

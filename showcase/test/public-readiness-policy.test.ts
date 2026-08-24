@@ -34,6 +34,46 @@ test("public docs describe the published package surface", () => {
   expect(read("README.md")).toContain("uv add searchable");
 });
 
+test("public API references do not advertise removed 1.x surfaces", () => {
+  const typescriptReference = read("docs/reference/client-api.md");
+  for (const removed of [
+    "searchStream",
+    "SearchStreamOptions",
+    'on("query"',
+    'on("result"',
+    'mode: "lexical"',
+    "validateManifest",
+  ]) {
+    expect(typescriptReference, removed).not.toContain(removed);
+  }
+
+  const pythonReference = read("docs/reference/python-client-api.md");
+  expect(pythonReference).not.toContain("from searchable.search");
+  expect(pythonReference).not.toContain('`mode`: `"lexical"`');
+  expect(pythonReference).toContain("searchable build");
+  expect(pythonReference).toContain("searchable query");
+  expect(pythonReference).toContain("searchable facet");
+});
+
+test("current project policies name only consolidated packages", () => {
+  const currentPolicies = [
+    read("CONTRIBUTING.md"),
+    read("SECURITY.md"),
+    read("packages/searchable/README.md"),
+  ].join("\n");
+
+  for (const retiredPackage of [
+    "@ktjn/searchable-client",
+    "@ktjn/searchable-format",
+    "@ktjn/searchable-analysis",
+    "searchable-binary",
+    "python/searchable-indexer",
+    "python/searchable-analysis",
+  ]) {
+    expect(currentPolicies, retiredPackage).not.toContain(retiredPackage);
+  }
+});
+
 test("public npm manifests use the current patch release", () => {
   for (const directory of ["searchable"]) {
     const pkg = JSON.parse(read(`packages/${directory}/package.json`)) as {

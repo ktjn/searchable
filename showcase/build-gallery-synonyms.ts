@@ -46,7 +46,6 @@ function renderPlaygroundIndexPage(galleryWidgetScript: string): string {
           data-index-path="gallery/synonyms/search-index/manifest.json"
           data-default-query="sofa"
           data-synonyms-toggle="true"
-          data-modes="lexical"
         ></div>
       </main>`;
   return pageShell({

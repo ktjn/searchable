@@ -10,7 +10,7 @@ Core properties:
 
 - search data is open, deterministic, and independently producible;
 - network and computation costs are paid by the static build and browser, not a search service;
-- the same public API works on the main thread or in a Web Worker;
+- query evaluation runs directly in the browser's main thread;
 - optional feature data is loaded only when needed.
 
 Continue with [Installation](installation.md), then build the example in [First search](first-search.md). The architectural boundary is documented in [Architecture](../concepts/architecture.md).

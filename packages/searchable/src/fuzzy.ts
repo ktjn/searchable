@@ -78,7 +78,7 @@ function fuzzyCandidatesFor(
   let candidateTerms = [...candidates];
   if (candidateTerms.length > MAX_FUZZY_CANDIDATES_PER_TERM) {
     console.warn(
-      `[searchable-client] fuzzy lookup for "${term}" found ${candidateTerms.length} dictionary candidates, over the ${MAX_FUZZY_CANDIDATES_PER_TERM}-candidate cap -- scoring only the first ${MAX_FUZZY_CANDIDATES_PER_TERM} (not necessarily the closest). A dense vocabulary this large may want a shorter query term, a smaller fuzzyMaxEdits, or this project's benchmarking data to size the tradeoff (docs/project/governance.md).`,
+      `[searchable] fuzzy lookup for "${term}" found ${candidateTerms.length} dictionary candidates, over the ${MAX_FUZZY_CANDIDATES_PER_TERM}-candidate cap -- scoring only the first ${MAX_FUZZY_CANDIDATES_PER_TERM} (not necessarily the closest). A dense vocabulary this large may want a shorter query term, a smaller fuzzyMaxEdits, or this project's benchmarking data to size the tradeoff (docs/project/governance.md).`,
     );
     candidateTerms = candidateTerms.slice(0, MAX_FUZZY_CANDIDATES_PER_TERM);
   }

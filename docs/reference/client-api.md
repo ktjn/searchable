@@ -1,54 +1,70 @@
 # Client API
 
-This reference lists the implemented `@ktjn/searchable` surface and the exact option names for the `2.0.0` package published to GitHub Packages.
+This reference lists the implemented `@ktjn/searchable` 2.x surface. The
+type declarations shipped with the package are the normative API.
 
 ## SearchClient
 
 ```ts
-const client = new SearchClient(options);
+import { SearchClient } from "@ktjn/searchable";
+
+const client = new SearchClient({ indexUrl: "/search-index/manifest.json" });
+await client.ready();
 const result = await client.search(query, searchOptions);
-const final = await client.searchStream(query, streamOptions);
 const facet = await client.facetValues(field, facetOptions);
-const unsubscribe = client.on("result", ({ result }) => {});
 client.dispose();
 ```
 
-`SearchClientOptions` contains `indexUrl`, `allowCrossOriginShards`, and `strict`. `indexUrl` is required.
+`SearchClientOptions` contains:
+
+- required `indexUrl`
+- `allowCrossOriginShards`, off by default
+- `strict`, an opt-in set of additional semantic manifest checks
+
+`ready()` resolves after the manifest has loaded and passed validation.
+`dispose()` is idempotent, rejects pending work, and prevents future use.
 
 ## Search options and results
 
 `SearchOptions` contains:
 
-- `language`, `limit`, and `boosts.fields` / `boosts.terms`
+- `language`, `limit`, and `operator` (`"and"` or `"or"`)
+- `boosts.fields` and `boosts.terms`
 - `filters` and `facets`
-- `synonyms` / `synonymWeight`
-- `fuzzy` / `fuzzyWeight`
+- `synonyms` and `synonymWeight`
+- `fuzzy` and `fuzzyWeight`
 - `highlight` and `signal`
-- `sortByDistance` (docs/guides/facets.md#geo-facets)
-- `mode: "lexical"`
+- `sortByDistance` ([Geo facets](../guides/facets.md#geo-facets))
 
-`filters` values are a `string`/`string[]` (terms facet, or a fallback exact match against a stored-but-unfaceted field, docs/guides/facets.md#exact-match-on-stored-fields), a `{min?, max?}` `RangeFilter`, or a `{lat, lon, radiusKm}` `GeoFilter` (docs/guides/facets.md#geo-facets).
+`filters` values are a `string` or `string[]` for terms and exact-match
+filters, a `{min?, max?}` `RangeFilter`, or a `{lat, lon, radiusKm}`
+`GeoFilter`. See [Facets](../guides/facets.md) for their behavior.
 
-`SearchResult` contains `hits`, `totalHits`, and `language`, plus requested `facets` and optional `didYouMean`. Every `Hit` has `id`, `score`, `url`, and stored `fields`; it may include `pinned`, `highlights`, and `distanceKm` (only when exactly one geo filter is active).
-
-## Streaming/incremental results
-
-`SearchStreamOptions` adds `onPartial`. A partial literal/prefix result is emitted only when synonym or fuzzy expansion requires a later final pass. `AbortSignal` cancels waiting for a caller without invalidating a shared cached fetch.
+`SearchResult` contains `hits`, `totalHits`, and `language`, plus requested
+`facets` and optional `didYouMean`. Every `Hit` has `id`, `score`, `url`, and
+stored `fields`. A hit may also include `pinned`, `highlights`, structured
+document fields, and `distanceKm` when exactly one geo filter is active.
 
 ## Facet-only queries
 
-`facetValues(field, options)` accepts `filters` and `signal` through `FacetValuesOptions` and returns a `FacetResult`.
+`facetValues(field, options)` accepts `filters` and `signal` through
+`FacetValuesOptions`. It returns a `FacetResult` with `values` and an optional
+hierarchy `separator`.
 
-## Events and lifecycle
+## Abort and lifecycle semantics
 
-`on("query", listener)` and `on("result", listener)` return unsubscribe functions. Events are local observation hooks; the library sends no analytics. `dispose()` is idempotent, rejects pending work, and prevents future use.
+`SearchOptions.signal` and `FacetValuesOptions.signal` reject that caller's
+operation with an `AbortError` as soon as the signal fires, including while
+the client is initializing. Cancellation stops waiting; shared manifest and
+shard fetches may continue and populate the client's cache for other callers.
 
-Both event payloads carry an *isolated mutable snapshot* of the search options: the `query` event fires with a copy (including copied nested filter arrays and range objects, boost maps, and the facet list), so a listener can read or mutate what it receives without changing the query that executes or what the later `result` event reports. The `result` event always reports the options the query actually ran with.
-
-### Abort semantics
-
-`SearchOptions.signal` rejects the caller's `search()`/`searchStream()`/`facetValues()` promise with an `AbortError` as soon as it fires — including while the client is still initializing (the direct-mode manifest load). Cancelling *waits*, never the shared work itself: shared shard fetches and the shared init keep running for other callers, and nothing is delivered (no `result` event, no `onPartial`) to a caller who already aborted.
+Disposal is client-wide rather than caller-specific. It rejects `ready()`,
+`search()`, and `facetValues()` operations that are already waiting and makes
+future calls fail immediately.
 
 ## Other exports
 
-The package exports highlighting types, manifest validation (`validateManifest`, `InvalidManifestError`), and RTL detection. The complete type declarations shipped with the package are the normative API. Designs for warm-up, suggestions, federation, and broader diagnostics are archived and linked from the [roadmap](../project/roadmap.md).
+The package exports `SearchClient`, `SearchClientOptions`, the search/result,
+facet, highlight, range, and geo types, `InvalidManifestError`, and
+`isRtlLanguage`. Manifest validation itself remains an internal implementation
+detail.

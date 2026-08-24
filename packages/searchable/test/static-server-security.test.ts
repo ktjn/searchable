@@ -3,7 +3,6 @@ import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { serveDir } from "../e2e-browser/serve-dir.js";
 import { serveStatic } from "./static-server.js";
 
 function rawGet(
@@ -35,16 +34,13 @@ function rawGet(
   });
 }
 
-describe.each([
-  ["unit-test server", serveStatic],
-  ["browser-test server", serveDir],
-])("%s", (_name, startServer) => {
+describe("shared static test server", () => {
   test("rejects encoded traversal outside its root", async () => {
     const parent = await mkdtemp(join(tmpdir(), "searchable-server-test-"));
     const root = join(parent, "public");
     await mkdir(root);
     await writeFile(join(parent, "secret.txt"), "not public", "utf8");
-    const server = await startServer(root);
+    const server = await serveStatic(root);
 
     try {
       const response = await rawGet(server.baseUrl, "/%2e%2e/secret.txt");
@@ -60,7 +56,7 @@ describe.each([
     const parent = await mkdtemp(join(tmpdir(), "searchable-server-test-"));
     const root = join(parent, "public");
     await mkdir(root);
-    const server = await startServer(root);
+    const server = await serveStatic(root);
 
     try {
       await writeFile(join(root, "late.json"), "not allowlisted", "utf8");

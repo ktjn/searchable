@@ -1,5 +1,5 @@
 """Doc-store entry fetching for exactly a set of ids, from whichever
-doc shard(s) cover them (mirrors packages/client/src/doc-store.ts).
+doc shard(s) cover them (mirrors packages/searchable/src/doc-store.ts).
 """
 
 from searchable.client.fetch import ShardCache, resolve_url

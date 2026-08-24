@@ -9,7 +9,7 @@ export interface Token {
    * would be the stemmed "widget". Exists for callers that need the
    * literal text a user typed or a document actually contains,
    * independent of whatever normalization matching itself applies —
-   * result highlighting (`packages/client/src/highlight.ts`) is the
+   * result highlighting (`../highlight.ts`) is the
    * motivating case: it matches against raw stored field text, where a
    * stemmed query term like "widget" wouldn't `\b`-match inside the
    * literal text "Widgets".

@@ -40,7 +40,7 @@ export interface Hit {
    * spans for the literal query terms typed (docs/reference/client-api.md#search-options-and-results).
    * Only present when `options.highlight` is true. A synonym- or
    * fuzzy-matched term that isn't also literally present in the query
-   * is not highlighted — see packages/client/src/highlight.ts for why.
+   * is not highlighted — see `highlight.ts` for why.
    */
   highlights?: Record<string, HighlightSpan[]>;
   /**
@@ -215,10 +215,8 @@ export interface SearchOptions {
    * — the primary building block for a keystroke-driven instant-search
    * box, where a superseded query must never resolve after (or
    * overwrite the results of) a newer one. Handled entirely by
-   * `SearchClient` itself, not by this module's `search()` function: an
-   * `AbortSignal` isn't structured-clone-able, so it's stripped before
-   * a request ever reaches the Worker, and honoring it doesn't cancel
-   * the underlying shard fetch either, since `ShardCache` memoizes
+   * `SearchClient` itself, not by this module's `search()` function.
+   * Honoring it doesn't cancel the underlying shard fetch, since `ShardCache` memoizes
    * fetches across concurrent callers — aborting the shared network
    * request out from under a different, still-active query would be
    * wrong. This only cancels *waiting* on the result; the fetch that

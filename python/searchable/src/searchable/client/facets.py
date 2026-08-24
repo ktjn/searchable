@@ -1,5 +1,5 @@
 """Facet shard fetching, filter interpretation, and per-field doc-id
-narrowing for the search client (mirrors packages/client/src/facets.ts).
+narrowing for the search client (mirrors packages/searchable/src/facets.ts).
 """
 
 from typing import Any

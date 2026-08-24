@@ -1,3 +1,13 @@
+import type {
+  GeoFilter,
+  HighlightSpan,
+  Hit,
+  RangeFilter,
+  SearchClient,
+  SearchOptions,
+  SearchResult,
+} from "@ktjn/searchable";
+
 /**
  * Loaded on every Stage 2 feature-gallery demo page via
  * <script type="module"> (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5).
@@ -48,75 +58,7 @@
  * search-widget.ts's doc comment for the full rationale.
  */
 
-interface Hit {
-  id: number;
-  score: number;
-  url: string;
-  fields: Record<string, string>;
-  pinned?: boolean;
-  highlights?: Record<string, HighlightSpan[]>;
-  distanceKm?: number;
-}
-
-interface HighlightSpan {
-  text: string;
-  isMatch: boolean;
-}
-
-interface FacetResultValue {
-  value: string;
-  count: number;
-  selected: boolean;
-}
-
-interface FacetResult {
-  values: FacetResultValue[];
-}
-
-interface SearchResult {
-  hits: Hit[];
-  facets?: Record<string, FacetResult>;
-  totalHits: number;
-  didYouMean?: string[];
-}
-
-interface RangeFilter {
-  min?: number;
-  max?: number;
-}
-
-interface GeoFilter {
-  lat: number;
-  lon: number;
-  radiusKm: number;
-}
-
-interface SearchOptions {
-  language?: string;
-  limit?: number;
-  filters?: Record<string, string | string[] | RangeFilter | GeoFilter>;
-  facets?: string[];
-  fuzzy?: boolean;
-  fuzzyWeight?: number;
-  synonyms?: boolean;
-  synonymWeight?: number;
-  operator?: "and" | "or";
-  highlight?: boolean;
-  mode?: "lexical";
-  sortByDistance?: boolean;
-  boosts?: {
-    fields?: Record<string, number>;
-    terms?: Record<string, number>;
-  };
-}
-
-interface SearchClientLike {
-  search(query: string, options?: SearchOptions): Promise<SearchResult>;
-  facetValues?(
-    field: string,
-    options?: { filters?: SearchOptions["filters"] },
-  ): Promise<FacetResult>;
-}
+type SearchClientLike = Pick<SearchClient, "search" | "facetValues">;
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English",
@@ -314,7 +256,9 @@ function renderGeoMapSvg(
   return svg;
 }
 
-const siteRoot = new URL(".", import.meta.url);
+// This bundle is copied to the site root with a content hash. String-wrapping
+// the runtime URL keeps Vite from treating "." as a source asset to resolve.
+const siteRoot = new URL(".", String(import.meta.url));
 const RESULT_LIMIT = 4;
 
 const galleryRoots = document.querySelectorAll<HTMLDivElement>(
@@ -1013,10 +957,10 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
         // (docs/reference/client-api.md#facet-only-queries).
         const facetResults: SearchResult["facets"] = {};
         for (const field of facetFields) {
-          const result = await client.facetValues?.(field, {
+          const result = await client.facetValues(field, {
             ...(filters ? { filters } : {}),
           });
-          if (result) facetResults[field] = result;
+          facetResults[field] = result;
         }
         if (queryId !== latestQueryId) return;
         renderFacets(facetResults);

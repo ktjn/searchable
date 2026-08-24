@@ -1,7 +1,7 @@
 import math
 from typing import Any
 
-# Direct port of packages/indexer/src/build-index.ts's addFacetValues /
+# Build-time facet accumulation and bucket generation.
 # addRangeFacetValues / expandHierarchyPaths /
 # computeRangeFacetBuckets{EqualWidth,Explicit} / addToBucket /
 # formatBucketBound.

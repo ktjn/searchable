@@ -103,7 +103,7 @@ export class SearchClient {
   #indexUrl: string;
   #cache = new ShardCache();
   #ready: Promise<void>;
-  #manifest?: Promise<Manifest>;
+  #manifest: Promise<Manifest>;
   /**
    * Set once the client is disposed — every future call rejects
    * immediately with this instead of silently continuing to work.
@@ -113,34 +113,39 @@ export class SearchClient {
    * Rejected the moment the client first enters its fatal state
    * (`dispose()`). Every caller-visible public operation races its work
    * against this promise -- so a disposed client promptly rejects
-   * in-flight work (manifest loading, shard fetches, search, facets,
-   * embeddings). The rejected promise is always consumed by an operation
+   * in-flight work (manifest loading, shard fetches, search, and facets).
+   * The rejected promise is always consumed by an operation
    * race; a permanent no-op catch keeps it from ever surfacing as an
    * unhandled rejection in the window before the first race subscribes.
    */
   #lifecycleFailure: Promise<never>;
-  #allowCrossOriginShards: boolean;
-  #strict: boolean;
+  #rejectLifecycle!: (error: Error) => void;
 
   constructor(options: SearchClientOptions) {
-    this.#lifecycleFailure = new Promise<never>(() => {});
+    this.#lifecycleFailure = new Promise<never>((_resolve, reject) => {
+      this.#rejectLifecycle = reject;
+    });
     this.#lifecycleFailure.catch(() => undefined);
     this.#indexUrl = toAbsoluteUrl(options.indexUrl);
-    this.#allowCrossOriginShards = options.allowCrossOriginShards ?? false;
-    this.#strict = options.strict ?? false;
     this.#manifest = this.#cache
       .fetchJson<Manifest>(this.#indexUrl)
       .then((manifest) =>
         validateManifest(manifest, this.#indexUrl, {
           allowCrossOriginShards: options.allowCrossOriginShards ?? false,
-          strict: this.#strict,
+          strict: options.strict ?? false,
         }),
-      );
+      )
+      .catch((error: unknown) => {
+        const failure =
+          error instanceof Error ? error : new Error(String(error));
+        this.#fail(failure);
+        throw failure;
+      });
     this.#ready = this.#manifest.then(() => undefined);
   }
 
   async ready(): Promise<void> {
-    await this.#ready;
+    await this.#assertUsable(undefined);
   }
 
   /**
@@ -166,7 +171,7 @@ export class SearchClient {
    * Races every caller-visible await against the client lifecycle and the
    * caller's AbortSignal: on `dispose()` the in-flight operation rejects
    * promptly with the fatal error. The shared underlying work
-   * (manifest/shards/embeddings) may still complete in the background but
+   * (manifest/shards) may still complete in the background but
    * is no longer delivered to this caller.
    */
   #raceOperation<T>(
@@ -187,8 +192,7 @@ export class SearchClient {
     // handled entirely here).
     const { signal, ...rest } = options;
     const work = (async () => {
-      // biome-ignore lint/style/noNonNullAssertion: set in the constructor, always resolved once #ready resolves
-      const manifest = await this.#manifest!;
+      const manifest = await this.#manifest;
       return search(query, manifest, this.#cache, this.#indexUrl, rest);
     })();
     const result = await this.#raceOperation(work, signal);
@@ -211,11 +215,10 @@ export class SearchClient {
     await this.#assertUsable(options.signal);
     const { signal, ...rest } = options;
     const work = (async () => {
-      // biome-ignore lint/style/noNonNullAssertion: set in the constructor, always resolved once #ready resolves
-      const manifest = await this.#manifest!;
+      const manifest = await this.#manifest;
       return facetValues(field, manifest, this.#cache, this.#indexUrl, rest);
     })();
-    return raceAbort(work, signal);
+    return this.#raceOperation(work, signal);
   }
 
   /**
@@ -235,6 +238,7 @@ export class SearchClient {
   #fail(error: Error): void {
     if (!this.#fatalError) {
       this.#fatalError = error;
+      this.#rejectLifecycle(error);
     }
   }
 }

@@ -1,7 +1,5 @@
 import { escapeHtml } from "./gallery-shared.js";
 
-export type GalleryMode = "lexical";
-
 export interface QuickExample {
   id: string;
   title: string;
@@ -15,7 +13,6 @@ export interface QuickExample {
   languages?: readonly string[];
   highlight?: boolean;
   operator?: "and" | "or";
-  modes?: readonly GalleryMode[];
   boostFields?: Record<string, number>;
   boostTerms?: Record<string, number>;
   fuzzyWeight?: number;

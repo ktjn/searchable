@@ -1,5 +1,5 @@
-// Single source of truth for shelling out to the Python `searchable-indexer`
-// from TypeScript. Previously triplicated in packages/client/test-support,
+// Single source of truth for shelling out to the Python `searchable` builder
+// from TypeScript. Previously triplicated in package test support,
 // packages/relevance/src, and showcase (each a "keep in sync" copy differing
 // only in repoRoot depth); now the copies are one-line re-export facades and
 // the implementation lives here, so the repoRoot depth is computed once.
@@ -73,10 +73,10 @@ function toSnakeCaseConfig(
 }
 
 /**
- * Builds an index via the real Python `searchable-indexer` -- the
+ * Builds an index via the real Python `searchable` package -- the
  * project's only index generator -- by shelling out to a small JSON-driven
- * driver script (python/searchable-indexer/scripts/build_from_config.py).
- * `uv` must be on PATH and `python/searchable-indexer` must have run
+ * driver script (`python/searchable/scripts/build_from_config.py`).
+ * `uv` must be on PATH and `python/searchable` must have run
  * `uv sync` at least once (CI's Python setup step does this).
  */
 export async function writePythonIndex(

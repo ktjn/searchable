@@ -370,7 +370,7 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
 
     pins_shards, pin_warnings = resolve_pins(pins_acc_by_language)
     for warning in pin_warnings:
-        print(f"[searchable-indexer] {warning}", file=sys.stderr)
+        print(f"[searchable] {warning}", file=sys.stderr)
 
     for term_shard in term_shards.values():
         for entry in term_shard.values():

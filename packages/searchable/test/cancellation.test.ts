@@ -14,7 +14,7 @@ const VALID_MANIFEST = {
 };
 
 function makeDirectClient(): SearchClient {
-  return new SearchClient({ indexUrl: INDEX_URL, worker: false });
+  return new SearchClient({ indexUrl: INDEX_URL });
 }
 
 describe("while direct-mode manifest loading is pending", () => {

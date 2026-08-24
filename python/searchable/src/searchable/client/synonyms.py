@@ -1,5 +1,5 @@
 """Synonym expansion helpers for the search client (mirrors
-packages/client/src/synonyms.ts).
+packages/searchable/src/synonyms.ts).
 """
 
 from searchable.client.types import SynonymShard

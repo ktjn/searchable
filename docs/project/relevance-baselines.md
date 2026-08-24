@@ -89,9 +89,11 @@ The default cutoff is `k = 5`. JSON output contains per-query returned document 
 
 `searchable-docs@1.1.0` covers all 29 generated documentation pages with 20
 English task-oriented queries across setup, indexing and deployment, lexical
-features, internationalization, relevance, and
-vector and hybrid search. Seventeen queries are concise two-to-five-word
-searches; three longer queries preserve strict-AND stress coverage.
+features, internationalization, relevance, and the historical 1.x
+offline/worker surface. Seventeen queries are concise two-to-five-word
+searches; three longer queries preserve strict-AND stress coverage. Because
+the suite predates the 2.0 simplification, refresh its obsolete queries and
+judgments before treating it as complete coverage of the current docs.
 
 Judgments use grade `3` for a direct answer, `2` for material help, `1` for
 supporting context, and omission or `0` for no relevance. Every positive grade

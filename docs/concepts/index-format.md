@@ -20,7 +20,13 @@ fuzzy/<language>.<hash>.json
 
 ## Term shard (inverted index)
 
-Term postings contain document IDs, per-field frequency and positions, field length, and an optional document boost. Document-store entries contain the URL, stored display fields, and the boost for inspection. Facet shards contain document sets and aggregate data — a geo-type facet shard instead stores one `(lat, lon, doc)` point per document, no discrete values or buckets (docs/guides/facets.md#geo-facets); pin, synonym, and fuzzy shapes match their exported `@ktjn/searchable-format` types.
+Term postings contain document IDs, per-field frequency and positions, field
+length, and an optional document boost. Document-store entries contain the URL,
+stored display fields, and the boost for inspection. Facet shards contain
+document sets and aggregate data — a geo-type facet shard instead stores one
+`(lat, lon, doc)` point per document, with no discrete values or buckets. Pin,
+synonym, and fuzzy shapes are defined by the schemas under `spec/schema/` and
+the internal format types in both implementations.
 
 ## Doc store
 

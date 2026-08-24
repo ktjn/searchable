@@ -28,7 +28,7 @@
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.e2e-browser.json",
+    "typecheck": "tsc --noEmit",
     "check:bundle-size": "node scripts/check-bundle-size.mjs"
   },
   "devDependencies": {

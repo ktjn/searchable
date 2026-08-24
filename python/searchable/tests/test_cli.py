@@ -33,7 +33,7 @@ def test_cli_errors_with_usage_when_missing_arguments():
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 1
+    assert result.returncode == 2
     assert "usage: searchable-indexer" in result.stderr
 
 
@@ -88,8 +88,8 @@ def test_cli_sections_with_invalid_level_errors(tmp_path: Path):
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 1
-    assert "invalid --sections" in result.stderr
+    assert result.returncode == 2
+    assert "argument --sections: invalid" in result.stderr
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess:
@@ -99,6 +99,44 @@ def _run_cli(*args: str) -> subprocess.CompletedProcess:
         text=True,
         check=False,
     )
+
+
+def _run_searchable(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, "-m", "searchable", *args],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_consolidated_cli_builds_and_queries_an_index(tmp_path: Path):
+    src_dir = tmp_path / "site"
+    src_dir.mkdir()
+    (src_dir / "index.html").write_text(
+        '<html lang="en"><head><title>Widgets</title></head>'
+        "<body><main><p>Welcome to the widget store.</p></main></body></html>"
+    )
+    out_dir = tmp_path / "out"
+
+    built = _run_searchable("build", str(src_dir), str(out_dir))
+    assert built.returncode == 0
+
+    queried = _run_searchable("query", str(out_dir / "manifest.json"), "widget", "--json")
+    assert queried.returncode == 0
+    assert json.loads(queried.stdout)["totalHits"] == 1
+
+
+def test_consolidated_cli_keeps_legacy_build_invocation(tmp_path: Path):
+    src_dir = tmp_path / "site"
+    src_dir.mkdir()
+    (src_dir / "index.html").write_text("<html><body><main>widget</main></body></html>")
+    out_dir = tmp_path / "out"
+
+    result = _run_searchable(str(src_dir), str(out_dir))
+
+    assert result.returncode == 0
+    assert (out_dir / "manifest.json").exists()
 
 
 def test_query_command_json_output(tmp_path: Path):

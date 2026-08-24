@@ -10,11 +10,21 @@ The accepted ADR index is [Architecture decisions](architecture-decisions.md). D
 
 ## Compatibility
 
-When published, the four public npm packages follow semver and move in lockstep. The manifest format uses its own integer version and compatibility table; see [Compatibility](../reference/compatibility.md). Breaking API or format changes require migration documentation and focused compatibility tests.
+The npm package `@ktjn/searchable` and Python package `searchable` follow semver
+and currently release in lockstep. The manifest format uses its own integer
+version and compatibility table; see
+[Compatibility](../reference/compatibility.md). Breaking API or format changes
+require migration documentation and focused compatibility tests.
 
 ## Testing
 
-Behavior changes require unit or integration coverage at the narrowest useful level, plus cross-package or browser coverage when they cross a boundary. Index-format changes require schema validation, cross-implementation conformance (the real `searchable-indexer`, `python/searchable`, against the independent reference generator in `spec/examples/python/`), and malformed-input tests. Ranking changes require snapshot review against the configuration testbed.
+Behavior changes require unit or integration coverage at the narrowest useful
+level, plus cross-package or browser coverage when they cross a boundary.
+Shared client behavior must extend the TypeScript/Python cases in
+`spec/fixtures/client-conformance/`. Index-format changes additionally require
+schema validation, independent-generator coverage from `spec/examples/python/`,
+and malformed-input tests. Ranking changes require snapshot review against the
+configuration testbed.
 
 CI gates include build, Vitest, Python tests, TypeScript type checking, Biome, browser tests, bundle size, and package consumer fixtures. Documentation examples must use exported symbols and current option names.
 
