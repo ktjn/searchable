@@ -3,7 +3,7 @@
  * docs/project/roadmap.md's "Auto language detection accuracy" open question) --
  * used as a fallback when a source document declares no `<html lang>`
  * (the Python port drives that at index time in
- * `python/searchable-indexer/src/searchable_indexer/extract.py`; this
+ * `python/searchable/src/searchable/analysis/detect_language.py`; this
  * TypeScript module exists for cross-language parity and direct query-time
  * use), never as a replacement for explicit
  * language tagging, which is always preferred when present. Deliberately

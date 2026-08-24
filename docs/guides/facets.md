@@ -4,11 +4,20 @@ This guide covers the implemented terms, range, hierarchical, and geo facets, th
 
 ## Facet types
 
-Authors declare terms values with repeatable `searchable-facet-<field>` meta tags and one numeric range value with `searchable-facet-range-<field>`. Configure hierarchical fields through `BuildIndexOptions.hierarchicalFacets`. A geo field is declared with one `searchable-facet-geo-<field>` meta tag per document, content `"lat,lon"` — see [Geo facets](#geo-facets) below.
+Authors declare terms values with repeatable `searchable-facet-<field>` meta
+tags and one numeric range value with `searchable-facet-range-<field>`.
+Configure hierarchical fields through `build_index(...,
+hierarchical_facets=...)`. A geo field is declared with one
+`searchable-facet-geo-<field>` meta tag per document, content `"lat,lon"` —
+see [Geo facets](#geo-facets) below.
 
 ## Facet index structure
 
-Terms and hierarchy shards store each value's document IDs and count. Range shards also store sorted numeric values and histogram buckets configured through `BuildIndexOptions.rangeFacetBuckets`. Geo shards store one `(lat, lon, doc)` point per document instead — there are no discrete facet values or aggregate buckets for a geo field, only radius filtering.
+Terms and hierarchy shards store each value's document IDs and count. Range
+shards also store sorted numeric values and histogram buckets configured with
+`range_facet_buckets`. Geo shards store one `(lat, lon, doc)` point per
+document instead — there are no discrete facet values or aggregate buckets
+for a geo field, only radius filtering.
 
 ## Filtering
 

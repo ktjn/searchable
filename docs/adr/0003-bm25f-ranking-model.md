@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (implemented since Phase 1/2, `packages/client/src/score.ts`).
+Accepted (implemented in `packages/searchable/src/score.ts` and
+`python/searchable/src/searchable/client/score.py`).
 
 ## Context
 
@@ -47,7 +48,7 @@ normalization for both.
 
 - Every ranking-affecting change (boost defaults, `k1`/`b` constants) is
   covered by the configuration-testbed snapshot suite
-  (`packages/client/test/config-testbed.test.ts`) so an unintended
+  (`packages/searchable/test/config-testbed.test.ts`) so an unintended
   ranking shift shows up as a reviewable diff, the same way a UI
   screenshot test catches an unintended visual change.
 - BM25's `k1`/`b` constants are not yet author-configurable

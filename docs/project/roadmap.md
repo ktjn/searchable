@@ -7,7 +7,7 @@ This page is the single current list of shipped capability and remaining work; d
 | Area | Current state | Remaining work |
 |---|---|---|
 | Documentation and showcase | Published, searchable, and covered by link, accessibility, and browser checks | Ongoing maintenance alongside product changes |
-| Lexical search | Stable; native six-language regression baseline plus reviewed documentation, GOV.UK learner-driving, German (`de-fahrerlaubnisrecht`), and Gutenberg facets (`gutenberg-fiction-facets`) domain corpora | Broader representative domains and judged sets, real query evidence, quality thresholds, and an internal query-planner abstraction |
+| Lexical search | Stable; shared TypeScript/Python client conformance plus native six-language regression baselines and reviewed documentation, GOV.UK learner-driving, German (`de-fahrerlaubnisrecht`), and Gutenberg facets (`gutenberg-fiction-facets`) domain corpora | Broader representative domains and judged sets, real query evidence, quality thresholds, and an internal query-planner abstraction |
 | Facets, synonyms, fuzzy search, and pins | Stable; a reviewed domain corpus (`gutenberg-fiction-facets`) now exercises terms and range facet filtering under judged relevance. Geo facets (radius filtering, optional distance sort, [ADR-0006](../adr/0006-geo-facets-and-stored-field-exact-match.md)) and exact-match filtering on undeclared stored fields are implemented but not yet exercised by a judged relevance corpus | No required 1.0 work; facet counts (`facetValues()`) remain outside judged relevance coverage; geo/exact-match filtering also remain outside judged relevance coverage |
 | Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
 | Offline and worker execution | Removed in 2.0 | Searchable 2.0 removes Worker execution; main-thread only. Service Worker support is also removed. See [2.0 simplification plan](../plans/2026-08-13-searchable-2.0-simplification.md) |
@@ -17,6 +17,8 @@ This page is the single current list of shipped capability and remaining work; d
 
 ## Near-term work
 
+- Refresh `searchable-docs@1.1.0` for the 2.0 documentation surface, replacing
+  its retired worker/offline queries and re-reviewing the resulting judgments.
 - Expand relevance coverage beyond the documentation, learner-driving, German driving-license-law, and Gutenberg faceted-fiction domains — now spanning English and German, and now including judged-relevance coverage of terms and range facet filtering — with broader judged sets and real query evidence before defining thresholds or making production-scale claims. Real query evidence is now partially addressed for one suite: `govuk-learn-to-drive@1.1.0` adds 8 queries sourced from Google's public autocomplete suggestion endpoint as a real-search-language proxy (see [Relevance baselines](relevance-baselines.md)). This is not full production query-log evidence — GOV.UK does not publish query logs, and no equivalent source is currently available — and it remains open for the documentation, German, and Gutenberg suites, and for a more rigorous real-log source if one ever becomes available.
 - Expand full language profiles only with representative corpora, analyzer fixtures, relevance queries, and cross-implementation conformance tests.
 - Modelable's static Playground is an active consumer: it uses JSON document shards.
@@ -80,16 +82,19 @@ Add a full language profile only when it includes:
 - stopword tests
 - stemming or lemmatization tests where applicable
 - relevance queries with expected ordering
-- end-to-end conformance tests proving the language's build-time (Python
-  `searchable.indexer`/`searchable.analysis`) and query-time (TypeScript
-  `@ktjn/searchable`) stemming agree,
-  via `SearchClient` queries against a real Python-built index
+- end-to-end conformance tests proving the language's build-time Python
+  analysis and both clients' query-time analysis agree via `SearchClient`
+  queries against a real Python-built index
 
 Fallback segmentation must remain explicit and must not silently apply an unrelated language analyzer.
 
 ## Query planning
 
-The query path coordinates retrieval, expansion, filtering, scoring, facets, pins, stored-document loading, and hybrid merging. Introduce an internal query-plan abstraction when concrete performance or maintainability evidence justifies reopening the archived design in [`archive/specs/query-planner.md`](../archive/specs/query-planner.md).
+The query path coordinates retrieval, expansion, filtering, scoring, facets,
+pins, distance ordering, and stored-document loading. Introduce an internal
+query-plan abstraction when concrete performance or maintainability evidence
+justifies reopening the archived design in
+[`archive/specs/query-planner.md`](../archive/specs/query-planner.md).
 
 The planner should be able to decide:
 
@@ -110,7 +115,12 @@ Vector and hybrid search are removed in Searchable 2.0. Searchable's role is lex
 
 All generated index files are downloadable. Query privacy does not imply corpus confidentiality.
 
-Treat every indexed field, posting, facet value, stored document, synonym, pin, and vector as public data. Do not index unpublished documents, authorization-sensitive metadata, restricted CMS fields, per-user content, secrets, or internal identifiers. Access-controlled search requires a different deployment architecture with server-side authorization and query execution.
+Treat every indexed field, posting, facet value, stored document, synonym, and
+pin as public data. Do not index unpublished documents,
+authorization-sensitive metadata, restricted CMS fields, per-user content,
+secrets, or internal identifiers. Access-controlled search requires a
+different deployment architecture with server-side authorization and query
+execution.
 
 ## Operational guidance
 

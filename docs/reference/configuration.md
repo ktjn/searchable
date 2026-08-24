@@ -1,26 +1,39 @@
 # Configuration
 
-This reference collects the supported indexer, writer, client, and offline options without presenting planned settings as current behavior.
+This reference collects the implemented index-builder, writer, and client
+settings. Python APIs use snake_case; the JSON-driven repository helper maps
+camelCase JSON keys onto these names.
 
-## BuildIndexOptions
+## `build_index`
 
-- `fieldBoosts`
+`build_index(sources, default_language="en", ...)` accepts:
+
+- `field_boosts`
+- `allowed_url_origins` and `canonical_base_url`
+- `hierarchical_facets`
+- `range_facet_buckets`
 - `synonyms`
-- `fuzzy` and `fuzzyMaxEdits`
-- `hierarchicalFacets`
-- `rangeFacetBuckets`
-- `allowedUrlOrigins` and `canonicalBaseUrl`
+- `fuzzy` and `fuzzy_max_edits`
+- `section_indexing`
 
-`buildIndex(sources, defaultLanguage, options)` is synchronous. Source IDs must be stable and unique.
+For structured input, `build_index_documents()` requires explicit
+`field_definitions` and accepts synonym and fuzzy settings.
 
-## WriteIndexOptions
+## `write_index`
 
-- `maxShardGzipBytes` and `shardByPrefix`
-- `docStoreShardSize`
+`write_index(built, out_dir, ...)` accepts:
 
-## SearchClientOptions
+- `max_shard_gzip_bytes`
+- `shard_by_prefix`
+- `doc_store_shard_size`
 
-- required `indexUrl`
-- `allowCrossOriginShards` and `strict`
+Output is always JSON in manifest version 2.
 
-For a small site, defaults are appropriate. Internationalization, synonyms, and fuzzy dictionaries should be configured only for languages and features the deployment actually uses.
+## Search clients
+
+The TypeScript `SearchClient` accepts required `indexUrl` plus optional
+`allowCrossOriginShards` and `strict`. Python exposes the equivalent
+`index_url`, `allow_cross_origin_shards`, and `strict` arguments.
+
+Defaults suit small sites. Enable synonyms, fuzzy dictionaries, additional
+languages, or finer sharding only when the deployment uses them.

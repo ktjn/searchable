@@ -2,40 +2,33 @@
 
 ## Status
 
-Accepted (index-format check implemented since Phase 1,
-`packages/client/src/validate-manifest.ts`; the API-semver half takes
-effect at the 1.0 tag itself, see [reference/compatibility.md](../reference/compatibility.md)).
+Accepted (implemented in
+`packages/searchable/src/validate-manifest.ts` and
+`python/searchable/src/searchable/client/validate_manifest.py`).
 
-**Amendment:** the TypeScript indexer (formerly `@ktjn/searchable-indexer`,
-`packages/indexer/`) referenced below as one half of the API-compatibility
-surface has since been removed; the Python `searchable-indexer`
-(`python/searchable-indexer`) is now the sole index generator and is
-versioned independently of the npm packages, per
-[reference/compatibility.md](../reference/compatibility.md). The
-index-format-vs-API-compatibility split this ADR decides on is unaffected —
-it still governs `@ktjn/searchable-client`'s API and the manifest format the
-Python generator now produces.
+**2.0 amendment:** the packages were consolidated into `@ktjn/searchable` and
+`searchable`; the latter contains both the sole index builder and the Python
+client. The index-format-versus-package-API split remains unchanged.
 
 ## Context
 
-Two different things can break compatibility independently: the
-`@ktjn/searchable-client`/`@ktjn/searchable-indexer` public API surface (function signatures,
-option shapes), and the on-disk/over-HTTP manifest+shard format they
-read and write. A deployment can upgrade one without the other (rebuild
-with a new indexer against an old client still deployed, or vice versa)
+Two different things can break compatibility independently: the published
+TypeScript/Python API surfaces (function signatures and option shapes), and
+the on-disk/over-HTTP manifest and shard format they read and write. A
+deployment can upgrade one without the other (rebuild with a new builder
+against an old client still deployed, or vice versa),
 so they need independent version numbers and independent compatibility
 rules, not one combined "package version" meaning both at once.
 
 ## Decision
 
-- **API compatibility**: ordinary semver on the published npm packages,
+- **API compatibility**: ordinary semver on the published packages,
   per [project/governance.md](../project/governance.md)'s
   Compatibility Policy — a breaking API change requires a major bump,
   documentation, and migration notes.
 - **Index format compatibility**: a separate integer,
-  `Manifest.version` (currently `1`, `packages/format/src/index.ts`),
-  checked by `@ktjn/searchable-client`'s `validateManifest()` independently of the
-  package's own semver — a manifest with an unrecognized `version` is
+  `Manifest.version` (currently `2`), checked independently of package semver
+  by both clients — a manifest with an unrecognized `version` is
   rejected with a named `InvalidManifestError` before any query
   executes, rather than failing opaquely deep inside search logic. The
   supported client-version ↔ index-version pairing is a documented table
@@ -62,6 +55,5 @@ rules, not one combined "package version" meaning both at once.
   and adds a row to the support matrix — old clients then fail loudly
   and immediately for that manifest instead of returning wrong or
   partial results.
-- The 1.0 tag is the point where the API-compatibility half of this
-  policy starts applying; the current frozen boundary is listed in
+- The current supported package and manifest combinations are listed in
   [Compatibility](../reference/compatibility.md).

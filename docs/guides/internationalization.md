@@ -4,7 +4,10 @@ This guide explains the shared analysis pipeline, implemented language profiles,
 
 ## Pipeline and profiles
 
-Both indexer implementations and the browser client analyze text through the same conceptual stages: Unicode normalization, segmentation, case folding, optional stopword removal, and optional stemming. English, German, Swedish, Dutch, Norwegian Bokmål, and Norwegian Nynorsk have full stemming profiles; their stopword sets are currently empty.
+The Python builder and both clients analyze text through the same conceptual
+stages: Unicode normalization, segmentation, case folding, stopword removal,
+and optional stemming. English, German, Swedish, Dutch, Norwegian Bokmål, and
+Norwegian Nynorsk have full stemming profiles and curated stopword sets.
 
 | Code | Language | Analysis |
 | --- | --- | --- |

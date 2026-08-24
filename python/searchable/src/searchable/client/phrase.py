@@ -1,5 +1,5 @@
 """Phrase matching helpers for the search client (mirrors
-packages/client/src/phrase.ts).
+packages/searchable/src/phrase.ts).
 """
 
 from searchable.client.types import TermEntry

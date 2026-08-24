@@ -8,6 +8,10 @@ Accepted for the boundary as it exists today. The full dynamic plugin
 built — this ADR is about the boundary decision already made and
 shipped, not the future registration mechanism.
 
+**2.0 amendment:** vector search and binary shard codecs were removed. The
+single `@ktjn/searchable` bundle contains the complete lexical runtime; only
+feature data such as synonym and fuzzy shards remains lazy-loaded.
+
 ## Context
 
 [The overview](../getting-started/overview.md)'s small-core goal and the 15 KB
@@ -22,7 +26,7 @@ Two distinct opt-in mechanisms, chosen per feature by its actual cost
 shape, not one uniform plugin system:
 
 1. **Baked-in-but-inert-until-used** (facets, synonyms, pins, fuzzy
-   matching): shipped in the one `@ktjn/searchable-client` bundle unconditionally —
+   matching): shipped in the one `@ktjn/searchable` bundle unconditionally —
    `pnpm size`'s 15 KB budget is measured against this bundle including
    all of them.
    These stay small enough in code size that separate bundle-splitting
@@ -56,8 +60,9 @@ the [roadmap](../project/roadmap.md).
 
 ## Consequences
 
-- Binary shard data is opt-in, but its small decoder code remains part of
-  the client search bundle; `pnpm size` checks that combined reality.
+- Manifest version 2 is JSON-only. Optional synonym, fuzzy, facet, and pin
+  data is fetched only when a query needs it; `pnpm size` checks the complete
+  lexical code bundle.
 - Adding a genuinely large future feature (e.g. a WASM scoring core)
   should default to mechanism 2 (lazy-loaded, external, opt-in
   dependency) rather than mechanism 1.

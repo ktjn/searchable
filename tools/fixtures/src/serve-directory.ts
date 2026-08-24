@@ -52,9 +52,8 @@ async function discoverFiles(root: string): Promise<Map<string, string>> {
  * paths, so a test can assert exactly which shards a query fetched and that
  * a file written after startup is never served. Rejects any request whose
  * decoded path contains a `..` segment with 403. Node's built-in fetch
- * doesn't support file:// URLs, and ES module workers loaded via
- * `new Worker(url, {type:'module'})` need an actual origin, so a real (if
- * tiny) HTTP server is the honest way to exercise that deployment model
+ * doesn't support file URLs, and browser modules need an actual origin, so
+ * a real (if tiny) HTTP server is the honest way to exercise that deployment model
  * instead of a shortcut around it
  * (docs/concepts/architecture.md#deployment-topology).
  */

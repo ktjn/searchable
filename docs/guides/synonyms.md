@@ -4,18 +4,21 @@ This guide describes authored query-time synonym expansion and its scoring behav
 
 ## Synonym file format
 
-Synonyms are supplied to `buildIndex` by language, not through page metadata. The indexer normalizes them with the same language profile used for documents and writes a language-specific shard.
+Synonyms are supplied to Python's `build_index` by language, not through page
+metadata. The builder normalizes them with the same language profile used for
+documents and writes a language-specific shard.
 
-```ts
-const built = buildIndex(documents, "en", {
-  synonyms: {
-    en: {
-      equivalences: [["laptop", "notebook"]],
-      directional: { tv: ["television"] },
-      multiWord: [["new york", "nyc", "big apple"]],
+```python
+built = build_index(
+    documents,
+    synonyms={
+        "en": {
+            "equivalences": [["laptop", "notebook"]],
+            "directional": {"tv": ["television"]},
+            "multiWord": [["new york", "nyc", "big apple"]],
+        }
     },
-  },
-});
+)
 ```
 
 ## Scoring impact

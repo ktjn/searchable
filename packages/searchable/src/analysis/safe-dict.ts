@@ -15,11 +15,10 @@
  * hypothetical, this exact bug crashed a real `buildIndex()` run and
  * corrupted query-time scores (`docs/reference/compatibility.md`, from
  * back when the now-removed TypeScript indexer built the index too).
- * The build-time side is now `python/searchable-indexer`, whose plain
+ * The build-time side is Python's `searchable` builder, whose plain
  * `dict`s aren't fooled by a prototype chain the way JS objects are, so
  * this bug class -- and this helper -- is specific to the query-time,
- * TypeScript side (`@ktjn/searchable-client`, which depends on this
- * package).
+ * TypeScript side (`@ktjn/searchable`).
  */
 
 /** Own-property-safe read (no creation) — `undefined` when `key` isn't a real own entry, never an inherited `Object.prototype` member. */

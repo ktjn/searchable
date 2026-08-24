@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (implemented since Phase 1, `packages/indexer`/`packages/client`).
+Accepted. The current implementation is the Python builder in
+`python/searchable` and the TypeScript client in `packages/searchable`.
 
 ## Context
 
@@ -17,7 +18,7 @@ plain HTTP.
 
 The indexer runs offline and emits an immutable, content-hashed set of
 static files (manifest + shards, [concepts/index-format.md](../concepts/index-format.md)).
-The browser runtime (`@ktjn/searchable-client`) only ever issues plain `fetch()` GET
+The browser runtime (`@ktjn/searchable`) only ever issues plain `fetch()` GET
 requests against whatever static host serves those files, lazily
 fetching just the shards a given query touches. There
 is no query-time write path, no server-side logic, and no protocol

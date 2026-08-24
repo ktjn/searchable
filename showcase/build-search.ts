@@ -23,8 +23,8 @@ const htmlFiles = (root: string) =>
 
 /**
  * Deliberately keeps the .html extension in each doc's url (unlike
- * python/searchable-indexer's own discover_html_documents helper
- * (`python/searchable-indexer/src/searchable_indexer/discover.py`), which
+ * Python's own `discover_html_documents` helper
+ * (`python/searchable/src/searchable/indexer/discover.py`), which
  * strips it assuming a host that serves extensionless paths) — every internal
  * link build-docs.ts generates already includes .html explicitly, and
  * a plain static host (GitHub Pages without Jekyll pretty-permalink

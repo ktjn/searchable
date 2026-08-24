@@ -14,9 +14,27 @@ is explicitly marked experimental and may change in a minor release.
 
 ### Added
 
+- Shared TypeScript/Python client-conformance fixtures covering ranking,
+  operators, terms/range/geo filters, facets, highlighting, synonyms, fuzzy
+  matching, distance sorting, and zero-result queries.
+- A consolidated `searchable build|query|facet` Python CLI and matching
+  `python -m searchable` entry point; the previous positional build invocation
+  remains supported.
+
 ### Changed
 
+- The showcase now consumes public `@ktjn/searchable` types directly instead
+  of maintaining a duplicate search contract.
+- Public documentation, security policy, contributor setup, package names, and
+  CLI examples now describe the consolidated 2.0 surface.
+- Python bytecode and tool caches are ignored; 104 tracked `.pyc` files were
+  removed.
+
 ### Fixed
+
+- `SearchClient.dispose()` now promptly rejects pending readiness, search, and
+  facet operations, including work already waiting on manifest or shard
+  fetches.
 
 ## [2.0.1] - 2026-08-13
 

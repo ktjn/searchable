@@ -7,18 +7,15 @@ pins, highlighting, etc.) should be implemented for both `packages/searchable`
 (TypeScript) and `python/searchable` (Python, `searchable.client`) — they
 share one index format and are intended to stay behaviorally equivalent.
 
-`python/searchable/tests/test_cross_implementation_conformance.py`
-does **not** verify that equivalence: it only proves the Python client is
-generator-agnostic, i.e. it returns equivalent results whether the index it
-queries was built by the real `searchable-indexer` (now `searchable.indexer`
-in the same consolidated package) or by the independent
-`spec/examples/python/generate_index.py` reference generator — both Python,
-both feeding the same Python client. It contains no TypeScript client
-invocation and cannot detect a genuine TS-vs-Python behavioral divergence.
-A real cross-language (TS-client-vs-Python-client) parity harness is
-tracked as follow-up work, not yet implemented — the original TS index
-generator this repo's client tests once used for that purpose was removed
-in an earlier, unrelated change (#61).
+`packages/searchable/test/client-conformance.test.ts` builds one index with the
+Python builder, runs the shared cases in `spec/fixtures/client-conformance/`
+through both clients, and compares normalized results. Extend that matrix for
+every retained behavior exposed by both runtimes.
+
+`python/searchable/tests/test_cross_implementation_conformance.py` serves a
+different purpose: it verifies that the Python client remains generator-
+agnostic by comparing indexes from the real builder and the independent
+reference generator in `spec/examples/python/`.
 
 ## Release flow
 

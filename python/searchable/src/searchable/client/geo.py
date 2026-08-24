@@ -1,4 +1,4 @@
-"""Great-circle distance helper for geo facets (mirrors packages/client/src/geo.ts)."""
+"""Great-circle distance helper for geo facets (mirrors packages/searchable/src/geo.ts)."""
 
 import math
 

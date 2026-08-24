@@ -39,8 +39,8 @@ export default defineConfig({
     target: "es2022",
     rollupOptions: {
       input: {
-        "search-widget": resolve(__dirname, "src/search-widget.ts"),
-        "gallery-widget": resolve(__dirname, "src/gallery-widget.ts"),
+        "search-widget": resolve(import.meta.dirname, "src/search-widget.ts"),
+        "gallery-widget": resolve(import.meta.dirname, "src/gallery-widget.ts"),
       },
       output: {
         entryFileNames: "[name]-[hash].js",

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active
+Complete
 
 ## Summary
 
@@ -248,6 +248,9 @@ Package APIs continue to use semver independently from the manifest's integer fo
 ## Cross-Runtime Conformance
 
 Build golden indexes once with the Python indexer and run identical query fixtures through Python and TypeScript clients.
+
+Implemented by `packages/searchable/test/client-conformance.test.ts` and the
+shared cases under `spec/fixtures/client-conformance/`.
 
 Cover terms and multi-term queries, AND/OR semantics if retained, phrases, prefixes, fuzzy expansion, synonyms, scoring/boosts, languages, filters, facets/contextual counts, pins, highlighting where both runtimes expose it, did-you-mean, limits/pagination where applicable, zero results, and malformed/unsupported manifests.
 

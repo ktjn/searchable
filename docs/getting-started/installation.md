@@ -1,6 +1,6 @@
 # Installation
 
-The npm packages are published to GitHub Packages and the Python packages to
+The npm package is published to GitHub Packages and the Python package to
 PyPI from `v*` release tags. This page identifies the environment each package
 expects and explains
 how to install them or evaluate the current implementation from the
@@ -34,13 +34,12 @@ uv add searchable
 
 `@ktjn/searchable` targets modern browsers with `fetch` and `URL`.
 
-The repository also contains the Python `searchable-indexer`, which generates
-the index, and its shared analysis library — both part of the consolidated
-project at `python/searchable`. Use the explicit project path for repository
-development; the release artifacts are available from GitHub Packages and PyPI.
+The Python package contains the index builder, synchronous client, and shared
+analysis code. Its repository project lives at `python/searchable`; the
+installed `searchable` command exposes `build`, `query`, and `facet` commands.
+Use the explicit project path for repository development.
 PyPI publication uses the `PYPI_API_TOKEN` secret in this repository's `pypi`
-environment. See
-[Indexing content](../guides/indexing.md).
+environment. See [Indexing content](../guides/indexing.md).
 
 See the [live feature gallery](https://ktjn.github.io/searchable/gallery/) to
 evaluate generated indexes without a local build. The [First search](first-search.md)

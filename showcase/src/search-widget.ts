@@ -39,7 +39,9 @@ interface SearchClientLike {
   search(query: string, options?: { limit?: number }): Promise<{ hits: Hit[] }>;
 }
 
-const siteRoot = new URL(".", import.meta.url);
+// This bundle is copied to the site root with a content hash. String-wrapping
+// the runtime URL keeps Vite from treating "." as a source asset to resolve.
+const siteRoot = new URL(".", String(import.meta.url));
 
 const root = document.querySelector<HTMLDivElement>("[data-search-root]");
 if (root) {

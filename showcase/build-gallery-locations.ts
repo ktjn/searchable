@@ -54,7 +54,6 @@ function renderLocatorIndexPage(galleryWidgetScript: string): string {
           data-geo-lon="18.0686"
           data-geo-radius="1600"
           data-sort-by-distance="true"
-          data-modes="lexical"
         ></div>
       </main>`;
   return pageShell({

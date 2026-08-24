@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ranked-highlighted-facets",
+    "query": "widget",
+    "options": { "highlight": true, "facets": ["category"] }
+  },
+  {
+    "id": "or-query",
+    "query": "widget gadget",
+    "options": { "operator": "or" }
+  },
+  {
+    "id": "terms-filter",
+    "query": "widget",
+    "options": { "filters": { "category": "red" }, "facets": ["category"] }
+  },
+  {
+    "id": "range-filter",
+    "query": "widget",
+    "options": { "filters": { "price": { "min": 15, "max": 25 } } }
+  },
+  {
+    "id": "geo-distance-sort",
+    "query": "store",
+    "options": {
+      "filters": {
+        "location": { "lat": 40.7128, "lon": -74.006, "radiusKm": 10000 }
+      },
+      "sortByDistance": true
+    }
+  },
+  {
+    "id": "synonym-expansion",
+    "query": "sofa",
+    "options": { "synonyms": true }
+  },
+  {
+    "id": "fuzzy-expansion",
+    "query": "widgte",
+    "options": { "fuzzy": true }
+  },
+  {
+    "id": "zero-results",
+    "query": "xyzzyquux",
+    "options": {}
+  }
+]

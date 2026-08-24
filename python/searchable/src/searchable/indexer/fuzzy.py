@@ -1,4 +1,4 @@
-# Direct port of packages/indexer/src/build-index.ts's buildFuzzyShard --
+# Build the query-time fuzzy deletion dictionary.
 # a SymSpell-style deletion dictionary: every string reachable by deleting up
 # to max_edits Unicode code points from a term (plus the term itself, 0
 # deletions). The per-term deletion generation is shared with the runtime via

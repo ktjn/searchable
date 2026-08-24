@@ -1,6 +1,6 @@
 /**
- * Minimal fetch-and-cache helper. Deliberately just a pair of Maps (no LRU
- * eviction, no priority hints, no Worker). JSON responses
+ * Minimal fetch-and-cache helper. Deliberately just a Map, with no LRU
+ * eviction or priority hints. JSON responses
  * are cached in separate maps keyed by URL, so the same URL can
  * never collide across representations: a JSON term shard
  * served from `shards` entries point at different files in

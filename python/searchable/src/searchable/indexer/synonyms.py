@@ -3,7 +3,7 @@ from typing import Any
 
 from searchable.analysis import LanguageProfile, get_language_profile, normalize_phrase
 
-# Direct port of packages/indexer/src/build-index.ts's buildSynonymShards.
+# Normalize authored synonym configuration into language-specific shards.
 
 
 def _normalize_dedup(terms: list[str], normalize: Callable[[str], str]) -> list[str]:

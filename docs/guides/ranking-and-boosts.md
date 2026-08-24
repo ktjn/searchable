@@ -8,7 +8,12 @@ Plain words are analyzed and combined as required query clauses. Append `*` for 
 
 ## Ranking model: BM25F
 
-BM25F combines term frequency across fields before saturation. The indexer defaults to a title boost of `3.0` and body boost of `1.0`; `BuildIndexOptions.fieldBoosts` overrides those values. At query time, `SearchOptions.boosts.fields` overrides field weights and `SearchOptions.boosts.terms` multiplies a normalized term's contribution. A page's `searchable-boost` value is applied as a document multiplier.
+BM25F combines term frequency across fields before saturation. The builder
+defaults to a title boost of `3.0` and body boost of `1.0`;
+`build_index(..., field_boosts=...)` overrides those values. At query time,
+`SearchOptions.boosts.fields` overrides field weights and
+`SearchOptions.boosts.terms` multiplies a normalized term's contribution. A
+page's `searchable-boost` value is applied as a document multiplier.
 
 ## Boost types, summarized
 
@@ -16,7 +21,10 @@ Build-time field boosts establish corpus defaults, query field/term boosts tune 
 
 ## Prefix and fuzzy matching
 
-Enable typo tolerance with `fuzzy: true`. The index must have been built with `BuildIndexOptions.fuzzy`; `fuzzyMaxEdits` selects a deletion dictionary depth of `1` or `2`, and `fuzzyWeight` controls the penalty for non-literal matches. A zero-result fuzzy query can return `didYouMean` terms.
+Enable typo tolerance with `fuzzy: true`. The index must have been built with
+`build_index(..., fuzzy=True)`; `fuzzy_max_edits` selects a deletion-dictionary
+depth of `1` or `2`, and query-time `fuzzyWeight` controls the penalty for
+non-literal matches. A zero-result fuzzy query can return `didYouMean` terms.
 
 Prefix expansion is shard-aware and does not require scanning the full corpus.
 

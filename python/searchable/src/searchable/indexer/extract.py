@@ -65,7 +65,7 @@ def _parse_geo_point(raw: str, field_name: str, source_url: str) -> tuple[float,
 
 
 def _warn(message: str) -> None:
-    print(f"[searchable-indexer] {message}", file=sys.stderr)
+    print(f"[searchable] {message}", file=sys.stderr)
 
 
 def _sanitize_canonical_url(

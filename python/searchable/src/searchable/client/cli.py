@@ -2,6 +2,7 @@ import argparse
 import dataclasses
 import json
 import sys
+from collections.abc import Sequence
 from typing import Any
 
 from searchable.client import SearchClient
@@ -68,10 +69,7 @@ def _cmd_facet(args: argparse.Namespace) -> None:
         print(f"{marker} {value.value} ({value.count})")
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(prog="searchable-client")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
+def add_client_subcommands(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     query_parser = subparsers.add_parser("query")
     query_parser.add_argument("index_url")
     query_parser.add_argument("query")
@@ -92,9 +90,14 @@ def main() -> None:
     facet_parser.add_argument("--json", action="store_true")
     facet_parser.set_defaults(func=_cmd_facet)
 
-    args = parser.parse_args(sys.argv[1:])
+
+def main(argv: Sequence[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(prog="searchable-client")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    add_client_subcommands(subparsers)
+    args = parser.parse_args(argv)
     args.func(args)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

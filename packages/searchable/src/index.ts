@@ -6,6 +6,7 @@ export type {
   FacetResult,
   FacetResultValue,
   FacetValuesOptions,
+  GeoFilter,
   Hit,
   RangeFilter,
   SearchOptions,

@@ -1,5 +1,5 @@
 """Fuzzy (SymSpell deletion-dictionary) query expansion for the search
-client (mirrors packages/client/src/fuzzy.ts).
+client (mirrors packages/searchable/src/fuzzy.ts).
 """
 
 import sys
@@ -48,7 +48,7 @@ def _fuzzy_candidates_for(term: str, lookup: "_FuzzyLookup | None") -> list[tupl
         # dropped before scoring (bounds worst-case per-term CPU), and which
         # ones survive depends on set insertion order, not distance.
         print(
-            f'[searchable-client] fuzzy lookup for "{term}" found '
+            f'[searchable] fuzzy lookup for "{term}" found '
             f"{len(candidate_terms)} dictionary candidates, over the "
             f"{MAX_FUZZY_CANDIDATES_PER_TERM}-candidate cap -- scoring only the first "
             f"{MAX_FUZZY_CANDIDATES_PER_TERM} (not necessarily the closest). "

@@ -1,4 +1,4 @@
-# Direct port of packages/indexer/src/build-index.ts's resolvePins:
+# Resolve authored pin declarations into deterministic query-time entries.
 # applies the priority -> doc-boost -> insertion-order tie-break from
 # docs/guides/pinning.md#conflicting-pins.
 

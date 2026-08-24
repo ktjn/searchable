@@ -2,11 +2,16 @@
 
 `@ktjn/searchable` 2.0 is published to GitHub Packages. Within a published major version, breaking changes to exported functions, classes, types, and documented option/result shapes require a new major version. Additive changes may ship in a minor release and fixes in a patch release.
 
-The index generator, `searchable-indexer`, and the Python client, `searchable` — both part of the consolidated `python/searchable` package — are versioned and released independently of the npm package.
+The Python index builder and client ship together in `searchable`. The npm and
+Python packages are currently released in lockstep, while the manifest's
+integer version remains an independent compatibility boundary.
 
 ## Index format compatibility
 
-The over-HTTP index has an independent integer `Manifest.version`, currently `2` (introduced in Searchable 2.0). `@ktjn/searchable` validates it before search and throws `InvalidManifestError` for unsupported versions. Indexes produced by Searchable 1.x with `Manifest.version: 1` are not compatible with 2.0 clients — re-index your content with `searchable-indexer` 2.0.
+The over-HTTP index has an independent integer `Manifest.version`, currently
+`2`. Both clients validate it before search and raise `InvalidManifestError`
+for unsupported versions. Searchable 1.x indexes with manifest version `1`
+are incompatible with 2.0 clients; rebuild them with `searchable build`.
 
 | Client package | Supported manifest version |
 |---|---|

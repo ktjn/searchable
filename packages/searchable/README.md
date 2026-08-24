@@ -9,7 +9,7 @@ Browser search runtime. Fetches a static JSON index manifest and its content-add
 - Terms, range, and hierarchical facets with contextual counts
 - Query-time synonym expansion and editorial term-to-page pinning
 - Multi-language analysis (English, German, Swedish, Dutch, Norwegian, CJK, Thai, Khmer, Lao)
-- Result highlighting, cancellation, and lifecycle events
+- Result highlighting, cancellation, and explicit client disposal
 - JSON-only index format — no binary codecs
 
 ## Quick start
