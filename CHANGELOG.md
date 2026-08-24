@@ -14,6 +14,14 @@ is explicitly marked experimental and may change in a minor release.
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [2.1.0] - 2026-08-24
+
+### Added
+
 - Geo facets with radius filtering, per-hit distances, and optional
   distance-first sorting in both TypeScript and Python clients. HTML indexing
   accepts `searchable-facet-geo-<field>` metadata, and TypeScript publicly
