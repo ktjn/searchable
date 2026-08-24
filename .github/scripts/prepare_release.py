@@ -6,15 +6,17 @@ number):
 
 * ``packages/searchable/package.json``,
 * ``python/searchable/pyproject.toml``,
+* the Python lockfile,
 * the two hardcoded-version tests
   (``showcase/test/public-readiness-policy.test.ts`` and
   ``python/searchable/tests/test_package_metadata.py``),
 * freezes ``## [Unreleased]`` in ``CHANGELOG.md`` into a dated release section
   and leaves a fresh, empty ``## [Unreleased]`` section above it.
 
-No lockfile regeneration is needed: ``pnpm-lock.yaml`` links workspace members
-by ``workspace:*`` (it does not record their concrete version) and the Python
-projects have no committed ``uv.lock``.
+No npm lockfile regeneration is needed: ``pnpm-lock.yaml`` links workspace
+members by ``workspace:*`` and does not record their concrete version. The
+Python lockfile does record the editable package version, so it is updated
+alongside ``pyproject.toml``.
 
 The script is purely mechanical; the caller reviews the diff it produces.
 """
@@ -24,13 +26,16 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 PYPROJECT_VERSION_RE = re.compile(r'(\s*version\s*=\s*")[^"]+(")')
 PACKAGE_JSON_VERSION_RE = re.compile(r'("version"\s*:\s*")[^"]+(")')
+UV_LOCK_VERSION_RE = re.compile(
+    r'(\[\[package\]\]\nname = "searchable"\nversion = ")[^"]+(")'
+)
 TYPESCRIPT_ASSERT_VERSION_RE = re.compile(r'toBe\(\s*"(\d+\.\d+\.\d+)"\s*\)')
 PYPROJECT_ASSERT_VERSION_RE = re.compile(r'version\s*=\s*"(\d+\.\d+\.\d+)"')
 
@@ -47,6 +52,10 @@ PYPROJECTS = [
     REPO_ROOT / "python/searchable/pyproject.toml",
 ]
 
+UV_LOCKS = [
+    REPO_ROOT / "python/searchable/uv.lock",
+]
+
 
 def _rewrite_first(text: str, pattern: re.Pattern[str], version: str) -> str:
     """Replace the version inside the first match of ``pattern``."""
@@ -54,18 +63,29 @@ def _rewrite_first(text: str, pattern: re.Pattern[str], version: str) -> str:
     if match is None:
         raise ValueError(f"unrecognized version syntax; pattern {pattern.pattern!r}")
     return (
-        text[: match.start()] + f"{match.group(1)}{version}{match.group(2)}" + text[match.end() :]
+        text[: match.start()]
+        + f"{match.group(1)}{version}{match.group(2)}"
+        + text[match.end() :]
     )
 
 
 def bump_manifest(path: Path, version: str) -> None:
     text = path.read_text(encoding="utf-8")
-    path.write_text(_rewrite_first(text, PACKAGE_JSON_VERSION_RE, version), encoding="utf-8")
+    path.write_text(
+        _rewrite_first(text, PACKAGE_JSON_VERSION_RE, version), encoding="utf-8"
+    )
 
 
 def bump_pyproject(path: Path, version: str) -> None:
     text = path.read_text(encoding="utf-8")
-    path.write_text(_rewrite_first(text, PYPROJECT_VERSION_RE, version), encoding="utf-8")
+    path.write_text(
+        _rewrite_first(text, PYPROJECT_VERSION_RE, version), encoding="utf-8"
+    )
+
+
+def bump_uv_lock(path: Path, version: str) -> None:
+    text = path.read_text(encoding="utf-8")
+    path.write_text(_rewrite_first(text, UV_LOCK_VERSION_RE, version), encoding="utf-8")
 
 
 def bump_typescript_test(path: Path, version: str) -> None:
@@ -94,10 +114,14 @@ def _rewrite_changelog_text(text: str, version: str, release_date: str) -> str:
     lines = text.split("\n")
     try:
         unreleased_index = next(
-            index for index, line in enumerate(lines) if CHANGELOG_HEADING_RE.match(line)
+            index
+            for index, line in enumerate(lines)
+            if CHANGELOG_HEADING_RE.match(line)
         )
     except StopIteration:
-        raise ValueError("CHANGELOG.md has no '## [Unreleased]' section to release") from None
+        raise ValueError(
+            "CHANGELOG.md has no '## [Unreleased]' section to release"
+        ) from None
 
     body = lines[unreleased_index + 1 :]
     body_end = next(
@@ -109,12 +133,10 @@ def _rewrite_changelog_text(text: str, version: str, release_date: str) -> str:
         len(body),
     )
     released_body = body[:body_end]
-    older_releases = body[body_end :]
+    older_releases = body[body_end:]
 
     prefix = "\n".join(lines[:unreleased_index]).rstrip("\n")
-    fresh_unreleased = "\n".join(
-        ["## [Unreleased]", "", "### Added", "", "### Changed", "", "### Fixed"]
-    )
+    fresh_unreleased = "## [Unreleased]\n\n### Added\n\n### Changed\n\n### Fixed"
 
     out = [prefix, "", fresh_unreleased, "", f"## [{version}] - {release_date}"]
     released = "\n".join(released_body).rstrip("\n")
@@ -128,15 +150,19 @@ def _rewrite_changelog_text(text: str, version: str, release_date: str) -> str:
 
 def rewrite_changelog(path: Path, version: str, release_date: str) -> None:
     path.write_text(
-        _rewrite_changelog_text(path.read_text(encoding="utf-8"), version, release_date),
+        _rewrite_changelog_text(
+            path.read_text(encoding="utf-8"), version, release_date
+        ),
         encoding="utf-8",
     )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("version", metavar="VERSION", help="new aligned version, e.g. 1.3.0")
-    parser.add_argument("--release-date", default=date.today().isoformat())
+    parser.add_argument(
+        "version", metavar="VERSION", help="new aligned version, e.g. 1.3.0"
+    )
+    parser.add_argument("--release-date", default=datetime.now(UTC).date().isoformat())
     args = parser.parse_args(argv)
 
     version = args.version
@@ -147,6 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     paths = (
         NPM_MANIFESTS
         + PYPROJECTS
+        + UV_LOCKS
         + [
             REPO_ROOT / "showcase/test/public-readiness-policy.test.ts",
             REPO_ROOT / "python/searchable/tests/test_package_metadata.py",
@@ -163,7 +190,11 @@ def main(argv: list[str] | None = None) -> int:
             bump_manifest(path, version)
         for path in PYPROJECTS:
             bump_pyproject(path, version)
-        bump_typescript_test(REPO_ROOT / "showcase/test/public-readiness-policy.test.ts", version)
+        for path in UV_LOCKS:
+            bump_uv_lock(path, version)
+        bump_typescript_test(
+            REPO_ROOT / "showcase/test/public-readiness-policy.test.ts", version
+        )
         bump_python_metadata_test(
             REPO_ROOT / "python/searchable/tests/test_package_metadata.py", version
         )
