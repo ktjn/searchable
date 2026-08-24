@@ -133,6 +133,20 @@ function parseNumberInput(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function numberInRange(
+  value: number | undefined,
+  min: number,
+  max: number,
+): number | undefined {
+  return value !== undefined && value >= min && value <= max
+    ? value
+    : undefined;
+}
+
+function nonNegativeNumber(value: number | undefined): number | undefined {
+  return value !== undefined && value >= 0 ? value : undefined;
+}
+
 interface BoostSpecEntry {
   key: string;
   multiplier: number;
@@ -172,10 +186,21 @@ function parseStoredPoint(
   raw: string | undefined,
 ): { lat: number; lon: number } | undefined {
   if (!raw) return undefined;
-  const [rawLat, rawLon] = raw.split(",");
+  const parts = raw.split(",");
+  if (parts.length !== 2) return undefined;
+  const [rawLat, rawLon] = parts;
   const lat = Number(rawLat);
   const lon = Number(rawLon);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return undefined;
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    lat < -90 ||
+    lat > 90 ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    return undefined;
+  }
   return { lat, lon };
 }
 
@@ -589,9 +614,9 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     lon: number | undefined;
     radiusKm: number | undefined;
   } = {
-    lat: geoLatPreset,
-    lon: geoLonPreset,
-    radiusKm: geoRadiusPreset,
+    lat: numberInRange(geoLatPreset, -90, 90),
+    lon: numberInRange(geoLonPreset, -180, 180),
+    radiusKm: nonNegativeNumber(geoRadiusPreset),
   };
   let sortByDistanceEnabled = sortByDistancePreset;
   let geoMapFigure: HTMLElement | undefined;
@@ -605,6 +630,8 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     const latInput = document.createElement("input");
     latInput.type = "number";
     latInput.step = "any";
+    latInput.min = "-90";
+    latInput.max = "90";
     latInput.className = "gallery-range-input";
     latInput.placeholder = "Latitude";
     latInput.setAttribute("aria-label", `${geoFacetField} latitude`);
@@ -612,6 +639,8 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     const lonInput = document.createElement("input");
     lonInput.type = "number";
     lonInput.step = "any";
+    lonInput.min = "-180";
+    lonInput.max = "180";
     lonInput.className = "gallery-range-input";
     lonInput.placeholder = "Longitude";
     lonInput.setAttribute("aria-label", `${geoFacetField} longitude`);
@@ -681,9 +710,9 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
 
     const readGeo = (): void => {
       geoState = {
-        lat: parseNumberInput(latInput.value),
-        lon: parseNumberInput(lonInput.value),
-        radiusKm: parseNumberInput(radiusInput.value),
+        lat: numberInRange(parseNumberInput(latInput.value), -90, 90),
+        lon: numberInRange(parseNumberInput(lonInput.value), -180, 180),
+        radiusKm: nonNegativeNumber(parseNumberInput(radiusInput.value)),
       };
       void runSearch();
     };

@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { renderHubPage } from "../build-gallery-index.js";
+import { PICKUP_LOCATIONS } from "../gallery-locations-data.js";
 import type { QuickExample } from "../quick-examples.js";
 import {
   QUICK_EXAMPLES,
@@ -109,7 +110,7 @@ test("renders every optional behavior in attributes and displayed source", () =>
     "facetValues",
   );
   expect(renderRuntimeAttributes(byId.get("geo") as QuickExample)).toContain(
-    'data-geo-facet="storeLocation"',
+    'data-geo-facet="location"',
   );
   expect(renderRuntimeAttributes(byId.get("geo") as QuickExample)).toContain(
     'data-sort-by-distance="true"',
@@ -117,6 +118,12 @@ test("renders every optional behavior in attributes and displayed source", () =>
   expect(renderExampleCode(byId.get("geo") as QuickExample)).toContain(
     "sortByDistance: true",
   );
+  expect((byId.get("geo") as QuickExample).indexPath).toBe(
+    "gallery/locations/search-index/manifest.json",
+  );
+  expect(
+    new Set(PICKUP_LOCATIONS.map(({ lat, lon }) => `${lat},${lon}`)).size,
+  ).toBe(PICKUP_LOCATIONS.length);
   expect(
     renderRuntimeAttributes(byId.get("exact-match") as QuickExample),
   ).toContain('data-exact-fields="sku"');
