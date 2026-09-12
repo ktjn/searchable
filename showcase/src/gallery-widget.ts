@@ -69,6 +69,52 @@ const LANGUAGE_LABELS: Record<string, string> = {
   nn: "Norsk nynorsk",
 };
 
+/** A `<label>` wrapping a checkbox plus its text -- the on/off toggle and checkbox-facet shape repeated across this file. Callers needing checked/disabled/aria-label set them on the returned checkbox. */
+function createToggle(
+  labelClassName: string,
+  text: string,
+  onChange: (checked: boolean) => void,
+) {
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.addEventListener("change", () => onChange(checkbox.checked));
+  const label = document.createElement("label");
+  label.className = labelClassName;
+  label.append(checkbox, document.createTextNode(` ${text}`));
+  return { label, checkbox };
+}
+
+function createFieldset(className: string, legendText: string) {
+  const group = document.createElement("fieldset");
+  group.className = className;
+  const legend = document.createElement("legend");
+  legend.textContent = legendText;
+  group.append(legend);
+  return group;
+}
+
+function createFilterInput(
+  type: string,
+  placeholder: string,
+  ariaLabel: string,
+) {
+  const input = document.createElement("input");
+  input.type = type;
+  input.className = "gallery-range-input";
+  input.placeholder = placeholder;
+  input.setAttribute("aria-label", ariaLabel);
+  return input;
+}
+
+/** The shared "this example could not load" message, shown both on init failure and on a failed search. */
+function createErrorMessage(): HTMLParagraphElement {
+  const message = document.createElement("p");
+  message.className = "gallery-error";
+  message.setAttribute("role", "alert");
+  message.textContent = "This example could not load. Try refreshing the page.";
+  return message;
+}
+
 function parseNumberInput(value: string): number | undefined {
   if (value === "") return undefined;
   const parsed = Number(value);
@@ -227,30 +273,30 @@ function renderGeoMapSvg(
     svg.append(circle);
   }
 
+  // Result points and the search origin are both plotted as a labeled
+  // circle marker, just at different sizes/classes/labels.
+  const addMarker = (
+    point: { x: number; y: number },
+    radius: number,
+    className: string,
+    label: string,
+  ): void => {
+    const circle = document.createElementNS(SVG_NS, "circle");
+    circle.setAttribute("cx", String(point.x));
+    circle.setAttribute("cy", String(point.y));
+    circle.setAttribute("r", String(radius));
+    circle.setAttribute("class", className);
+    circle.setAttribute("stroke-width", String(scale / 300));
+    const title = document.createElementNS(SVG_NS, "title");
+    title.textContent = label;
+    circle.append(title);
+    svg.append(circle);
+  };
   for (const point of plotted) {
-    const marker = document.createElementNS(SVG_NS, "circle");
-    marker.setAttribute("cx", String(point.x));
-    marker.setAttribute("cy", String(point.y));
-    marker.setAttribute("r", String(scale / 45));
-    marker.setAttribute("class", "gallery-geo-map-point");
-    marker.setAttribute("stroke-width", String(scale / 300));
-    const title = document.createElementNS(SVG_NS, "title");
-    title.textContent = point.label;
-    marker.append(title);
-    svg.append(marker);
+    addMarker(point, scale / 45, "gallery-geo-map-point", point.label);
   }
-
   if (originXY) {
-    const marker = document.createElementNS(SVG_NS, "circle");
-    marker.setAttribute("cx", String(originXY.x));
-    marker.setAttribute("cy", String(originXY.y));
-    marker.setAttribute("r", String(scale / 35));
-    marker.setAttribute("class", "gallery-geo-map-origin");
-    marker.setAttribute("stroke-width", String(scale / 300));
-    const title = document.createElementNS(SVG_NS, "title");
-    title.textContent = "Search origin";
-    marker.append(title);
-    svg.append(marker);
+    addMarker(originXY, scale / 35, "gallery-geo-map-origin", "Search origin");
   }
 
   return svg;
@@ -267,13 +313,7 @@ const galleryRoots = document.querySelectorAll<HTMLDivElement>(
 for (let i = 0; i < galleryRoots.length; i++) {
   const root = galleryRoots[i] as HTMLDivElement;
   void initGallery(root).catch((error: unknown) => {
-    root.replaceChildren();
-    const message = document.createElement("p");
-    message.className = "gallery-error";
-    message.setAttribute("role", "alert");
-    message.textContent =
-      "This example could not load. Try refreshing the page.";
-    root.append(message);
+    root.replaceChildren(createErrorMessage());
     console.error("Failed to initialize showcase example", error);
   });
 }
@@ -362,32 +402,27 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
 
   let fuzzyEnabled = false;
   if (showFuzzyToggle) {
-    const label = document.createElement("label");
-    label.className = "gallery-toggle gallery-fuzzy-toggle";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.addEventListener("change", () => {
-      fuzzyEnabled = checkbox.checked;
-      void runSearch();
-    });
-    label.append(
-      checkbox,
-      document.createTextNode(" Fuzzy matching (typo-tolerant)"),
+    const { label } = createToggle(
+      "gallery-toggle gallery-fuzzy-toggle",
+      "Fuzzy matching (typo-tolerant)",
+      (checked) => {
+        fuzzyEnabled = checked;
+        void runSearch();
+      },
     );
     controls.append(label);
   }
 
   let synonymsEnabled = false;
   if (showSynonymsToggle) {
-    const label = document.createElement("label");
-    label.className = "gallery-toggle gallery-synonyms-toggle";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.addEventListener("change", () => {
-      synonymsEnabled = checkbox.checked;
-      void runSearch();
-    });
-    label.append(checkbox, document.createTextNode(" Synonym expansion"));
+    const { label } = createToggle(
+      "gallery-toggle gallery-synonyms-toggle",
+      "Synonym expansion",
+      (checked) => {
+        synonymsEnabled = checked;
+        void runSearch();
+      },
+    );
     controls.append(label);
   }
 
@@ -461,27 +496,26 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     active: Map<string, number>,
   ): void => {
     for (const entry of entries) {
-      const label = document.createElement("label");
-      label.className = "gallery-toggle gallery-boost-toggle";
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) active.set(entry.key, entry.multiplier);
-        else active.delete(entry.key);
-        void runSearch();
-      });
-      label.append(checkbox, document.createTextNode(formatter(entry)));
+      const { label } = createToggle(
+        "gallery-toggle gallery-boost-toggle",
+        formatter(entry),
+        (checked) => {
+          if (checked) active.set(entry.key, entry.multiplier);
+          else active.delete(entry.key);
+          void runSearch();
+        },
+      );
       controls.append(label);
     }
   };
   boostToggle(
     boostFields,
-    (entry) => ` Boost field "${entry.key}" \u00d7${entry.multiplier}`,
+    (entry) => `Boost field "${entry.key}" ×${entry.multiplier}`,
     activeFieldBoosts,
   );
   boostToggle(
     boostTerms,
-    (entry) => ` Boost term "${entry.key}" \u00d7${entry.multiplier}`,
+    (entry) => `Boost term "${entry.key}" ×${entry.multiplier}`,
     activeTermBoosts,
   );
 
@@ -510,33 +544,19 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     { min: number | undefined; max: number | undefined }
   >();
   for (const field of rangeFacetFields) {
-    const group = document.createElement("fieldset");
-    group.className = "gallery-facet-group gallery-range-facet";
-    const legend = document.createElement("legend");
-    legend.textContent = field;
-    group.append(legend);
-    const minInput = document.createElement("input");
-    minInput.type = "number";
-    minInput.className = "gallery-range-input";
-    minInput.placeholder = "Min";
-    minInput.setAttribute("aria-label", `${field} minimum`);
-    const maxInput = document.createElement("input");
-    maxInput.type = "number";
-    maxInput.className = "gallery-range-input";
-    maxInput.placeholder = "Max";
-    maxInput.setAttribute("aria-label", `${field} maximum`);
+    const group = createFieldset(
+      "gallery-facet-group gallery-range-facet",
+      field,
+    );
+    const minInput = createFilterInput("number", "Min", `${field} minimum`);
+    const maxInput = createFilterInput("number", "Max", `${field} maximum`);
     const labelForRange = (text: string): HTMLSpanElement => {
       const span = document.createElement("span");
       span.className = "gallery-range-label";
       span.textContent = text;
       return span;
     };
-    group.append(
-      labelForRange("$"),
-      minInput,
-      labelForRange("\u2013"),
-      maxInput,
-    );
+    group.append(labelForRange("$"), minInput, labelForRange("–"), maxInput);
     const readRange = (): void => {
       const min = parseNumberInput(minInput.value);
       const max = parseNumberInput(maxInput.value);
@@ -565,39 +585,35 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   let sortByDistanceEnabled = sortByDistancePreset;
   let geoMapFigure: HTMLElement | undefined;
   if (geoFacetField) {
-    const group = document.createElement("fieldset");
-    group.className = "gallery-facet-group gallery-geo-facet";
-    const legend = document.createElement("legend");
-    legend.textContent = `${geoFacetField} (near me)`;
-    group.append(legend);
+    const group = createFieldset(
+      "gallery-facet-group gallery-geo-facet",
+      `${geoFacetField} (near me)`,
+    );
 
-    const latInput = document.createElement("input");
-    latInput.type = "number";
+    const latInput = createFilterInput(
+      "number",
+      "Latitude",
+      `${geoFacetField} latitude`,
+    );
     latInput.step = "any";
     latInput.min = "-90";
     latInput.max = "90";
-    latInput.className = "gallery-range-input";
-    latInput.placeholder = "Latitude";
-    latInput.setAttribute("aria-label", `${geoFacetField} latitude`);
     if (geoLatPreset !== undefined) latInput.value = String(geoLatPreset);
-    const lonInput = document.createElement("input");
-    lonInput.type = "number";
+    const lonInput = createFilterInput(
+      "number",
+      "Longitude",
+      `${geoFacetField} longitude`,
+    );
     lonInput.step = "any";
     lonInput.min = "-180";
     lonInput.max = "180";
-    lonInput.className = "gallery-range-input";
-    lonInput.placeholder = "Longitude";
-    lonInput.setAttribute("aria-label", `${geoFacetField} longitude`);
     if (geoLonPreset !== undefined) lonInput.value = String(geoLonPreset);
-    const radiusInput = document.createElement("input");
-    radiusInput.type = "number";
-    radiusInput.min = "0";
-    radiusInput.className = "gallery-range-input";
-    radiusInput.placeholder = "Radius (km)";
-    radiusInput.setAttribute(
-      "aria-label",
+    const radiusInput = createFilterInput(
+      "number",
+      "Radius (km)",
       `${geoFacetField} radius in kilometers`,
     );
+    radiusInput.min = "0";
     if (geoRadiusPreset !== undefined) {
       radiusInput.value = String(geoRadiusPreset);
     }
@@ -636,20 +652,16 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     });
     group.append(locateButton, locateStatus);
 
-    const sortLabel = document.createElement("label");
-    sortLabel.className = "gallery-toggle";
-    const sortCheckbox = document.createElement("input");
-    sortCheckbox.type = "checkbox";
+    const { label: sortLabel, checkbox: sortCheckbox } = createToggle(
+      "gallery-toggle",
+      "Sort by distance",
+      (checked) => {
+        sortByDistanceEnabled = checked;
+        void runSearch();
+      },
+    );
     sortCheckbox.checked = sortByDistancePreset;
     sortCheckbox.setAttribute("aria-label", "Sort by distance");
-    sortCheckbox.addEventListener("change", () => {
-      sortByDistanceEnabled = sortCheckbox.checked;
-      void runSearch();
-    });
-    sortLabel.append(
-      sortCheckbox,
-      document.createTextNode(" Sort by distance"),
-    );
     group.append(sortLabel);
 
     const readGeo = (): void => {
@@ -719,16 +731,15 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   // list to offer, so a partial/typo'd value simply matches nothing.
   const exactStates = new Map<string, string>(exactValuePresets);
   for (const field of exactFields) {
-    const group = document.createElement("fieldset");
-    group.className = "gallery-facet-group gallery-exact-facet";
-    const legend = document.createElement("legend");
-    legend.textContent = `${field} (exact match)`;
-    group.append(legend);
-    const exactInput = document.createElement("input");
-    exactInput.type = "text";
-    exactInput.className = "gallery-range-input";
-    exactInput.placeholder = `Exact ${field}`;
-    exactInput.setAttribute("aria-label", `${field} exact match`);
+    const group = createFieldset(
+      "gallery-facet-group gallery-exact-facet",
+      `${field} (exact match)`,
+    );
+    const exactInput = createFilterInput(
+      "text",
+      `Exact ${field}`,
+      `${field} exact match`,
+    );
     const presetValue = exactValuePresets.get(field);
     if (presetValue !== undefined) exactInput.value = presetValue;
     exactInput.addEventListener("input", () => {
@@ -792,29 +803,21 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
     for (const field of facetFields) {
       const result = facets[field];
       if (!result) continue;
-      const group = document.createElement("fieldset");
-      group.className = "gallery-facet-group";
-      const legend = document.createElement("legend");
-      legend.textContent = field;
-      group.append(legend);
+      const group = createFieldset("gallery-facet-group", field);
       for (const value of result.values) {
-        const label = document.createElement("label");
-        label.className = "gallery-facet-value";
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
+        const { label, checkbox } = createToggle(
+          "gallery-facet-value",
+          `${value.value} (${value.count})`,
+          (checked) => {
+            const set = selectedFilters.get(field) ?? new Set<string>();
+            if (checked) set.add(value.value);
+            else set.delete(value.value);
+            selectedFilters.set(field, set);
+            void runSearch();
+          },
+        );
         checkbox.checked = value.selected;
         checkbox.disabled = value.count === 0 && !value.selected;
-        checkbox.addEventListener("change", () => {
-          const set = selectedFilters.get(field) ?? new Set<string>();
-          if (checkbox.checked) set.add(value.value);
-          else set.delete(value.value);
-          selectedFilters.set(field, set);
-          void runSearch();
-        });
-        label.append(
-          checkbox,
-          document.createTextNode(` ${value.value} (${value.count})`),
-        );
         group.append(label);
       }
       checkboxSection.append(group);
@@ -933,13 +936,7 @@ async function initGallery(root: HTMLDivElement): Promise<void> {
   }
 
   function renderSearchError(): void {
-    resultsPane.replaceChildren();
-    const message = document.createElement("p");
-    message.className = "gallery-error";
-    message.setAttribute("role", "alert");
-    message.textContent =
-      "This example could not load. Try refreshing the page.";
-    resultsPane.append(message);
+    resultsPane.replaceChildren(createErrorMessage());
   }
 
   let latestQueryId = 0;
