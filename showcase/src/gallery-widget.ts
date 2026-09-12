@@ -10,7 +10,7 @@ import type {
 
 /**
  * Loaded on every Stage 2 feature-gallery demo page via
- * <script type="module"> (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5).
+ * <script type="module"> (the feature-gallery design).
  * Unlike search-widget.ts (a fixed docs-search-box UX), this widget is
  * data-driven off its mount point's attributes so one script serves
  * every gallery demo (product catalog today, synonym playground /
@@ -46,7 +46,7 @@ import type {
  *
  * When a fuzzy/synonyms toggle is on, a hit that only appears because of
  * that expansion (not found by a literal-only baseline search) is
- * labeled with a badge -- docs/archive/roadmaps/github-pages-showcase.md's Stage 2
+ * labeled with a badge -- the feature-gallery design
  * asks for the mechanism to be "visibly labeled ... not just 'it
  * worked'", so this diffs against a second, unexpanded search rather
  * than asserting the toggle worked without evidence.

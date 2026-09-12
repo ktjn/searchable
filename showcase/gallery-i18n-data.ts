@@ -1,6 +1,6 @@
 /**
  * Multi-language corpus for the Stage 2 feature gallery
- * (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5).
+ * (the feature-gallery design).
  * Covers every Latin-script language with a full stemming profile.
  *
  * Two things this corpus is built to demonstrate, both true properties

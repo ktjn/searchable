@@ -1,6 +1,6 @@
 /**
  * Synthetic product-catalog corpus for the Stage 2 feature gallery
- * (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5):
+ * (the feature-gallery design):
  * enough products, spread across categories/price buckets/tags, to make
  * facets, boosts, and pins demonstrable, without being a real dataset a
  * visitor might mistake for actual inventory.

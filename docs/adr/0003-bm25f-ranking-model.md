@@ -38,10 +38,10 @@ normalization for both.
   real prose than BM25F for no simplicity win (the computation cost
   difference is negligible client-side).
 - **A pluggable/swappable ranking function from day one**: deferred, not
-  rejected — the [roadmap](../project/roadmap.md) keeps a query-planner
-  abstraction as remaining work, but supporting multiple coexisting
-  ranking strategies with deterministic ordering is real future work,
-  but BM25F is the one model implemented and tested today; building a
+  rejected — the [roadmap](../project/roadmap.md) explicitly avoids a
+  query-planner or ranking-plugin abstraction until a concrete consumer or
+  measured scale problem justifies it. BM25F is the one model implemented and
+  tested today; building a
   swap mechanism for a hypothetical second model isn't justified yet.
 
 ## Consequences
