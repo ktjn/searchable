@@ -135,21 +135,35 @@ def search(
         _load_fuzzy_lookup(manifest, cache, base_url, language) if options.fuzzy else None
     )
 
+    def _term_variants(term: str) -> list[tuple[str, float]]:
+        # Literal, then synonym, then fuzzy variants; first occurrence wins.
+        weights: dict[str, float] = {term: 1.0}
+        for variant in _synonym_variants_for(term, synonym_shard):
+            weights.setdefault(variant, options.synonym_weight)
+        for variant, distance in _fuzzy_matches_for(term, fuzzy_lookup):
+            weights.setdefault(variant, options.fuzzy_weight**distance)
+        return list(weights.items())
+
+    def _phrase_attempts(phrase_words: list[str]) -> list[tuple[list[str], float]]:
+        # Literal phrase, then each multiWord synonym variant.
+        attempts = [(phrase_words, 1.0)]
+        if options.synonyms and synonym_shard:
+            for variant in _multi_word_variants_for(" ".join(phrase_words), synonym_shard):
+                attempts.append((variant.split(" "), options.synonym_weight))
+        return attempts
+
     exact_terms_needed: set[str] = set()
     prefixes_needed: list[str] = []
     for qt in query_terms:
         if qt.prefix:
             prefixes_needed.append(qt.term)
         else:
-            exact_terms_needed.add(qt.term)
-            exact_terms_needed.update(_synonym_variants_for(qt.term, synonym_shard))
-            exact_terms_needed.update(t for t, _ in _fuzzy_matches_for(qt.term, fuzzy_lookup))
+            for v, _weight in _term_variants(qt.term):
+                exact_terms_needed.add(v)
     for phrase_term in parsed_query.phrases:
         phrase_words = [qt.term for qt in phrase_term.terms]
-        exact_terms_needed.update(phrase_words)
-        if options.synonyms and synonym_shard:
-            for variant in _multi_word_variants_for(" ".join(phrase_words), synonym_shard):
-                exact_terms_needed.update(variant.split(" "))
+        for attempt_words, _weight in _phrase_attempts(phrase_words):
+            exact_terms_needed.update(attempt_words)
 
     needed_shard_entries = _shard_entries_for_query(
         shard_entries, exact_terms_needed, prefixes_needed
@@ -181,28 +195,11 @@ def search(
                 slot_ids.update(p.doc for p in term_entry.postings)
             clauses.extend((term, term_entry, 1.0) for term, term_entry in matched)
         else:
-            added_terms: set[str] = set()
-            exact_entry = term_lookup.get(qt.term)
-            if exact_entry is not None:
-                slot_ids.update(p.doc for p in exact_entry.postings)
-                clauses.append((qt.term, exact_entry, 1.0))
-                added_terms.add(qt.term)
-            for variant in _synonym_variants_for(qt.term, synonym_shard):
-                if variant in added_terms:
-                    continue
+            for variant, weight in _term_variants(qt.term):
                 variant_entry = term_lookup.get(variant)
-                if variant_entry:
-                    clauses.append((variant, variant_entry, options.synonym_weight))
+                if variant_entry is not None:
+                    clauses.append((variant, variant_entry, weight))
                     slot_ids.update(p.doc for p in variant_entry.postings)
-                    added_terms.add(variant)
-            for match_term, distance in _fuzzy_matches_for(qt.term, fuzzy_lookup):
-                if match_term in added_terms:
-                    continue
-                fuzzy_entry = term_lookup.get(match_term)
-                if fuzzy_entry:
-                    clauses.append((match_term, fuzzy_entry, options.fuzzy_weight**distance))
-                    slot_ids.update(p.doc for p in fuzzy_entry.postings)
-                    added_terms.add(match_term)
         term_slot_doc_sets.append(slot_ids)
         if not qt.prefix and not slot_ids:
             failed_terms.append(qt.term)
@@ -217,10 +214,7 @@ def search(
         # clause only supports a variant if that *variant* adjacency-matched;
         # a doc matching a lower-weight variant isn't scored as if the literal
         # phrase matched there.
-        attempts: list[tuple[list[str], float]] = [(phrase_words, 1.0)]
-        if options.synonyms and synonym_shard:
-            for variant in _multi_word_variants_for(" ".join(phrase_words), synonym_shard):
-                attempts.append((variant.split(" "), options.synonym_weight))
+        attempts = _phrase_attempts(phrase_words)
 
         total_matched_ids: set[int] = set()
         for attempt_words, attempt_weight in attempts:

@@ -302,7 +302,7 @@ function shardEntriesForQuery(
  * independently of the organic query and spliced onto the front of the
  * result (docs/guides/pinning.md).
  */
-async function lexicalSearch(
+export async function search(
   query: string,
   manifest: Manifest,
   cache: ShardCache,
@@ -340,6 +340,45 @@ async function lexicalSearch(
   const fuzzyWeight = options.fuzzyWeight ?? DEFAULT_FUZZY_WEIGHT;
   const operator = options.operator ?? "and";
 
+  // `term`'s ordered match candidates: literal (1.0), synonym variants
+  // (synonymWeight), then fuzzy matches (fuzzyWeight ** distance) --
+  // deduped by term string in that priority order (asserted by a
+  // conformance fixture). No termLookup dependency, so it's reusable for
+  // both shard selection (pre-pass) and clause building (post-lookup).
+  function resolveTermVariants(term: string) {
+    const seen = new Set<string>([term]);
+    const variants = [{ term, weight: 1.0 }];
+    for (const variant of synonymVariantsFor(term, synonymShard)) {
+      if (seen.has(variant)) continue;
+      seen.add(variant);
+      variants.push({ term: variant, weight: synonymWeight });
+    }
+    for (const match of fuzzyMatchesFor(term, fuzzyLookup)) {
+      if (seen.has(match.term)) continue;
+      seen.add(match.term);
+      const weight = fuzzyWeight ** match.distance;
+      variants.push({ term: match.term, weight });
+    }
+    return variants;
+  }
+
+  // `literalWords`'s ordered match attempts: literal phrase (1.0), then
+  // each multiWord variant at synonymWeight when synonyms are enabled.
+  // Reused for pre-pass exact-term collection and the phrase-matching
+  // loop below.
+  function resolvePhraseAttempts(literalWords: string[]) {
+    const attempts = [{ words: literalWords, weight: 1.0 }];
+    if (options.synonyms && synonymShard) {
+      for (const variant of multiWordVariantsFor(
+        literalWords.join(" "),
+        synonymShard,
+      )) {
+        attempts.push({ words: variant.split(" "), weight: synonymWeight });
+      }
+    }
+    return attempts;
+  }
+
   // Every exact term (and every synonym/fuzzy candidate variant of one)
   // and every prefix-query prefix this query could possibly need a
   // dictionary lookup for -- computed before any term shard is fetched,
@@ -351,24 +390,14 @@ async function lexicalSearch(
       prefixesNeeded.push(qt.term);
       continue;
     }
-    exactTermsNeeded.add(qt.term);
-    for (const variant of synonymVariantsFor(qt.term, synonymShard)) {
-      exactTermsNeeded.add(variant);
-    }
-    for (const match of fuzzyMatchesFor(qt.term, fuzzyLookup)) {
-      exactTermsNeeded.add(match.term);
+    for (const variant of resolveTermVariants(qt.term)) {
+      exactTermsNeeded.add(variant.term);
     }
   }
   for (const phrase of parsedQuery.phrases) {
     const literalWords = phrase.terms.map((qt) => qt.term);
-    for (const word of literalWords) exactTermsNeeded.add(word);
-    if (options.synonyms && synonymShard) {
-      for (const variant of multiWordVariantsFor(
-        literalWords.join(" "),
-        synonymShard,
-      )) {
-        for (const word of variant.split(" ")) exactTermsNeeded.add(word);
-      }
+    for (const attempt of resolvePhraseAttempts(literalWords)) {
+      for (const word of attempt.words) exactTermsNeeded.add(word);
     }
   }
 
@@ -419,30 +448,9 @@ async function lexicalSearch(
         .map(([, entry]) => ({ entry, weight: 1.0 }));
     } else {
       clauseEntries = [];
-      const addedTerms = new Set<string>();
-      const exact = termLookup.get(qt.term);
-      if (exact) {
-        clauseEntries.push({ entry: exact, weight: 1.0 });
-        addedTerms.add(qt.term);
-      }
-      for (const variant of synonymVariantsFor(qt.term, synonymShard)) {
-        if (addedTerms.has(variant)) continue;
-        const variantEntry = termLookup.get(variant);
-        if (variantEntry) {
-          clauseEntries.push({ entry: variantEntry, weight: synonymWeight });
-          addedTerms.add(variant);
-        }
-      }
-      for (const match of fuzzyMatchesFor(qt.term, fuzzyLookup)) {
-        if (addedTerms.has(match.term)) continue;
-        const fuzzyEntry = termLookup.get(match.term);
-        if (fuzzyEntry) {
-          clauseEntries.push({
-            entry: fuzzyEntry,
-            weight: fuzzyWeight ** match.distance,
-          });
-          addedTerms.add(match.term);
-        }
+      for (const variant of resolveTermVariants(qt.term)) {
+        const entry = termLookup.get(variant.term);
+        if (entry) clauseEntries.push({ entry, weight: variant.weight });
       }
     }
     if (clauseEntries.length === 0) {
@@ -476,17 +484,7 @@ async function lexicalSearch(
   const phraseMatchedDocSets: Set<number>[] = [];
   for (const phrase of parsedQuery.phrases) {
     const literalWords = phrase.terms.map((qt) => qt.term);
-    const attempts: { words: string[]; weight: number }[] = [
-      { words: literalWords, weight: 1.0 },
-    ];
-    if (options.synonyms && synonymShard) {
-      for (const variant of multiWordVariantsFor(
-        literalWords.join(" "),
-        synonymShard,
-      )) {
-        attempts.push({ words: variant.split(" "), weight: synonymWeight });
-      }
-    }
+    const attempts = resolvePhraseAttempts(literalWords);
 
     const totalMatchedDocs = new Set<number>();
     for (const attempt of attempts) {
@@ -869,16 +867,6 @@ async function lexicalSearch(
     language,
     ...(didYouMean ? { didYouMean } : {}),
   };
-}
-
-export async function search(
-  query: string,
-  manifest: Manifest,
-  cache: ShardCache,
-  baseUrl: string,
-  options: SearchOptions = {},
-): Promise<SearchResult> {
-  return lexicalSearch(query, manifest, cache, baseUrl, options);
 }
 
 export interface FacetValuesOptions {
