@@ -112,12 +112,12 @@ describe("documentation navigation", () => {
   test("links archived Markdown to its canonical GitHub source", () => {
     expect(
       rewriteMarkdownLinks(
-        '<a href="../archive/roadmaps/implementation-history.md">History</a>',
+        '<a href="../archive/specs/query-planner.md">History</a>',
         "docs/project/roadmap.md",
         DOC_SECTIONS,
       ),
     ).toBe(
-      '<a href="https://github.com/ktjn/searchable/blob/main/docs/archive/roadmaps/implementation-history.md">History</a>',
+      '<a href="https://github.com/ktjn/searchable/blob/main/docs/archive/specs/query-planner.md">History</a>',
     );
   });
 
