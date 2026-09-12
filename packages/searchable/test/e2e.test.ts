@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SearchClient } from "../src/client.js";
+import { setupIndexServer } from "../test-support/e2e-harness.js";
 import type {
   PythonStructuredDocument,
   PythonSourceDocument as SourceDocument,
@@ -38,25 +39,12 @@ const sources: SourceDocument[] = [
 ];
 
 describe("indexer -> client end to end (over real HTTP)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(sources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(sources);
 
   it("fetches the manifest and returns ranked, relevant hits", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets");
 
     expect(hits.map((h) => h.id)).toEqual([1, 2]); // 3/about never mentions widgets
@@ -66,30 +54,40 @@ describe("indexer -> client end to end (over real HTTP)", () => {
   });
 
   it("excludes searchable-noindex documents from being findable at all", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets");
     expect(hits.some((h) => h.url === "/draft")).toBe(false);
   });
 
   it("boolean-ANDs multiple query terms", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("gadgets gizmos");
     expect(hits.map((h) => h.id)).toEqual([2]);
   });
 
   it("returns no results when a query term matches nothing", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     expect((await client.search("nonexistentterm")).hits).toEqual([]);
   });
 
   it("uses the derived excerpt when no meta description was given", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("company");
     expect(hits[0]?.fields.excerpt).toContain("small company");
   });
 
   it("prefers the explicit meta description as the excerpt when present", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets");
     expect(hits[0]?.fields.excerpt).toBe(
       "Everything you need to know about widgets.",
@@ -98,25 +96,12 @@ describe("indexer -> client end to end (over real HTTP)", () => {
 });
 
 describe("cancellation (options.signal)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(sources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(sources);
 
   it("rejects immediately with an AbortError when the signal is already aborted", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     // Rejecting before ever awaiting readiness (the whole point of this
     // test) leaves the constructor's own eager manifest fetch promise
     // otherwise unobserved by this test -- attach a no-op handler so it
@@ -131,7 +116,9 @@ describe("cancellation (options.signal)", () => {
   });
 
   it("rejects with an AbortError when aborted after the call has started", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     await client.ready();
     const controller = new AbortController();
 
@@ -142,7 +129,9 @@ describe("cancellation (options.signal)", () => {
   });
 
   it("does not affect a concurrent, non-aborted call against the same client", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const controller = new AbortController();
 
     const aborted = client.search("widgets", { signal: controller.signal });
@@ -155,7 +144,9 @@ describe("cancellation (options.signal)", () => {
   });
 
   it("a later call without a signal still succeeds after a prior call was aborted", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const controller = new AbortController();
     controller.abort();
     await client
@@ -167,7 +158,9 @@ describe("cancellation (options.signal)", () => {
   });
 
   it("facetValues() also honors an already-aborted signal", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     client.ready().catch(() => {});
     const controller = new AbortController();
     controller.abort();
@@ -179,32 +172,21 @@ describe("cancellation (options.signal)", () => {
 });
 
 describe("SearchClient.dispose()", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(sources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(sources);
 
   it("is idempotent -- calling it more than once does not throw", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     await client.ready();
     client.dispose();
     expect(() => client.dispose()).not.toThrow();
   });
 
   it("rejects search() after dispose()", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     await client.ready();
     client.dispose();
     await expect(client.search("widgets")).rejects.toThrow(/disposed/);
@@ -301,11 +283,6 @@ describe("manifest validation (real HTTP)", () => {
 });
 
 describe("document-level boost (searchable-boost)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const boostSources: SourceDocument[] = [
     {
       id: 1,
@@ -322,31 +299,18 @@ describe("document-level boost (searchable-boost)", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(boostSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(boostSources);
 
   it("lets a heavily boosted, otherwise-lower-relevance doc outrank a title match", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets");
     expect(hits.map((h) => h.id)).toEqual([2, 1]);
   });
 });
 
 describe("per-query field boost override", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const fieldBoostSources: SourceDocument[] = [
     {
       id: 1,
@@ -362,29 +326,23 @@ describe("per-query field boost override", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(fieldBoostSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(fieldBoostSources);
 
   it("ranks the 5x body match first under default field boosts", async () => {
     // doc 1 matches once via a 3x-boosted title; doc 2 matches 5 times in
     // an unboosted body — BM25's saturation curve means raw occurrence
     // count still wins here despite the title boost, empirically.
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets");
     expect(hits[0]?.id).toBe(2);
   });
 
   it("flips the ranking when the query overrides title far above body", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets", {
       boosts: { fields: { title: 100, body: 0.01 } },
     });
@@ -393,11 +351,6 @@ describe("per-query field boost override", () => {
 });
 
 describe("per-query term boost", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   // Symmetric fixture: doc 1 has more "apple", doc 2 has more "banana" -
   // both match both terms, so under default (no term boost) weighting
   // they should score identically by symmetry.
@@ -416,26 +369,20 @@ describe("per-query term boost", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(termBoostSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(termBoostSources);
 
   it("scores symmetric documents equally with no term boost", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("apple banana");
     expect(hits[0]?.score).toBeCloseTo(hits[1]?.score ?? Number.NaN);
   });
 
   it("boosting a term tips the tie toward the doc with more of that term", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("apple banana", {
       boosts: { terms: { apple: 20 } },
     });
@@ -444,11 +391,6 @@ describe("per-query term boost", () => {
 });
 
 describe("prefix matching (term*)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const prefixSources: SourceDocument[] = [
     {
       id: 1,
@@ -476,43 +418,43 @@ describe("prefix matching (term*)", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(prefixSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(prefixSources);
 
   it("matches every real term sharing the prefix, not just an exact term", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widg*");
     expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
   });
 
   it("does not match documents outside the prefix", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widg*");
     expect(hits.some((h) => h.id === 4)).toBe(false);
   });
 
   it("still ANDs a prefix clause against other exact clauses", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widg* bulk");
     expect(hits.map((h) => h.id)).toEqual([2]);
   });
 
   it("returns no results when a prefix matches no real term", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     expect((await client.search("zzz*")).hits).toEqual([]);
   });
 
   it("falls back to an exact (post-stemming) match when there's no trailing *", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget");
     // "widget" and "widgets" both stem to "widget" -- an exact clause is
     // exact about the *stemmed* term, not the surface form, so both the
@@ -551,29 +493,16 @@ describe("prefix-sharded term shard fetching (docs/concepts/index-format.md#term
     },
   ];
 
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let requestedPaths: string[];
-  let outDir: string;
-  let cleanup: () => Promise<void>;
+  const server = setupIndexServer(shardedSources);
+
   let manifest: {
     shards: { terms: { lang: string; prefix: string; file: string }[] };
   };
 
   beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(shardedSources));
     manifest = JSON.parse(
-      await readFile(join(outDir, "manifest.json"), "utf8"),
+      await readFile(join(server.outDir, "manifest.json"), "utf8"),
     );
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-    requestedPaths = server.requestedPaths;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
   });
 
   function shardFileFor(prefix: string): string {
@@ -585,12 +514,14 @@ describe("prefix-sharded term shard fetching (docs/concepts/index-format.md#term
   }
 
   it("fetches only the term shard covering an exact query term's prefix", async () => {
-    requestedPaths.length = 0;
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    server.requestedPaths.length = 0;
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("alpha");
     expect(hits.map((h) => h.id)).toEqual([1]);
 
-    const termShardRequests = requestedPaths.filter((p) =>
+    const termShardRequests = server.requestedPaths.filter((p) =>
       p.startsWith("/terms/"),
     );
     expect(termShardRequests).toEqual([shardFileFor("a")]);
@@ -599,12 +530,14 @@ describe("prefix-sharded term shard fetching (docs/concepts/index-format.md#term
   });
 
   it("fetches only the shards covering every clause in a multi-term query", async () => {
-    requestedPaths.length = 0;
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    server.requestedPaths.length = 0;
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("content alpha");
     expect(hits.map((h) => h.id)).toEqual([1]);
 
-    const termShardRequests = requestedPaths.filter((p) =>
+    const termShardRequests = server.requestedPaths.filter((p) =>
       p.startsWith("/terms/"),
     );
     expect(new Set(termShardRequests)).toEqual(
@@ -622,10 +555,6 @@ describe("shardByPrefix:false (docs/guides/indexing.md's small-corpus mode)", ()
   // this locks that in against the same query paths the sharded suite
   // above exercises, using the same vocabulary spread across distinct
   // leading characters.
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
 
   const unshardedSources: SourceDocument[] = [
     {
@@ -642,41 +571,30 @@ describe("shardByPrefix:false (docs/guides/indexing.md's small-corpus mode)", ()
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(
-      unshardedSources,
-      {},
-      { shardByPrefix: false },
-    ));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(
+    unshardedSources,
+    {},
+    { shardByPrefix: false },
+  );
 
   it("still resolves an exact-term query against a single unsharded term shard", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("alpha");
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 
   it("still resolves a multi-term query against a single unsharded term shard", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("content alpha");
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 });
 
 describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-boosts.md#phrase-and-proximity-queries)', () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const phraseSources: SourceDocument[] = [
     {
       id: 1,
@@ -704,51 +622,53 @@ describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(phraseSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(phraseSources);
 
   it("matches a document where the phrase words appear adjacent, in order, in the same field", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"noise cancelling"');
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 
   it("does not match when the same words appear in reverse order", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"noise cancelling"');
     expect(hits.some((h) => h.id === 2)).toBe(false);
   });
 
   it("does not match when the words are present in the same field but not adjacent", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"noise cancelling"');
     expect(hits.some((h) => h.id === 3)).toBe(false);
   });
 
   it("does not match when the words are each in a different field", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"noise cancelling"');
     expect(hits.some((h) => h.id === 4)).toBe(false);
   });
 
   it("ANDs a phrase clause against a plain term clause", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"noise cancelling" headphones');
     // doc 2 also has "headphones" but fails the phrase's word order.
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 
   it("a single-word quoted phrase behaves identically to the same unquoted term", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const quoted = await client.search('"noise"');
     const unquoted = await client.search("noise");
     expect(quoted.hits.map((h) => h.id).sort()).toEqual(
@@ -758,13 +678,17 @@ describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-
   });
 
   it("returns zero hits when one phrase word doesn't exist anywhere in the corpus", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"noise zzzznotaword"');
     expect(hits).toEqual([]);
   });
 
   it("highlights each phrase word in the matching result", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"noise cancelling"', {
       highlight: true,
     });
@@ -779,11 +703,6 @@ describe('"quoted phrase" matching (position-adjacency, docs/guides/ranking-and-
 });
 
 describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/guides/synonyms.md#synonym-file-format)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const cityGuideSources: SourceDocument[] = [
     {
       id: 1,
@@ -811,36 +730,32 @@ describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/gu
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(cityGuideSources, {
-      defaultLanguage: "en",
-      synonyms: { en: { multiWord: [["new york", "nyc", "big apple"]] } },
-    }));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
+  const server = setupIndexServer(cityGuideSources, {
+    defaultLanguage: "en",
+    synonyms: { en: { multiWord: [["new york", "nyc", "big apple"]] } },
   });
 
   it("does not cross-match multiWord synonym phrases by default (synonyms option off)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"new york"');
     expect(hits.map((h) => h.id)).toEqual([2]);
   });
 
   it("expands a quoted phrase to every other phrase in its multiWord group when synonyms:true", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"new york"', { synonyms: true });
     expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
     expect(hits.some((h) => h.id === 4)).toBe(false);
   });
 
   it("ranks the literal phrase match above synonym-expanded phrase matches", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"new york"', { synonyms: true });
     expect(hits[0]?.id).toBe(2); // literal "new york" match
     for (const hit of hits.slice(1)) {
@@ -849,7 +764,9 @@ describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/gu
   });
 
   it("respects a custom synonymWeight for phrase expansion, same as single-word synonyms", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"new york"', {
       synonyms: true,
       synonymWeight: 0.01,
@@ -860,13 +777,17 @@ describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/gu
   });
 
   it("a single quoted word can also participate in a multiWord group", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"nyc"', { synonyms: true });
     expect(hits.map((h) => h.id).sort()).toEqual([1, 2, 3]);
   });
 
   it("does not highlight a synonym-matched variant's words, only the literal phrase actually typed", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"new york"', {
       synonyms: true,
       highlight: true,
@@ -878,11 +799,6 @@ describe("multiWord phrase-level synonym expansion (searchable synonyms, docs/gu
 });
 
 describe("multiWord phrase-level synonyms: literal phrase absent from the corpus entirely", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   // Only "nyc" appears anywhere in this corpus -- "new" and "york" are
   // not real terms in any document, verifying the literal phrase's own
   // missing words don't block a synonym variant from still matching.
@@ -895,40 +811,29 @@ describe("multiWord phrase-level synonyms: literal phrase absent from the corpus
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(nycOnlySources, {
-      defaultLanguage: "en",
-      synonyms: { en: { multiWord: [["new york", "nyc"]] } },
-    }));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
+  const server = setupIndexServer(nycOnlySources, {
+    defaultLanguage: "en",
+    synonyms: { en: { multiWord: [["new york", "nyc"]] } },
   });
 
   it("still matches via a synonym variant even though the literal phrase's words don't exist in the corpus", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"new york"', { synonyms: true });
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 
   it("fails without synonyms enabled, since the literal phrase's words don't exist at all", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search('"new york"');
     expect(hits).toEqual([]);
   });
 });
 
 describe("facet filtering and contextual counts", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   // All three organically match "durable widget"; category/brand facets
   // split them so filtering/counting behavior is unambiguous.
   const facetSources: SourceDocument[] = [
@@ -957,20 +862,12 @@ describe("facet filtering and contextual counts", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(facetSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(facetSources);
 
   it("intersects results with a single-value filter", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("durable widget", {
       filters: { category: "electronics" },
     });
@@ -978,7 +875,9 @@ describe("facet filtering and contextual counts", () => {
   });
 
   it("unions multiple values within one filter field (OR)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("durable widget", {
       filters: { brand: ["acme", "globex"] },
     });
@@ -986,7 +885,9 @@ describe("facet filtering and contextual counts", () => {
   });
 
   it("intersects across different filter fields (AND)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("durable widget", {
       filters: { category: "electronics", brand: "acme" },
     });
@@ -994,7 +895,9 @@ describe("facet filtering and contextual counts", () => {
   });
 
   it("ignores a filter field with no matching facet shard", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("durable widget", {
       filters: { nonexistentField: "whatever" },
     });
@@ -1002,7 +905,9 @@ describe("facet filtering and contextual counts", () => {
   });
 
   it("reports global (unfiltered) facet values and counts", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { facets } = await client.search("durable widget", {
       facets: ["category"],
     });
@@ -1016,7 +921,9 @@ describe("facet filtering and contextual counts", () => {
   });
 
   it("computes contextual counts against other active filters, but not a facet's own", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits, facets } = await client.search("durable widget", {
       filters: { brand: "acme" },
       facets: ["category", "brand"],
@@ -1049,11 +956,6 @@ describe("facet filtering and contextual counts", () => {
 });
 
 describe("hierarchical facet filtering and contextual counts (over real HTTP)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   // All four organically match "device"; category is a hierarchical
   // facet (docs/guides/facets.md#facet-types) three levels deep for
   // three of them, and a bare top-level value (no separator) for the
@@ -1089,23 +991,15 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(hierarchySources, {
-      defaultLanguage: "en",
-      hierarchicalFacets: { category: {} },
-    }));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
+  const server = setupIndexServer(hierarchySources, {
+    defaultLanguage: "en",
+    hierarchicalFacets: { category: {} },
   });
 
   it("filtering by a top-level ancestor path matches every descendant leaf", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("device", {
       filters: { category: "electronics" },
     });
@@ -1113,7 +1007,9 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   });
 
   it("filtering by a mid-level path matches only that branch's leaves", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("device", {
       filters: { category: "electronics>audio" },
     });
@@ -1121,7 +1017,9 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   });
 
   it("filtering by a full leaf path matches only that one document", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("device", {
       filters: { category: "electronics>audio>headphones" },
     });
@@ -1129,7 +1027,9 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   });
 
   it("reports every path level as its own facet value, with the shard's separator", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { facets } = await client.search("device", {
       facets: ["category"],
     });
@@ -1149,7 +1049,9 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   });
 
   it("marks the active ancestor-level filter's own value as selected", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { facets } = await client.search("device", {
       filters: { category: "electronics>audio" },
       facets: ["category"],
@@ -1165,7 +1067,9 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
   });
 
   it("facetValues() (no free-text query) returns the same tree and separator", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { values, separator } = await client.facetValues("category");
     expect(separator).toBe(">");
     expect(values.find((v) => v.value === "electronics")).toEqual({
@@ -1217,11 +1121,6 @@ describe("hierarchical facet filtering and contextual counts (over real HTTP)", 
 });
 
 describe("facetValues() -- filter-only facet queries with no free-text search", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   // Same shape as the "facet filtering and contextual counts" fixture above,
   // duplicated (not shared) so this describe block stays self-contained --
   // category/brand split the docs so global vs. contextual counts are
@@ -1254,20 +1153,12 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(facetSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(facetSources);
 
   it("reports global counts over the whole corpus with no filters at all", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { values } = await client.facetValues("category");
     expect(values.sort((a, b) => a.value.localeCompare(b.value))).toEqual([
       { value: "books", count: 1, selected: false },
@@ -1276,7 +1167,9 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
   });
 
   it("narrows counts by another active filter field, but not the field's own", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { values } = await client.facetValues("category", {
       filters: { brand: "acme" },
     });
@@ -1287,7 +1180,9 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
   });
 
   it("marks the currently-selected value(s) for the field itself without narrowing its own counts", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { values } = await client.facetValues("brand", {
       filters: { brand: "acme" },
     });
@@ -1298,13 +1193,17 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
   });
 
   it("returns an empty values array for an unknown facet field", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { values } = await client.facetValues("nonexistentField");
     expect(values).toEqual([]);
   });
 
   it("returns aggregate bucket values for a range-type facet field", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { values } = await client.facetValues("price");
     // min=10 (doc 1), max=20 (doc 2) -> 5 equal-width buckets of width 2;
     // 10 falls in the first ("10-12"), 20 in the last, open-ended one ("18+").
@@ -1316,11 +1215,6 @@ describe("facetValues() -- filter-only facet queries with no free-text search", 
 });
 
 describe("range facet filtering", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   // All four organically match "widget"; price is a range facet
   // (searchable-facet-range-price) so min/max filtering is unambiguous.
   const rangeSources: SourceDocument[] = [
@@ -1353,20 +1247,12 @@ describe("range facet filtering", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(rangeSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(rangeSources);
 
   it("filters to an inclusive [min, max] range", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { price: { min: 10, max: 100 } },
     });
@@ -1374,7 +1260,9 @@ describe("range facet filtering", () => {
   });
 
   it("supports an open-ended minimum (no max)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { price: { min: 50 } },
     });
@@ -1382,7 +1270,9 @@ describe("range facet filtering", () => {
   });
 
   it("supports an open-ended maximum (no min)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { price: { max: 10 } },
     });
@@ -1390,7 +1280,9 @@ describe("range facet filtering", () => {
   });
 
   it("includes exact boundary values (inclusive bounds)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { price: { min: 49.5, max: 49.5 } },
     });
@@ -1398,7 +1290,9 @@ describe("range facet filtering", () => {
   });
 
   it("excludes documents with no declared value for the range field", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { price: { min: 0 } },
     });
@@ -1406,7 +1300,9 @@ describe("range facet filtering", () => {
   });
 
   it("combines a range filter with organic scoring (still ranked by relevance)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { totalHits } = await client.search("widget", {
       filters: { price: { min: 0, max: 1000 } },
     });
@@ -1414,7 +1310,9 @@ describe("range facet filtering", () => {
   });
 
   it("search()'s facets option also returns aggregate bucket values for a range field", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { facets } = await client.search("widget", { facets: ["price"] });
     const priceValues = facets?.price?.values ?? [];
     // Exact bucket boundaries are covered by the indexer's own tests
@@ -1427,11 +1325,6 @@ describe("range facet filtering", () => {
 });
 
 describe("geo facet filtering and distance sort (docs/guides/facets.md#geo-facets)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   // All three organically match "widget"; London and New York are ~5570 km
   // apart, so a radius filter can cleanly separate them.
   const geoSources: SourceDocument[] = [
@@ -1457,20 +1350,12 @@ describe("geo facet filtering and distance sort (docs/guides/facets.md#geo-facet
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(geoSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(geoSources);
 
   it("filters to documents within the radius", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { location: { lat: 51.5, lon: -0.12, radiusKm: 50 } },
     });
@@ -1478,7 +1363,9 @@ describe("geo facet filtering and distance sort (docs/guides/facets.md#geo-facet
   });
 
   it("excludes documents with no declared point for the geo field", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { location: { lat: 51.5, lon: -0.12, radiusKm: 10000 } },
     });
@@ -1486,7 +1373,9 @@ describe("geo facet filtering and distance sort (docs/guides/facets.md#geo-facet
   });
 
   it("populates Hit.distanceKm when exactly one geo filter is active", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { location: { lat: 51.5074, lon: -0.1278, radiusKm: 10000 } },
     });
@@ -1497,13 +1386,17 @@ describe("geo facet filtering and distance sort (docs/guides/facets.md#geo-facet
   });
 
   it("leaves Hit.distanceKm unset when no geo filter is active", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget");
     expect(hits.every((h) => h.distanceKm === undefined)).toBe(true);
   });
 
   it("sortByDistance ranks the nearest match first instead of by BM25F score", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { location: { lat: 40.7, lon: -74.0, radiusKm: 10000 } },
       sortByDistance: true,
@@ -1513,11 +1406,6 @@ describe("geo facet filtering and distance sort (docs/guides/facets.md#geo-facet
 });
 
 describe("exact-match filtering on undeclared stored fields (docs/guides/facets.md#exact-match-on-stored-fields)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   // "sku" is stored but never declared via a searchable-facet-<field> meta
   // tag/fieldDefinitions facet -- no facets/ shard exists for it at all.
   const structuredSources: PythonStructuredDocument[] = [
@@ -1535,25 +1423,17 @@ describe("exact-match filtering on undeclared stored fields (docs/guides/facets.
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(structuredSources, {
-      fieldDefinitions: {
-        title: { indexed: true, stored: true, boost: 1 },
-        sku: { indexed: false, stored: true },
-      },
-    }));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
+  const server = setupIndexServer(structuredSources, {
+    fieldDefinitions: {
+      title: { indexed: true, stored: true, boost: 1 },
+      sku: { indexed: false, stored: true },
+    },
   });
 
   it("matches a stored field's exact value with no facet declaration", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widget", {
       filters: { sku: "ABC-123" },
     });
@@ -1561,7 +1441,9 @@ describe("exact-match filtering on undeclared stored fields (docs/guides/facets.
   });
 
   it("ORs multiple values within the field", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { totalHits } = await client.search("widget", {
       filters: { sku: ["ABC-123", "XYZ-999"] },
     });
@@ -1569,7 +1451,9 @@ describe("exact-match filtering on undeclared stored fields (docs/guides/facets.
   });
 
   it("ignores a filter field with neither a facet shard nor a stored declaration", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { totalHits } = await client.search("widget", {
       filters: { nonexistentField: "whatever" },
     });
@@ -1578,11 +1462,6 @@ describe("exact-match filtering on undeclared stored fields (docs/guides/facets.
 });
 
 describe("term-to-page pinning (searchable-pin)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const pinSources: SourceDocument[] = [
     {
       id: 1,
@@ -1607,20 +1486,12 @@ describe("term-to-page pinning (searchable-pin)", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(pinSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(pinSources);
 
   it("places an exact-mode pin first, marked pinned:true, above organic matches", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("pricing");
     // doc 1 only via its pin (its own text never says "pricing"); doc 3
     // matches organically too, since its body literally contains "pricing".
@@ -1631,24 +1502,23 @@ describe("term-to-page pinning (searchable-pin)", () => {
   });
 
   it("requires the whole query to equal the phrase under the default exact mode", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("enterprise pricing plans");
     expect(hits.some((h) => h.id === 1 && h.pinned)).toBe(false);
   });
 
   it("matches a contains-mode pin as a subsequence of a longer query", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("total cost estimate");
     expect(hits[0]).toMatchObject({ id: 3, pinned: true });
   });
 });
 
 describe("term-to-page pinning: conflicts and exclusivity", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const conflictSources: SourceDocument[] = [
     {
       id: 1,
@@ -1675,20 +1545,12 @@ describe("term-to-page pinning: conflicts and exclusivity", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(conflictSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(conflictSources);
 
   it("orders conflicting pins by priority and suppresses organic results once any is exclusive", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("vip");
     expect(hits).toEqual([
       expect.objectContaining({ id: 2, pinned: true }),
@@ -1699,11 +1561,6 @@ describe("term-to-page pinning: conflicts and exclusivity", () => {
 });
 
 describe("term-to-page pinning: facet-filter interaction", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const pinFilterSources: SourceDocument[] = [
     {
       id: 1,
@@ -1722,26 +1579,20 @@ describe("term-to-page pinning: facet-filter interaction", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(pinFilterSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(pinFilterSources);
 
   it("shows a pin with no active filters", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("featured");
     expect(hits).toEqual([expect.objectContaining({ id: 1, pinned: true })]);
   });
 
   it("hides a pin excluded by an active filter the user explicitly set", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("featured", {
       filters: { category: "books" },
     });
@@ -1750,11 +1601,6 @@ describe("term-to-page pinning: facet-filter interaction", () => {
 });
 
 describe("multi-language corpora", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const multiLangSources: SourceDocument[] = [
     {
       id: 1,
@@ -1770,32 +1616,28 @@ describe("multi-language corpora", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(multiLangSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(multiLangSources);
 
   it("searches the default language's partition when no language is given", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets");
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 
   it("searches a different language's partition when asked", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("preise", { language: "de" });
     expect(hits.map((h) => h.id)).toEqual([2]);
   });
 
   it("never cross-matches a term against the wrong language's partition", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     expect((await client.search("widgets", { language: "de" })).hits).toEqual(
       [],
     );
@@ -1805,7 +1647,9 @@ describe("multi-language corpora", () => {
   });
 
   it("SearchResult.language reports the resolved language, defaulted or explicit", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     expect((await client.search("widgets")).language).toBe("en");
     expect((await client.search("preise", { language: "de" })).language).toBe(
       "de",
@@ -1816,11 +1660,6 @@ describe("multi-language corpora", () => {
 });
 
 describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#segmentation)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const cjkSources: SourceDocument[] = [
     {
       id: 1,
@@ -1836,40 +1675,38 @@ describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(cjkSources, {
-      defaultLanguage: "zh",
-    }));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
+  const server = setupIndexServer(cjkSources, {
+    defaultLanguage: "zh",
   });
 
   it("finds a document via a single 2-character bigram query", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("語言");
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 
   it("finds a document via a longer query that expands into multiple AND-ed bigrams, all of which appear as a contiguous run", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("自然語言");
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 
   it("finds a document via a lone single CJK character query (the 1-gram fallback)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("處");
     expect(hits.map((h) => h.id)).toEqual([1]);
   });
 
   it("does not match a bigram that only appears in a different, unrelated document", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("中式");
     expect(hits.map((h) => h.id)).toEqual([2]);
     expect((await client.search("語言")).hits.map((h) => h.id)).toEqual([1]);
@@ -1877,11 +1714,6 @@ describe("CJK bigram fallback segmentation (docs/guides/internationalization.md#
 });
 
 describe("synonym expansion (searchable synonyms)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const synonymSources: SourceDocument[] = [
     {
       id: 1,
@@ -1909,47 +1741,45 @@ describe("synonym expansion (searchable synonyms)", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(synonymSources, {
-      defaultLanguage: "en",
-      synonyms: {
-        en: {
-          equivalences: [["sofa", "couch"]],
-          directional: { laptop: ["notebook"] },
-        },
+  const server = setupIndexServer(synonymSources, {
+    defaultLanguage: "en",
+    synonyms: {
+      en: {
+        equivalences: [["sofa", "couch"]],
+        directional: { laptop: ["notebook"] },
       },
-    }));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
+    },
   });
 
   it("does not expand synonyms by default", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("sofa");
     expect(hits.map((h) => h.id)).toEqual([2]); // only the literal "sofa" doc
   });
 
   it("expands an equivalence class when synonyms:true, ranking the literal match above the synonym match", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("sofa", { synonyms: true });
     expect(hits.map((h) => h.id)).toEqual([2, 1]); // literal "sofa" (id 2) outranks synonym-matched "couch" (id 1)
     expect(hits[0]?.score).toBeGreaterThan(hits[1]?.score ?? Number.NaN);
   });
 
   it("is symmetric for equivalence classes: searching the other member also cross-matches", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("couch", { synonyms: true });
     expect(hits.map((h) => h.id).sort()).toEqual([1, 2]);
   });
 
   it("expands a directional synonym forward but not backward", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const forward = await client.search("laptop", { synonyms: true });
     expect(forward.hits.map((h) => h.id).sort()).toEqual([3, 4]); // laptop -> also matches notebook doc
 
@@ -1958,7 +1788,9 @@ describe("synonym expansion (searchable synonyms)", () => {
   });
 
   it("respects a custom synonymWeight", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("sofa", {
       synonyms: true,
       synonymWeight: 0.01,
@@ -1970,11 +1802,6 @@ describe("synonym expansion (searchable synonyms)", () => {
 });
 
 describe("fuzzy matching (SymSpell deletion dictionary)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const fuzzySources: SourceDocument[] = [
     {
       id: 1,
@@ -1996,36 +1823,32 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(fuzzySources, {
-      defaultLanguage: "en",
-      fuzzy: true,
-    }));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
+  const server = setupIndexServer(fuzzySources, {
+    defaultLanguage: "en",
+    fuzzy: true,
   });
 
   it("does not fuzzy-match a typo by default", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgit"); // typo of "widget", true edit distance 1
     expect(hits.map((h) => h.id)).toEqual([2]); // only the literal "widgit" doc
   });
 
   it("fuzzy:true finds a true distance-1 typo, ranked below a literal match", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgit", { fuzzy: true });
     expect(hits.map((h) => h.id)).toEqual([2, 1]); // literal "widgit" (id 2) outranks fuzzy-matched "widget" (id 1)
     expect(hits[0]?.score).toBeGreaterThan(hits[1]?.score ?? Number.NaN);
   });
 
   it("respects a custom fuzzyWeight", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgit", {
       fuzzy: true,
       fuzzyWeight: 0.01,
@@ -2035,7 +1858,9 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
   });
 
   it("does not fuzzy-match a true distance-2 typo (beyond maxEdits:1), but surfaces it via didYouMean", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     // "wigdet" is an adjacent-character transposition of "widget" (true edit distance 2).
     const { hits, didYouMean } = await client.search("wigdet", { fuzzy: true });
     expect(hits).toEqual([]);
@@ -2043,7 +1868,9 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
   });
 
   it("does not fuzzy-match a genuine distance-2 substitution typo either, at the default maxEdits:1", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     // "widkat" substitutes two characters in "widget" (g->k, e->a) --
     // true edit distance 2, unrelated to this corpus's other terms.
     const { hits } = await client.search("widkat", { fuzzy: true });
@@ -2051,14 +1878,18 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
   });
 
   it("omits didYouMean when fuzzy is not enabled", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits, didYouMean } = await client.search("wigdet");
     expect(hits).toEqual([]);
     expect(didYouMean).toBeUndefined();
   });
 
   it("omits didYouMean when the query returns hits, even with unmatched terms", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits, didYouMean } = await client.search("widget zzzznotaword", {
       fuzzy: true,
     });
@@ -2068,11 +1899,6 @@ describe("fuzzy matching (SymSpell deletion dictionary)", () => {
 });
 
 describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const distance2Sources: SourceDocument[] = [
     {
       id: 1,
@@ -2088,24 +1914,16 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(distance2Sources, {
-      defaultLanguage: "en",
-      fuzzy: true,
-      fuzzyMaxEdits: 2,
-    }));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
+  const server = setupIndexServer(distance2Sources, {
+    defaultLanguage: "en",
+    fuzzy: true,
+    fuzzyMaxEdits: 2,
   });
 
   it("finds a genuine distance-2 substitution typo of a long word when the index was built with fuzzyMaxEdits: 2", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     // "widkat" substitutes two characters in "widget" (g->k, e->a) --
     // true edit distance 2. Finding this genuinely requires generating
     // deletions two levels deep on *both* the dictionary (build time)
@@ -2117,7 +1935,9 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
   });
 
   it("still caps a short (<=3 code point) query term's fuzzy matching at distance 1, even though the dictionary supports distance 2", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     // "cop" is a genuine distance-2 substitution typo of "cat"
     // (docs/guides/ranking-and-boosts.md#prefix-and-fuzzy-matching:
     // fuzzy matching is "length- and language-dependent") -- a
@@ -2129,18 +1949,15 @@ describe("fuzzy matching: distance-2 dictionaries and length-dependent maxEdits"
   });
 
   it("still fuzzy-matches a short term's own distance-1 typo (the length cap doesn't disable fuzzy matching entirely)", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("cot", { fuzzy: true }); // distance 1 from "cat"
     expect(hits.map((h) => h.id)).toEqual([2]);
   });
 });
 
 describe("result highlighting (options.highlight)", () => {
-  let baseUrl: string;
-  let closeServer: () => Promise<void>;
-  let outDir: string;
-  let cleanup: () => Promise<void>;
-
   const highlightSources: SourceDocument[] = [
     {
       id: 1,
@@ -2157,26 +1974,20 @@ describe("result highlighting (options.highlight)", () => {
     },
   ];
 
-  beforeAll(async () => {
-    ({ outDir, cleanup } = await writePythonIndex(highlightSources));
-    const server = await serveStatic(outDir);
-    baseUrl = server.baseUrl;
-    closeServer = server.close;
-  });
-
-  afterAll(async () => {
-    await closeServer();
-    await cleanup();
-  });
+  const server = setupIndexServer(highlightSources);
 
   it("omits highlights by default", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets");
     expect(hits[0]?.highlights).toBeUndefined();
   });
 
   it("splits every stored field into match/non-match spans when requested", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widgets", { highlight: true });
     const hit = hits[0];
     expect(hit?.highlights?.title).toEqual([
@@ -2191,7 +2002,9 @@ describe("result highlighting (options.highlight)", () => {
   });
 
   it("does not highlight terms absent from a hit's fields", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("company", { highlight: true });
     const hit = hits.find((h) => h.url === "/about");
     expect(hit?.highlights?.title).toEqual([
@@ -2201,7 +2014,9 @@ describe("result highlighting (options.highlight)", () => {
   });
 
   it("is prefix-aware, matching the whole word for a term* query", async () => {
-    const client = new SearchClient({ indexUrl: `${baseUrl}manifest.json` });
+    const client = new SearchClient({
+      indexUrl: `${server.baseUrl}manifest.json`,
+    });
     const { hits } = await client.search("widg*", { highlight: true });
     expect(hits[0]?.highlights?.title).toEqual([
       { text: "Premium ", isMatch: false },
