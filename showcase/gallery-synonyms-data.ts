@@ -1,5 +1,5 @@
 /**
- * Synonym playground corpus (docs/archive/roadmaps/github-pages-showcase.md#stage-2--feature-gallery-needs-phases-2-5):
+ * Synonym playground corpus (the feature-gallery design):
  * a handful of docs with deliberately non-overlapping vocabulary, so a
  * query only finds a doc using different wording *because* synonym
  * expansion ran, not by some other route (shared substrings, stemming,
