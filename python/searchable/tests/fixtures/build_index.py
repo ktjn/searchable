@@ -3,19 +3,154 @@
 No indexer invocation, since these tests exercise the *client's* matching/scoring
 logic against a known-shape index, not indexer/client conformance (that's Task 19's
 job).
+
+All fixtures are thin, named scenario descriptors on top of a single composable
+builder (`_write_base` plus the `_add_*` layering helpers below). Each `write_*`
+function documents *why* its particular doc/term/posting shape matters for the
+test(s) that consume it -- that rationale is preserved even though the JSON
+assembly itself is now shared.
 """
 
 import json
 from pathlib import Path
 
+# ---------------------------------------------------------------------------
+# Shared builder plumbing
+# ---------------------------------------------------------------------------
 
-def write_basic_index(out_dir: Path) -> str:
-    """Two docs, one field 'title', language 'en'. Returns the manifest file:// URL."""
+
+def _manifest_path(out_dir: Path) -> Path:
+    return out_dir / "manifest.json"
+
+
+def _load_manifest(out_dir: Path) -> dict:
+    return json.loads(_manifest_path(out_dir).read_text())
+
+
+def _save_manifest(out_dir: Path, manifest: dict) -> None:
+    _manifest_path(out_dir).write_text(json.dumps(manifest))
+
+
+def _update_manifest(out_dir: Path, mutate) -> None:
+    """Loads manifest.json, applies `mutate` in place, writes it back."""
+    manifest = _load_manifest(out_dir)
+    mutate(manifest)
+    _save_manifest(out_dir, manifest)
+
+
+def _write_base(
+    out_dir: Path,
+    *,
+    fields: dict,
+    terms: dict,
+    docs: dict,
+    lang: str = "en",
+    build_id: str = "test",
+    doc_count: int | None = None,
+    avg_field_length: dict,
+    term_count: int | None = None,
+    id_range: list | None = None,
+) -> str:
+    """Writes terms/all.json, docs/0.json and manifest.json for a single-shard,
+    single-language index, and returns the manifest file:// URL. This is the
+    common shape every fixture below builds on (directly or by first calling
+    another `write_*` fixture and layering a facet/pin/synonym/fuzzy shard on
+    top via the `_add_*` helpers).
+
+    `doc_count` and `term_count` default to the number of docs/terms actually
+    written (true for nearly every fixture); pass them explicitly when a
+    fixture's manifest value is intentionally different from the literal
+    shard content.
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "terms").mkdir(exist_ok=True)
     (out_dir / "docs").mkdir(exist_ok=True)
+    (out_dir / "terms" / "all.json").write_text(json.dumps(terms))
+    (out_dir / "docs" / "0.json").write_text(json.dumps(docs))
 
-    term_shard = {
+    if id_range is None:
+        ids = sorted(int(doc_id) for doc_id in docs)
+        id_range = [ids[0], ids[-1]]
+
+    manifest = {
+        "version": 2,
+        "buildId": build_id,
+        "languages": [lang],
+        "defaultLanguage": lang,
+        "fields": fields,
+        "docCount": {lang: doc_count if doc_count is not None else len(docs)},
+        "avgFieldLength": {lang: avg_field_length},
+        "shards": {
+            "terms": [
+                {
+                    "lang": lang,
+                    "prefix": "all",
+                    "file": "terms/all.json",
+                    "termCount": term_count if term_count is not None else len(terms),
+                }
+            ],
+            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": id_range}],
+        },
+    }
+    manifest_path = _manifest_path(out_dir)
+    manifest_path.write_text(json.dumps(manifest))
+    return manifest_path.resolve().as_uri()
+
+
+def _add_facet(out_dir: Path, manifest_url: str, field: str, facet_shard: dict) -> str:
+    """Writes facets/<field>.json and appends it to the manifest's facets shard
+    list (an index can have more than one facet, so this appends rather than
+    overwrites)."""
+    (out_dir / "facets").mkdir(exist_ok=True)
+    (out_dir / "facets" / f"{field}.json").write_text(json.dumps(facet_shard))
+
+    def mutate(manifest: dict) -> None:
+        manifest["shards"].setdefault("facets", [])
+        manifest["shards"]["facets"].append({"field": field, "file": f"facets/{field}.json"})
+
+    _update_manifest(out_dir, mutate)
+    return manifest_url
+
+
+def _add_pins(out_dir: Path, manifest_url: str, pins_shard: dict) -> str:
+    """Writes pins.json into an already-built index directory and wires it into the
+    manifest's "pins" map for the "en" language. Shared by all pin fixtures below."""
+    (out_dir / "pins.json").write_text(json.dumps(pins_shard))
+    _update_manifest(out_dir, lambda manifest: manifest.__setitem__("pins", {"en": "pins.json"}))
+    return manifest_url
+
+
+def _add_synonyms(out_dir: Path, manifest_url: str, synonyms_shard: dict) -> str:
+    """Writes synonyms.json and wires it into the manifest's "synonyms" map for
+    the "en" language. Shared by all synonym fixtures below."""
+    (out_dir / "synonyms.json").write_text(json.dumps(synonyms_shard))
+    _update_manifest(
+        out_dir, lambda manifest: manifest.__setitem__("synonyms", {"en": "synonyms.json"})
+    )
+    return manifest_url
+
+
+def _add_fuzzy(out_dir: Path, manifest_url: str, fuzzy_shard: dict) -> str:
+    """Writes fuzzy.json and wires it into the manifest's "fuzzy" map for the
+    "en" language. Shared by all fuzzy fixtures below."""
+    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
+    _update_manifest(
+        out_dir, lambda manifest: manifest.__setitem__("fuzzy", {"en": {"file": "fuzzy.json"}})
+    )
+    return manifest_url
+
+
+_TITLE_FIELD = {"title": {"boost": 1.0, "stored": True}}
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+def write_basic_index(out_dir: Path) -> str:
+    """Two docs, one field 'title', language 'en'. Returns the manifest file:// URL."""
+    terms = {
         "widget": {
             "df": 2,
             "postings": [
@@ -28,30 +163,17 @@ def write_basic_index(out_dir: Path) -> str:
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [1], "len": 2}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Red Widget"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Blue Widget"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 2.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    return _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 2.0},
+    )
 
 
 def write_index_with_doc_boost(out_dir: Path) -> str:
@@ -61,11 +183,7 @@ def write_index_with_doc_boost(out_dir: Path) -> str:
     tag) while doc 2's posting carries none. Without applying `posting.boost` in the final
     per-document score, both docs would score identically (same tf/len/df); with it applied,
     doc 1 must score materially higher and rank first."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-
-    term_shard = {
+    terms = {
         "widget": {
             "df": 2,
             "postings": [
@@ -78,36 +196,22 @@ def write_index_with_doc_boost(out_dir: Path) -> str:
             ],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Widget One"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Widget Two"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 2.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 1}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    return _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 2.0},
+    )
 
 
 def write_index_with_category_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'category' terms facet: doc 1=red, doc 2=blue."""
     manifest_url = write_basic_index(out_dir)
-    (out_dir / "facets").mkdir(exist_ok=True)
     facet_shard = {
         "type": "terms",
         "values": {
@@ -115,13 +219,7 @@ def write_index_with_category_facet(out_dir: Path) -> str:
             "blue": {"count": 1, "docs": [2]},
         },
     }
-    (out_dir / "facets" / "category.json").write_text(json.dumps(facet_shard))
-
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["shards"]["facets"] = [{"field": "category", "file": "facets/category.json"}]
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_url
+    return _add_facet(out_dir, manifest_url, "category", facet_shard)
 
 
 def write_index_with_two_facets(out_dir: Path) -> str:
@@ -136,12 +234,7 @@ def write_index_with_two_facets(out_dir: Path) -> str:
     filter from the contextual base set" from "don't exclude it", since
     category=red and stock=in-stock resolve to different doc sets ({1,2} vs {1,3}).
     """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    (out_dir / "facets").mkdir(exist_ok=True)
-
-    term_shard = {
+    terms = {
         "widget": {
             "df": 3,
             "postings": [
@@ -151,31 +244,18 @@ def write_index_with_two_facets(out_dir: Path) -> str:
             ],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Red Widget"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Red Widget"}},
         "3": {"url": "https://example.com/3", "fields": {"title": "Blue Widget"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 3},
-        "avgFieldLength": {"en": {"title": 2.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 1}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 3]}],
-        },
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    manifest_url = manifest_path.resolve().as_uri()
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 2.0},
+    )
 
     category_shard = {
         "type": "terms",
@@ -184,7 +264,7 @@ def write_index_with_two_facets(out_dir: Path) -> str:
             "blue": {"count": 1, "docs": [3]},
         },
     }
-    (out_dir / "facets" / "category.json").write_text(json.dumps(category_shard))
+    _add_facet(out_dir, manifest_url, "category", category_shard)
 
     stock_shard = {
         "type": "terms",
@@ -193,21 +273,12 @@ def write_index_with_two_facets(out_dir: Path) -> str:
             "out-of-stock": {"count": 1, "docs": [2]},
         },
     }
-    (out_dir / "facets" / "stock.json").write_text(json.dumps(stock_shard))
-
-    manifest["shards"]["facets"] = [
-        {"field": "category", "file": "facets/category.json"},
-        {"field": "stock", "file": "facets/stock.json"},
-    ]
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_url
+    return _add_facet(out_dir, manifest_url, "stock", stock_shard)
 
 
 def write_index_with_range_facet(out_dir: Path) -> str:
     """Same two docs as write_basic_index, plus a 'price' range facet: doc1=10.0, doc2=50.0."""
     manifest_url = write_basic_index(out_dir)
-    (out_dir / "facets").mkdir(exist_ok=True)
-
     price_shard = {
         "type": "range",
         "values": {
@@ -219,13 +290,7 @@ def write_index_with_range_facet(out_dir: Path) -> str:
             {"value": 50.0, "doc": 2},
         ],
     }
-    (out_dir / "facets" / "price.json").write_text(json.dumps(price_shard))
-
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["shards"]["facets"] = [{"field": "price", "file": "facets/price.json"}]
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_url
+    return _add_facet(out_dir, manifest_url, "price", price_shard)
 
 
 def write_index_with_geo_facet(out_dir: Path) -> str:
@@ -233,8 +298,6 @@ def write_index_with_geo_facet(out_dir: Path) -> str:
     London (51.5074, -0.1278), doc 2 is New York (40.7128, -74.0060) -- about
     5570 km apart, so a radius filter can cleanly separate them."""
     manifest_url = write_basic_index(out_dir)
-    (out_dir / "facets").mkdir(exist_ok=True)
-
     location_shard = {
         "type": "geo",
         "values": {},
@@ -243,13 +306,7 @@ def write_index_with_geo_facet(out_dir: Path) -> str:
             {"lat": 40.7128, "lon": -74.0060, "doc": 2},
         ],
     }
-    (out_dir / "facets" / "location.json").write_text(json.dumps(location_shard))
-
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["shards"]["facets"] = [{"field": "location", "file": "facets/location.json"}]
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_url
+    return _add_facet(out_dir, manifest_url, "location", location_shard)
 
 
 def write_index_with_undeclared_stored_field(out_dir: Path) -> str:
@@ -269,22 +326,12 @@ def write_index_with_undeclared_stored_field(out_dir: Path) -> str:
         },
     }
     (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["fields"]["sku"] = {"boost": 1.0, "stored": True, "indexed": False}
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_url
-
-
-def _add_pins(out_dir: Path, manifest_url: str, pins_shard: dict) -> str:
-    """Writes pins.json into an already-built index directory and wires it into the
-    manifest's "pins" map for the "en" language. Shared by all pin fixtures below."""
-    (out_dir / "pins.json").write_text(json.dumps(pins_shard))
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["pins"] = {"en": "pins.json"}
-    manifest_path.write_text(json.dumps(manifest))
+    _update_manifest(
+        out_dir,
+        lambda manifest: manifest["fields"].__setitem__(
+            "sku", {"boost": 1.0, "stored": True, "indexed": False}
+        ),
+    )
     return manifest_url
 
 
@@ -383,10 +430,7 @@ def write_index_with_phrase_fixture(out_dir: Path) -> str:
     """Doc 1 = 'Noise Cancelling Headphones' (adjacent), doc 2 = 'Headphones with Noise and
     also Cancelling elsewhere' (not adjacent). Used to verify quoted-phrase matching requires
     consecutive positions within a field, not just co-occurrence of the words."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "nois": {
             "df": 2,
             "postings": [
@@ -409,31 +453,20 @@ def write_index_with_phrase_fixture(out_dir: Path) -> str:
             ],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Noise Cancelling Headphones"}},
         "2": {
             "url": "https://example.com/2",
             "fields": {"title": "Headphones with Noise and also Cancelling elsewhere"},
         },
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 5.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 3}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    return _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 5.0},
+    )
 
 
 def write_index_with_non_adjacent_pin(out_dir: Path) -> str:
@@ -461,10 +494,7 @@ def write_index_with_phrase_across_fields_fixture(out_dir: Path) -> str:
     somewhere in the doc, but never adjacent within a single shared field, so a quoted
     phrase query for "noise cancelling" must NOT match this doc even though a bare AND of
     the same two words would."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "nois": {
             "df": 1,
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 2}}}],
@@ -474,30 +504,19 @@ def write_index_with_phrase_across_fields_fixture(out_dir: Path) -> str:
             "postings": [{"doc": 1, "fields": {"body": {"tf": 1, "pos": [1], "len": 3}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {
             "url": "https://example.com/1",
             "fields": {"title": "Noise Headphones", "body": "Great Cancelling Technology"},
         },
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}, "body": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 1},
-        "avgFieldLength": {"en": {"title": 2.0, "body": 3.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 1]}],
-        },
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    return _write_base(
+        out_dir,
+        fields={"title": {"boost": 1.0, "stored": True}, "body": {"boost": 1.0, "stored": True}},
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 2.0, "body": 3.0},
+    )
 
 
 def write_index_with_multi_doc_phrase_fixture(out_dir: Path) -> str:
@@ -505,10 +524,7 @@ def write_index_with_multi_doc_phrase_fixture(out_dir: Path) -> str:
     (same non-adjacent pattern as write_index_with_phrase_fixture). Used to verify
     phrase matching correctly identifies adjacency across multiple documents, not just
     the first one it happens to be tested against."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "nois": {
             "df": 3,
             "postings": [
@@ -539,8 +555,7 @@ def write_index_with_multi_doc_phrase_fixture(out_dir: Path) -> str:
             ],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Noise Cancelling Headphones"}},
         "2": {
             "url": "https://example.com/2",
@@ -548,31 +563,18 @@ def write_index_with_multi_doc_phrase_fixture(out_dir: Path) -> str:
         },
         "3": {"url": "https://example.com/3", "fields": {"title": "Noise Cancelling Earbuds"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 3},
-        "avgFieldLength": {"en": {"title": 5.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 4}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 3]}],
-        },
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    return _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 5.0},
+    )
 
 
 def write_index_with_synonyms(out_dir: Path) -> str:
     """Doc 1 = 'Sofa', doc 2 = 'Couch' -- 'sofa'/'couch' are equivalent synonyms."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "sofa": {
             "df": 1,
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
@@ -582,30 +584,18 @@ def write_index_with_synonyms(out_dir: Path) -> str:
             "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Sofa"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Couch"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["sofa", "couch"]]}))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 1.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-        "synonyms": {"en": "synonyms.json"},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 1.0},
+    )
+    return _add_synonyms(out_dir, manifest_url, {"equivalences": [["sofa", "couch"]]})
 
 
 def write_index_with_directional_synonym(out_dir: Path) -> str:
@@ -615,10 +605,7 @@ def write_index_with_directional_synonym(out_dir: Path) -> str:
     are one-way only. Term shard keys use the stemmed forms the analyzer actually produces
     ('televis' for 'television'; 'tv' is short enough the stemmer leaves it unchanged) so that
     query-time lookups (which are also stemmed) hit the same keys."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "televis": {
             "df": 1,
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
@@ -628,30 +615,18 @@ def write_index_with_directional_synonym(out_dir: Path) -> str:
             "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Television"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "TV"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    (out_dir / "synonyms.json").write_text(json.dumps({"directional": {"tv": ["televis"]}}))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 1.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-        "synonyms": {"en": "synonyms.json"},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 1.0},
+    )
+    return _add_synonyms(out_dir, manifest_url, {"directional": {"tv": ["televis"]}})
 
 
 def write_index_with_synonym_double_match(out_dir: Path) -> str:
@@ -661,10 +636,7 @@ def write_index_with_synonym_double_match(out_dir: Path) -> str:
     verify a doc matching via both the literal term and a synonym variant gets credit from
     both clauses (summed), rather than double-counted incorrectly or clobbered by whichever
     clause is processed last."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "sofa": {
             "df": 1,
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
@@ -674,35 +646,23 @@ def write_index_with_synonym_double_match(out_dir: Path) -> str:
             "postings": [{"doc": 1, "fields": {"description": {"tf": 1, "pos": [0], "len": 1}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {
             "url": "https://example.com/1",
             "fields": {"title": "Sofa", "description": "Also known as a couch"},
         },
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["sofa", "couch"]]}))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {
+    manifest_url = _write_base(
+        out_dir,
+        fields={
             "title": {"boost": 1.0, "stored": True},
             "description": {"boost": 1.0, "stored": True},
         },
-        "docCount": {"en": 1},
-        "avgFieldLength": {"en": {"title": 1.0, "description": 4.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 1]}],
-        },
-        "synonyms": {"en": "synonyms.json"},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 1.0, "description": 4.0},
+    )
+    return _add_synonyms(out_dir, manifest_url, {"equivalences": [["sofa", "couch"]]})
 
 
 def write_index_with_synonym_fuzzy_overlap(out_dir: Path) -> str:
@@ -718,10 +678,7 @@ def write_index_with_synonym_fuzzy_overlap(out_dir: Path) -> str:
     clauses contributing to doc 2's score (one vs. two, if double-counted) can make its final
     score diverge from `synonym_weight` times doc 1's literal-clause score.
     """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "widget": {
             "df": 1,
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
@@ -731,33 +688,19 @@ def write_index_with_synonym_fuzzy_overlap(out_dir: Path) -> str:
             "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Widget"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Gadget"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    (out_dir / "synonyms.json").write_text(json.dumps({"equivalences": [["widget", "gadget"]]}))
-    fuzzy_shard = {"maxEdits": 2, "deletions": {"widget": ["gadget"]}}
-    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 1.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-        "synonyms": {"en": "synonyms.json"},
-        "fuzzy": {"en": {"file": "fuzzy.json"}},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 1.0},
+    )
+    _add_synonyms(out_dir, manifest_url, {"equivalences": [["widget", "gadget"]]})
+    return _add_fuzzy(out_dir, manifest_url, {"maxEdits": 2, "deletions": {"widget": ["gadget"]}})
 
 
 def write_index_with_fuzzy(out_dir: Path) -> str:
@@ -783,12 +726,7 @@ def write_index_with_fuzzy(out_dir: Path) -> str:
             "widge": ["widget"],
         },
     }
-    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["fuzzy"] = {"en": {"file": "fuzzy.json"}}
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_url
+    return _add_fuzzy(out_dir, manifest_url, fuzzy_shard)
 
 
 def write_index_with_fuzzy_literal_and_typo(out_dir: Path) -> str:
@@ -802,10 +740,7 @@ def write_index_with_fuzzy_literal_and_typo(out_dir: Path) -> str:
     literal-term hit outranks a fuzzy-match hit for the same query, and (b) the fuzzy
     weight decay is applied as fuzzy_weight**distance, not a flat weight.
     """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "wdget": {
             "df": 1,
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
@@ -815,31 +750,18 @@ def write_index_with_fuzzy_literal_and_typo(out_dir: Path) -> str:
             "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Wdget"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Widget"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    fuzzy_shard = {"maxEdits": 1, "deletions": {"wdget": ["widget"]}}
-    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 1.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-        "fuzzy": {"en": {"file": "fuzzy.json"}},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 1.0},
+    )
+    return _add_fuzzy(out_dir, manifest_url, {"maxEdits": 1, "deletions": {"wdget": ["widget"]}})
 
 
 def write_index_with_fuzzy_distance_variants(out_dir: Path) -> str:
@@ -852,10 +774,7 @@ def write_index_with_fuzzy_distance_variants(out_dir: Path) -> str:
     force effective maxEdits down to 1). Used to verify a distance-2 match scores lower than
     a distance-1 match for the same query.
     """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "wdgxy": {
             "df": 1,
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
@@ -865,31 +784,20 @@ def write_index_with_fuzzy_distance_variants(out_dir: Path) -> str:
             "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Wdgxy"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Wdgx"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    fuzzy_shard = {"maxEdits": 2, "deletions": {"wdgxyz": ["wdgxy", "wdgx"]}}
-    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 1.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-        "fuzzy": {"en": {"file": "fuzzy.json"}},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 1.0},
+    )
+    return _add_fuzzy(
+        out_dir, manifest_url, {"maxEdits": 2, "deletions": {"wdgxyz": ["wdgxy", "wdgx"]}}
+    )
 
 
 def write_index_with_fuzzy_length_cap(out_dir: Path) -> str:
@@ -901,10 +809,7 @@ def write_index_with_fuzzy_length_cap(out_dir: Path) -> str:
     match doc 1 (distance 1, within the cap) but NOT doc 2 (distance 2, excluded by the
     cap even though the shard would otherwise allow it).
     """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "cxy": {
             "df": 1,
             "postings": [{"doc": 1, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
@@ -914,31 +819,18 @@ def write_index_with_fuzzy_length_cap(out_dir: Path) -> str:
             "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 1}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "Cxy"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "Cxyz"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    fuzzy_shard = {"maxEdits": 2, "deletions": {"cx": ["cxy", "cxyz"]}}
-    (out_dir / "fuzzy.json").write_text(json.dumps(fuzzy_shard))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 2},
-        "avgFieldLength": {"en": {"title": 1.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 2}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 2]}],
-        },
-        "fuzzy": {"en": {"file": "fuzzy.json"}},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 1.0},
+    )
+    return _add_fuzzy(out_dir, manifest_url, {"maxEdits": 2, "deletions": {"cx": ["cxy", "cxyz"]}})
 
 
 def write_index_with_fuzzy_did_you_mean(out_dir: Path) -> str:
@@ -955,13 +847,10 @@ def write_index_with_fuzzy_did_you_mean(out_dir: Path) -> str:
     is genuinely populated with ['widget'], not merely None-or-a-list.
     """
     manifest_url = write_index_with_fuzzy(out_dir)
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
     fuzzy_path = out_dir / "fuzzy.json"
     fuzzy_shard = json.loads(fuzzy_path.read_text())
     fuzzy_shard["deletions"]["xyz"] = ["widget"]
     fuzzy_path.write_text(json.dumps(fuzzy_shard))
-    manifest_path.write_text(json.dumps(manifest))
     return manifest_url
 
 
@@ -972,8 +861,6 @@ def write_index_with_hierarchy_facet(out_dir: Path) -> str:
     firing regardless): doc1='electronics/audio', doc2='electronics/video'.
     """
     manifest_url = write_basic_index(out_dir)
-    (out_dir / "facets").mkdir(exist_ok=True)
-
     category_shard = {
         "type": "hierarchy",
         "separator": "/",
@@ -982,13 +869,7 @@ def write_index_with_hierarchy_facet(out_dir: Path) -> str:
             "electronics/video": {"count": 1, "docs": [2]},
         },
     }
-    (out_dir / "facets" / "category.json").write_text(json.dumps(category_shard))
-
-    manifest_path = out_dir / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    manifest["shards"]["facets"] = [{"field": "category", "file": "facets/category.json"}]
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_url
+    return _add_facet(out_dir, manifest_url, "category", category_shard)
 
 
 def write_index_with_multi_word_synonym(out_dir: Path) -> str:
@@ -999,10 +880,7 @@ def write_index_with_multi_word_synonym(out_dir: Path) -> str:
     Term keys and the multiWord group use the stemmed-analyzed forms the real
     indexer produces ('appl', not 'apple'), so query-time lookups line up.
     """
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "new": {
             "df": 1,
             "postings": [{"doc": 2, "fields": {"title": {"tf": 1, "pos": [0], "len": 4}}}],
@@ -1046,44 +924,30 @@ def write_index_with_multi_word_synonym(out_dir: Path) -> str:
             "postings": [{"doc": 4, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "1": {"url": "https://example.com/1", "fields": {"title": "NYC Travel Guide"}},
         "2": {"url": "https://example.com/2", "fields": {"title": "New York Travel Guide"}},
         "3": {"url": "https://example.com/3", "fields": {"title": "Big Apple Travel Guide"}},
         "4": {"url": "https://example.com/4", "fields": {"title": "Paris Travel Guide"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    (out_dir / "synonyms.json").write_text(
-        json.dumps({"multiWord": [["new york", "nyc", "big appl"]]})
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 3.5},
+        # 8 keys are written to the term shard above, but the manifest's declared
+        # termCount is deliberately 7 (pre-existing fixture value, kept verbatim).
+        term_count=7,
     )
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 4},
-        "avgFieldLength": {"en": {"title": 3.5}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 7}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [1, 4]}],
-        },
-        "synonyms": {"en": "synonyms.json"},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    return _add_synonyms(out_dir, manifest_url, {"multiWord": [["new york", "nyc", "big appl"]]})
 
 
 def write_index_with_multi_word_synonym_literal_absent(out_dir: Path) -> str:
     """Only 'nyc' appears in the corpus -- 'new'/'york' are not real terms  --
     so the literal phrase fails but its multiWord synonym variant still
     matches (mirrors the TS e2e describe block at e2e.test.ts:978)."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "terms").mkdir(exist_ok=True)
-    (out_dir / "docs").mkdir(exist_ok=True)
-    term_shard = {
+    terms = {
         "nyc": {
             "df": 1,
             "postings": [{"doc": 5, "fields": {"title": {"tf": 1, "pos": [0], "len": 3}}}],
@@ -1097,26 +961,14 @@ def write_index_with_multi_word_synonym_literal_absent(out_dir: Path) -> str:
             "postings": [{"doc": 5, "fields": {"title": {"tf": 1, "pos": [2], "len": 3}}}],
         },
     }
-    (out_dir / "terms" / "all.json").write_text(json.dumps(term_shard))
-    doc_shard = {
+    docs = {
         "5": {"url": "https://example.com/5", "fields": {"title": "NYC Travel Guide"}},
     }
-    (out_dir / "docs" / "0.json").write_text(json.dumps(doc_shard))
-    (out_dir / "synonyms.json").write_text(json.dumps({"multiWord": [["new york", "nyc"]]}))
-    manifest = {
-        "version": 2,
-        "buildId": "test",
-        "languages": ["en"],
-        "defaultLanguage": "en",
-        "fields": {"title": {"boost": 1.0, "stored": True}},
-        "docCount": {"en": 1},
-        "avgFieldLength": {"en": {"title": 3.0}},
-        "shards": {
-            "terms": [{"lang": "en", "prefix": "all", "file": "terms/all.json", "termCount": 3}],
-            "docs": [{"shard": 0, "file": "docs/0.json", "idRange": [5, 5]}],
-        },
-        "synonyms": {"en": "synonyms.json"},
-    }
-    manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest))
-    return manifest_path.resolve().as_uri()
+    manifest_url = _write_base(
+        out_dir,
+        fields=_TITLE_FIELD,
+        terms=terms,
+        docs=docs,
+        avg_field_length={"title": 3.0},
+    )
+    return _add_synonyms(out_dir, manifest_url, {"multiWord": [["new york", "nyc"]]})
