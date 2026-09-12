@@ -1,145 +1,145 @@
 # Roadmap
 
-This page is the single current list of shipped capability and remaining work; detailed implementation history and superseded proposals are retained under `docs/archive/`.
+Searchable should remain the smallest implementation that preserves its shipped behavior. This is the only current planning document. Completed implementation plans and superseded roadmaps belong in Git history, not in the active documentation tree.
 
-## Status
+## Constraints
 
-| Area | Current state | Remaining work |
-|---|---|---|
-| Documentation and showcase | Published, searchable, and covered by link, accessibility, and browser checks | Ongoing maintenance alongside product changes |
-| Lexical search | Stable; shared TypeScript/Python client conformance plus native six-language regression baselines and reviewed documentation, GOV.UK learner-driving, German (`de-fahrerlaubnisrecht`), and Gutenberg facets (`gutenberg-fiction-facets`) domain corpora | Broader representative domains and judged sets, real query evidence, quality thresholds, and an internal query-planner abstraction |
-| Facets, synonyms, fuzzy search, and pins | Stable; a reviewed domain corpus (`gutenberg-fiction-facets`) now exercises terms and range facet filtering under judged relevance. Geo facets (radius filtering, optional distance sort, [ADR-0006](../adr/0006-geo-facets-and-stored-field-exact-match.md)) and exact-match filtering on undeclared stored fields are implemented but not yet exercised by a judged relevance corpus | No required 1.0 work; facet counts (`facetValues()`) remain outside judged relevance coverage; geo/exact-match filtering also remain outside judged relevance coverage |
-| Internationalization | English, German, Swedish, Dutch, Bokmål, and Nynorsk profiles; fallback segmenters | Additional profiles only with representative corpora and quality gates |
-| Offline and worker execution | Removed in 2.0 | Searchable 2.0 removes Worker execution; main-thread only. Service Worker support is also removed. See [2.0 simplification plan](../plans/2026-08-13-searchable-2.0-simplification.md) |
-| Vector and hybrid search | Removed in 2.0 | Searchable 2.0 removes vector indexing, hybrid fusion, and embedding integration. See [2.0 simplification plan](../plans/2026-08-13-searchable-2.0-simplification.md) |
-| Performance and scale | One reviewed CMS-2k Chromium main-thread lexical vertical baseline with raw JSON evidence | Broader sizes, browsers, execution modes, query classes, operating guidance, and CI comparison |
-| Extensibility and diagnostics | Draft designs archived | Implement only with a concrete consumer |
+- Preserve the public npm and Python APIs unless a separately approved breaking release changes them.
+- Preserve manifest v2 and deterministic index output.
+- Preserve TypeScript/Python client conformance.
+- Preserve all shipped search, indexing, documentation, showcase, and CLI behavior.
+- Prefer deletion, table-driven data, and local helpers over new architectural layers.
+- A refactor is successful only when maintained LOC decreases. Moving the same code into more files is not simplification.
+- Do not add a runtime dependency only to reduce repository LOC.
+- Do not introduce an abstraction with one real consumer unless it deletes more complexity than it adds.
 
-## Near-term work
+## Current product boundary
 
-- Refresh `searchable-docs@1.1.0` for the 2.0 documentation surface, replacing
-  its retired worker/offline queries and re-reviewing the resulting judgments.
-- Expand relevance coverage beyond the documentation, learner-driving, German driving-license-law, and Gutenberg faceted-fiction domains — now spanning English and German, and now including judged-relevance coverage of terms and range facet filtering — with broader judged sets and real query evidence before defining thresholds or making production-scale claims. Real query evidence is now partially addressed for one suite: `govuk-learn-to-drive@1.1.0` adds 8 queries sourced from Google's public autocomplete suggestion endpoint as a real-search-language proxy (see [Relevance baselines](relevance-baselines.md)). This is not full production query-log evidence — GOV.UK does not publish query logs, and no equivalent source is currently available — and it remains open for the documentation, German, and Gutenberg suites, and for a more rigorous real-log source if one ever becomes available.
-- Expand full language profiles only with representative corpora, analyzer fixtures, relevance queries, and cross-implementation conformance tests.
-- Modelable's static Playground is an active consumer: it uses JSON document shards.
-- Make ranking parameters configurable only with stable defaults and manifest-recorded configuration so results remain reproducible.
-- Add prominent guidance that every generated index artifact is public data and must not contain restricted content.
+| Area | Current state |
+|---|---|
+| Index generation | Python-only static indexer |
+| Runtime clients | TypeScript/browser and Python |
+| Storage | Immutable JSON files over static HTTP/filesystem |
+| Retrieval | Lexical BM25F |
+| Query features | terms, phrases, prefix matching, synonyms, fuzzy matching, AND/OR |
+| Result features | highlighting, did-you-mean, pinning, field/term/document boosts |
+| Facets | terms, hierarchy, range, geo radius/distance, exact match on stored fields |
+| HTML indexing | page-level plus optional section-level indexing |
+| Languages | English, German, Swedish, Dutch, Bokmål, Nynorsk plus explicit fallback segmenters |
+| Removed in 2.0 | binary index formats, vector/hybrid search, Worker runtime, Service Worker support |
 
-## Performance and scale evidence
+The removed 2.0 capabilities stay removed unless a concrete consumer justifies a new product decision.
 
-The first reviewed vertical baseline now measures the deterministic CMS-2k
-corpus with the real indexer and a strict main-thread client in headless
-Chromium. It records cold and warm p50/p95 latency, fetched bytes,
-gzip-equivalent artifact sizes, shard counts, and explicit heap availability.
-See [Performance baseline](performance-baseline.md) for the environment,
-commands, query definitions, interpretation limits, and reviewed raw JSON.
+## Priority 1 — Delete test-fixture duplication
 
-This is one narrow evidence point, not complete performance-and-scale coverage.
-Keep the following work open:
+This is the highest-confidence LOC reduction because it changes test construction, not product behavior.
 
-- multiple corpus sizes and deployment classes
-- Firefox, WebKit, and low-end mobile measurements
-- browser-cache-warm modes
-- prefix, fuzzy, phrase, facet expansion beyond the current six-query slice
-- supported operating ranges, shard-sizing guidance, and warning thresholds
-- CI benchmark comparison and enforcement
+Current hotspots:
 
-Add each dimension only with a fixed workload, recorded environment, raw
-evidence, and explicit interpretation boundary. Do not infer a budget or
-supported range from the current single-machine run.
+- `python/searchable/tests/fixtures/build_index.py`: 1,123 lines, 30 bespoke `write_*` fixture functions.
+- `packages/searchable/test/e2e.test.ts`: 2,212 lines, 112 tests, heavy repeated manifest/index setup.
 
-## Relevance quality gates
+Work:
 
-Treat relevance as a measurable quality attribute rather than only a correctness concern. Maintain judged query sets for representative domains and supported languages, and track metrics such as:
+1. Replace Python's bespoke fixture writers with one composable index-fixture builder plus small named scenario descriptors.
+2. Replace repeated TypeScript inline manifests/shards with shared builders under test support.
+3. Convert repeated test shapes to table-driven cases where the assertion semantics stay readable.
+4. Keep malformed-input fixtures explicit where exact bytes/shapes are the behavior under test.
+5. Delete compatibility/test helpers that become single-line wrappers after migration.
 
-- MRR
-- Precision@k
-- Recall@k
-- nDCG@k
-- zero-result rate
+Acceptance:
 
-The deterministic evaluator and small native-source regression suites cover all
-six full language profiles, and four reviewed domains supply graded multi-page
-judgments: the 29-page documentation corpus, the 22-page GOV.UK
-learner-driving journey, the 23-page German (`de-fahrerlaubnisrecht`)
-driving-license-law corpus, and the 30-book Gutenberg (`gutenberg-fiction-facets`)
-faceted-fiction corpus, the last of which is the first to judge relevance
-under terms and range facet filtering rather than free-text search alone. See
-[Relevance baselines](relevance-baselines.md) for commands, metrics,
-provenance requirements, and interpretation limits. These remain narrow
-representative domains, not broad domain coverage or a CI quality gate.
-Quality thresholds, broader performance evidence, query-planning work, and CI
-enforcement remain open.
+- No behavioral assertions removed.
+- Cross-runtime conformance remains unchanged.
+- Test names continue to identify the behavior being protected.
+- At least 1,000 net maintained lines are deleted across test/support code before production search logic is refactored.
 
-Run relevance evaluation when changing analyzers, tokenization, stemming, synonyms, fuzzy expansion, BM25 parameters, field boosts, or phrase behavior. Keep domain-specific relevance suites separate from generic engine conformance tests.
+## Priority 2 — Simplify the showcase
 
-## Language-profile requirements
+`showcase/src/gallery-widget.ts` is 1,039 lines and manually constructs most UI controls. The gallery build/data files also repeat the same demo plumbing.
 
-Add a full language profile only when it includes:
+Work:
 
-- representative corpus fixtures
-- expected tokenization and normalization fixtures
-- stopword tests
-- stemming or lemmatization tests where applicable
-- relevance queries with expected ordering
-- end-to-end conformance tests proving the language's build-time Python
-  analysis and both clients' query-time analysis agree via `SearchClient`
-  queries against a real Python-built index
+1. Introduce one small DOM element/control helper and drive controls from declarative descriptors.
+2. Replace repeated `createElement` / `append` sequences with reusable render primitives.
+3. Consolidate the `build-gallery*.ts` scripts around one generic gallery builder and per-demo configuration.
+4. Keep corpus data separate where it improves readability; remove builder code duplication rather than hiding data.
+5. Preserve every current demo, control, accessibility behavior, and browser test.
 
-Fallback segmentation must remain explicit and must not silently apply an unrelated language analyzer.
+Do not introduce React or another UI framework for the showcase. That would increase the dependency and build surface for a small static site.
 
-## Query planning
+## Priority 3 — Reduce search-path duplication
 
-The query path coordinates retrieval, expansion, filtering, scoring, facets,
-pins, distance ordering, and stored-document loading. Introduce an internal
-query-plan abstraction when concrete performance or maintainability evidence
-justifies reopening the archived design in
-[`archive/specs/query-planner.md`](../archive/specs/query-planner.md).
+The core search implementations are intentionally duplicated across TypeScript and Python because both are public runtimes. Do not attempt cross-language code sharing.
 
-The planner should be able to decide:
+Current hotspots:
 
-- rarest-term-first intersections
-- filter pushdown
-- shard fetch order
-- when full candidate materialization is required
-- whether facets require a separate candidate pass
-- when top-k early termination is safe
+- `packages/searchable/src/search.ts`: 961 lines.
+- `python/searchable/src/searchable/client/search.py`: 540 lines.
 
-Keep this internal until multiple real consumers require a stable extension API.
+Within each runtime:
 
-## Vector-search boundary
+1. Represent a resolved query variant once: literal/synonym/fuzzy term, weight, and source kind.
+2. Reuse that representation for shard selection, candidate collection, and scoring instead of repeating expansion loops.
+3. Consolidate phrase-variant construction the same way.
+4. Keep facet loading/filtering outside the lexical scoring loop.
+5. Delete helper layers that merely forward arguments or rename values.
+6. Keep TypeScript/Python behavior locked by the existing conformance fixtures.
 
-Vector and hybrid search are removed in Searchable 2.0. Searchable's role is lexical retrieval. Applications requiring semantic retrieval implement it at the application level.
+Do **not** add the archived query-planner or plugin architecture as part of this cleanup. Revisit planning only if measured scale problems cannot be solved with simpler local changes.
 
-## Public-index security boundary
+## Priority 4 — Simplify the Python indexer
 
-All generated index files are downloadable. Query privacy does not imply corpus confidentiality.
+`python/searchable/src/searchable/indexer/build_index.py` is 723 lines and combines validation, normalization, page/section expansion, analysis, and index assembly.
 
-Treat every indexed field, posting, facet value, stored document, synonym, and
-pin as public data. Do not index unpublished documents,
-authorization-sensitive metadata, restricted CMS fields, per-user content,
-secrets, or internal identifiers. Access-controlled search requires a
-different deployment architecture with server-side authorization and query
-execution.
+Work:
 
-## Operational guidance
+1. Collapse repeated scalar/type validation only where a small shared primitive produces a net LOC reduction.
+2. Unify page and section preparation through one internal prepared-document path.
+3. Keep HTML extraction in `extract.py`; do not create another orchestration layer.
+4. Remove parameters/configuration branches that no longer correspond to shipped behavior.
+5. Preserve deterministic output and current error contracts unless a separate breaking change is approved.
 
-Document recommended configurations for common deployments such as small documentation sites, medium CMS exports, large public knowledge bases, and lexical-only search. For each profile, state enabled features, expected index size, shard strategy, cache policy, and memory expectations.
+Avoid a "split the monolith" refactor that only redistributes the same number of lines.
 
-## Consumer-driven architecture work
+## Priority 5 — Repository and CI hygiene
 
-Query planning, a stable third-party plugin API, storage adapters, and deeper diagnostics have archived draft specifications. They are not part of the current public API. Reopen one only for a concrete consumer, update or replace the relevant draft, record an ADR where the architecture changes, and add conformance plus performance evidence.
+- Keep this file as the only roadmap/current-plan source.
+- Use Git history for completed implementation plans and old roadmaps.
+- Keep ADRs for durable architectural decisions and archived specs only when they explain a still-relevant design boundary.
+- Remove stale documentation references when the referenced implementation/design no longer exists.
+- Consolidate repeated CI/release YAML only when the resulting workflow is easier to trace and has fewer maintained lines.
+- Archive or delete the public-launch checklist after its final open decision is resolved.
 
-Related archived material:
+## Quality work after simplification
 
-- [`archive/specs/query-planner.md`](../archive/specs/query-planner.md)
-- [`archive/specs/benchmarking.md`](../archive/specs/benchmarking.md)
-- [`archive/roadmaps/architecture-recommendations.md`](../archive/roadmaps/architecture-recommendations.md)
+These are evidence tasks, not reasons to expand the architecture:
 
-These files are historical design inputs. This roadmap remains the single current source for planned work.
+- Refresh the documentation relevance corpus for the current 2.x docs surface.
+- Expand judged relevance coverage only with representative domains and real query evidence.
+- Add performance evidence for more corpus sizes, browsers, cache states, and low-end devices.
+- Derive operating guidance and thresholds from recorded evidence rather than assumptions.
+- Add new language profiles only with corpus, analyzer fixtures, relevance judgments, and cross-runtime conformance.
+- Keep the public-index security guidance prominent: generated index artifacts are public data.
 
-## Explicit non-features
+Ranking knobs, extension APIs, storage adapters, deeper diagnostics, and query planning remain deferred until a concrete consumer demonstrates that the current surface is insufficient.
 
-A query-time backend, browser-side index mutation, bundled analytics, mandatory WASM, and an application UI framework are outside the current product boundary. Access-controlled per-user search requires a different deployment architecture.
+## Non-goals
 
-Historical completed phases are in [`archive/roadmaps/implementation-history.md`](../archive/roadmaps/implementation-history.md). Earlier architecture and release iterations remain in neighboring archived roadmap files.
+- Reintroducing binary storage, vector/hybrid search, Worker execution, or Service Worker support.
+- A query-time backend.
+- Browser-side index mutation.
+- A plugin framework without multiple real consumers.
+- A generic storage abstraction around static JSON.
+- Framework adoption solely to reduce handwritten lines.
+- Minified, generated, or deliberately dense source counted as a simplification win.
+
+## Definition of done
+
+A simplification slice is complete when:
+
+1. Public behavior is unchanged.
+2. Relevant unit, integration, browser, and TypeScript/Python conformance tests pass.
+3. Relevance/performance baselines do not regress where the change can affect them.
+4. Total maintained LOC decreases.
+5. The change removes a concept, branch, duplicate representation, or repeated construction pattern rather than merely relocating it.
