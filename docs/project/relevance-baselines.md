@@ -134,9 +134,7 @@ answerability and non-duplication with existing queries, hand-graded against
 the real documents, and reviewed for vocabulary grounding (several needed
 rewording so their significant terms appear in the judged documents' literal
 text before being added). Example new query ids: `glasses-need-to-drive`,
-`learners-motorway`, and `lessons-after-passing`. Full sourcing detail,
-including rejected candidates and the vocabulary-grounding review, is in
-`docs/superpowers/notes/2026-07-17-govuk-real-query-candidates.md`.
+`learners-motorway`, and `lessons-after-passing`.
 
 The suite uses the same graded judgment and page-specific rationale policy as
 the documentation corpus. Maintainer `ktjn` reviewed every normalized
@@ -265,8 +263,7 @@ Gutenberg bibliographic metadata and text, in the public domain in the United
 States, attributed to Project Gutenberg. Selection notes recording the
 bookshelf sources, genre/year cross-cutting rationale, and the mix of
 verbatim-excerpt and summary documents are recorded in the fixture's
-`provenance` field and in
-`docs/superpowers/notes/2026-07-17-gutenberg-facets-source-selection.md`.
+`provenance` field.
 
 ## Interpretation and limits
 
