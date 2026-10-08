@@ -7,7 +7,7 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@12.4.1",
+  "packageManager": "pnpm@12.10.1",
   "scripts": {
     "build": "pnpm --filter @ktjn/searchable build && pnpm --filter @ktjn/searchable-fixtures build",
     "docs:build": "pnpm build && pnpm --filter showcase build",
