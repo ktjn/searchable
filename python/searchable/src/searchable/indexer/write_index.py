@@ -12,9 +12,7 @@ _MAX_PREFIX_LENGTH = 8
 
 
 def _canonicalize(value: object) -> object:
-    if isinstance(value, list):
-        return [_canonicalize(v) for v in value]
-    if isinstance(value, tuple):
+    if isinstance(value, (list, tuple)):
         return [_canonicalize(v) for v in value]
     if isinstance(value, dict):
         return {key: _canonicalize(value[key]) for key in sorted(value.keys())}
@@ -136,48 +134,46 @@ def write_index(
         file = _write_json(out_dir, f"docs/{shard_index}.json", chunk["shard"])
         docs.append({"shard": shard_index, "file": file, "idRange": list(chunk["idRange"])})
 
-    facet_fields = sorted(built.facet_shards.keys())
-    facets = None
-    if facet_fields:
-        facets = []
-        for field_name in facet_fields:
-            file = _write_json(out_dir, f"facets/{field_name}.json", built.facet_shards[field_name])
-            facets.append({"field": field_name, "file": file})
+    facets = [
+        {"field": f, "file": _write_json(out_dir, f"facets/{f}.json", built.facet_shards[f])}
+        for f in sorted(built.facet_shards)
+    ] or None
 
     pin_languages = sorted(language for language, shard in built.pins_shards.items() if shard)
-    pins = None
-    if pin_languages:
-        pins = {}
-        for language in pin_languages:
-            pins[language] = _write_json(
-                out_dir, f"pins/{language}.json", built.pins_shards[language]
-            )
-
-    def _synonym_shard_nonempty(shard: dict[str, Any]) -> bool:
-        return bool(shard.get("equivalences") or shard.get("directional") or shard.get("multiWord"))
+    pins = (
+        {
+            lang: _write_json(out_dir, f"pins/{lang}.json", built.pins_shards[lang])
+            for lang in pin_languages
+        }
+        if pin_languages
+        else None
+    )
 
     synonym_languages = sorted(
         language
         for language, shard in built.synonym_shards.items()
-        if _synonym_shard_nonempty(shard)
+        if any(shard.get(k) for k in ("equivalences", "directional", "multiWord"))
     )
-    synonyms = None
-    if synonym_languages:
-        synonyms = {}
-        for language in synonym_languages:
-            synonyms[language] = _write_json(
-                out_dir, f"synonyms/{language}.json", built.synonym_shards[language]
-            )
+    synonyms = (
+        {
+            lang: _write_json(out_dir, f"synonyms/{lang}.json", built.synonym_shards[lang])
+            for lang in synonym_languages
+        }
+        if synonym_languages
+        else None
+    )
 
     fuzzy_languages = sorted(
         language for language, shard in built.fuzzy_shards.items() if shard.get("deletions")
     )
-    fuzzy = None
-    if fuzzy_languages:
-        fuzzy = {}
-        for language in fuzzy_languages:
-            file = _write_json(out_dir, f"fuzzy/{language}.json", built.fuzzy_shards[language])
-            fuzzy[language] = {"file": file}
+    fuzzy = (
+        {
+            lang: {"file": _write_json(out_dir, f"fuzzy/{lang}.json", built.fuzzy_shards[lang])}
+            for lang in fuzzy_languages
+        }
+        if fuzzy_languages
+        else None
+    )
 
     manifest = {
         **built.manifest,

@@ -14,7 +14,7 @@ test("public community and package documentation exists", () => {
     ".github/ISSUE_TEMPLATE/config.yml",
     ".github/pull_request_template.md",
     "packages/searchable/README.md",
-    "docs/project/public-launch-checklist.md",
+    "docs/archive/public-launch-checklist.md",
   ]) {
     expect(() => read(path), path).not.toThrow();
   }
@@ -90,7 +90,7 @@ test("public npm manifests use the current patch release", () => {
 });
 
 test("post-public security gates are recorded", () => {
-  const checklist = read("docs/project/public-launch-checklist.md");
+  const checklist = read("docs/archive/public-launch-checklist.md");
   for (const gate of [
     "secret scanning",
     "push protection",

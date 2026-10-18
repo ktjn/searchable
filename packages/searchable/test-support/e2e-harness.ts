@@ -1,4 +1,6 @@
 import { afterAll, beforeAll } from "vitest";
+import type { SearchClientOptions } from "../src/client.js";
+import { SearchClient } from "../src/client.js";
 import { serveStatic } from "../test/static-server.js";
 import type {
   PythonBuildOptions,
@@ -24,6 +26,7 @@ export interface IndexServerHandle {
    * not a snapshot.
    */
   readonly requestedPaths: string[];
+  client(options?: Omit<SearchClientOptions, "indexUrl">): SearchClient;
 }
 
 function readyOrThrow<T>(value: T | undefined, name: string): T {
@@ -84,6 +87,12 @@ export function setupIndexServer(
     },
     get requestedPaths() {
       return readyOrThrow(requestedPaths, "requestedPaths");
+    },
+    client(options?: Omit<SearchClientOptions, "indexUrl">) {
+      return new SearchClient({
+        indexUrl: `${readyOrThrow(baseUrl, "baseUrl")}manifest.json`,
+        ...options,
+      });
     },
   };
 }
