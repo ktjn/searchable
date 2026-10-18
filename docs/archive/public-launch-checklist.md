@@ -14,9 +14,7 @@ The maintainer owns the visibility and commit-history decisions.
   `python-tests`, `test`, and `test-browser` checks, and force-push/deletion
   protection. If the private plan rejects it, complete this immediately after
   the repository becomes public.
-- [ ] Decide whether the non-noreply commit metadata, including a Gmail address,
-  may become public. A history rewrite is a separate, explicitly authorized
-  operation.
+- [x] Retain existing commit metadata without a history rewrite (public release).
 - [x] README and package documentation describe the GitHub Packages release
   path for npm and Python packages.
 - [x] The initial `v1.0.0` package release exists and subsequent tagged

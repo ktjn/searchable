@@ -45,23 +45,6 @@ _DEFAULT_FIELD_BOOSTS = {"title": 3.0, "body": 1.0}
 _EXCERPT_LENGTH = 200
 
 
-def _validate_source_ids(sources: list[SourceDocument]) -> None:
-    seen: set[int] = set()
-    for source in sources:
-        if not isinstance(source.id, int) or isinstance(source.id, bool) or source.id < 0:
-            raise ValueError(
-                f"invalid document id {source.id!r} for "
-                f'"{source.url}" -- ids must be non-negative integers'
-            )
-        if source.id in seen:
-            raise ValueError(
-                f"duplicate document id {source.id} "
-                f'(seen again at "{source.url}") -- every source document '
-                "must have a unique id"
-            )
-        seen.add(source.id)
-
-
 def _derive_excerpt(body: str) -> str:
     if len(body) <= _EXCERPT_LENGTH:
         return body
@@ -80,6 +63,25 @@ def _validate_boost(value: object, subject: str, *, allow_zero: bool = False) ->
         raise ValueError(
             f"invalid boost {value!r} for {subject} -- must be a finite, {requirement} number"
         )
+
+
+def _validate_id(doc_id: object, seen: set[int], context: str = "") -> None:
+    at = f' for "{context}"' if context else ""
+    again = f' (seen again at "{context}")' if context else ""
+    qualifier = " every source document" if context else " every document"
+    if not isinstance(doc_id, int) or isinstance(doc_id, bool) or doc_id < 0:
+        raise ValueError(f"invalid document id {doc_id!r}{at} -- ids must be non-negative integers")
+    if doc_id in seen:
+        raise ValueError(
+            f"duplicate document id {doc_id}{again} --{qualifier} must have a unique id"
+        )
+    seen.add(doc_id)
+
+
+def _validate_source_ids(sources: list[SourceDocument]) -> None:
+    seen: set[int] = set()
+    for source in sources:
+        _validate_id(source.id, seen, source.url)
 
 
 def _validate_field_definitions(field_definitions: dict[str, FieldDefinition]) -> None:
@@ -135,15 +137,7 @@ def _validate_index_document(
     seen_ids: set[int],
     seen_external_ids: set[str],
 ) -> None:
-    if not isinstance(document.id, int) or isinstance(document.id, bool) or document.id < 0:
-        raise ValueError(
-            f"invalid document id {document.id!r} -- ids must be non-negative integers"
-        )
-    if document.id in seen_ids:
-        raise ValueError(
-            f"duplicate document id {document.id} -- every document must have a unique id"
-        )
-    seen_ids.add(document.id)
+    _validate_id(document.id, seen_ids)
 
     if document.external_id is not None:
         if not isinstance(document.external_id, str) or document.external_id == "":
@@ -161,41 +155,27 @@ def _validate_index_document(
 
     if not isinstance(document.url, str):
         raise ValueError(f"document {document.id} has non-string url {document.url!r}")
-    if not isinstance(document.language, str) or document.language == "":
+    if not isinstance(document.language, str) or not document.language:
         raise ValueError(
             f"document {document.id} has invalid language "
             f"{document.language!r} -- must be a non-empty string"
         )
-    if not isinstance(document.indexed_fields, dict):
-        raise ValueError(f"document {document.id} indexed_fields must be a dict")
-    if not isinstance(document.stored_fields, dict):
-        raise ValueError(f"document {document.id} stored_fields must be a dict")
 
-    for name, value in document.indexed_fields.items():
-        definition = field_definitions.get(name)
-        if definition is None or not definition.indexed:
-            raise ValueError(
-                f'document {document.id} has indexed field "{name}" '
-                "not declared with indexed=True in field_definitions"
-            )
-        if not isinstance(value, str):
-            raise ValueError(
-                f'document {document.id} field "{name}" '
-                f"(indexed_fields) must be a string, got {type(value).__name__}"
-            )
-
-    for name, value in document.stored_fields.items():
-        definition = field_definitions.get(name)
-        if definition is None or not definition.stored:
-            raise ValueError(
-                f'document {document.id} has stored field "{name}" '
-                "not declared with stored=True in field_definitions"
-            )
-        if not isinstance(value, str):
-            raise ValueError(
-                f'document {document.id} field "{name}" '
-                f"(stored_fields) must be a string, got {type(value).__name__}"
-            )
+    for kind, fields in (("indexed", document.indexed_fields), ("stored", document.stored_fields)):
+        if not isinstance(fields, dict):
+            raise ValueError(f"document {document.id} {kind}_fields must be a dict")
+        for name, value in fields.items():
+            definition = field_definitions.get(name)
+            if definition is None or not getattr(definition, kind):
+                raise ValueError(
+                    f'document {document.id} has {kind} field "{name}" '
+                    f"not declared with {kind}=True in field_definitions"
+                )
+            if not isinstance(value, str):
+                raise ValueError(
+                    f'document {document.id} field "{name}" '
+                    f"({kind}_fields) must be a string, got {type(value).__name__}"
+                )
 
     if not document.indexed_fields:
         raise ValueError(
@@ -213,23 +193,21 @@ def _validate_index_document(
 def _validate_range_facet_buckets(range_facet_buckets: dict[str, int | list[float]]) -> None:
     for field_name, config in range_facet_buckets.items():
         if isinstance(config, list):
-            if len(config) < 1 or not all(math.isfinite(n) for n in config):
+            if not config or not all(math.isfinite(n) for n in config):
                 raise ValueError(
                     f"invalid range_facet_buckets boundaries {config!r} "
                     f'for field "{field_name}" -- must be a non-empty list of finite numbers'
                 )
-            for i in range(1, len(config)):
-                if config[i] <= config[i - 1]:
-                    raise ValueError(
-                        f"invalid range_facet_buckets boundaries {config!r} "
-                        f'for field "{field_name}" -- must be strictly ascending'
-                    )
-        else:
-            if not isinstance(config, int) or isinstance(config, bool) or config < 1:
+            if any(config[i] <= config[i - 1] for i in range(1, len(config))):
                 raise ValueError(
-                    f"invalid range_facet_buckets count {config!r} "
-                    f'for field "{field_name}" -- must be a positive integer'
+                    f"invalid range_facet_buckets boundaries {config!r} "
+                    f'for field "{field_name}" -- must be strictly ascending'
                 )
+        elif not isinstance(config, int) or isinstance(config, bool) or config < 1:
+            raise ValueError(
+                f"invalid range_facet_buckets count {config!r} "
+                f'for field "{field_name}" -- must be a positive integer'
+            )
 
 
 @dataclass
@@ -242,10 +220,9 @@ class _PreparedDocument:
 
 
 def _copy_document(document: IndexDocument) -> IndexDocument:
-    if not isinstance(document.indexed_fields, dict):
-        raise ValueError(f"document {document.id} indexed_fields must be a dict")
-    if not isinstance(document.stored_fields, dict):
-        raise ValueError(f"document {document.id} stored_fields must be a dict")
+    for kind, fields in (("indexed", document.indexed_fields), ("stored", document.stored_fields)):
+        if not isinstance(fields, dict):
+            raise ValueError(f"document {document.id} {kind}_fields must be a dict")
     return IndexDocument(
         id=document.id,
         external_id=document.external_id,
@@ -327,11 +304,12 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
         posting_index = posting_index_by_language.setdefault(language, {})
         for field_name in indexed_field_names:
             text = document.indexed_fields.get(field_name)
-            if text is None:
-                continue
-            tokens = analyze(text, profile)
-            stats[field_name] += len(tokens)
-            add_postings(term_shard, posting_index, field_name, document.id, document.boost, tokens)
+            if text is not None:
+                tokens = analyze(text, profile)
+                stats[field_name] += len(tokens)
+                add_postings(
+                    term_shard, posting_index, field_name, document.id, document.boost, tokens
+                )
 
         add_facet_values(facet_shards, item.facets, document.id, hierarchical_facets)
         add_range_facet_values(facet_shards, item.range_facets, document.id)
@@ -341,17 +319,16 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
             pins_acc = pins_acc_by_language.setdefault(language, {})
             for pin in item.pins:
                 normalized = normalize_phrase(pin.phrase, profile)
-                if not normalized:
-                    continue
-                acc = pins_acc.setdefault(normalized, {"mode": pin.mode, "docs": []})
-                acc["docs"].append(
-                    {
-                        "id": document.id,
-                        "priority": pin.priority,
-                        "exclusive": pin.exclusive,
-                        "boost": document.boost,
-                    }
-                )
+                if normalized:
+                    acc = pins_acc.setdefault(normalized, {"mode": pin.mode, "docs": []})
+                    acc["docs"].append(
+                        {
+                            "id": document.id,
+                            "priority": pin.priority,
+                            "exclusive": pin.exclusive,
+                            "boost": document.boost,
+                        }
+                    )
 
         entry: dict[str, Any] = {"url": document.url, "fields": dict(document.stored_fields)}
         if document.boost != 1.0:
@@ -387,7 +364,6 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
                 compute_range_facet_buckets_explicit(shard, bucket_config)
             else:
                 compute_range_facet_buckets_equal_width(shard, bucket_config)
-    for shard in facet_shards.values():
         for entry in shard["values"].values():
             entry["docs"].sort()
 
@@ -405,10 +381,11 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
             for name in indexed_field_names
         }
 
-    fuzzy_shards: dict[str, dict[str, Any]] = {}
-    if config.fuzzy:
-        for language, term_shard in term_shards.items():
-            fuzzy_shards[language] = build_fuzzy_shard(term_shard, config.fuzzy_max_edits)
+    fuzzy_shards = (
+        {lang: build_fuzzy_shard(ts, config.fuzzy_max_edits) for lang, ts in term_shards.items()}
+        if config.fuzzy
+        else {}
+    )
 
     manifest_fields = {
         name: {
@@ -431,11 +408,9 @@ def _build_prepared_documents(prepared: list[_PreparedDocument], config: BuildCo
         "shards": {"terms": [], "docs": []},
     }
 
-    id_range: tuple[int, int]
-    if indexed_count and min_id is not None and max_id is not None:
-        id_range = (min_id, max_id)
-    else:
-        id_range = (0, 0)
+    id_range = (
+        (min_id, max_id) if indexed_count and min_id is not None and max_id is not None else (0, 0)
+    )
 
     return BuiltIndex(
         manifest=manifest,
@@ -462,10 +437,7 @@ def build_index_documents(
 ) -> BuiltIndex:
     _validate_field_definitions(field_definitions)
     copied_definitions = _copy_field_definitions(field_definitions)
-    prepared = []
-    for document in documents:
-        copied_document = _copy_document(document)
-        prepared.append(_PreparedDocument(document=copied_document))
+    prepared = [_PreparedDocument(document=_copy_document(doc)) for doc in documents]
     return _build_prepared_documents(
         prepared,
         BuildConfig(
@@ -525,6 +497,55 @@ def _normalize_section_config(
     return config
 
 
+def _prepare_document(
+    extracted: ExtractedDocument,
+    *,
+    doc_id: int,
+    url: str,
+    title: str,
+    body: str,
+    external_id: str | None = None,
+    page_title: str | None = None,
+    document_type: str | None = None,
+    extra_metadata: dict[str, Any] | None = None,
+    excerpt: str | None = None,
+    pins: list[PinDeclaration] | None = None,
+) -> _PreparedDocument:
+    indexed: dict[str, str] = {"title": title, "body": body}
+    stored: dict[str, str] = {
+        "title": title,
+        "excerpt": excerpt or _derive_excerpt(body),
+        **extracted.stored_facets,
+    }
+    metadata: dict[str, JsonValue] = {}
+    if document_type:
+        metadata["documentType"] = document_type
+    if page_title is not None:
+        indexed["pageTitle"] = page_title
+        stored["pageTitle"] = page_title
+        metadata["pageTitle"] = page_title
+    if extra_metadata:
+        metadata.update(extra_metadata)
+    metadata.update(extracted.metadata)
+
+    return _PreparedDocument(
+        document=IndexDocument(
+            id=doc_id,
+            external_id=external_id,
+            url=url,
+            language=extracted.language,
+            indexed_fields=indexed,
+            stored_fields=stored,
+            metadata=metadata,
+            boost=extracted.boost,
+        ),
+        facets=dict(extracted.facets),
+        range_facets=dict(extracted.range_facets),
+        geo_facets=dict(extracted.geo_facets),
+        pins=list(pins) if pins is not None else list(extracted.pins),
+    )
+
+
 def _page_prepared_document(
     source_id: int,
     extracted: ExtractedDocument,
@@ -532,76 +553,33 @@ def _page_prepared_document(
     body: str | None = None,
     tag_as_page: bool = False,
 ) -> _PreparedDocument:
-    body = extracted.body if body is None else body
-    metadata: dict[str, JsonValue] = (
-        {"documentType": "page", **extracted.metadata} if tag_as_page else dict(extracted.metadata)
-    )
-    document = IndexDocument(
-        id=source_id,
-        external_id=None,
+    b = extracted.body if body is None else body
+    return _prepare_document(
+        extracted,
+        doc_id=source_id,
         url=extracted.url,
-        language=extracted.language,
-        indexed_fields={"title": extracted.title, "body": body},
-        stored_fields={
-            "title": extracted.title,
-            "excerpt": extracted.excerpt or _derive_excerpt(body),
-            **extracted.stored_facets,
-        },
-        metadata=metadata,
-        boost=extracted.boost,
-    )
-    return _PreparedDocument(
-        document=document,
-        facets=extracted.facets,
-        range_facets=extracted.range_facets,
-        geo_facets=extracted.geo_facets,
-        pins=extracted.pins,
+        title=extracted.title,
+        body=b,
+        document_type="page" if tag_as_page else None,
+        excerpt=extracted.excerpt,
     )
 
 
 def _section_prepared_document(
     section: ExtractedSection,
-    *,
+    extracted: ExtractedDocument,
     doc_id: int,
-    language: str,
-    boost: float,
-    facets: dict[str, list[str]],
-    range_facets: dict[str, float],
-    geo_facets: dict[str, tuple[float, float]],
-    stored_facets: dict[str, str],
-    page_metadata: dict[str, str],
 ) -> _PreparedDocument:
-    metadata: dict[str, JsonValue] = {
-        "documentType": "section",
-        "pageTitle": section.page_title,
-        "headingLevel": section.heading_level,
-        "anchor": section.anchor,
-        **page_metadata,
-    }
-    document = IndexDocument(
-        id=doc_id,
-        external_id=section.url,
+    return _prepare_document(
+        extracted,
+        doc_id=doc_id,
         url=section.url,
-        language=language,
-        indexed_fields={
-            "title": section.title,
-            "body": section.body,
-            "pageTitle": section.page_title,
-        },
-        stored_fields={
-            "title": section.title,
-            "excerpt": _derive_excerpt(section.body),
-            "pageTitle": section.page_title,
-            **stored_facets,
-        },
-        metadata=metadata,
-        boost=boost,
-    )
-    return _PreparedDocument(
-        document=document,
-        facets=dict(facets),
-        range_facets=dict(range_facets),
-        geo_facets=dict(geo_facets),
+        title=section.title,
+        body=section.body,
+        external_id=section.url,
+        page_title=section.page_title,
+        document_type="section",
+        extra_metadata={"headingLevel": section.heading_level, "anchor": section.anchor},
         pins=[],
     )
 
@@ -625,37 +603,21 @@ def _prepare_html_items(
         return [_page_prepared_document(source.id, extracted)], next_section_id
 
     sections = extract_sections(tree, extracted.url, extracted.title, section_config.selectors)
-
+    items: list[_PreparedDocument] = []
     if section_config.mode == "page-and-sections":
-        items = [_page_prepared_document(source.id, extracted, tag_as_page=True)]
-        all_sections = sections
+        items.append(_page_prepared_document(source.id, extracted, tag_as_page=True))
     elif sections:
-        items = []
         pre_section = extract_pre_section_body(tree, section_config.selectors)
         if pre_section:
             items.append(
                 _page_prepared_document(source.id, extracted, body=pre_section, tag_as_page=True)
             )
-        all_sections = sections
     else:
         return [_page_prepared_document(source.id, extracted, tag_as_page=True)], next_section_id
 
-    def make_section(section: ExtractedSection, doc_id: int) -> _PreparedDocument:
-        return _section_prepared_document(
-            section,
-            doc_id=doc_id,
-            language=extracted.language,
-            boost=extracted.boost,
-            facets=extracted.facets,
-            range_facets=extracted.range_facets,
-            geo_facets=extracted.geo_facets,
-            stored_facets=extracted.stored_facets,
-            page_metadata=extracted.metadata,
-        )
-
-    for index, section in enumerate(all_sections):
-        items.append(make_section(section, next_section_id + index))
-    return items, next_section_id + len(all_sections)
+    for index, section in enumerate(sections):
+        items.append(_section_prepared_document(section, extracted, next_section_id + index))
+    return items, next_section_id + len(sections)
 
 
 def build_index(
@@ -691,20 +653,10 @@ def build_index(
         )
         prepared.extend(items)
 
-    # A searchable-stored-<field> tag (extract.py) can declare a field name
-    # field_definitions above doesn't know about yet -- unlike the fixed
-    # title/excerpt/pageTitle set, custom stored fields are discovered from
-    # what documents actually declared, so field_definitions is extended
-    # here, after preparation but before _build_prepared_documents'
-    # validation requires every stored_fields key to already be declared.
-    custom_stored_field_names = {
-        name
-        for item in prepared
-        for name in item.document.stored_fields
-        if name not in field_definitions
-    }
-    for name in custom_stored_field_names:
-        field_definitions[name] = FieldDefinition(indexed=False, stored=True, boost=1.0)
+    for item in prepared:
+        for name in item.document.stored_fields:
+            if name not in field_definitions:
+                field_definitions[name] = FieldDefinition(indexed=False, stored=True, boost=1.0)
 
     return _build_prepared_documents(
         prepared,
@@ -716,7 +668,5 @@ def build_index(
             synonyms=synonyms,
             fuzzy=fuzzy,
             fuzzy_max_edits=fuzzy_max_edits,
-            content_hash=False,
-            structured=False,
         ),
     )

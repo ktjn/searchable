@@ -109,7 +109,6 @@ Avoid a "split the monolith" refactor that only redistributes the same number of
 - Keep ADRs for durable architectural decisions and archived specs only when they explain a still-relevant design boundary.
 - Remove stale documentation references when the referenced implementation/design no longer exists.
 - Consolidate repeated CI/release YAML only when the resulting workflow is easier to trace and has fewer maintained lines.
-- Archive or delete the public-launch checklist after its final open decision is resolved.
 
 ## Quality work after simplification
 
