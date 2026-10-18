@@ -1,13 +1,10 @@
 name: CI
 
+# Build-only verification. Tests run locally through scripts/gate.sh, which
+# the pre-push hook (.githooks/pre-push) enforces before every push.
+
 on:
   workflow_call:
-    inputs:
-      run-all:
-        description: "Run every job regardless of changed paths (used by the release publish pipeline)"
-        required: false
-        default: false
-        type: boolean
   push:
     branches: [main]
   pull_request:
@@ -21,110 +18,19 @@ permissions:
   contents: read
 
 jobs:
-  changes:
-    name: Detect changed paths
-    if: ${{ !inputs.run-all }}
-    runs-on: ubuntu-latest
-    outputs:
-      node: ${{ steps.filter.outputs.node }}
-      python: ${{ steps.filter.outputs.python }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            node:
-              - 'packages/**'
-              - 'showcase/**'
-              - 'docs/**'
-              - '.github/workflows/**'
-              - '.github/actions/**'
-              - 'package.json'
-              - 'pnpm-workspace.yaml'
-              - 'pnpm-lock.yaml'
-              - 'biome.json'
-              - 'vitest.config.ts'
-              - 'playwright.config.ts'
-              - 'tsconfig*.json'
-              - 'README.md'
-            python:
-              - 'python/**'
-              - 'spec/examples/python/**'
-
-  lint:
-    needs: changes
-    if: always() && (needs.changes.result == 'skipped' || inputs.run-all == true || needs.changes.outputs.node == 'true')
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
+      - uses: ./.github/actions/setup-python
+        with:
+          working-directory: python/searchable
       - run: pnpm lint
-
-  python-tests:
-    needs: changes
-    if: always() && (needs.changes.result == 'skipped' || inputs.run-all == true || needs.changes.outputs.python == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-python
-      - name: Install, lint, typecheck, and test searchable (Python)
-        working-directory: python/searchable
-        run: |
-          uv sync
-          uv run ruff check .
-          uv run ruff format --check .
-          uv run mypy src
-          uv run pytest -v
-
-  test:
-    needs: changes
-    if: always() && (needs.changes.result == 'skipped' || inputs.run-all == true || needs.changes.outputs.node == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-node
-      - uses: ./.github/actions/setup-python
-        with:
-          working-directory: python/searchable
-      - name: Build packages once (typecheck/size/test reuse the same build)
-        run: pnpm build
-      - run: pnpm typecheck
-      - run: pnpm size
-      - run: pnpm test
-
-  test-browser:
-    needs: changes
-    if: always() && (needs.changes.result == 'skipped' || inputs.run-all == true || needs.changes.outputs.node == 'true')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-node
-      - uses: ./.github/actions/setup-python
-        with:
-          working-directory: python/searchable
-      - name: Resolve Playwright version
-        id: playwright-version
-        shell: bash
-        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
-      - name: Cache Playwright browser binaries
-        id: playwright-cache
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-${{ hashFiles('pnpm-lock.yaml') }}
-      # A cache hit restores the browser binary but not the runner's apt-level
-      # OS dependencies, so only the browser download is skippable.
-      - name: Install Playwright browser + OS dependencies (cache miss)
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Install Playwright OS dependencies only (cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium
-      - name: Build packages + showcase once
+      - name: Build packages + showcase
         run: |
           pnpm build
           pnpm --filter showcase build
-      - run: pnpm test:browser
+      - run: pnpm typecheck
+      - name: Build Python package
+        run: uv build --project python/searchable

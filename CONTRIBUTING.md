@@ -30,15 +30,16 @@ uv run pytest -v
 
 ## Before opening a pull request
 
-Run focused tests while developing, then run the applicable repository gates:
+Run focused tests while developing, then run the full gate:
 
 ```bash
-pnpm lint
-pnpm typecheck
-pnpm size
-pnpm test
-pnpm test:browser
+pnpm gate
 ```
+
+`pnpm gate` runs `scripts/gate.sh`, the same gate the `pre-push` hook
+(`.githooks/pre-push`, enabled by `pnpm install`) enforces before every push.
+GitHub CI only verifies that the code lints, builds, and typechecks; tests run
+locally.
 
 Browser tests require Chromium. Install it with
 `pnpm exec playwright install --with-deps chromium` when needed.

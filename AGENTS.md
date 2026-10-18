@@ -1,27 +1,13 @@
 # Instructions for Claude Code
 
-## Required gates before pushing or opening a PR
+## Before pushing or opening a PR
 
-Always run `npx biome check .` (or at minimum `npx biome check <changed files>`)
-and `npx vitest run <affected test files>` locally before pushing a branch or
-opening a pull request. CI runs `pnpm lint` (biome) as an early, fast-failing
-step — catching formatting/lint issues locally avoids a red CI run and a
-follow-up fix-and-repush cycle.
-
-Before creating a PR, also run the Python gates from
-`python/searchable/`. The Ruff checks are mandatory and must not be
-skipped:
-
-```bash
-uv sync
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy src
-uv run pytest -v
-```
-
-The PR must not be created until both Ruff commands pass. These are the same
-commands CI runs in the Python client job.
+GitHub CI only builds (lint, package + showcase build, typecheck, Python
+`uv build`). All tests run locally through `scripts/gate.sh` (`pnpm gate`):
+frozen install, biome, ruff/mypy/pytest, build, typecheck, bundle size,
+vitest, and Playwright. The `.githooks/pre-push` hook runs the same gate
+before every push; `pnpm install` enables it via `core.hooksPath`. Do not
+bypass it with `--no-verify`. Report the gate result in the PR.
 
 Note: this repo's CI runs on Linux, but local Windows checkouts pick up
 CRLF line endings (`core.autocrlf`) that make `biome check` report spurious

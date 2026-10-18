@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Runs the full local test gate before any push. Installed by `pnpm install`
+# (root `prepare` script sets core.hooksPath to .githooks).
+set -euo pipefail
+
+exec "$(git rev-parse --show-toplevel)/scripts/gate.sh"
