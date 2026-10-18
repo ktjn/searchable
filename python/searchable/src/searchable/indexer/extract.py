@@ -4,7 +4,8 @@ import sys
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
-from selectolax.parser import HTMLParser, Node
+from selectolax.lexbor import LexborHTMLParser as HTMLParser
+from selectolax.lexbor import LexborNode as Node
 
 from searchable.analysis import detect_language, get_registered_language_codes
 from searchable.indexer.types import ExtractedDocument, ExtractedSection, PinDeclaration
@@ -279,7 +280,7 @@ def _walk_sections(
             if stack and cur.text().strip():
                 stack[-1]["parts"].append(_collapse_whitespace(cur.text()))
         else:
-            level = level_map.get(cur.tag)
+            level = level_map.get(cur.tag or "")
             if level is not None:
                 while stack and stack[-1]["level"] >= level:
                     stack.pop()

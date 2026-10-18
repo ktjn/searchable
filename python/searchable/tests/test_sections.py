@@ -1,5 +1,5 @@
 import pytest
-from selectolax.parser import HTMLParser
+from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
 from searchable.indexer.build_index import build_index
 from searchable.indexer.extract import extract_document, extract_sections
