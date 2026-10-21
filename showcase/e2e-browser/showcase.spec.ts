@@ -958,7 +958,7 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
       // like this return zero hits even though the single-word query above
       // matches fine.
       const question = await client.search(
-        "What does Hamlet say about dreams?",
+        "What does Romeo say about dreams?",
         { limit: 5, operator: "or" },
       );
       return {
@@ -970,5 +970,103 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
     expect(result.totalHits).toBeGreaterThan(0);
     expect(result.firstTitle).toBeTruthy();
     expect(result.questionHits).toBeGreaterThan(0);
+  });
+
+  // The two tests above only ever exercise client.search() directly via
+  // page.evaluate() -- never the page's own ask() handler (index.html's
+  // askButton click listener), which is the only thing a real visitor
+  // actually triggers. That handler is gated on `engine` being set, which
+  // only happens after a real model finishes loading -- so a bug reachable
+  // only through that gate (wrong element id, a stale closure, askButton
+  // never re-enabled, the engine.chat.completions.create() call itself
+  // throwing) would pass both tests above and still show "No matching
+  // passages" or worse to every real user. This fakes just enough (a
+  // WebGPU adapter so Load isn't disabled, and a CreateMLCEngine that
+  // resolves instead of the other tests' rejecting stub) to click through
+  // the actual UI exactly as a visitor would: pick a model, Load, type the
+  // placeholder's own suggested question, click Ask.
+  test("asking a real question through the UI itself finds passages", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "gpu", {
+        get: () => ({
+          requestAdapter: async () => ({
+            limits: { maxStorageBufferBindingSize: 1024 * 1024 * 1024 },
+          }),
+        }),
+      });
+    });
+    await page.route(WEBLLM_CDN_URL, (route) =>
+      route.fulfill({
+        contentType: "text/javascript",
+        body: `
+          export const prebuiltAppConfig = {
+            model_list: [
+              { model_id: "SmolLM2-135M-Instruct-q0f16-MLC", vram_required_MB: 359 },
+            ],
+          };
+          export async function CreateMLCEngine() {
+            return {
+              chat: {
+                completions: {
+                  async create() {
+                    return {
+                      [Symbol.asyncIterator]: async function* () {
+                        yield { choices: [{ delta: { content: "ok" } }] };
+                      },
+                    };
+                  },
+                },
+              },
+            };
+          }
+        `,
+      }),
+    );
+
+    await page.goto(`${baseUrl}gallery/rag-webllm/index.html`);
+    await expect(page.locator("#load-button")).toBeEnabled();
+    await page.click("#load-button");
+    await expect(page.locator("#ask-button")).toBeEnabled();
+
+    await page.fill("#question", "What does Romeo say about dreams?");
+    await page.click("#ask-button");
+
+    await expect(page.locator("#ask-status")).not.toHaveText(
+      "No matching passages found in the index for that question.",
+    );
+    await expect(page.locator("#sources")).toBeVisible();
+    expect(
+      await page.locator("#passage-list .passage").count(),
+    ).toBeGreaterThan(0);
+  });
+
+  // Reported as "the fix from PR #159 is still broken" -- it wasn't: the
+  // corpus (tiny-shakespeare, a specific selection of plays -- see
+  // README.md's "Try:" list) simply doesn't contain Hamlet at all, so a
+  // query naming him returns zero hits no matter the operator. "No
+  // matching passages" is the *correct* result here; the bug was the
+  // demo's own placeholder/README suggesting a question about a character
+  // who isn't in the indexed content. This pins both halves down: a
+  // genuinely absent character legitimately finds nothing, and the
+  // placeholder's own suggested character (now Romeo, who the corpus
+  // actually has lines for) finds something.
+  test("a character absent from the corpus legitimately finds nothing, unlike one who's in it", async ({
+    page,
+  }) => {
+    await page.goto(`${baseUrl}gallery/rag-webllm/index.html`);
+    const result = await page.evaluate(async () => {
+      // @ts-expect-error -- see the other direct-import test above.
+      const { SearchClient } = await import("./searchable.js");
+      const client = new SearchClient({
+        indexUrl: "search-index/manifest.json",
+      });
+      const absent = await client.search("hamlet", { operator: "or" });
+      const present = await client.search("romeo", { operator: "or" });
+      return { absentHits: absent.totalHits, presentHits: present.totalHits };
+    });
+    expect(result.absentHits).toBe(0);
+    expect(result.presentHits).toBeGreaterThan(0);
   });
 });
