@@ -14,8 +14,9 @@
     "build:gallery-locations": "tsx build-gallery-locations.ts",
     "build:gallery-synonyms": "tsx build-gallery-synonyms.ts",
     "build:gallery-i18n": "tsx build-gallery-i18n.ts",
+    "build:gallery-rag-webllm": "tsx build-gallery-rag-webllm.ts",
     "build:gallery-index": "tsx build-gallery-index.ts",
-    "build": "pnpm build:widget && pnpm build:docs && pnpm build:search && pnpm build:gallery && pnpm build:gallery-locations && pnpm build:gallery-synonyms && pnpm build:gallery-i18n && pnpm build:gallery-index",
+    "build": "pnpm build:widget && pnpm build:docs && pnpm build:search && pnpm build:gallery && pnpm build:gallery-locations && pnpm build:gallery-synonyms && pnpm build:gallery-i18n && pnpm build:gallery-rag-webllm && pnpm build:gallery-index",
     "validate": "tsx validate-dist.ts",
     "check": "pnpm build && pnpm validate && pnpm test",
     "typecheck": "tsc --noEmit"

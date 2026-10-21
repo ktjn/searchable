@@ -56,6 +56,12 @@ const DEMOS: DemoLink[] = [
     description:
       "Search the complete curated documentation set with the same static index and browser client.",
   },
+  {
+    href: "rag-webllm/index.html",
+    title: "RAG over WebLLM",
+    description:
+      "Retrieval-augmented generation, entirely client-side: @ktjn/searchable retrieves passages from a static Shakespeare index, then @mlc-ai/web-llm answers from them in the browser tab over WebGPU. Needs a WebGPU-capable browser (recent desktop Chrome or Edge).",
+  },
 ];
 
 export function renderHubPage(
