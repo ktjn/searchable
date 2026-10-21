@@ -119,6 +119,9 @@
     background: transparent;
     color: var(--accent);
   }
+  button.secondary:disabled {
+    opacity: 0.5;
+  }
   .progress-wrap {
     margin-top: 0.7rem;
   }
@@ -157,17 +160,39 @@
   .status.error {
     color: var(--accent);
   }
-  .answer {
+  .transcript {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    max-height: 60vh;
+    overflow-y: auto;
+    margin-bottom: 0.8rem;
+    padding-right: 0.1rem;
+  }
+  .msg {
+    display: flex;
+  }
+  .msg.user { justify-content: flex-end; }
+  .msg.assistant { justify-content: flex-start; }
+  .msg .bubble {
+    max-width: 85%;
+    padding: 0.6rem 0.9rem;
+    border-radius: 10px;
+    white-space: pre-wrap;
+    line-height: 1.55;
+  }
+  .msg.user .bubble {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+  .msg.assistant .bubble {
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1rem 1.2rem;
-    margin: 1.25rem 0;
-    white-space: pre-wrap;
-    line-height: 1.6;
-    min-height: 1.5em;
   }
-  .answer:empty { display: none; }
+  .msg .bubble:empty::after {
+    content: "…";
+    color: var(--muted);
+  }
   .sources summary {
     cursor: pointer;
     font-size: 0.85rem;
@@ -225,18 +250,18 @@
   </fieldset>
 
   <fieldset>
-    <legend>Ask</legend>
+    <legend>Chat</legend>
+    <div class="transcript" id="transcript" aria-live="polite"></div>
     <div class="row ask-row">
       <input id="question" type="text" placeholder="What does Romeo say about dreams?" autocomplete="off" />
-      <button id="ask-button" type="button" disabled>Ask</button>
+      <button id="ask-button" type="button" disabled>Send</button>
+      <button id="new-chat-button" type="button" class="secondary">New chat</button>
     </div>
     <p class="status" id="ask-status"></p>
   </fieldset>
 
-  <div class="answer" id="answer" aria-live="polite"></div>
-
   <details class="sources" id="sources" hidden>
-    <summary>Retrieved passages</summary>
+    <summary>Retrieved passages (most recent turn)</summary>
     <div id="passage-list"></div>
   </details>
 
@@ -260,8 +285,9 @@
   const modelStatus = document.getElementById("model-status");
   const question = document.getElementById("question");
   const askButton = document.getElementById("ask-button");
+  const newChatButton = document.getElementById("new-chat-button");
   const askStatus = document.getElementById("ask-status");
-  const answerEl = document.getElementById("answer");
+  const transcript = document.getElementById("transcript");
   const sourcesEl = document.getElementById("sources");
   const passageList = document.getElementById("passage-list");
 
@@ -391,6 +417,73 @@
     }
   });
 
+  const SYSTEM_PROMPT =
+    "You are a helpful assistant answering questions about Shakespeare's plays using " +
+    "retrieval-augmented generation. Each user turn below includes freshly retrieved " +
+    "passages followed by the question for that turn -- passages are not repeated " +
+    "across turns, so rely on the ones attached to the current question. Answer using " +
+    "ONLY those passages, citing them like [1], [2]. If they don't contain an answer, " +
+    "say so plainly instead of guessing. Earlier turns remain here as conversation " +
+    "context (e.g. to resolve a follow-up like \"what about him?\"), not as a source " +
+    "of passages.";
+
+  // Kept small on purpose: these are plain-text turns (no passages) sent back on
+  // every request so smaller in-browser models (down to ~135M params) don't blow
+  // their context window as a chat grows. Dropped two at a time (a user+assistant
+  // pair) so the remaining turns stay aligned on user/assistant/user/assistant.
+  const MAX_HISTORY_TURNS = 6;
+  const HISTORY_CHAR_BUDGET = 4000;
+
+  let conversation = []; // flat [{role: "user"|"assistant", content}, ...]
+  let inFlight = false;
+
+  function trimmedHistory() {
+    let turns = conversation.slice(-MAX_HISTORY_TURNS * 2);
+    let total = turns.reduce((n, m) => n + m.content.length, 0);
+    while (turns.length > 2 && total > HISTORY_CHAR_BUDGET) {
+      total -= turns[0].content.length + (turns[1]?.content.length ?? 0);
+      turns = turns.slice(2);
+    }
+    return turns;
+  }
+
+  // Combines the current question with the last couple of the user's own prior
+  // questions (not the assistant's answers) before retrieving, so a follow-up
+  // like "what about him?" still pulls in passages about whoever was just under
+  // discussion instead of retrieving on three empty-ish words alone.
+  function buildRetrievalQuery(q) {
+    const priorQuestions = conversation
+      .filter((m) => m.role === "user")
+      .slice(-2)
+      .map((m) => m.content);
+    return [...priorQuestions, q].join(" ");
+  }
+
+  function appendMessage(role, text) {
+    const row = document.createElement("div");
+    row.className = `msg ${role}`;
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+    row.append(bubble);
+    transcript.append(row);
+    transcript.scrollTop = transcript.scrollHeight;
+    return bubble;
+  }
+
+  function resetConversation() {
+    conversation = [];
+    transcript.replaceChildren();
+    passageList.replaceChildren();
+    sourcesEl.hidden = true;
+    askStatus.textContent = "";
+    askStatus.className = "status";
+    question.value = "";
+    question.focus();
+  }
+
+  newChatButton.addEventListener("click", resetConversation);
+
   function renderPassages(hits) {
     passageList.replaceChildren();
     if (!hits.length) {
@@ -415,35 +508,38 @@
 
   async function ask() {
     const q = question.value.trim();
-    if (!q || !engine) return;
+    if (!q || !engine || inFlight) return;
+    inFlight = true;
     askButton.disabled = true;
-    answerEl.textContent = "";
+    newChatButton.disabled = true;
+    question.value = "";
     askStatus.textContent = "Retrieving passages…";
     askStatus.className = "status";
+
+    appendMessage("user", q);
+    const assistantBubble = appendMessage("assistant", "");
+
     try {
-      const result = await client.search(q, { limit: 5, operator: "or" });
+      const result = await client.search(buildRetrievalQuery(q), {
+        limit: 5,
+        operator: "or",
+      });
       renderPassages(result.hits);
 
-      if (result.hits.length === 0) {
-        askStatus.textContent = "No matching passages found in the index for that question.";
-        askButton.disabled = false;
-        return;
-      }
-
       askStatus.textContent = "Generating…";
-      const context = result.hits
-        .map((hit, i) => `[${i + 1}] (${hit.fields.speakers || hit.fields.title})\n${hit.fields.chunkText}`)
-        .join("\n\n");
+      const context = result.hits.length
+        ? result.hits
+            .map((hit, i) => `[${i + 1}] (${hit.fields.speakers || hit.fields.title})\n${hit.fields.chunkText}`)
+            .join("\n\n")
+        : "(No passages in the indexed corpus matched this question.)";
+
       const messages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...trimmedHistory(),
         {
-          role: "system",
-          content:
-            "You answer questions using ONLY the numbered passages given below, which are " +
-            "lines from Shakespeare plays. Cite passages you use like [1], [2]. If the " +
-            "passages don't contain an answer, say so plainly instead of guessing.\n\n" +
-            context,
+          role: "user",
+          content: `Passages for this question:\n\n${context}\n\nQuestion: ${q}`,
         },
-        { role: "user", content: q },
       ];
 
       const stream = await engine.chat.completions.create({
@@ -451,16 +547,28 @@
         stream: true,
         temperature: 0.4,
       });
+      let answer = "";
       for await (const chunk of stream) {
         const delta = chunk.choices?.[0]?.delta?.content;
-        if (delta) answerEl.textContent += delta;
+        if (delta) {
+          answer += delta;
+          assistantBubble.textContent = answer;
+          transcript.scrollTop = transcript.scrollHeight;
+        }
       }
-      askStatus.textContent = "Done.";
+      conversation.push({ role: "user", content: q });
+      conversation.push({ role: "assistant", content: answer });
+      askStatus.textContent = result.hits.length
+        ? "Done."
+        : "Done (no matching passages found for this question).";
     } catch (err) {
       askStatus.textContent = `Error: ${err?.message ? err.message : err}`;
       askStatus.className = "status error";
     } finally {
+      inFlight = false;
       askButton.disabled = false;
+      newChatButton.disabled = false;
+      question.focus();
     }
   }
 
