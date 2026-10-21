@@ -421,7 +421,7 @@
     askStatus.textContent = "Retrieving passages…";
     askStatus.className = "status";
     try {
-      const result = await client.search(q, { limit: 5 });
+      const result = await client.search(q, { limit: 5, operator: "or" });
       renderPassages(result.hits);
 
       if (result.hits.length === 0) {

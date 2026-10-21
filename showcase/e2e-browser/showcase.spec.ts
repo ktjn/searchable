@@ -952,9 +952,23 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
         indexUrl: "search-index/manifest.json",
       });
       const r = await client.search("dreams", { limit: 3 });
-      return { totalHits: r.totalHits, firstTitle: r.hits[0]?.fields.title };
+      // A full natural-language question, the shape the demo's own UI
+      // sends: regression coverage for operator defaulting to "and" (every
+      // query term required in one chunk), which made realistic questions
+      // like this return zero hits even though the single-word query above
+      // matches fine.
+      const question = await client.search(
+        "What does Hamlet say about dreams?",
+        { limit: 5, operator: "or" },
+      );
+      return {
+        totalHits: r.totalHits,
+        firstTitle: r.hits[0]?.fields.title,
+        questionHits: question.totalHits,
+      };
     });
     expect(result.totalHits).toBeGreaterThan(0);
     expect(result.firstTitle).toBeTruthy();
+    expect(result.questionHits).toBeGreaterThan(0);
   });
 });

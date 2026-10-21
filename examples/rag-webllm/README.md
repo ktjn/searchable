@@ -56,7 +56,12 @@ talks about crowns and kings?"
 Retrieval was verified end-to-end through a real browser loading the real built
 `@ktjn/searchable` bundle against the real built index: queries like "dreams", "crown
 king", "murder", and "love" each return dozens of genuinely relevant passages with
-correct titles, speakers, and full text. The page loads without console errors, and
+correct titles, speakers, and full text. Full natural-language questions (the kind the
+UI is actually asked) are searched with `operator: "or"` -- the client's default
+`operator: "and"` requires every query term to appear in the same chunk, which a
+realistic question almost never satisfies, so a question like "What does Hamlet say
+about dreams?" returned zero hits until this was set explicitly. The page loads
+without console errors, and
 the WebGPU-adapter check actually calls `requestAdapter()` rather than just checking
 whether the API object exists -- Chromium can expose `navigator.gpu` as a JS API
 surface with no usable adapter behind it (headless/virtualized environments, or
