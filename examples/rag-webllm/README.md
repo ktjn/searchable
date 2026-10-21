@@ -1,5 +1,9 @@
 # RAG over WebLLM
 
+Also deployed live as part of the [feature gallery](../../showcase/build-gallery-rag-webllm.ts)
+(the "RAG over WebLLM" card on the gallery hub) -- this directory is both that demo's
+source and a standalone example you can build and run on its own.
+
 A fully client-side retrieval-augmented generation example built on this repo's own
 pieces:
 

@@ -275,13 +275,54 @@
   const available = webllm.prebuiltAppConfig.model_list;
   const offered = PREFERRED_MODEL_IDS
     .map((id) => available.find((m) => m.model_id === id))
-    .filter(Boolean);
+    .filter(Boolean)
+    // Ascending by VRAM so pickModelForDevice() below can walk the list and
+    // keep the largest one that still fits, and so the dropdown itself
+    // reads as smallest/fastest-to-largest/most-capable.
+    .sort((a, b) => (a.vram_required_MB ?? 0) - (b.vram_required_MB ?? 0));
   for (const m of offered) {
     const option = document.createElement("option");
     option.value = m.model_id;
     const mb = m.vram_required_MB ? ` (~${Math.round(m.vram_required_MB)}MB VRAM)` : "";
     option.textContent = m.model_id + mb;
     modelSelect.append(option);
+  }
+
+  // Picks the largest (most capable) offered model this device can
+  // plausibly run, from two signals available before loading anything:
+  //  - the WebGPU adapter's maxStorageBufferBindingSize, a hard ceiling --
+  //    WebLLM itself exposes the same number post-load as
+  //    engine.getMaxStorageBufferBindingSize(), since a model whose
+  //    largest buffer exceeds it simply can't be created.
+  //  - navigator.deviceMemory (device RAM in GB, Chromium-only, rounded
+  //    and capped at 8 for privacy) as a soft budget -- the real
+  //    constraint is GPU memory, which this doesn't measure directly, but
+  //    it's the only general capacity signal most browsers expose, and
+  //    GPU and system memory are the same pool on most laptops anyway.
+  // Deliberately conservative both times a signal is missing or a model
+  // doesn't fit: this only needs to avoid picking something that visibly
+  // fails to load, not to be precise.
+  function pickModelForDevice(models, adapter) {
+    const BUFFER_SAFETY_MARGIN = 1.15; // a model's own working memory beyond raw weights
+    const MEMORY_SAFETY_FACTOR = 0.6; // leave room for the OS, browser, and other tabs
+    const FALLBACK_DEVICE_MEMORY_GB = 4; // used only when deviceMemory isn't reported
+
+    const bufferLimitMB = adapter.limits?.maxStorageBufferBindingSize
+      ? adapter.limits.maxStorageBufferBindingSize / (1024 * 1024)
+      : undefined;
+    const eligible = models.filter((m) => {
+      if (!m.vram_required_MB || bufferLimitMB === undefined) return true;
+      return m.vram_required_MB * BUFFER_SAFETY_MARGIN <= bufferLimitMB;
+    });
+    const pool = eligible.length > 0 ? eligible : models;
+
+    const deviceMemoryGB = navigator.deviceMemory ?? FALLBACK_DEVICE_MEMORY_GB;
+    const memoryBudgetMB = deviceMemoryGB * 1024 * MEMORY_SAFETY_FACTOR;
+    let chosen = pool[0];
+    for (const m of pool) {
+      if ((m.vram_required_MB ?? 0) <= memoryBudgetMB) chosen = m;
+    }
+    return chosen;
   }
 
   const client = new SearchClient({ indexUrl: "search-index/manifest.json" });
@@ -314,7 +355,11 @@
           );
           loadButton.disabled = true;
         } else {
-          setModelStatus("WebGPU adapter found. Pick a model and load it.");
+          const suggested = pickModelForDevice(offered, adapter);
+          modelSelect.value = suggested.model_id;
+          setModelStatus(
+            `WebGPU adapter found. Suggested model for this device: ${suggested.model_id} -- pick a different one if you like.`,
+          );
         }
       })
       .catch((err) => {
