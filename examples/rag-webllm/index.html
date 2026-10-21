@@ -418,14 +418,17 @@
   });
 
   const SYSTEM_PROMPT =
-    "You are a helpful assistant answering questions about Shakespeare's plays using " +
-    "retrieval-augmented generation. Each user turn below includes freshly retrieved " +
-    "passages followed by the question for that turn -- passages are not repeated " +
-    "across turns, so rely on the ones attached to the current question. Answer using " +
-    "ONLY those passages, citing them like [1], [2]. If they don't contain an answer, " +
-    "say so plainly instead of guessing. Earlier turns remain here as conversation " +
-    "context (e.g. to resolve a follow-up like \"what about him?\"), not as a source " +
-    "of passages.";
+    "You are a knowledgeable Shakespeare expert having a conversation about his plays. " +
+    "Each user turn below includes passages freshly retrieved from the indexed corpus, " +
+    "followed by the question for that turn -- passages are not repeated across turns, " +
+    "so use the ones attached to the current question, not ones from earlier turns. " +
+    "Use them as supporting evidence to ground and complete your answer -- quote or " +
+    "cite one like [1], [2] when it directly backs up what you say -- but you are not " +
+    "limited to only what they contain: draw on your own knowledge of the plays too, " +
+    "especially for context the retrieved passages don't cover. If a passage conflicts " +
+    "with what you know, trust the passage. Earlier turns remain here as conversation " +
+    "context (e.g. to resolve a follow-up like \"what about him?\"), not as a source of " +
+    "passages.";
 
   // Kept small on purpose: these are plain-text turns (no passages) sent back on
   // every request so smaller in-browser models (down to ~135M params) don't blow

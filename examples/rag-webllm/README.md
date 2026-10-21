@@ -30,10 +30,12 @@ Open the printed URL in **a recent desktop Chrome or Edge** (WebGPU support --
 Firefox and Safari don't reliably support it yet). Pick a model, click **Load model**
 (this downloads the model weights from Hugging Face the first time -- a few hundred MB
 to a few GB depending on which one you pick -- and caches them in the browser for next
-time), then chat. Each turn retrieves fresh passages for that question, then asks the
-model to answer using only those passages, citing them as `[1]`, `[2]`, etc. Prior
-turns stay in the conversation (and feed retrieval for follow-ups -- see below), so you
-can ask something like:
+time), then chat. The model plays a Shakespeare expert: each turn retrieves fresh
+passages for that question and hands them to the model as supporting evidence --
+grounding and citing from them (`[1]`, `[2]`, etc.) where they back up the answer, while
+still drawing on its own knowledge of the plays for context the retrieved passages
+don't cover. Prior turns stay in the conversation (and feed retrieval for follow-ups --
+see below), so you can ask something like:
 
 1. "What does Romeo say about dreams?"
 2. "What about love?"
@@ -53,8 +55,10 @@ page. Click **New chat** to drop the conversation and start over.
   forward as plain `{role, content}` messages (no passages attached). The *current*
   turn's user message is built fresh each time as its retrieved passages followed by
   the question -- see the system prompt in `index.html`, which tells the model
-  passages aren't repeated across turns so it should answer from the current turn's
-  passages, not go hunting in earlier ones.
+  passages aren't repeated across turns (so it should ground answers in the current
+  turn's passages, not go hunting in earlier ones) but that it isn't limited to only
+  what they say -- it's expected to use its own knowledge of the plays too, trusting a
+  retrieved passage over its own knowledge if the two conflict.
 - **History is bounded, not just the model's own context limit.** The smallest
   offered model (SmolLM2-135M) has a tiny context window, so prior turns are kept to
   the last `MAX_HISTORY_TURNS` (6) exchanges, and trimmed further (two turns at a
