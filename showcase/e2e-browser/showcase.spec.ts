@@ -841,7 +841,7 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
   // probing for a WebGPU adapter, disabling the Load button) is this page's
   // own real code running against the real DOM.
   const WEBLLM_CDN_URL =
-    "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.85/+esm";
+    "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.86/+esm";
   const WEBLLM_STUB = `
     export const prebuiltAppConfig = {
       model_list: [
