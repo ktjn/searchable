@@ -30,11 +30,47 @@ Open the printed URL in **a recent desktop Chrome or Edge** (WebGPU support --
 Firefox and Safari don't reliably support it yet). Pick a model, click **Load model**
 (this downloads the model weights from Hugging Face the first time -- a few hundred MB
 to a few GB depending on which one you pick -- and caches them in the browser for next
-time), then ask a question. It retrieves the most relevant passages first, then asks
-the model to answer using only those passages, citing them as `[1]`, `[2]`, etc.
+time), then chat. The model plays a Shakespeare expert: each turn retrieves fresh
+passages for that question and hands them to the model as supporting evidence --
+grounding and citing from them (`[1]`, `[2]`, etc.) where they back up the answer, while
+still drawing on its own knowledge of the plays for context the retrieved passages
+don't cover. Prior turns stay in the conversation (and feed retrieval for follow-ups --
+see below), so you can ask something like:
 
-Try: "What does Romeo say about dreams?", "What happens to the murderers?", "Who
-talks about crowns and kings?"
+1. "What does Romeo say about dreams?"
+2. "What about love?"
+3. "Who else talks about that?"
+
+and have the thread hold together, instead of each question starting from a blank
+page. Click **New chat** to drop the conversation and start over.
+
+### How multi-turn retrieval and context work
+
+- **Retrieval is per-turn, not cached.** Every question (not just the first) runs a
+  fresh `client.search()`; nothing from an earlier turn's passages is reused. To keep
+  a short follow-up like "what about him?" from retrieving on three near-empty words,
+  the query sent to `search()` combines the current question with the user's last two
+  prior questions (not the assistant's answers) -- see `buildRetrievalQuery()`.
+- **The model sees two kinds of history.** Prior conversation turns are carried
+  forward as plain `{role, content}` messages (no passages attached). The *current*
+  turn's user message is built fresh each time as its retrieved passages followed by
+  the question -- see the system prompt in `index.html`, which tells the model
+  passages aren't repeated across turns (so it should ground answers in the current
+  turn's passages, not go hunting in earlier ones) but that it isn't limited to only
+  what they say -- it's expected to use its own knowledge of the plays too, trusting a
+  retrieved passage over its own knowledge if the two conflict.
+- **History is bounded, not just the model's own context limit.** The smallest
+  offered model (SmolLM2-135M) has a tiny context window, so prior turns are kept to
+  the last `MAX_HISTORY_TURNS` (6) exchanges, and trimmed further (two turns at a
+  time, to keep user/assistant pairing intact) if their combined length exceeds
+  `HISTORY_CHAR_BUDGET` (4000 characters). This is a conservative heuristic, not a
+  real tokenizer-based budget -- there's no tokenizer available client-side for every
+  offered model, and the point is only to avoid a visibly broken response on the
+  smallest model, not to maximize how much history larger ones could technically fit.
+- **No passages found doesn't stop the turn.** Unlike a single-shot "no passages,
+  give up" response, the model still generates a reply when retrieval comes up empty
+  (told plainly that nothing matched), so conversational turns like "thanks!" don't
+  dead-end the chat.
 
 The source corpus is [tiny-shakespeare](https://github.com/karpathy/char-rnn/blob/master/data/tinyshakespeare/input.txt),
 a specific selection of plays (Romeo and Juliet, Coriolanus, the Henry VI/Richard
@@ -45,7 +81,9 @@ corpus, or check `content/tinyshakespeare.txt` for a `^NAME:` speaker tag first.
 
 ## What's in here
 
-- `index.html` -- the whole app (retrieval + generation + UI), one file.
+- `index.html` -- the whole app (retrieval + generation + UI), one file. Chat state
+  (the conversation array, retrieval, and history trimming) all lives in its one
+  `<script type="module">`.
 - `content/tinyshakespeare.txt` -- the source corpus, committed as source content
   (small, public domain, and keeps the example buildable offline).
 - `build_corpus.py` -- chunks the corpus and builds the index with

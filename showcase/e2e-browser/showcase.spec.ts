@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { serveDir } from "./serve-dir.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -972,22 +972,36 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
     expect(result.questionHits).toBeGreaterThan(0);
   });
 
-  // The two tests above only ever exercise client.search() directly via
-  // page.evaluate() -- never the page's own ask() handler (index.html's
-  // askButton click listener), which is the only thing a real visitor
-  // actually triggers. That handler is gated on `engine` being set, which
-  // only happens after a real model finishes loading -- so a bug reachable
-  // only through that gate (wrong element id, a stale closure, askButton
-  // never re-enabled, the engine.chat.completions.create() call itself
-  // throwing) would pass both tests above and still show "No matching
-  // passages" or worse to every real user. This fakes just enough (a
-  // WebGPU adapter so Load isn't disabled, and a CreateMLCEngine that
-  // resolves instead of the other tests' rejecting stub) to click through
-  // the actual UI exactly as a visitor would: pick a model, Load, type the
-  // placeholder's own suggested question, click Ask.
-  test("asking a real question through the UI itself finds passages", async ({
-    page,
-  }) => {
+  // A stub CreateMLCEngine that always replies "ok" and records every
+  // `messages` array it's called with on `window.__createCalls`, so tests can
+  // inspect exactly what the page sent the model on each turn -- not just
+  // what appeared in the transcript.
+  const RECORDING_WEBLLM_STUB = `
+    export const prebuiltAppConfig = {
+      model_list: [
+        { model_id: "SmolLM2-135M-Instruct-q0f16-MLC", vram_required_MB: 359 },
+      ],
+    };
+    export async function CreateMLCEngine() {
+      window.__createCalls = [];
+      return {
+        chat: {
+          completions: {
+            async create({ messages }) {
+              window.__createCalls.push(messages);
+              return {
+                [Symbol.asyncIterator]: async function* () {
+                  yield { choices: [{ delta: { content: "ok" } }] };
+                },
+              };
+            },
+          },
+        },
+      };
+    }
+  `;
+
+  async function loadModelThroughUi(page: Page) {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "gpu", {
         get: () => ({
@@ -1000,46 +1014,123 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
     await page.route(WEBLLM_CDN_URL, (route) =>
       route.fulfill({
         contentType: "text/javascript",
-        body: `
-          export const prebuiltAppConfig = {
-            model_list: [
-              { model_id: "SmolLM2-135M-Instruct-q0f16-MLC", vram_required_MB: 359 },
-            ],
-          };
-          export async function CreateMLCEngine() {
-            return {
-              chat: {
-                completions: {
-                  async create() {
-                    return {
-                      [Symbol.asyncIterator]: async function* () {
-                        yield { choices: [{ delta: { content: "ok" } }] };
-                      },
-                    };
-                  },
-                },
-              },
-            };
-          }
-        `,
+        body: RECORDING_WEBLLM_STUB,
       }),
     );
-
     await page.goto(`${baseUrl}gallery/rag-webllm/index.html`);
     await expect(page.locator("#load-button")).toBeEnabled();
     await page.click("#load-button");
     await expect(page.locator("#ask-button")).toBeEnabled();
+  }
 
-    await page.fill("#question", "What does Romeo say about dreams?");
+  async function sendMessage(page: Page, text: string) {
+    await page.fill("#question", text);
     await page.click("#ask-button");
+    await expect(page.locator("#ask-status")).toHaveText(/^Done/);
+  }
 
-    await expect(page.locator("#ask-status")).not.toHaveText(
-      "No matching passages found in the index for that question.",
-    );
+  // The tests above only ever exercise client.search() directly via
+  // page.evaluate() -- never the page's own ask() handler (index.html's
+  // askButton click listener), which is the only thing a real visitor
+  // actually triggers. That handler is gated on `engine` being set, which
+  // only happens after a real model finishes loading -- so a bug reachable
+  // only through that gate (wrong element id, a stale closure, askButton
+  // never re-enabled, the engine.chat.completions.create() call itself
+  // throwing) would pass both tests above and still show nothing, or worse,
+  // to every real user. This fakes just enough (a WebGPU adapter so Load
+  // isn't disabled, and a CreateMLCEngine that resolves instead of the other
+  // tests' rejecting stub) to click through the actual UI exactly as a
+  // visitor would: pick a model, Load, type the placeholder's own suggested
+  // question, click Send.
+  test("asking a real question through the UI itself finds passages", async ({
+    page,
+  }) => {
+    await loadModelThroughUi(page);
+    await sendMessage(page, "What does Romeo say about dreams?");
+
+    await expect(page.locator("#ask-status")).toHaveText("Done.");
     await expect(page.locator("#sources")).toBeVisible();
     expect(
       await page.locator("#passage-list .passage").count(),
     ).toBeGreaterThan(0);
+    await expect(page.locator(".msg.user .bubble")).toHaveText(
+      "What does Romeo say about dreams?",
+    );
+    await expect(page.locator(".msg.assistant .bubble")).toHaveText("ok");
+  });
+
+  // Regression coverage for the single-shot -> multi-turn conversion: a
+  // second turn must (a) show both exchanges in the transcript, (b) still
+  // retrieve fresh passages rather than reusing the first turn's, and (c)
+  // carry the first turn forward as plain-text history in what's sent to the
+  // model, per the contract described in index.html's SYSTEM_PROMPT and
+  // README.md's "How multi-turn retrieval and context work".
+  test("a second turn keeps prior history and still retrieves fresh passages", async ({
+    page,
+  }) => {
+    await loadModelThroughUi(page);
+    await sendMessage(page, "What does Romeo say about dreams?");
+    await sendMessage(page, "What about love?");
+
+    await expect(page.locator(".msg")).toHaveCount(4);
+    await expect(page.locator(".msg.user .bubble").nth(0)).toHaveText(
+      "What does Romeo say about dreams?",
+    );
+    await expect(page.locator(".msg.user .bubble").nth(1)).toHaveText(
+      "What about love?",
+    );
+
+    const calls = await page.evaluate(
+      () => (window as unknown as { __createCalls: unknown[][] }).__createCalls,
+    );
+    expect(calls).toHaveLength(2);
+
+    const secondCallMessages = calls[1] as Array<{
+      role: string;
+      content: string;
+    }>;
+    expect(secondCallMessages[0]?.role).toBe("system");
+    // The first turn's question and answer are carried forward verbatim, as
+    // plain conversational history with no passages attached.
+    expect(secondCallMessages).toContainEqual({
+      role: "user",
+      content: "What does Romeo say about dreams?",
+    });
+    expect(secondCallMessages).toContainEqual({
+      role: "assistant",
+      content: "ok",
+    });
+    // The final message is the current turn: its own freshly retrieved
+    // passages plus the current question, not the first turn's passages.
+    const lastMessage = secondCallMessages.at(-1);
+    expect(lastMessage?.role).toBe("user");
+    expect(lastMessage?.content).toContain("Passages for this question:");
+    expect(lastMessage?.content).toContain("Question: What about love?");
+  });
+
+  test("new chat clears the transcript and starts a fresh conversation", async ({
+    page,
+  }) => {
+    await loadModelThroughUi(page);
+    await sendMessage(page, "What does Romeo say about dreams?");
+    await expect(page.locator(".msg")).toHaveCount(2);
+
+    await page.click("#new-chat-button");
+
+    await expect(page.locator(".msg")).toHaveCount(0);
+    await expect(page.locator("#sources")).toBeHidden();
+
+    await sendMessage(page, "What about love?");
+    const calls = await page.evaluate(
+      () => (window as unknown as { __createCalls: unknown[][] }).__createCalls,
+    );
+    const onlyCallMessages = calls[0] as Array<{
+      role: string;
+      content: string;
+    }>;
+    // No leftover history from the cleared conversation: just the system
+    // prompt and the current turn.
+    expect(onlyCallMessages).toHaveLength(2);
   });
 
   // Reported as "the fix from PR #159 is still broken" -- it wasn't: the
