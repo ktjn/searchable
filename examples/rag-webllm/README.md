@@ -33,8 +33,15 @@ to a few GB depending on which one you pick -- and caches them in the browser fo
 time), then ask a question. It retrieves the most relevant passages first, then asks
 the model to answer using only those passages, citing them as `[1]`, `[2]`, etc.
 
-Try: "What does Hamlet say about dreams?", "What happens to the murderers?", "Who
+Try: "What does Romeo say about dreams?", "What happens to the murderers?", "Who
 talks about crowns and kings?"
+
+The source corpus is [tiny-shakespeare](https://github.com/karpathy/char-rnn/blob/master/data/tinyshakespeare/input.txt),
+a specific selection of plays (Romeo and Juliet, Coriolanus, the Henry VI/Richard
+III history plays, The Tempest, The Winter's Tale, and others) -- it does **not**
+include Hamlet, Macbeth, Lear, or Othello, so a question naming one of those will
+legitimately return nothing. Ask about a character or play that's actually in the
+corpus, or check `content/tinyshakespeare.txt` for a `^NAME:` speaker tag first.
 
 ## What's in here
 
@@ -59,7 +66,7 @@ king", "murder", and "love" each return dozens of genuinely relevant passages wi
 correct titles, speakers, and full text. Full natural-language questions (the kind the
 UI is actually asked) are searched with `operator: "or"` -- the client's default
 `operator: "and"` requires every query term to appear in the same chunk, which a
-realistic question almost never satisfies, so a question like "What does Hamlet say
+realistic question almost never satisfies, so a question like "What does Romeo say
 about dreams?" returned zero hits until this was set explicitly. The page loads
 without console errors, and
 the WebGPU-adapter check actually calls `requestAdapter()` rather than just checking
