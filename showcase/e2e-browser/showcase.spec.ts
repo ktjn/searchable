@@ -846,6 +846,9 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
     export const prebuiltAppConfig = {
       model_list: [
         { model_id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", vram_required_MB: 879 },
+        { model_id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", vram_required_MB: 1629 },
+        { model_id: "Phi-3.5-mini-instruct-q4f16_1-MLC", vram_required_MB: 3672 },
+        { model_id: "SmolLM2-360M-Instruct-q4f16_1-MLC", vram_required_MB: 376 },
         { model_id: "SmolLM2-135M-Instruct-q0f16-MLC", vram_required_MB: 359 },
       ],
     };
@@ -868,7 +871,7 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
 
     await page.goto(`${baseUrl}gallery/rag-webllm/index.html`);
     await expect(page.locator("#model-select option").first()).toBeAttached();
-    expect(await page.locator("#model-select option").count()).toBe(2);
+    expect(await page.locator("#model-select option").count()).toBe(5);
     expect(errors).toEqual([]);
   });
 
@@ -887,6 +890,53 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
     await page.goto(`${baseUrl}gallery/rag-webllm/index.html`);
     await expect(page.locator("#load-button")).toBeDisabled();
     await expect(page.locator("#model-status")).not.toHaveText("");
+  });
+
+  test("suggests a larger model on a device that reports more memory", async ({
+    context,
+  }) => {
+    // Fabricates navigator.gpu/deviceMemory entirely, rather than relying
+    // on this suite's real (adapter-less) browser, so the picker's own
+    // logic is under test here -- not this sandbox's hardware. A fresh
+    // page per scenario: addInitScript's definitions stick for the page's
+    // lifetime, and a second attempt to redefine an already-non-configurable
+    // navigator.gpu/deviceMemory on the same page silently loses to the
+    // first.
+    async function selectedModelFor(
+      deviceMemoryGB: number,
+      bufferLimitMB: number,
+    ) {
+      const page = await context.newPage();
+      await page.addInitScript(
+        ({ deviceMemoryGB, bufferLimitBytes }) => {
+          Object.defineProperty(navigator, "deviceMemory", {
+            get: () => deviceMemoryGB,
+          });
+          Object.defineProperty(navigator, "gpu", {
+            get: () => ({
+              requestAdapter: async () => ({
+                limits: { maxStorageBufferBindingSize: bufferLimitBytes },
+              }),
+            }),
+          });
+        },
+        { deviceMemoryGB, bufferLimitBytes: bufferLimitMB * 1024 * 1024 },
+      );
+      await page.route(WEBLLM_CDN_URL, (route) =>
+        route.fulfill({ contentType: "text/javascript", body: WEBLLM_STUB }),
+      );
+      await page.goto(`${baseUrl}gallery/rag-webllm/index.html`);
+      await expect(page.locator("#model-status")).toContainText("Suggested");
+      const value = await page.locator("#model-select").inputValue();
+      await page.close();
+      return value;
+    }
+
+    const low = await selectedModelFor(2, 1024);
+    expect(low).toBe("Llama-3.2-1B-Instruct-q4f16_1-MLC");
+
+    const mid = await selectedModelFor(8, 2048);
+    expect(mid).toBe("Qwen2.5-1.5B-Instruct-q4f16_1-MLC");
   });
 
   test("retrieval resolves real passages from the deployed index", async ({
