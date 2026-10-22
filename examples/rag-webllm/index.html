@@ -193,30 +193,6 @@
     content: "…";
     color: var(--muted);
   }
-  .sources summary {
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--muted);
-    margin-bottom: 0.6rem;
-  }
-  .passage {
-    border-left: 3px solid var(--border);
-    padding: 0.2rem 0 0.2rem 0.8rem;
-    margin: 0 0 0.9rem;
-    font-size: 0.88rem;
-  }
-  .passage .meta {
-    color: var(--muted);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.2rem;
-  }
-  .passage .text {
-    white-space: pre-wrap;
-    color: var(--fg);
-    opacity: 0.9;
-  }
   footer {
     margin-top: 2.5rem;
     font-size: 0.78rem;
@@ -260,11 +236,6 @@
     <p class="status" id="ask-status"></p>
   </fieldset>
 
-  <details class="sources" id="sources" hidden>
-    <summary>Retrieved passages (most recent turn)</summary>
-    <div id="passage-list"></div>
-  </details>
-
   <footer>
     Source text: <a href="https://github.com/karpathy/char-rnn/blob/master/data/tinyshakespeare/input.txt" target="_blank" rel="noopener">tiny-shakespeare</a>
     (public domain, concatenated Shakespeare excerpts, no act/scene attribution in the source file).
@@ -288,8 +259,6 @@
   const newChatButton = document.getElementById("new-chat-button");
   const askStatus = document.getElementById("ask-status");
   const transcript = document.getElementById("transcript");
-  const sourcesEl = document.getElementById("sources");
-  const passageList = document.getElementById("passage-list");
 
   const PREFERRED_MODEL_IDS = [
     "Llama-3.2-1B-Instruct-q4f16_1-MLC",
@@ -477,8 +446,6 @@
   function resetConversation() {
     conversation = [];
     transcript.replaceChildren();
-    passageList.replaceChildren();
-    sourcesEl.hidden = true;
     askStatus.textContent = "";
     askStatus.className = "status";
     question.value = "";
@@ -487,28 +454,6 @@
 
   newChatButton.addEventListener("click", resetConversation);
 
-  function renderPassages(hits) {
-    passageList.replaceChildren();
-    if (!hits.length) {
-      sourcesEl.hidden = true;
-      return;
-    }
-    sourcesEl.hidden = false;
-    sourcesEl.open = true;
-    for (const hit of hits) {
-      const div = document.createElement("div");
-      div.className = "passage";
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.textContent = `${hit.fields.speakers || hit.fields.title} &middot; score ${hit.score.toFixed(2)}`;
-      const text = document.createElement("div");
-      text.className = "text";
-      text.textContent = hit.fields.chunkText || "";
-      div.append(meta, text);
-      passageList.append(div);
-    }
-  }
-
   async function ask() {
     const q = question.value.trim();
     if (!q || !engine || inFlight) return;
@@ -516,7 +461,7 @@
     askButton.disabled = true;
     newChatButton.disabled = true;
     question.value = "";
-    askStatus.textContent = "Retrieving passages…";
+    askStatus.textContent = "Retrieving context…";
     askStatus.className = "status";
 
     appendMessage("user", q);
@@ -527,7 +472,6 @@
         limit: 5,
         operator: "or",
       });
-      renderPassages(result.hits);
 
       askStatus.textContent = "Generating…";
       const context = result.hits.length
