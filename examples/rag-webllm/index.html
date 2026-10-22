@@ -393,11 +393,15 @@
     "across turns, so use what's attached to the current question, not earlier turns'. " +
     "Use it to help ground and complete your answer, blending it naturally into a " +
     "normal conversational reply -- don't cite it, number it, or call it out as a " +
-    "separate source. You're not limited to only what it says, either: draw on your " +
-    "own knowledge of the plays too, especially for anything the retrieved context " +
-    "doesn't cover. If it conflicts with what you know, trust the retrieved context. " +
-    "Earlier turns remain here as conversation history (e.g. to resolve a follow-up " +
-    "like \"what about him?\"), not as a source of retrieved context.";
+    "separate source. Never mention the context or passages themselves, or that any " +
+    "were retrieved or provided to you (no \"based on the provided passages\", " +
+    "\"according to the context\", \"the text says\", etc.) -- answer as though you " +
+    "simply know this, the way an expert would. You're not limited to only what it " +
+    "says, either: draw on your own knowledge of the plays too, especially for " +
+    "anything the retrieved context doesn't cover. If it conflicts with what you " +
+    "know, trust the retrieved context. Earlier turns remain here as conversation " +
+    "history (e.g. to resolve a follow-up like \"what about him?\"), not as a source " +
+    "of retrieved context.";
 
   // Kept small on purpose: these are plain-text turns (no passages) sent back on
   // every request so smaller in-browser models (down to ~135M params) don't blow
