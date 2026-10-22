@@ -1104,7 +1104,7 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
     // passages plus the current question, not the first turn's passages.
     const lastMessage = secondCallMessages.at(-1);
     expect(lastMessage?.role).toBe("user");
-    expect(lastMessage?.content).toContain("Passages for this question:");
+    expect(lastMessage?.content).toContain("Retrieved context:");
     expect(lastMessage?.content).toContain("Question: What about love?");
   });
 
