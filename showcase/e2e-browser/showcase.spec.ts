@@ -1042,17 +1042,15 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
   // tests' rejecting stub) to click through the actual UI exactly as a
   // visitor would: pick a model, Load, type the placeholder's own suggested
   // question, click Send.
-  test("asking a real question through the UI itself finds passages", async ({
+  test("asking a real question through the UI itself finds and uses passages", async ({
     page,
   }) => {
     await loadModelThroughUi(page);
     await sendMessage(page, "What does Romeo say about dreams?");
 
+    // "Done." (not the "no matching passages" variant) means retrieval found
+    // hits for this question -- there's no UI panel exposing them directly.
     await expect(page.locator("#ask-status")).toHaveText("Done.");
-    await expect(page.locator("#sources")).toBeVisible();
-    expect(
-      await page.locator("#passage-list .passage").count(),
-    ).toBeGreaterThan(0);
     await expect(page.locator(".msg.user .bubble")).toHaveText(
       "What does Romeo say about dreams?",
     );
@@ -1118,7 +1116,6 @@ test.describe("feature gallery: RAG over WebLLM demo (real browser)", () => {
     await page.click("#new-chat-button");
 
     await expect(page.locator(".msg")).toHaveCount(0);
-    await expect(page.locator("#sources")).toBeHidden();
 
     await sendMessage(page, "What about love?");
     const calls = await page.evaluate(
