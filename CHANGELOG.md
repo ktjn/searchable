@@ -18,6 +18,14 @@ is explicitly marked experimental and may change in a minor release.
 
 ### Fixed
 
+## [2.1.1] - 2026-10-31
+
+### Added
+
+### Changed
+
+### Fixed
+
 - Python indexer parses HTML with selectolax's lexbor backend and requires
   `selectolax>=1.0.1`. The previous `selectolax.parser` (Modest) import raises
   `ImportError` on selectolax 1.0 and later.
