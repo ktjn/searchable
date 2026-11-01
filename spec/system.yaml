@@ -2,33 +2,206 @@
 system:
   id: searchable
   version: "0.1.0"
-  status: draft
+  status: specified
   layers:
-    - build
     - runtime
+    - build
   external_sources: []
 
-capabilities: []
+capabilities:
+  - id: analyze-text
+    version: "0.1"
+    status: specified
+    preconditions:
+      - a language profile for the target language has been resolved
+    postconditions:
+      - returns tokens in original text order; non-word spans and stopwords
+        are dropped; each token's term is normalized (NFKC, lowercased,
+        optionally diacritic-folded and stemmed) per the language profile
+    invariants:
+      - tokenizing the same text with the same language profile is
+        deterministic
+    failure_modes:
+      - unsupported-language
+    interface:
+      operation: "analyze(text, profile) -> tokens"
+      mode: sync
+      idempotent: true
+      auth: none
+      errors:
+        unsupported-language: raised by language-profile lookup, not analyze() itself
+
+  - id: build-index
+    version: "0.1"
+    status: specified
+    preconditions:
+      - caller supplies source documents and field/indexing configuration
+    postconditions:
+      - produces an index manifest referencing term, doc-store, facet,
+        synonym, pins and fuzzy shards covering every supplied document
+    invariants:
+      - building from identical documents and configuration is deterministic
+    failure_modes:
+      - invalid-config
+
+  - id: query-index
+    version: "0.1"
+    status: specified
+    preconditions:
+      - caller supplies a fetched, valid manifest and a query string/options
+    postconditions:
+      - returns ranked hits and, when requested, facet counts and
+        highlighted excerpts, scoped to the fetched manifest/shards
+    invariants:
+      - scoring is deterministic for identical manifest, shards and query
+    failure_modes:
+      - invalid-manifest
 
 components:
+  - id: python-analysis
+    version: "0.1.0"
+    status: specified
+    layer: build
+    source_paths:
+      - python/searchable/src/searchable/analysis
+    provides:
+      - analyze-text
+
   - id: python-indexer
     version: "0.1.0"
-    status: draft
+    status: specified
     layer: build
     source_paths:
       - python/searchable/src/searchable/indexer
-      - python/searchable/src/searchable/analysis
+    provides:
+      - build-index
+    requires:
+      - analyze-text@^0.1
+    context_budget:
+      max_owns_data: 7
+    owns_data:
+      - index-manifest
+      - term-shard
+      - doc-store-shard
+      - facet-shard
+      - synonym-shard
+      - pins-shard
+      - fuzzy-shard
 
   - id: python-client
     version: "0.1.0"
-    status: draft
+    status: specified
     layer: runtime
     source_paths:
       - python/searchable/src/searchable/client
+    provides:
+      - query-index
+    requires:
+      - analyze-text@^0.1
 
   - id: ts-client
     version: "0.1.0"
-    status: draft
+    status: specified
     layer: runtime
     source_paths:
       - packages/searchable/src
+    provides:
+      - query-index
+
+data_models:
+  - id: index-manifest
+    version: "0.1.0"
+    owner: python-indexer
+    classification: public
+    schema_path: spec/schema/manifest.schema.json
+    fields:
+      version: integer, format version
+      buildId: string, build identity
+      languages: array of analyzed language codes
+      defaultLanguage: string
+      fields: field name -> indexing config
+      facetFields: array of facet field names
+      docCount: integer
+      avgFieldLength: object, field name -> average length
+      shards: array of shard references (term/doc-store/facet/synonym/pins/fuzzy)
+      synonyms: optional synonym-shard reference
+      pins: optional pins-shard reference
+      fuzzy: optional fuzzy-shard reference
+      vectors: optional vector index reference
+
+  - id: term-shard
+    version: "0.1.0"
+    owner: python-indexer
+    classification: public
+    derived_from: [index-manifest]
+    schema_path: spec/schema/term-shard.schema.json
+    fields:
+      postings: term -> document postings (inverted index)
+
+  - id: doc-store-shard
+    version: "0.1.0"
+    owner: python-indexer
+    classification: restricted
+    classification_review: classify-stored-document-fields
+    derived_from: [index-manifest]
+    schema_path: spec/schema/doc-store-shard.schema.json
+    fields:
+      documents: stored source-document field values, keyed by document id
+
+  - id: facet-shard
+    version: "0.1.0"
+    owner: python-indexer
+    classification: public
+    derived_from: [index-manifest]
+    schema_path: spec/schema/facet-shard.schema.json
+    fields:
+      type: facet kind (terms/range/hierarchical)
+      separator: hierarchy path separator
+      values: facet value -> document postings
+      sorted: sorted value index (range facets)
+      points: geo point index
+
+  - id: synonym-shard
+    version: "0.1.0"
+    owner: python-indexer
+    classification: public
+    derived_from: [index-manifest]
+    schema_path: spec/schema/synonym-shard.schema.json
+    fields:
+      equivalences: term equivalence classes
+      directional: one-way expansions
+      multiWord: multi-word synonym phrases
+
+  - id: pins-shard
+    version: "0.1.0"
+    owner: python-indexer
+    classification: public
+    derived_from: [index-manifest]
+    schema_path: spec/schema/pins-shard.schema.json
+    fields:
+      pins: query term -> pinned document ids
+
+  - id: fuzzy-shard
+    version: "0.1.0"
+    owner: python-indexer
+    classification: public
+    derived_from: [index-manifest]
+    schema_path: spec/schema/fuzzy-shard.schema.json
+    fields:
+      maxEdits: maximum edit distance
+      deletions: deletion-neighborhood index for fuzzy lookup
+
+requirements:
+  - id: classify-stored-document-fields
+    version: "0.1.0"
+    target: doc-store-shard
+    status: specified
+    kind: non-functional
+    criteria:
+      - >-
+        Stored document field values (doc-store-shard) are whatever fields
+        the indexing caller chooses to store; their classification depends
+        on the caller's own content, not on this library. A deployment
+        embedding this library must assign its own classification for the
+        fields it stores before that deployment is itself onboarded at
+        architecture level.
