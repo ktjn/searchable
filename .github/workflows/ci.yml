@@ -37,8 +37,8 @@ jobs:
       - name: Validate system specification
         run: |
           pip install system-spec-ref==0.2.0
-          system-spec spec/system.yaml --stage architecture
-          system-spec spec/system.yaml --stage architecture --check-artifacts --root .
+          system-spec spec/system.yaml --stage verification
+          system-spec spec/system.yaml --stage verification --check-artifacts --root .
       - name: System specification drift (informational)
         # --check-drift flags our term-shard/doc-store-shard/pins-shard JSON
         # Schemas as drift because they're keyed maps (propertyNames +

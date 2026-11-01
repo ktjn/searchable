@@ -205,3 +205,294 @@ requirements:
         embedding this library must assign its own classification for the
         fields it stores before that deployment is itself onboarded at
         architecture level.
+
+  - id: req-functional-analyze
+    version: "0.1.0"
+    target: analyze-text
+    status: specified
+    kind: functional
+    category: functional
+    mandatory: true
+    criteria:
+      - analyze() tokenizes, normalizes and stems text per the resolved
+        language profile, dropping stopwords and non-word spans
+
+  - id: req-functional
+    version: "0.1.0"
+    target: query-index
+    status: specified
+    kind: functional
+    category: functional
+    mandatory: true
+    criteria:
+      - ts-client and python-client return equivalent results for every
+        case in the shared client-conformance suite
+      - build-index produces a manifest and shard set that python-client
+        can load and query
+
+  - id: req-semantic
+    version: "0.1.0"
+    target: query-index
+    status: specified
+    kind: functional
+    category: semantic
+    mandatory: true
+    criteria:
+      - BM25F scoring ranks a title-field match above an equivalent
+        body-field match, and a rarer term above a more common one, all
+        else equal
+
+  - id: req-contract
+    version: "0.1.0"
+    target: query-index
+    status: specified
+    kind: functional
+    category: contract
+    mandatory: true
+    criteria:
+      - a structurally invalid manifest is rejected before any query runs
+        against it, in both client runtimes
+
+  - id: req-serialization
+    version: "0.1.0"
+    target: build-index
+    status: specified
+    kind: functional
+    category: serialization
+    mandatory: true
+    criteria:
+      - every shard and the manifest produced by build-index validates
+        against its published JSON Schema (spec/schema/*.schema.json)
+
+  - id: req-scalability
+    version: "0.1.0"
+    target: query-index
+    status: specified
+    kind: non-functional
+    category: scalability
+    mandatory: true
+    criteria:
+      - a query whose hits straddle a doc-store shard boundary returns
+        identical results whether the store is sharded or not
+
+  - id: req-resilience
+    version: "0.1.0"
+    target: query-index
+    status: specified
+    kind: non-functional
+    category: resilience
+    mandatory: true
+    criteria:
+      - disposing or aborting a client mid-operation rejects in-flight and
+        queued work cleanly, without corrupting client state or leaving
+        later calls in an inconsistent state
+
+  - id: req-security
+    version: "0.1.0"
+    target: query-index
+    status: specified
+    kind: non-functional
+    category: security
+    mandatory: true
+    criteria:
+      - the static shard server rejects encoded path traversal outside its
+        root and serves only files it discovered at startup
+      - a query containing a literal Object.prototype key (e.g.
+        "constructor") is handled as ordinary data in every lookup path,
+        never as a prototype write or an uncontrolled crash
+
+  - id: req-performance
+    version: "0.1.0"
+    target: ts-client
+    status: specified
+    kind: non-functional
+    category: performance
+    mandatory: true
+    criteria:
+      - the ts-client production bundle stays within its enforced gzip
+        size budget
+
+  - id: req-concurrency
+    version: "0.1.0"
+    target: query-index
+    status: specified
+    kind: functional
+    category: concurrency
+    mandatory: true
+    criteria:
+      - concurrent build-index or query-index operations against shared
+        inputs do not corrupt shard/manifest state or produce inconsistent
+        results (not yet characterized -- see risk-concurrency-coverage)
+
+  - id: req-observability
+    version: "0.1.0"
+    target: searchable
+    status: specified
+    kind: non-functional
+    category: observability
+    mandatory: true
+    criteria:
+      - an embedding application has a documented, supported way to
+        observe build-index and query-index failures (not yet
+        characterized -- see risk-observability-coverage)
+
+risks:
+  - id: risk-concurrency-coverage
+    target: query-index
+    treatment: mitigation
+    waives: verification-category
+    mitigated_by:
+      - req-concurrency
+    expires: "2027-02-01"
+
+  - id: risk-observability-coverage
+    target: searchable
+    treatment: mitigation
+    waives: verification-category
+    mitigated_by:
+      - req-observability
+    expires: "2027-02-01"
+
+evidence:
+  - id: ev-functional-analyze
+    requirement_id: req-functional-analyze
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "python/searchable/tests/test_analyze.py"
+    verifier: pytest
+    timestamp: "2026-11-01T11:39:00Z"
+
+  - id: ev-functional-conformance
+    requirement_id: req-functional
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/test/client-conformance.test.ts"
+    verifier: vitest
+    timestamp: "2026-11-01T11:39:40Z"
+
+  - id: ev-functional-build
+    requirement_id: req-functional
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "python/searchable/tests/test_build_index.py"
+    verifier: pytest
+    timestamp: "2026-11-01T11:39:00Z"
+
+  - id: ev-semantic-score
+    requirement_id: req-semantic
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/test/score.test.ts"
+    verifier: vitest
+    timestamp: "2026-11-01T11:39:40Z"
+
+  - id: ev-contract-manifest
+    requirement_id: req-contract
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/test/validate-manifest.test.ts"
+    verifier: vitest
+    timestamp: "2026-11-01T11:39:40Z"
+
+  - id: ev-contract-manifest-python
+    requirement_id: req-contract
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "python/searchable/tests/test_validate_manifest.py"
+    verifier: pytest
+    timestamp: "2026-11-01T11:39:00Z"
+
+  - id: ev-serialization-schema
+    requirement_id: req-serialization
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "python/searchable/tests/test_schema_conformance.py"
+    verifier: pytest
+    timestamp: "2026-11-01T11:39:00Z"
+
+  - id: ev-scalability-sharding
+    requirement_id: req-scalability
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/test/doc-store-sharding.test.ts"
+    verifier: vitest
+    timestamp: "2026-11-01T11:39:40Z"
+
+  - id: ev-resilience-cancellation
+    requirement_id: req-resilience
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/test/cancellation.test.ts"
+    verifier: vitest
+    timestamp: "2026-11-01T11:39:40Z"
+
+  - id: ev-resilience-lifecycle
+    requirement_id: req-resilience
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/test/client-lifecycle.test.ts"
+    verifier: vitest
+    timestamp: "2026-11-01T11:39:40Z"
+
+  - id: ev-security-traversal
+    requirement_id: req-security
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/test/static-server-security.test.ts"
+    verifier: vitest
+    timestamp: "2026-11-01T11:39:40Z"
+
+  - id: ev-security-prototype
+    requirement_id: req-security
+    requirement_version: "0.1.0"
+    subject_version: "0.1"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/test/prototype-safe-keys.test.ts"
+    verifier: vitest
+    timestamp: "2026-11-01T11:39:40Z"
+
+  - id: ev-performance-bundle-size
+    requirement_id: req-performance
+    requirement_version: "0.1.0"
+    subject_version: "0.1.0"
+    subject_revision: abd6e1111b0ab212f5fac095ae9febaca31d14ae
+    method: test
+    passed: true
+    provenance: "packages/searchable/scripts/check-bundle-size.mjs"
+    verifier: "pnpm size (node scripts/check-bundle-size.mjs)"
+    timestamp: "2026-11-01T11:38:00Z"
