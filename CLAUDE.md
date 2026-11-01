@@ -17,6 +17,20 @@ different purpose: it verifies that the Python client remains generator-
 agnostic by comparing indexes from the real builder and the independent
 reference generator in `spec/examples/python/`.
 
+## System specification
+
+This repo is onboarded to [system-spec](https://github.com/ktjn/system-specification)
+(brownfield Level 0 — inventory) at `spec/system.yaml`; the exported toolkit
+snapshot lives in `system-spec/`. Follow `system-spec/CONSTITUTION.md` plus
+`system-spec/BROWNFIELD.md` for any further adoption work. The intake/gate
+record is at `spec/INTAKE.md`.
+
+* `spec/system.yaml` must validate before committing:
+  `system-spec spec/system.yaml --stage inventory`
+* For a bounded AI context slice: `system-spec spec/system.yaml --context <component-id>`
+* Report model gaps or hidden coupling as feedback
+  (`system-spec/CONSTITUTION.md` § Self-Improvement and Model Feedback)
+
 ## Release flow
 
 Cutting a release is a three-workflow chain (`release-prep.yml` →
