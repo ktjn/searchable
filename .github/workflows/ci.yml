@@ -34,3 +34,9 @@ jobs:
       - run: pnpm typecheck
       - name: Build Python package
         run: uv build --project python/searchable
+      - name: Validate system specification
+        run: |
+          pip install system-spec-ref==0.2.0
+          system-spec spec/system.yaml --stage inventory
+          system-spec spec/system.yaml --stage inventory --check-artifacts --root .
+          system-spec spec/system.yaml --check-drift --root .

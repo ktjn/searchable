@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../system-spec/reference-implementation/schema.json
+system:
+  id: searchable
+  version: "0.1.0"
+  status: draft
+  layers:
+    - build
+    - runtime
+  external_sources: []
+
+capabilities: []
+
+components:
+  - id: python-indexer
+    version: "0.1.0"
+    status: draft
+    layer: build
+    source_paths:
+      - python/searchable/src/searchable/indexer
+      - python/searchable/src/searchable/analysis
+
+  - id: python-client
+    version: "0.1.0"
+    status: draft
+    layer: runtime
+    source_paths:
+      - python/searchable/src/searchable/client
+
+  - id: ts-client
+    version: "0.1.0"
+    status: draft
+    layer: runtime
+    source_paths:
+      - packages/searchable/src
