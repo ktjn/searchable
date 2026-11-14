@@ -145,4 +145,4 @@ Before implementation, requester approval must specify:
 - Whether the new engine must preserve Searchable 2.x API and/or manifest v2 compatibility (default: neither).
 - Feature-level verification baseline revision and explicit acceptance owner.
 
-Implementation evidence must be collected after approval against the actual Orama-based artifact, not inherited from the original \`spec/system.yaml\` verification records.
+Implementation evidence must be collected after approval against the actual Orama-based artifact, not inherited from the original `spec/system.yaml` verification records.
