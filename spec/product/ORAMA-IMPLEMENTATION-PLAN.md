@@ -8,13 +8,13 @@
 - Implement in a **separate repository/source tree** after the requester approves a complete feature/verification baseline. Do not port/copy the current Searchable 2.x Python or TypeScript code, tests, generated shards or algorithms.
 - The implementer receives only the approved product spec, independently authored fixtures, public Orama documentation, public web standards and the project's own new code.
 - Black-box comparisons to the original product may inform **gap review only**; do not blindly promote differences to requirements or clone exact scores/artifact bytes.
-- Keep original Searchable implementation-model evidence and Orama candidate evidence completely separate. Never mark a candidate requirement \`verified\` without candidate-specific verification.
+- Keep original Searchable implementation-model evidence and Orama candidate evidence completely separate. Never mark a candidate requirement `verified` without candidate-specific verification.
 - A formal legal clean room would require two isolated teams; the current spec author has inspected the implementation. Describe this effort accurately as **independent, contract-driven reimplementation**, not guaranteed legal isolation.
 - Orama is an Apache-2.0 third-party dependency; pin versions, retain notices, check transitive licenses, SBOM and vulnerability alerts.
 
 ## 2. Proposed architecture
 
-\`\`\`text
+```text
 Public HTML / CMS export / structured records
         |
         v
@@ -45,7 +45,7 @@ Validated public SearchDocument records
                     |
                     v
        Consumer UI (React optional, accessible)
-\`\`\`
+```
 
 **Logical units (not prescribed source paths):**
 1. Source adapter: HTML/structured ingestion and public-data exclusion.
@@ -63,9 +63,9 @@ Implement independently testable units with programmable dependency fakes; test 
 
 Evaluate **@orama/orama 3.1.x** at a pinned, reviewed version; 3.x search APIs are documented as synchronous. Do not assume older async examples, plugin contracts or persistence versions apply. Confirm the exact package version at spike time.
 
-- Use Orama's documented \`create\`, \`insertMultiple\` or \`insert\`, \`search\`, \`save\`, and \`load\` APIs only when verified for the pinned release.
+- Use Orama's documented `create`, `insertMultiple` or `insert`, `search`, `save`, and `load` APIs only when verified for the pinned release.
 - Translate product query options at one boundary; never expose Orama's raw internal ID or undocumented index structures in the public product API.
-- Use Orama's native BM25 relevance as the starting point, NOT a custom BM25F port. Keep score semantics as \`relevance\` and validate judged ordering.
+- Use Orama's native BM25 relevance as the starting point, NOT a custom BM25F port. Keep score semantics as `relevance` and validate judged ordering.
 - Prefer the core serializer before adding persistence plugins. Historical browser bundling issues around plugin-specific Node streams require smoke tests; do not assume all persistence formats load in browsers without polyfills.
 - Do not load Orama Cloud, remote embeddings, remote model proxies, or analytics features. This is a local browser lexical engine.
 
@@ -84,16 +84,16 @@ Evaluate two independently implementable modes:
 
 ### Language design
 
-Create one independent Orama index per required language if this is the simplest reliable way to align analysis and avoid mixed-language query mistakes. Orama's \`@orama/stemmers\` includes English, German, Swedish, Dutch and a generic Norwegian stemmer. Confirm distinct **nb**/**nn** partition semantics and locale-to-tokenizer mapping in the adapter; do not claim distinct Norwegian stemming algorithms. Unsupported BCP 47 variants need a reviewed fallback policy.
+Create one independent Orama index per required language if this is the simplest reliable way to align analysis and avoid mixed-language query mistakes. Orama's `@orama/stemmers` includes English, German, Swedish, Dutch and a generic Norwegian stemmer. Confirm distinct **nb**/**nn** partition semantics and locale-to-tokenizer mapping in the adapter; do not claim distinct Norwegian stemming algorithms. Unsupported BCP 47 variants need a reviewed fallback policy.
 
 ### Query/feature adapters and feasibility gates
 
 | Product obligation | Likely Orama primitive | Work requiring a spike or adapter |
 | --- | --- | --- |
-| Lexical search, relevance, field boosts | \`search(term, boost/properties)\` | Behavioral ranking/relevance judgments; stable ties |
-| Fuzzy tolerance | \`search(tolerance)\` | Literal/approximate precedence, caps, correction suggestions |
-| Terms filtering and facets | \`where\`, \`facets\` | Contextual counts excluding active same-field filter; unknown-field strictness |
-| Range, scalar sort and pagination | Typed schema, \`where\`, \`sortBy\`, \`offset\`, \`limit\` | Preserve exact inclusive boundary and stable paging rules |
+| Lexical search, relevance, field boosts | `search(term, boost/properties)` | Behavioral ranking/relevance judgments; stable ties |
+| Fuzzy tolerance | `search(tolerance)` | Literal/approximate precedence, caps, correction suggestions |
+| Terms filtering and facets | `where`, `facets` | Contextual counts excluding active same-field filter; unknown-field strictness |
+| Range, scalar sort and pagination | Typed schema, `where`, `sortBy`, `offset`, `limit` | Preserve exact inclusive boundary and stable paging rules |
 | Geo search | Orama geo support | Radius/distance ordering, coordinate validation |
 | Multilingual search | Per-index tokenizer/stemmer | nb/nn, fallback locale, mixed-language transitions |
 | Quoted phrases and explicit prefix | Search input and tokenizer | **Do not assume** exact positional semantics; test capability before committing MVP |
@@ -109,7 +109,7 @@ Create one independent Orama index per required language if this is the simplest
 
 The API shape below is illustrative and **not normative**:
 
-\`\`\`ts
+```ts
 interface SearchEngine {
   ready(): Promise<void>;
   search(request: SearchRequest, signal?: AbortSignal): Promise<SearchResponse>;
@@ -117,7 +117,7 @@ interface SearchEngine {
   facets(request: FacetRequest): Promise<FacetResponse>;
   dispose(): void;
 }
-\`\`\`
+```
 
 Hide Orama-specific methods/types behind the adapter. The publisher exports plain public documents and an independent dataset format; external IDs, URLs, fields, filters and result semantics live at the product boundary. Avoid a separate Python runtime unless independently demanded.
 
