@@ -77,6 +77,7 @@ See [First search](docs/getting-started/first-search.md) for a complete path and
 - [Client API](docs/reference/client-api.md)
 - [Configuration](docs/reference/configuration.md)
 - [Roadmap](docs/project/roadmap.md)
+- [Proposed independent client-side search specification and Orama replacement plan](spec/product/README.md) (awaiting approval; not the current 2.x contract)
 
 ## Development
 
