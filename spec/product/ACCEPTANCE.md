@@ -10,7 +10,7 @@
 4. Identify preconditions, inputs, observable outputs, negative cases, corner cases, locale and failure cases. A passing suite supports acceptance only within its stated coverage.
 5. Record measured evidence with candidate commit, dependency lock version, dataset digest, browser/device, run mode, timestamp and verifier.
 6. Any test whose requirements change must return to requester review; do not weaken an expectation to fit Orama.
-7. Proposed test expectations are **not existing passing evidence**. A clean-room implementation cannot inherit \`spec/system.yaml\` evidence.
+7. Proposed test expectations are **not existing passing evidence**. A clean-room implementation cannot inherit `spec/system.yaml` evidence.
 
 ## Authored datasets
 
