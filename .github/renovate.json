@@ -2,6 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "timezone": "UTC",
+  "dependencyDashboardAutoclose": true,
+  "prHourlyLimit": 0,
   "minimumReleaseAge": "1 day",
   "minimumReleaseAgeBehaviour": "timestamp-optional",
   "constraintsFiltering": "strict",

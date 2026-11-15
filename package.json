@@ -24,11 +24,11 @@
     "prepare": "node scripts/install-hooks.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
+    "@biomejs/biome": "^2.6.8",
     "@playwright/test": "catalog:",
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "typescript": "catalog:",
-    "vite": "^8.3.4",
-    "vitest": "^5.0.5"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   }
 }
