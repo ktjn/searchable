@@ -3,6 +3,7 @@
   "extends": ["config:recommended"],
   "timezone": "UTC",
   "minimumReleaseAge": "1 day",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
   "constraintsFiltering": "strict",
   "major": {
     "dependencyDashboardApproval": false
