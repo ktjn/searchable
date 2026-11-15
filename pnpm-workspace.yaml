@@ -3,7 +3,7 @@ packages:
   - "tools/*"
   - "showcase"
 catalog:
-  "@playwright/test": ^1.64.1
+  "@playwright/test": ^1.65.1
   typescript: ^7.0.2
 allowBuilds:
   "@biomejs/biome": true
@@ -15,6 +15,17 @@ minimumReleaseAgeExclude:
   - adm-zip@0.6.0
   - sharp@0.35.0
   - pnpm
+  - "@biomejs/biome@2.6.8"
+  - "@biomejs/cli-android-arm64@2.6.8"
+  - "@biomejs/cli-android-x64@2.6.8"
+  - "@biomejs/cli-darwin-arm64@2.6.8"
+  - "@biomejs/cli-darwin-x64@2.6.8"
+  - "@biomejs/cli-linux-arm64-musl@2.6.8"
+  - "@biomejs/cli-linux-arm64@2.6.8"
+  - "@biomejs/cli-linux-x64-musl@2.6.8"
+  - "@biomejs/cli-linux-x64@2.6.8"
+  - "@biomejs/cli-win32-arm64@2.6.8"
+  - "@biomejs/cli-win32-x64@2.6.8"
 overrides:
   adm-zip@<0.6.0: ^0.6.0
   sharp@<0.35.0: ^0.35.0
