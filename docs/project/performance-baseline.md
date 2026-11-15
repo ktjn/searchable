@@ -24,41 +24,41 @@ This reviewed run records 10 measured repetitions after 1 warm-up repetition. Th
 
 ## Index build and output
 
-| Measure | Value |
-| --- | ---: |
-| Corpus generation | 26.79 ms |
-| Index build | 557.35 ms |
-| Index write | 421.17 ms |
-| Files / shards | 54 / 51 |
-| Raw artifact bytes | 13655943 B (13.02 MiB) |
-| gzip-equivalent artifact bytes | 650659 B (635.41 KiB) |
-| Manifest raw bytes | 4315 B (4.21 KiB) |
+| Measure                        |                  Value |
+| ------------------------------ | ---------------------: |
+| Corpus generation              |               26.79 ms |
+| Index build                    |              557.35 ms |
+| Index write                    |              421.17 ms |
+| Files / shards                 |                54 / 51 |
+| Raw artifact bytes             | 13655943 B (13.02 MiB) |
+| gzip-equivalent artifact bytes |  650659 B (635.41 KiB) |
+| Manifest raw bytes             |      4315 B (4.21 KiB) |
 
 ## Cold search
 
 Each sample initializes a fresh strict, main-thread client in a fresh Chromium context and executes exactly one query.
 
-| Query | Initialize p50 | Initialize p95 | First query p50 | First query p95 | Combined p50 | Combined p95 | Transfer p50 gzip-equivalent |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| single-term | 1.90 ms | 2.10 ms | 13.30 ms | 14.60 ms | 15.20 ms | 16.60 ms | 40397 B (39.45 KiB) |
-| multi-term | 2.00 ms | 2.10 ms | 20.00 ms | 21.20 ms | 22.00 ms | 23.30 ms | 66706 B (65.14 KiB) |
-| prefix | 1.90 ms | 2.10 ms | 13.50 ms | 14.20 ms | 15.50 ms | 16.10 ms | 40397 B (39.45 KiB) |
-| no-match | 1.90 ms | 2.20 ms | 10.70 ms | 12.70 ms | 12.70 ms | 14.60 ms | 27623 B (26.98 KiB) |
-| filtered | 1.90 ms | 2.30 ms | 22.20 ms | 38.80 ms | 24.20 ms | 40.60 ms | 62683 B (61.21 KiB) |
-| faceted | 1.80 ms | 2.30 ms | 22.20 ms | 23.30 ms | 24.00 ms | 25.20 ms | 62683 B (61.21 KiB) |
+| Query       | Initialize p50 | Initialize p95 | First query p50 | First query p95 | Combined p50 | Combined p95 | Transfer p50 gzip-equivalent |
+| ----------- | -------------: | -------------: | --------------: | --------------: | -----------: | -----------: | ---------------------------: |
+| single-term |        1.90 ms |        2.10 ms |        13.30 ms |        14.60 ms |     15.20 ms |     16.60 ms |          40397 B (39.45 KiB) |
+| multi-term  |        2.00 ms |        2.10 ms |        20.00 ms |        21.20 ms |     22.00 ms |     23.30 ms |          66706 B (65.14 KiB) |
+| prefix      |        1.90 ms |        2.10 ms |        13.50 ms |        14.20 ms |     15.50 ms |     16.10 ms |          40397 B (39.45 KiB) |
+| no-match    |        1.90 ms |        2.20 ms |        10.70 ms |        12.70 ms |     12.70 ms |     14.60 ms |          27623 B (26.98 KiB) |
+| filtered    |        1.90 ms |        2.30 ms |        22.20 ms |        38.80 ms |     24.20 ms |     40.60 ms |          62683 B (61.21 KiB) |
+| faceted     |        1.80 ms |        2.30 ms |        22.20 ms |        23.30 ms |     24.00 ms |     25.20 ms |          62683 B (61.21 KiB) |
 
 ## Warm search
 
 Measured passes made 0 generated-index requests.
 
-| Query | p50 | p95 |
-| --- | ---: | ---: |
+| Query       |     p50 |     p95 |
+| ----------- | ------: | ------: |
 | single-term | 0.30 ms | 0.50 ms |
-| multi-term | 0.30 ms | 0.50 ms |
-| prefix | 0.20 ms | 0.80 ms |
-| no-match | 0.00 ms | 0.20 ms |
-| filtered | 0.30 ms | 0.60 ms |
-| faceted | 0.40 ms | 0.80 ms |
+| multi-term  | 0.30 ms | 0.50 ms |
+| prefix      | 0.20 ms | 0.80 ms |
+| no-match    | 0.00 ms | 0.20 ms |
+| filtered    | 0.30 ms | 0.60 ms |
+| faceted     | 0.40 ms | 0.80 ms |
 
 Whole ordered pass: p50 1.60 ms, p95 2.70 ms.
 
@@ -145,9 +145,7 @@ pnpm benchmark:render <explicit-report-path>
     "query": "search",
     "options": {
       "limit": 10,
-      "facets": [
-        "category"
-      ]
+      "facets": ["category"]
     },
     "expected": {
       "topUrl": "/en/product/product-a-closer-look-at-opt-in-search-features-20.html",

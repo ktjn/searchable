@@ -30,10 +30,10 @@ Security fixes target the latest minor release of the current major version
 for both published packages. Older lines are patched only when backporting is
 trivial, at the maintainer's discretion.
 
-| Channel | Supported line |
-|---|---|
+| Channel                | Supported line             |
+| ---------------------- | -------------------------- |
 | npm `@ktjn/searchable` | Latest `2.x` minor release |
-| PyPI `searchable` | Latest `2.x` minor release |
+| PyPI `searchable`      | Latest `2.x` minor release |
 
 ## Scope
 

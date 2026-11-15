@@ -15,18 +15,18 @@ Searchable should remain the smallest implementation that preserves its shipped 
 
 ## Current product boundary
 
-| Area | Current state |
-|---|---|
-| Index generation | Python-only static indexer |
-| Runtime clients | TypeScript/browser and Python |
-| Storage | Immutable JSON files over static HTTP/filesystem |
-| Retrieval | Lexical BM25F |
-| Query features | terms, phrases, prefix matching, synonyms, fuzzy matching, AND/OR |
-| Result features | highlighting, did-you-mean, pinning, field/term/document boosts |
-| Facets | terms, hierarchy, range, geo radius/distance, exact match on stored fields |
-| HTML indexing | page-level plus optional section-level indexing |
-| Languages | English, German, Swedish, Dutch, Bokmål, Nynorsk plus explicit fallback segmenters |
-| Removed in 2.0 | binary index formats, vector/hybrid search, Worker runtime, Service Worker support |
+| Area             | Current state                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------- |
+| Index generation | Python-only static indexer                                                         |
+| Runtime clients  | TypeScript/browser and Python                                                      |
+| Storage          | Immutable JSON files over static HTTP/filesystem                                   |
+| Retrieval        | Lexical BM25F                                                                      |
+| Query features   | terms, phrases, prefix matching, synonyms, fuzzy matching, AND/OR                  |
+| Result features  | highlighting, did-you-mean, pinning, field/term/document boosts                    |
+| Facets           | terms, hierarchy, range, geo radius/distance, exact match on stored fields         |
+| HTML indexing    | page-level plus optional section-level indexing                                    |
+| Languages        | English, German, Swedish, Dutch, Bokmål, Nynorsk plus explicit fallback segmenters |
+| Removed in 2.0   | binary index formats, vector/hybrid search, Worker runtime, Service Worker support |
 
 The removed 2.0 capabilities stay removed unless a concrete consumer justifies a new product decision.
 

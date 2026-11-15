@@ -143,7 +143,7 @@ function findRegionStart(word: string, start: number): number {
 function markRegions(word: string): { p1: number; p2: number } {
   const rawP1 = findRegionStart(word, 0);
   const x = word.length >= 3 ? 3 : 0;
-  const p1 = rawP1 < x ? x : rawP1;
+  const p1 = Math.max(rawP1, x);
   const p2 = findRegionStart(word, rawP1);
   return { p1, p2 };
 }

@@ -6,7 +6,7 @@ catalog:
   "@playwright/test": ^1.64.1
   typescript: ^7.0.2
 allowBuilds:
-  '@biomejs/biome': true
+  "@biomejs/biome": true
   esbuild: true
   onnxruntime-node: false
   protobufjs: false

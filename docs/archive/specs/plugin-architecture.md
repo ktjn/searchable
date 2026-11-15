@@ -43,19 +43,19 @@ deployment's browser bundle must never pull in indexer-only code).
 ```ts
 interface RuntimePlugin {
   name: string;
-  apiVersion: string;          // checked against core's supported range at registration
+  apiVersion: string; // checked against core's supported range at registration
   install(ctx: RuntimePluginContext): void;
 }
 
 interface RuntimePluginContext {
   manifest: Manifest;
-  fetchShard(path: string): Promise<unknown>;   // routed through the shared LRU cache
+  fetchShard(path: string): Promise<unknown>; // routed through the shared LRU cache
   hooks: {
-    analyzeQuery: HookRegistry<AnalyzeQueryHook>;    // tokenize/normalize the raw query
-    expandQuery: HookRegistry<ExpandQueryHook>;      // synonyms taps here
-    planFetch: HookRegistry<PlanFetchHook>;          // decide which extra shards a query needs
-    score: HookRegistry<ScoreHook>;                  // fuzzy penalty, vector RRF merge
-    filter: HookRegistry<FilterHook>;                // facet-based candidate-set narrowing
+    analyzeQuery: HookRegistry<AnalyzeQueryHook>; // tokenize/normalize the raw query
+    expandQuery: HookRegistry<ExpandQueryHook>; // synonyms taps here
+    planFetch: HookRegistry<PlanFetchHook>; // decide which extra shards a query needs
+    score: HookRegistry<ScoreHook>; // fuzzy penalty, vector RRF merge
+    filter: HookRegistry<FilterHook>; // facet-based candidate-set narrowing
     assembleResults: HookRegistry<AssembleResultsHook>; // pin insertion, highlighting
   };
 }
@@ -72,16 +72,16 @@ exact matching to apply its score penalty relative to it
 
 ### Which existing feature is which plugin
 
-| Plugin | Hook(s) used | Doc |
-|---|---|---|
-| `fuzzy()` | `score` | [04](../../guides/ranking-and-boosts.md) |
-| `synonyms()` | `expandQuery` | [../../guides/synonyms.md](../../guides/synonyms.md) |
-| `facets(fields)` | `filter` | [../../guides/facets.md](../../guides/facets.md) |
-| `pins()` | `assembleResults` | [../../guides/pinning.md](../../guides/pinning.md) |
-| `highlight()` | `assembleResults` | [08-modern-features.md](../../concepts/architecture.md) |
-| `vector()` | `planFetch`, `score` | [../../guides/vector-search.md](../../guides/vector-search.md) |
-| `lang(code)` | `analyzeQuery` (registers a `LanguageProfile` for that language) | [../../guides/internationalization.md](../../guides/internationalization.md) |
-| `wasmCore()` | replaces the default JS implementation of `score`'s built-in lexical step, rather than adding a new one | [08-modern-features.md](../../concepts/architecture.md) |
+| Plugin           | Hook(s) used                                                                                            | Doc                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `fuzzy()`        | `score`                                                                                                 | [04](../../guides/ranking-and-boosts.md)                                     |
+| `synonyms()`     | `expandQuery`                                                                                           | [../../guides/synonyms.md](../../guides/synonyms.md)                         |
+| `facets(fields)` | `filter`                                                                                                | [../../guides/facets.md](../../guides/facets.md)                             |
+| `pins()`         | `assembleResults`                                                                                       | [../../guides/pinning.md](../../guides/pinning.md)                           |
+| `highlight()`    | `assembleResults`                                                                                       | [08-modern-features.md](../../concepts/architecture.md)                      |
+| `vector()`       | `planFetch`, `score`                                                                                    | [../../guides/vector-search.md](../../guides/vector-search.md)               |
+| `lang(code)`     | `analyzeQuery` (registers a `LanguageProfile` for that language)                                        | [../../guides/internationalization.md](../../guides/internationalization.md) |
+| `wasmCore()`     | replaces the default JS implementation of `score`'s built-in lexical step, rather than adding a new one | [08-modern-features.md](../../concepts/architecture.md)                      |
 
 None of these plugins are special-cased in core — the table exists so
 this doc, not core's source, is the map from "feature" to "hook," which
@@ -150,7 +150,7 @@ interface SourceAdapter extends IndexerPlugin {
 }
 
 interface LanguageProfile extends IndexerPlugin {
-  code: string;                      // BCP-47
+  code: string; // BCP-47
   segment(text: string): TokenSpan[];
   foldDiacritics: boolean;
   stopwords: Set<string>;
@@ -158,7 +158,7 @@ interface LanguageProfile extends IndexerPlugin {
 }
 
 interface ShardCodec extends IndexerPlugin {
-  format: string;                    // "json" | "binary" | a custom name
+  format: string; // "json" | "binary" | a custom name
   encode(shard: ShardData): Uint8Array;
 }
 ```
@@ -184,7 +184,7 @@ import { binary } from "@ktjn/searchable-codec-binary";
 export default defineConfig({
   source: html({ sitemap: "https://example.com/sitemap.xml" }),
   languages: [en(), de()],
-  codec: binary(),   // omit for the JSON-tier default
+  codec: binary(), // omit for the JSON-tier default
 });
 ```
 
@@ -215,6 +215,6 @@ flags still require core to `import` every feature's code to be able to
 flag it off, defeating the bundle-size goal, and every feature's test
 suite would end up implicitly coupled through the shared module rather
 than independently mockable. A plugin array with a narrow hook contract
-gets modularity *and* small bundles *and* independent testability from
+gets modularity _and_ small bundles _and_ independent testability from
 one mechanism, which is why it's worth the (modest) extra ceremony of
 an explicit `plugins: [...]` array over a single settings object.

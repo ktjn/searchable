@@ -24,7 +24,7 @@ or a merged PR exists.
    builds and publishes the npm package to GitHub Packages, and builds,
    smoke-tests, and publishes the Python package to PyPI.
 
-Each step's trigger is an *event*, not a state check — nothing re-verifies
+Each step's trigger is an _event_, not a state check — nothing re-verifies
 that step 3 actually ran after step 2 finishes. A tag can exist with no
 corresponding GitHub Release and no published packages, and nothing will
 flag that on its own. Always confirm a release completed by checking
@@ -48,7 +48,7 @@ never shipped. It was only caught by manually cross-referencing
 `gh release list` (still showing `v1.4.1` as latest) against the tag list.
 
 The exact trigger-suppression cause wasn't conclusively identified (GitHub
-doesn't expose enough about *why* a push didn't dispatch a workflow via the
+doesn't expose enough about _why_ a push didn't dispatch a workflow via the
 API) — treat `RELEASE_TOKEN`-pushed tags as "probably but not certainly"
 sufficient to trigger publishing, not a guarantee.
 

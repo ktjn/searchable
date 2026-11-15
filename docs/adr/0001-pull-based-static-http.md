@@ -32,7 +32,7 @@ beyond HTTP GET + standard cache headers.
   project's entire value proposition is not having.
 - **A browser-embedded database synced wholesale** (e.g. ship a SQLite/
   DuckDB file and query it client-side): rejected because it requires
-  downloading the *entire* corpus before the first query, which
+  downloading the _entire_ corpus before the first query, which
   [concepts/architecture.md](../concepts/architecture.md)'s
   "lazy resource loading" principle and the sharding design in
   [concepts/index-format.md](../concepts/index-format.md) specifically exist to

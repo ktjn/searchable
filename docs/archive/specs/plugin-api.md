@@ -68,11 +68,7 @@ Plugins should be registered explicitly.
 ```ts
 const client = new SearchClient({
   indexUrl: "/search/manifest.json",
-  plugins: [
-    synonymPlugin(),
-    fuzzyPlugin(),
-    customRankingPlugin(),
-  ],
+  plugins: [synonymPlugin(), fuzzyPlugin(), customRankingPlugin()],
 });
 ```
 
