@@ -55,7 +55,7 @@ page. Click **New chat** to drop the conversation and start over.
   prior questions (not the assistant's answers) -- see `buildRetrievalQuery()`.
 - **The model sees two kinds of history.** Prior conversation turns are carried
   forward as plain `{role, content}` messages (no retrieved context attached). The
-  *current* turn's user message is built fresh each time as its retrieved context
+  _current_ turn's user message is built fresh each time as its retrieved context
   followed by the question -- see the system prompt in `index.html`, which tells the
   model that context isn't repeated across turns (so it should ground answers in the
   current turn's context, not go hunting in earlier ones), to fold it into a normal

@@ -102,12 +102,12 @@ rationale, and measured top-five result on 2026-07-13.
 
 The reviewed baseline at `k = 5` is:
 
-| Metric | Value |
-|---|---:|
-| MRR | 0.650000 |
-| Precision@5 | 0.170000 |
-| Recall@5 | 0.304167 |
-| nDCG@5 | 0.468992 |
+| Metric           |    Value |
+| ---------------- | -------: |
+| MRR              | 0.650000 |
+| Precision@5      | 0.170000 |
+| Recall@5         | 0.304167 |
+| nDCG@5           | 0.468992 |
 | Zero-result rate | 0.200000 |
 
 This is a reproducible comparison point, not a pass/fail threshold. A metric
@@ -142,13 +142,13 @@ document, query, grade, rationale, and measured top-five result on 2026-07-18.
 
 The reviewed baseline at `k = 5` is:
 
-| Metric | `1.0.0` (20 queries) | `1.1.0` (28 queries) |
-|---|---:|---:|
-| MRR | 0.650000 | 0.732143 |
-| Precision@5 | 0.160000 | 0.171429 |
-| Recall@5 | 0.475000 | 0.464286 |
-| nDCG@5 | 0.585738 | 0.642698 |
-| Zero-result rate | 0.300000 (6/20) | 0.214286 (6/28) |
+| Metric           | `1.0.0` (20 queries) | `1.1.0` (28 queries) |
+| ---------------- | -------------------: | -------------------: |
+| MRR              |             0.650000 |             0.732143 |
+| Precision@5      |             0.160000 |             0.171429 |
+| Recall@5         |             0.475000 |             0.464286 |
+| nDCG@5           |             0.585738 |             0.642698 |
+| Zero-result rate |      0.300000 (6/20) |      0.214286 (6/28) |
 
 The `1.1.0` aggregate is measurably better than `1.0.0` on every metric except
 a small dip in recall, despite the 8 added queries being harder and more
@@ -204,12 +204,12 @@ normalized document, query, grade, rationale, and measured top-five result on
 
 The reviewed baseline at `k = 5` is:
 
-| Metric | Value |
-|---|---:|
-| MRR | 0.855263 |
-| Precision@5 | 0.284211 |
-| Recall@5 | 0.517544 |
-| nDCG@5 | 0.690330 |
+| Metric           |    Value |
+| ---------------- | -------: |
+| MRR              | 0.855263 |
+| Precision@5      | 0.284211 |
+| Recall@5         | 0.517544 |
+| nDCG@5           | 0.690330 |
 | Zero-result rate | 0.052632 |
 
 The source snapshot was retrieved on 2026-07-17. It contains German Wikipedia
@@ -250,12 +250,12 @@ result on 2026-07-17.
 
 The reviewed baseline at `k = 5` is:
 
-| Metric | Value |
-|---|---:|
-| MRR | 1.000000 |
-| Precision@5 | 0.360000 |
-| Recall@5 | 1.000000 |
-| nDCG@5 | 0.960733 |
+| Metric           |    Value |
+| ---------------- | -------: |
+| MRR              | 1.000000 |
+| Precision@5      | 0.360000 |
+| Recall@5         | 1.000000 |
+| nDCG@5           | 0.960733 |
 | Zero-result rate | 0.000000 |
 
 The source snapshot was retrieved on 2026-07-17. It contains Project
@@ -280,7 +280,7 @@ German-language encyclopedia corpus, and one English-language faceted fiction
 catalog — four domains across two languages (English and German). Only the
 Gutenberg facets corpus exercises facet-filtered search under judged
 relevance; the other three domains judge free-text search only. Facet
-*counts* (`facetValues()`) remain unexercised by any relevance suite. Their
+_counts_ (`facetValues()`) remain unexercised by any relevance suite. Their
 queries are authored intents rather than user-query logs, with one exception:
 8 of the 28 `govuk-learn-to-drive` queries are sourced from Google
 autocomplete suggestions as real-world phrasing inspiration (see that

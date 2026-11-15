@@ -9,22 +9,22 @@ leaning on it for a decision.
 
 ## Comparison table
 
-| | **This design** | Orama | MiniSearch | Lunr.js | FlexSearch | Pagefind |
-|---|---|---|---|---|---|---|
-| Index delivery | Sharded, lazy **HTTP fetch** per query | Whole index **in-memory** at runtime | Whole index **in-memory** | Whole index **in-memory** | In-memory (optional persistent adapters: IndexedDB/Redis/SQL) | Sharded, lazy **HTTP fetch** per query (closest match) |
-| Ranking | BM25F (multi-field) | BM25 (tunable k1/b/d) | TF-IDF / BM25 | TF-IDF / vector-space | Custom contextual/proximity scoring | Weight-based, qualitative (not confirmed as BM25) |
-| Field/doc boosts | Yes (field, term, doc) | Yes (field) | Yes (field) | Yes (query-time term boost, index-time doc boost) | Yes (field/tag weighting) | Yes (`data-*` attribute weighting) |
-| Synonyms | Yes, query-time expansion | `unclear` | Not built-in | Not built-in | `unclear` | Not built-in |
-| Facets | Yes (terms/range/hierarchy, contextual counts) | Yes, built-in | Not built-in (DIY) | Not built-in (DIY) | Yes, via tag-based multi-tag search | Yes, `data-pagefind-filter` |
-| Fuzzy/typo tolerance | Yes (SymSpell-style) | Yes (Levenshtein) | Yes (edit distance) | Yes (edit distance + wildcards) | Yes (tolerant/phonetic encoders) | No true fuzzy — stemming only, no typo correction |
-| Vector/hybrid search | Roadmapped, opt-in plugin, RRF fusion — see [../../guides/vector-search.md](../../guides/vector-search.md) | Yes, native (`plugin-embeddings`, vector + hybrid modes) | No | No | No | No |
-| Prefix/autocomplete | Yes | `unclear` | Yes, built-in | Yes, via wildcards | Yes (forward/reverse tokenizers) | Yes |
-| Multi-language | Per-language profiles, `Intl.Segmenter`, CJK bigram fallback | ~30 languages claimed | None by default (pluggable/DIY) | English core + `lunr-languages` plugin (30+) | Dedicated CJK/Arabic/Hebrew/Cyrillic encoders | Automatic per-`lang` stemming; CJK segmentation in "extended" build only |
-| Runtime | Browser (query) + any language (index build) | Isomorphic (browser/Node/edge) | Isomorphic | Browser + Node | Isomorphic, dedicated Worker index class | Offline Node/Rust build, browser+WASM query |
-| Index format openness | **Open, documented, language-agnostic JSON spec** | Proprietary, library-coupled | Proprietary, library-coupled | Proprietary (JSON, but Lunr-specific loader) | Proprietary, library-coupled | Proprietary chunk/fragment format |
-| Worker/WASM | Worker by default, optional WASM scoring core | `unclear` | No | No | Worker support, no WASM | WASM core (Rust) |
-| Bundle size (core, gzip) | ~15KB budget (core) | "\<2KB" core claim (marketing; full package larger) | ~7KB | small, unconfirmed exact figure | 4.5-16KB depending on build | ~30KB init + ~75KB WASM |
-| License | (this project) | Apache 2.0 | MIT | MIT | Apache 2.0 | MIT |
+|                          | **This design**                                                                                            | Orama                                                    | MiniSearch                      | Lunr.js                                           | FlexSearch                                                    | Pagefind                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Index delivery           | Sharded, lazy **HTTP fetch** per query                                                                     | Whole index **in-memory** at runtime                     | Whole index **in-memory**       | Whole index **in-memory**                         | In-memory (optional persistent adapters: IndexedDB/Redis/SQL) | Sharded, lazy **HTTP fetch** per query (closest match)                   |
+| Ranking                  | BM25F (multi-field)                                                                                        | BM25 (tunable k1/b/d)                                    | TF-IDF / BM25                   | TF-IDF / vector-space                             | Custom contextual/proximity scoring                           | Weight-based, qualitative (not confirmed as BM25)                        |
+| Field/doc boosts         | Yes (field, term, doc)                                                                                     | Yes (field)                                              | Yes (field)                     | Yes (query-time term boost, index-time doc boost) | Yes (field/tag weighting)                                     | Yes (`data-*` attribute weighting)                                       |
+| Synonyms                 | Yes, query-time expansion                                                                                  | `unclear`                                                | Not built-in                    | Not built-in                                      | `unclear`                                                     | Not built-in                                                             |
+| Facets                   | Yes (terms/range/hierarchy, contextual counts)                                                             | Yes, built-in                                            | Not built-in (DIY)              | Not built-in (DIY)                                | Yes, via tag-based multi-tag search                           | Yes, `data-pagefind-filter`                                              |
+| Fuzzy/typo tolerance     | Yes (SymSpell-style)                                                                                       | Yes (Levenshtein)                                        | Yes (edit distance)             | Yes (edit distance + wildcards)                   | Yes (tolerant/phonetic encoders)                              | No true fuzzy — stemming only, no typo correction                        |
+| Vector/hybrid search     | Roadmapped, opt-in plugin, RRF fusion — see [../../guides/vector-search.md](../../guides/vector-search.md) | Yes, native (`plugin-embeddings`, vector + hybrid modes) | No                              | No                                                | No                                                            | No                                                                       |
+| Prefix/autocomplete      | Yes                                                                                                        | `unclear`                                                | Yes, built-in                   | Yes, via wildcards                                | Yes (forward/reverse tokenizers)                              | Yes                                                                      |
+| Multi-language           | Per-language profiles, `Intl.Segmenter`, CJK bigram fallback                                               | ~30 languages claimed                                    | None by default (pluggable/DIY) | English core + `lunr-languages` plugin (30+)      | Dedicated CJK/Arabic/Hebrew/Cyrillic encoders                 | Automatic per-`lang` stemming; CJK segmentation in "extended" build only |
+| Runtime                  | Browser (query) + any language (index build)                                                               | Isomorphic (browser/Node/edge)                           | Isomorphic                      | Browser + Node                                    | Isomorphic, dedicated Worker index class                      | Offline Node/Rust build, browser+WASM query                              |
+| Index format openness    | **Open, documented, language-agnostic JSON spec**                                                          | Proprietary, library-coupled                             | Proprietary, library-coupled    | Proprietary (JSON, but Lunr-specific loader)      | Proprietary, library-coupled                                  | Proprietary chunk/fragment format                                        |
+| Worker/WASM              | Worker by default, optional WASM scoring core                                                              | `unclear`                                                | No                              | No                                                | Worker support, no WASM                                       | WASM core (Rust)                                                         |
+| Bundle size (core, gzip) | ~15KB budget (core)                                                                                        | "\<2KB" core claim (marketing; full package larger)      | ~7KB                            | small, unconfirmed exact figure                   | 4.5-16KB depending on build                                   | ~30KB init + ~75KB WASM                                                  |
+| License                  | (this project)                                                                                             | Apache 2.0                                               | MIT                             | MIT                                               | Apache 2.0                                                    | MIT                                                                      |
 
 ## Where the survey exposed a real gap (and how it's addressed)
 
@@ -50,21 +50,21 @@ leaning on it for a decision.
   boosts + facets + synonyms + i18n stemming.** Pagefind has the sharding
   architecture but not synonyms and no real fuzzy matching. Orama/
   FlexSearch have the relevance features but load the whole index into
-  memory — there's no server, but there's also no *scaling* story for
+  memory — there's no server, but there's also no _scaling_ story for
   index size independent of first-load cost. This design's core bet
   (sharding + full relevance feature set together) is a real gap in
   the current landscape, not a redundant reinvention.
 - **Nobody else treats the index format as an open, language-agnostic
   spec.** Every library surveyed — including the architecturally closest,
-  Pagefind — requires *their* tooling to produce the index. This
+  Pagefind — requires _their_ tooling to produce the index. This
   design's Python/Node/Java-producible JSON spec
   ([02-index-format.md](../../concepts/index-format.md))
   is a genuine point of difference, not just a nice-to-have.
 
 ## Features worth cherry-picking
 
-Concrete, specific borrows — each says *why* and *where it slots into
-this design* rather than just "that library is good":
+Concrete, specific borrows — each says _why_ and _where it slots into
+this design_ rather than just "that library is good":
 
 1. **Pagefind's `preload()` pattern.** Pagefind lets a site prefetch
    likely-needed index chunks (e.g., on search-box focus, before the
@@ -102,7 +102,7 @@ this design* rather than just "that library is good":
    of the existing offline plugin
    ([08-modern-features.md](../../concepts/architecture.md)):
    the Service Worker precache plan already covers this at the HTTP
-   layer, but an IndexedDB layer for *parsed* shards (not just raw
+   layer, but an IndexedDB layer for _parsed_ shards (not just raw
    bytes) avoids re-parsing cost on repeat visits, which the Service
    Worker cache alone doesn't buy you.
 5. **MiniSearch's minimal, un-opinionated default analysis.** MiniSearch
@@ -143,12 +143,12 @@ this design* rather than just "that library is good":
   [../../guides/indexing.md](../../guides/indexing.md),
   which recommends exactly this (single term shard per language, no
   binary tier, no vector clustering) for a ~2,000-document CMS-sourced
-  target — same shard *format* throughout, just configured with one
+  target — same shard _format_ throughout, just configured with one
   shard instead of many.
 - **FlexSearch's custom contextual/proximity-only scoring** (instead of
   BM25-family) is a legitimate alternative design, but mixing scoring
   paradigms would undermine the "one documented ranking formula" clarity
-  goal — phrase/proximity is already incorporated as a *modifier* to
+  goal — phrase/proximity is already incorporated as a _modifier_ to
   BM25F ([04-query-ranking-boosts.md](../../guides/ranking-and-boosts.md)),
   which gets most of the benefit without a second ranking model to
   maintain and explain.

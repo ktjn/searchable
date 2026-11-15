@@ -12,12 +12,12 @@ The feature includes stemming, automatic language detection, indexing, querying,
 
 ## Language codes
 
-| Tag | Meaning | Analysis |
-| --- | --- | --- |
-| `sv` | Swedish | Swedish Snowball stemmer |
-| `nl` | Dutch | Dutch Snowball stemmer |
-| `nb` | Norwegian Bokmål | Norwegian Snowball stemmer |
-| `nn` | Norwegian Nynorsk | Norwegian Snowball stemmer |
+| Tag  | Meaning                             | Analysis                                                   |
+| ---- | ----------------------------------- | ---------------------------------------------------------- |
+| `sv` | Swedish                             | Swedish Snowball stemmer                                   |
+| `nl` | Dutch                               | Dutch Snowball stemmer                                     |
+| `nb` | Norwegian Bokmål                    | Norwegian Snowball stemmer                                 |
+| `nn` | Norwegian Nynorsk                   | Norwegian Snowball stemmer                                 |
 | `no` | Generic Norwegian compatibility tag | Norwegian Snowball stemmer with Bokmål detection semantics |
 
 `nb` and `nn` are distinct registered profiles even though Snowball defines one Norwegian algorithm for both written standards. Explicit `no` documents retain their `no` index partition; the alias does not silently rewrite stored language metadata to `nb`. Automatic detection returns `nb` or `nn`, never `no`, because a generic alias is not a more precise classification than either written standard.

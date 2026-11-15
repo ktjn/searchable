@@ -3,7 +3,7 @@
 ## Status
 
 Accepted for the boundary as it exists today. The full dynamic plugin
-*registration* system in [archive/specs/plugin-architecture.md](../archive/specs/plugin-architecture.md) /
+_registration_ system in [archive/specs/plugin-architecture.md](../archive/specs/plugin-architecture.md) /
 [archive/specs/plugin-api.md](../archive/specs/plugin-api.md) remains a draft spec, not
 built — this ADR is about the boundary decision already made and
 shipped, not the future registration mechanism.
@@ -30,7 +30,7 @@ shape, not one uniform plugin system:
    `pnpm size`'s 15 KB budget is measured against this bundle including
    all of them.
    These stay small enough in code size that separate bundle-splitting
-   isn't worth the complexity yet; the *data* for each (a synonym shard,
+   isn't worth the complexity yet; the _data_ for each (a synonym shard,
    a fuzzy shard) is still fetched lazily only when a query needs it, so
    the runtime cost is opt-in even though the code isn't.
 2. **Genuinely separate, lazy-loaded dependency** (removed in 2.0):
@@ -38,7 +38,7 @@ shape, not one uniform plugin system:
    The pattern remains valid for any future heavy dependency
    (a multi-MB model, a codec only some deployments need).
 
-A real dynamic plugin *registration* API (third-party analyzers/ranking/
+A real dynamic plugin _registration_ API (third-party analyzers/ranking/
 storage backends registering themselves, per
 [archive/specs/plugin-architecture.md](../archive/specs/plugin-architecture.md)'s contract) is
 explicitly not required for 1.0 — see

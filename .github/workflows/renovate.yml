@@ -3,7 +3,7 @@ on:
   # Run once a week. Renovate has no schedule of its own, so every run creates
   # any pending update branches/PRs instead of waiting for dashboard approval.
   schedule:
-    - cron: '0 4 * * 1'
+    - cron: "0 4 * * 1"
   workflow_dispatch:
 
 jobs:

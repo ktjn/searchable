@@ -168,7 +168,7 @@ and `searchable-analysis`, `0.4.2` for the Python client, and `0.1.1` for
   the direct-mode manifest load) now rejects the caller immediately — the
   shared init keeps running for others, and no `result` event or `onPartial`
   is delivered after an abort.
-- Search event listeners receive a *deep-enough* snapshot of the search
+- Search event listeners receive a _deep-enough_ snapshot of the search
   options: filter arrays and `{min, max}` range objects (not just the
   `filters`/`boosts`/`facets` containers) are copied, so mutating anything
   a `query` listener receives — `filters.category.push(...)`,
@@ -236,7 +236,6 @@ publish of the new `searchable-binary` `0.1.0` package.
   (`1`); this patch bump releases the internal restructuring and the first
   `searchable-binary` artifact.
 
-
 This release is `1.1.1` for the npm packages, `0.2.1` for `searchable-indexer`
 and `searchable-analysis`, and `0.4.0` for the Python client.
 
@@ -244,7 +243,7 @@ and `searchable-analysis`, and `0.4.0` for the Python client.
 
 - `SearchOptions.operator` (`"and"` | `"or"`, default `"and"`, unchanged
   existing behavior) in both Python and TypeScript `searchable-client` lets
-  lexical search match documents containing *any* query term rather than
+  lexical search match documents containing _any_ query term rather than
   requiring every term slot to match the same document. Ranking still favors
   documents matching more terms via the existing per-clause score summation.
 - Multilingual stopword lists for all 12 supported languages (English, German,

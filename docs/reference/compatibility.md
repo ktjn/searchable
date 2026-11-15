@@ -14,8 +14,8 @@ for unsupported versions. Searchable 1.x indexes with manifest version `1`
 are incompatible with 2.0 clients; rebuild them with `searchable build`.
 
 | Client package | Supported manifest version |
-|---|---|
-| `2.0.x` | `2` |
+| -------------- | -------------------------- |
+| `2.0.x`        | `2`                        |
 
 Content hashes and `buildId` identify a build, not a compatibility level. The producer should validate output against `spec/schema/` and the reference examples in `spec/examples/`.
 

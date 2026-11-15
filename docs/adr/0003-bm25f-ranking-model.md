@@ -23,7 +23,7 @@ multi-field relevance rather than an ad-hoc weighted sum of independent
 scores. Layered on top: configurable field boosts (build-time default,
 per-query override), a per-query term boost, and a per-document
 `searchable-boost` multiplier applied last. Corpus-wide statistics
-(`docCount`, `avgFieldLength`) are computed *per language*, since mixing two
+(`docCount`, `avgFieldLength`) are computed _per language_, since mixing two
 languages' statistics into one number would skew idf and length
 normalization for both.
 
