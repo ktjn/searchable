@@ -1,6 +1,7 @@
 name: Renovate
 on:
-  # Run once a week, matching the schedule window in .github/renovate.json
+  # Run once a week. Renovate has no schedule of its own, so every run creates
+  # any pending update branches/PRs instead of waiting for dashboard approval.
   schedule:
     - cron: '0 4 * * 1'
   workflow_dispatch:
